@@ -21,6 +21,8 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.google.android.material.snackbar.Snackbar;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.WriterException;
 import com.google.zxing.common.BitMatrix;
@@ -30,6 +32,8 @@ import com.journeyapps.barcodescanner.BarcodeResult;
 import com.journeyapps.barcodescanner.DecoratedBarcodeView;
 import com.journeyapps.barcodescanner.DefaultDecoderFactory;
 
+import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -137,25 +141,30 @@ public class Add extends AppCompatActivity {
             return;
         }
 
-        int separatorIndex = complete.lastIndexOf(' ') + 1;
-        if (separatorIndex == 0) {
+        int separatorIndex = complete.lastIndexOf(' ');
+        if (separatorIndex == -1) {
             textView.setError(getString(R.string.invalid_id));
             resume();
             return;
         }
 
         SharedPreferences preferences = getSharedPreferences(MainActivity.FRIENDS, Context.MODE_PRIVATE);
-        HashSet<String> friendIds = new HashSet<>(preferences.getStringSet("ids", new HashSet<String>()));
-        HashSet<String> friendNames = new HashSet<>(preferences.getStringSet("names", new HashSet<>()));
+        String friendJson = preferences.getString("friends", null);
+        ArrayList<String[]> friendList = new ArrayList<>();
+        Gson gson = new Gson();
 
-        String id = complete.substring(separatorIndex);
+        if (friendJson != null) {
+            Type arrayListType = new TypeToken<ArrayList<String[]>>() {}.getType();
+            friendList = gson.fromJson(friendJson, arrayListType);
+        }
+
+        String id = complete.substring(separatorIndex + 1);
         String name = complete.substring(0, separatorIndex);
-        friendIds.add(id);
-        friendNames.add(name);
+        String[] newFriend = {name, id};
+        friendList.add(newFriend);
 
         SharedPreferences.Editor editor = preferences.edit();
-        editor.putStringSet("names", friendNames);
-        editor.putStringSet("ids", friendIds);
+        editor.putString("friends", gson.toJson(friendList));
         editor.apply();
 
         finish();

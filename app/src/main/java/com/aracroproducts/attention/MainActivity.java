@@ -6,8 +6,17 @@ import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GoogleApiAvailability;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.firebase.iid.FirebaseInstanceId;
+import com.google.firebase.iid.InstanceIdResult;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -18,9 +27,12 @@ import android.view.View;
 
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Toast;
 
+import java.lang.reflect.Type;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
+import java.util.ArrayList;
 import java.util.HashSet;
 
 import javax.crypto.SecretKey;
@@ -35,12 +47,22 @@ public class MainActivity extends AppCompatActivity {
     public static final int NAME_CALLBACK  = 0;
     public final int CUSTOMIZED_REQUEST_CODE = 0x0000ffff;
 
+    private final String TAG = getClass().getName();
+
+    private String token;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
+        if (GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(this) != ConnectionResult.SUCCESS) {
+            Toast.makeText(this, getString(R.string.no_play_services), Toast.LENGTH_LONG).show();
+            GoogleApiAvailability.getInstance().makeGooglePlayServicesAvailable(this);
+            return;
+        }
 
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -51,6 +73,8 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
+
+        getToken();
 
         SharedPreferences prefs = getSharedPreferences(USER_INFO, Context.MODE_PRIVATE);
         if (!prefs.contains("name") || !prefs.contains("id")) {
@@ -128,26 +152,59 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void getToken() {
+        FirebaseInstanceId.getInstance().getInstanceId().addOnCompleteListener(new OnCompleteListener<InstanceIdResult>() {
+            @Override
+            public void onComplete(@NonNull Task<InstanceIdResult> task) {
+                if (!task.isSuccessful()) {
+                    Log.w(TAG, "getInstanceId failed", task.getException());
+                    return;
+                }
+
+                // Get new Instance ID token
+                token = task.getResult().getToken();
+
+                // Log and toast
+                String msg = getString(R.string.msg_token_fmt, token);
+                Log.d(TAG, msg);
+            }
+        });
+    }
+
     @Override
     public void onResume() {
         super.onResume();
 
-        SharedPreferences friends = getSharedPreferences(FRIENDS, Context.MODE_PRIVATE);
-        HashSet<String> friendNameSet = new HashSet<>(friends.getStringSet("names", new HashSet<String>()));
-
-        RecyclerView friendList = findViewById(R.id.friends_list);
-        friendList.setLayoutManager(new LinearLayoutManager(this));
-
-        String[] dataset = new String[friendNameSet.size()];
-        if (!friendNameSet.isEmpty()) {
-            int position = 0;
-            for (String name: friendNameSet) {
-                dataset[position] = name;
-                position++;
-            }
+        if (GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(this) != ConnectionResult.SUCCESS) {
+            Toast.makeText(this, getString(R.string.no_play_services), Toast.LENGTH_LONG).show();
+            GoogleApiAvailability.getInstance().makeGooglePlayServicesAvailable(this);
+            return;
         }
+
+        SharedPreferences friends = getSharedPreferences(FRIENDS, Context.MODE_PRIVATE);
+        String friendJson = friends.getString("friends", null);
+        ArrayList<String[]> friendList = new ArrayList<>();
+
+        Gson gson = new Gson();
+
+        if (friendJson != null) {
+            Type arrayListType = new TypeToken<ArrayList<String[]>>() {}.getType();
+            friendList = gson.fromJson(friendJson, arrayListType);
+
+            Log.d(TAG, friendJson);
+        }
+
+        RecyclerView friendListView = findViewById(R.id.friends_list);
+        friendListView.setLayoutManager(new LinearLayoutManager(this));
+
+        String[][] dataset = new String[friendList.size()][2];
+        for (int x = 0; x < friendList.size(); x++) {
+            dataset[x][0] = friendList.get(x)[0];
+            dataset[x][1] = friendList.get(x)[1];
+        }
+
         FriendAdapter adapter = new FriendAdapter(dataset);
-        friendList.setAdapter(adapter);
+        friendListView.setAdapter(adapter);
     }
 
     @Override

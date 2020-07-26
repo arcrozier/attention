@@ -4,4 +4,5 @@
     <color name="colorPrimaryDark">#00107C</color>
     <color name="colorAccent">#9EB5F1</color>
     <color name="danger">#DF4949</color>
+    <color name="darkest_gray">#474747</color>
 </resources>

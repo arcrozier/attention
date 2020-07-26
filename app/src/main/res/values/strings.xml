@@ -21,10 +21,20 @@
     <string name="no_id">Please enter or scan an ID</string>
     <string name="scan_new">Please scan a new code</string>
     <string name="no_camera">No camera detected</string>
+    <string name="alert_sent">Successfully sent alert</string>
+    <string name="too_many_messages">You have too many pending alerts. Please wait for some to send</string>
+    <string name="general_error">Error: Could not send alert</string>
 
     <string name="permissions_needed">Permissions required to scan</string>
     <string name="permission_details">Grant camera permission to scan your friend\'s QR code. You can also enter their user ID manually, if you prefer</string>
 
     <string name="allow">Allow</string>
     <string name="deny">Deny</string>
+
+    <string name="msg_token_fmt">Generated token: %s$1</string>
+    <string name="log_msg_sent">Message %s successfully sent</string>
+    <string name="log_sending_msg">Sending message (Id: %s$1) to Firebase</string>
+    <string name="log_send_error">Error sending message (Id: %s$1) with error %s$2</string>
+
+    <string name="no_play_services">No Google Play Services were found on your device</string>
 </resources>
