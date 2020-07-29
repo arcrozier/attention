@@ -1,5 +1,6 @@
 package com.aracroproducts.attention;
 
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -11,6 +12,8 @@ import androidx.annotation.NonNull;
 
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.iid.InstanceIdResult;
 import com.google.firebase.messaging.FirebaseMessaging;
@@ -24,33 +27,36 @@ public class AlertHandler extends FirebaseMessagingService {
 
     private Task<InstanceIdResult> idResultTask;
 
-    @Override
+    /*@Override
     public void onNewToken(String token) {
         Log.d(TAG, "New token: " + token);
 
         sendRegistrationToServer(token);
-    }
+    }*/
 
     @Override
     public void onMessageReceived(RemoteMessage remoteMessage) {
+        Log.d(TAG, "Message received! " + remoteMessage.toString());
         //First: check if the sender is on the list in the shared preferences
         //todo here is where the phone should vibrated, woken up, and pop-up dialog displayed (provided message is correct)
     }
 
 
 
-    private void sendRegistrationToServer(String token) {
-        String SENDER_ID = getSharedPreferences(MainActivity.USER_INFO, Context.MODE_PRIVATE).getString("id", null);
-        String messageId = Long.toString(System.currentTimeMillis());
-        FirebaseMessaging fm = FirebaseMessaging.getInstance();
+   /* private void sendRegistrationToServer(String token) {
+        User user = new User(getSharedPreferences(MainActivity.USER_INFO, Context.MODE_PRIVATE).getString("id", null), token);
+        if (user.getUid() == null) return;
+        PendingIntent pendingIntent = MainActivity.createPendingResult(AppServer.ACTION_POST_TOKEN);
+
+        *//*FirebaseMessaging fm = FirebaseMessaging.getInstance();
         fm.send(new RemoteMessage.Builder(SENDER_ID + "@fcm.googleapis.com")
                 .setMessageId(messageId)
                 .addData("action", "update_id")
                 .addData("id", SENDER_ID)
                 .addData("token", token)
-                .build());
-        Log.d(TAG, getString(R.string.log_sending_msg, messageId));
-    }
+                .build());*//*
+        Log.d(TAG, getString(R.string.log_register_user));
+    }*/
 
     @Override
     public void onMessageSent(String messageId) {

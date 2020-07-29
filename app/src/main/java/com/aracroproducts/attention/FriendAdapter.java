@@ -2,20 +2,27 @@ package com.aracroproducts.attention;
 
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
+import android.app.AlertDialog;
+import android.app.PendingIntent;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.CountDownTimer;
+import android.telecom.Call;
+import android.text.InputType;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -28,6 +35,7 @@ import com.google.firebase.messaging.RemoteMessage;
 public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem> {
     private String[][] dataset;
     private static final String TAG = FriendAdapter.class.getName();
+    private Callback callback;
 
     public static class FriendItem extends RecyclerView.ViewHolder implements View.OnClickListener {
 
@@ -36,6 +44,10 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem
         private FrameLayout cancelButton;
         private String id;
         private ProgressBar progressBar;
+        private ConstraintLayout confirmButtonLayout;
+        private Button addMessage;
+
+        protected Callback callback;
 
         private CountDownTimer delay;
 
@@ -50,8 +62,10 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem
 
             textView = v.findViewById(R.id.friend_name);
             confirmButton = v.findViewById(R.id.confirm_button);
+            confirmButtonLayout = v.findViewById(R.id.confirmLayout);
             cancelButton = v.findViewById(R.id.cancel_button);
             progressBar = v.findViewById(R.id.progress_bar);
+            addMessage = v.findViewById(R.id.add_message);
 
             textView.setOnClickListener(this);
             confirmButton.setOnClickListener(this);
@@ -74,22 +88,45 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem
                         break;
                 }
             } else if (v.getId() == confirmButton.getId()) {
-                alert();
+                alert(3500, null);
             } else if (v.getId() == cancelButton.getId()) {
                 cancel();
 
+            } else if (v.getId() == addMessage.getId()) {
+                AlertDialog.Builder builder = new AlertDialog.Builder(textView.getContext());
+                builder.setTitle(textView.getContext().getString(R.string.add_message));
+
+                final EditText input = new EditText(textView.getContext());
+
+                input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_AUTO_COMPLETE | InputType.TYPE_TEXT_FLAG_AUTO_CORRECT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+                builder.setView(input);
+
+                builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        alert(0, input.getText().toString());
+                    }
+                });
+                builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        FriendItem.this.cancel();
+                    }
+                });
+                builder.show();
             }
         }
 
         public void prompt() {
-            confirmButton.setVisibility(View.VISIBLE);
+            confirmButtonLayout.setVisibility(View.VISIBLE);
             cancelButton.setVisibility(View.GONE);
             alertState = State.CONFIRM;
         }
 
-        public void alert() {
+        public void alert(final int undoTime, String message) {
+            progressBar.setProgress(0);
             cancelButton.setVisibility(View.VISIBLE);
-            confirmButton.setVisibility(View.GONE);
+            confirmButtonLayout.setVisibility(View.GONE);
             alertState = State.CANCEL;
             /*
             Intent intent = new Intent(textView.getContext(), AlertHandler.class);
@@ -97,7 +134,7 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem
             textView.getContext().startService(intent);
             */
 
-            delay = new CountDownTimer(3500, 3500) {
+            delay = new CountDownTimer(undoTime, 3500) {
                 @Override
                 public void onTick(long l) {
 
@@ -105,7 +142,7 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem
 
                 @Override
                 public void onFinish() {
-                    sendAlertToServer(id);
+                    sendAlert(id, message);
                     FriendItem.this.cancel();
                 }
             };
@@ -127,12 +164,20 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem
         public void cancel() {
             Log.d(TAG, "Cancelled alert");
             cancelButton.setVisibility(View.GONE);
-            confirmButton.setVisibility(View.GONE);
+            confirmButtonLayout.setVisibility(View.GONE);
             alertState = State.NORMAL;
             if (delay != null) delay.cancel();
         }
 
-        private boolean sendAlertToServer(final String recipientId) {
+        private void sendAlert(String id, String message) {
+            if (callback != null) {
+                callback.onSendAlert(id, message);
+            } else {
+                Log.e(TAG, "Callback was null!");
+            }
+        }
+/*
+        private boolean sendAlertToServer(final String recipientId, String message) {
 
             String SENDER_ID = textView.getContext().getSharedPreferences(MainActivity.USER_INFO, Context.MODE_PRIVATE).getString("id", null);
 
@@ -148,17 +193,30 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem
                             .addData("to", recipientId)
                             .addData("from", SENDER_ID)
                             .build());
-                    Log.d(TAG, textView.getContext().getString(R.string.log_sending_msg, messageId));
+                    Log.d(TAG, textView.getContext().getString(R.string.log_sending_msg));
                     //todo send message
                 }
             });
             return false;
-        }
+        }*/
+
     }
 
-    public FriendAdapter(String[][] myDataset) {
+    public FriendAdapter(String[][] myDataset, Callback callback) {
+        super();
         dataset = myDataset;
+        this.callback = callback;
     }
+
+    public interface Callback {
+        void onSendAlert(String id, String message);
+    }
+
+    public void setCallback(Callback callback) {
+        this.callback = callback;
+    }
+
+
 
     @Override
     public FriendAdapter.FriendItem onCreateViewHolder(ViewGroup parent, int viewType) {
@@ -171,6 +229,7 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem
     public void onBindViewHolder(FriendItem holder, int position) {
         holder.textView.setText(dataset[position][0]);
         holder.setId(dataset[position][1]);
+        holder.callback = callback;
     }
 
     @Override

@@ -160,7 +160,7 @@ public class Add extends AppCompatActivity {
 
         String id = complete.substring(separatorIndex + 1);
         String name = complete.substring(0, separatorIndex);
-        String[] newFriend = {name, id};
+        String[] newFriend = {name.trim(), id.trim()};
         friendList.add(newFriend);
 
         SharedPreferences.Editor editor = preferences.edit();

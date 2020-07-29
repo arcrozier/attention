@@ -1,6 +1,6 @@
 <?php
 
-require_once '../includes/operations.php';
+require_once 'includes/operations.php';
 
 //checks if the params specified in the array are available, returns a standard response array
 // 'success' whether all the params were there, 'message' which specifies which params were missing
@@ -28,8 +28,9 @@ function paramsAvailable($params) {
 
 $response = array();
 $db = new Operation();
-$log_dir = "../includes/log.txt";
-$temp_log_dir = "../includes/temp_log.txt";
+$log_dir = "includes/log.txt";
+$temp_log_dir = "includes/temp_log.txt";
+
 
 $log_file = fopen($log_dir, "a");
 
@@ -50,13 +51,13 @@ if(isset($_GET['function'])) {
     switch ($function) {
         case 'post_id':
             if (($response = paramsAvailable(array('token', 'id')))['success']) {
-                $response = $db->pushID($response, $_POST['token'], $_POST['id']);
+                $response = $db->pushID($_POST['token'], $_POST['id'], $response);
             }
         break;
-        case 'get_token_for_id':
-            if (isset([$_GET['id']])) {
-                $response = $db->getToken($user, 'future', $_POST['data'], $response);
-            }
+        case 'send_alert':
+            if (($response = paramsAvailable(array('to', 'from', 'message')))['success']) {
+                $response = $db->sendAlert($_POST['to'], $_POST['from'], $_POST['message'], $response);
+            } 
         break;
         default:
         $response = $db->build_response($response, false, 'Invalid function specified', null, 400);
