@@ -1,5 +1,11 @@
 <?php
 
+//require_once('/home2/stehekin/vendor/firebase/php-jwt/src/JWT.php');
+//require_once('/home2/stehekin/vendor/google-api-php-client/google-api-php-client/src/Google/Client.php');
+require_once('/home2/stehekin/vendor/autoload.php');
+
+use Firebase\JWT\JWT;
+
 class Operation
 {
     private $con;
@@ -12,7 +18,7 @@ class Operation
         $db = new Connect();
 
         $this->con = $db->connect($long_query);
-        $this->auth = file_get_contents(__DIR__ . "/auth.txt");
+        $this->auth = json_decode(file_get_contents("/home2/stehekin/bin/attention-auth-key.json"), true);
     }
 
 
@@ -52,7 +58,6 @@ class Operation
         $stmt->fetch();
 
         if ($token == '') {
-
         }
 
         $success = true;
@@ -63,6 +68,50 @@ class Operation
         return $response;
     }
 
+    private function createCustomToken()
+    {
+        $client_email = $this->auth['client_email'];
+        $private_key = $this->auth['private_key'];
+        $now_seconds = time();
+        $payload = array(
+            "iss" => $client_email,
+            "sub" => $client_email,
+            "aud" => "https://identitytoolkit.googleapis.com/google.identity.identitytoolkit.v1.IdentityToolkit",
+            "iat" => $now_seconds,
+            "exp" => $now_seconds + (3600),
+            "uid" => "attention web app"
+        );
+        return JWT::encode($payload, $private_key, "RS256");
+    }
+
+    private function getOauthToken()
+    {
+        $client = new Google_Client();
+        try {
+            $client->setAuthConfig("/home2/stehekin/bin/attention-auth-key.json");
+            $client->addScope(Google_Service_FirebaseCloudMessaging::CLOUD_PLATFORM);
+
+            $savedTokenJson = $this->readFile();
+
+            if ($savedTokenJson != null) {
+                $client->setAccessToken($savedTokenJson);
+
+                if ($client->isAccessTokenExpired()) {
+                    $accessToken = $this->generateToken($client);
+                    $client->setAccessToken($accessToken);
+                }
+            } else {
+                $accessToken = $this->generateToken($client);
+                $client->setAccessToken($accessToken);
+            }
+
+            $oauthToken = $accessToken['access_token'];
+            return $oauthToken;
+        } catch (Google_Exception $e) {
+            return "An exception occurred";
+        }
+    }
+
     function sendAlert($to, $from, $message, $response)
     {
         $token_response = $this->getToken($to, $response);
@@ -71,18 +120,22 @@ class Operation
         }
         $token = $token_response['data'];
         $url = 'https://fcm.googleapis.com/v1/projects/attention-b923d/messages:send';
-        $data = [
-            "registration_ids" => $token,
-            "data" => [
-                "to" => $to,
-                "from" => $from,
-                "message" => $message
-            ]
-        ];
+        $data = array(
+            'message' => array(
+                'token' => $token,
+                //'name' => strval(time()),
+                'data' => array(
+                    'alert_to' => $to,
+                    'alert_from' => $from,
+                    'alert_message' => $message
+                )
+            )
+        );
         $json_data = json_encode($data);
+        $FCMToken = $this->getOauthToken();
         $headers = array(
             'Content-Type:application/json',
-            "Authorization:key=$this->auth"
+            "Authorization: Bearer " . $FCMToken
         );
 
         $ch = curl_init();
@@ -97,8 +150,11 @@ class Operation
         if ($result === false) {
             return $this->build_response($response, false, "FCM send error " . curl_error($ch), null, 500);
         }
+        if (strpos($result, "error") !== FALSE) {
+            return $this->build_response($response, false, "An error occurred while sending message", $result, 500);
+        }
         curl_close($ch);
-        return $this->build_response($response, true, 'Sent message successfully');
+        return $this->build_response($response, true, 'Sent message successfully' . $result, $token);
     }
 
     function build_response($response, $success, $message, $data = null, $response_code = 200)
@@ -108,5 +164,28 @@ class Operation
         $response['data'] = $data;
         http_response_code($response_code);
         return $response;
+    }
+
+    private function readFile()
+    {
+        $saved_token = file_get_contents("/home2/stehekin/bin/saved_token");
+        if ($saved_token === FALSE) return null;
+        return $saved_token;
+    }
+
+    private function saveFile($file)
+    {
+        file_put_contents("/home2/stehekin/bin/saved_token", $file);
+    }
+
+    private function generateToken($client)
+    {
+        $client->fetchAccessTokenWithAssertion();
+        $accessToken = $client->getAccessToken();
+
+        $tokenJson = json_encode($accessToken);
+        $this->saveFile($accessToken);
+
+        return $accessToken;
     }
 }

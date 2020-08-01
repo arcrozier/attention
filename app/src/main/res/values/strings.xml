@@ -26,18 +26,35 @@
     <string name="too_many_messages">You have too many pending alerts. Please wait for some to send</string>
     <string name="general_error">Error: Could not send alert</string>
     <string name="user_registered">Your account has been registered!</string>
+    <string name="default_message">%s wants your attention!</string>
+    <string name="message_prefix">%s says: %s</string>
+
+    <string name="confirm_delete_title">Delete friend</string>
+    <string name="confirm_delete_message">Are you sure you want to remove %s from your friends?</string>
+    <string name="yes">Yes</string>
 
 
     <string name="permissions_needed">Permissions required to scan</string>
     <string name="permission_details">Grant camera permission to scan your friend\'s QR code. You can also enter their user ID manually, if you prefer</string>
+    <string name="channel_name">Missed alerts</string>
+    <string name="channel_description">Notifies you when you missed an alert</string>
+    <string name="notification_title">Missed alert from %s</string>
+    <string name="alert_notification_title">Alert from %s</string>
+    <string name="alert_channel_name">Alerts</string>
+    <string name="alert_channel_description">Notifies you of new alerts</string>
+
 
     <string name="allow">Allow</string>
     <string name="deny">Deny</string>
+    <string name="draw_title">Draw overlays</string>
+    <string name="draw_message">Allow Attention! to draw overlays? This enables showing alerts while your device is in use</string>
+    <string name="open_settings">Open settings</string>
+    <string name="do_not_ask_again">Do not ask again</string>
 
-    <string name="msg_token_fmt">Generated token: %s$1</string>
+    <string name="msg_token_fmt">Generated token: %s</string>
     <string name="log_msg_sent">Message %s successfully sent</string>
     <string name="log_register_user">Registering user with firebase</string>
-    <string name="log_send_error">Error sending message (Id: %s$1) with error %s$2</string>
+    <string name="log_send_error">Error sending message (Id: %s) with error %s</string>
     <string name="log_sending_msg">Sending message to server</string>
 
     <string name="no_play_services">No Google Play Services were found on your device</string>

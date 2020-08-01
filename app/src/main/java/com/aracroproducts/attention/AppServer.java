@@ -1,11 +1,10 @@
 package com.aracroproducts.attention;
 
-import android.app.IntentService;
-import android.app.PendingIntent;
-import android.content.Intent;
 import android.content.Context;
+import android.content.Intent;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.core.app.JobIntentService;
 
 import java.io.BufferedReader;
@@ -13,17 +12,10 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
-/**
- * An {@link IntentService} subclass for handling asynchronous task requests in
- * a service on a separate handler thread.
- * <p>
- * TODO: Customize class - update intent actions, extra parameters and static
- * helper methods.
- */
+
 public class AppServer extends JobIntentService {
     private final String TAG = getClass().getName();
 
@@ -38,6 +30,7 @@ public class AppServer extends JobIntentService {
 
     protected static final String EXTRA_PENDING_RESULT = "com.aracroproducts.attention.extra.pending_result";
     protected static final String EXTRA_DATA = "com.aracroproducts.attention.extra.data";
+    protected static final String JOB_ID_EXTRA = "com.aracroproducts.attention.extra.job_id";
 
     protected static final int CODE_SUCCESS = 0;
     protected static final int CODE_ERROR = 1;
@@ -56,16 +49,19 @@ public class AppServer extends JobIntentService {
         super();
     }
 
-    public static void enqueueWork(Context context, Intent intent) {
+    public static void enqueueWork(Context context, Intent intent, int requestCode) {
+        intent.putExtra(JOB_ID_EXTRA, requestCode);
         enqueueWork(context, AppServer.class, JOB_ID, intent);
     }
 
     @Override
-    protected void onHandleWork(Intent intent) {
-        Log.d(TAG, "Handling work. Is intent null? " + (intent == null));
-        if (intent != null) {
+    protected void onHandleWork(@NonNull Intent intent) {
+        Log.d(TAG, "Handling work");
+        if (intent.getAction() != null) {
             Log.d(TAG, intent.toString() + " Action: " + intent.getAction());
             final String action = intent.getAction();
+            int requestCode = intent.getIntExtra(JOB_ID_EXTRA, 0);
+
             //PendingIntent reply = intent.getParcelableExtra(EXTRA_PENDING_RESULT);
             Intent result = new Intent();
             switch (action) {
@@ -97,6 +93,8 @@ public class AppServer extends JobIntentService {
                         result.putExtra(EXTRA_DATA, "Error sending alert");
                         //reply.send(this, CODE_ERROR, result);
                     }
+                    //todo provide real callbacks
+                    //todo figure out a good way to pass result back (implement a BroadcastSender, probably)
             }
 
         }
@@ -150,8 +148,6 @@ public class AppServer extends JobIntentService {
 
             return code == HttpURLConnection.HTTP_CREATED || code == HttpURLConnection.HTTP_OK;
 
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -170,4 +166,5 @@ public class AppServer extends JobIntentService {
         }
         return builder.toString();
     }
+
 }

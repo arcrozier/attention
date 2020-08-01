@@ -1,23 +1,21 @@
 package com.aracroproducts.attention;
 
-import android.app.PendingIntent;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.GoogleApiAvailability;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.iid.FirebaseInstanceId;
-import com.google.firebase.iid.InstanceIdResult;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
+import android.provider.Settings;
+import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -25,18 +23,20 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import android.util.Log;
-import android.view.View;
-
-import android.view.Menu;
-import android.view.MenuItem;
-import android.widget.Toast;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GoogleApiAvailability;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.firebase.iid.FirebaseInstanceId;
+import com.google.firebase.iid.InstanceIdResult;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import java.lang.reflect.Type;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
-import java.util.HashSet;
 
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
@@ -47,13 +47,21 @@ public class MainActivity extends AppCompatActivity {
     public static final String USER_INFO = "user";
     public static final String FRIENDS = "listen";
 
+    public static final String MY_ID = "id";
+    public static final String MY_NAME = "name";
+    public static final String MY_TOKEN = "token";
+    public static final String UPLOADED = "uploaded";
+    public static final String FRIEND_LIST = "friends";
+    public static final String OVERLAY_NO_PROMPT = "OverlayDoNotAsk";
+
     public static final int NAME_CALLBACK = 0;
-    public final int CUSTOMIZED_REQUEST_CODE = 0x0000ffff;
 
     private final String TAG = getClass().getName();
 
     private String token;
     private User user;
+
+    //todo put in a BroadcastReceiver up here
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,22 +78,22 @@ public class MainActivity extends AppCompatActivity {
 
         SharedPreferences prefs = getSharedPreferences(USER_INFO, Context.MODE_PRIVATE);
 
-        if (!prefs.contains("uploaded")) {
+        if (!prefs.contains(UPLOADED)) {
             SharedPreferences.Editor editor = prefs.edit();
-            editor.putBoolean("uploaded", false);
+            editor.putBoolean(UPLOADED, false);
             editor.apply();
         }
 
 
-        if (!prefs.contains("name") || !prefs.contains("id")) {
+        if (!prefs.contains(MY_NAME) || !prefs.contains(MY_ID)) {
             user = new User();
             Intent intent = new Intent(this, DialogActivity.class);
             startActivityForResult(intent, NAME_CALLBACK);
         } else {
-            user = new User(prefs.getString("id", null), token);
+            user = new User(prefs.getString(MY_ID, null), token);
         }
 
-        if (user.getUid() != null && user.getToken() != null && !prefs.getBoolean("uploaded", false)) {
+        if (user.getUid() != null && user.getToken() != null && !prefs.getBoolean(UPLOADED, false)) {
             updateToken(user);
         } else {
             getToken();
@@ -101,6 +109,21 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        if (!Settings.canDrawOverlays(this) && !prefs.contains(OVERLAY_NO_PROMPT)) {
+            androidx.appcompat.app.AlertDialog alertDialog = new androidx.appcompat.app.AlertDialog.Builder(this).create();
+            alertDialog.setTitle(getString(R.string.draw_title));
+            alertDialog.setMessage(getString(R.string.draw_message));
+            alertDialog.setButton(DialogInterface.BUTTON_POSITIVE, getString(R.string.open_settings), (dialogInterface, i) -> {
+                Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getApplicationContext().getPackageName()));
+                startActivity(intent);
+            });
+            alertDialog.setButton(DialogInterface.BUTTON_NEGATIVE, getString(R.string.do_not_ask_again), (dialogInterface, i) -> {
+                SharedPreferences.Editor editor = prefs.edit();
+                editor.putBoolean(OVERLAY_NO_PROMPT, true);
+                editor.apply();
+            });
+            alertDialog.show();
+        }
 
     }
 
@@ -110,10 +133,10 @@ public class MainActivity extends AppCompatActivity {
             case NAME_CALLBACK:
                 SharedPreferences prefs = getSharedPreferences(USER_INFO, Context.MODE_PRIVATE);
                 SharedPreferences.Editor editor = prefs.edit();
-                editor.putString("name", data.getStringExtra("name"));
-                editor.putString("id", makeId(data.getStringExtra("name")));
+                editor.putString(MY_NAME, data.getStringExtra(MY_NAME));
+                editor.putString(MY_ID, makeId(data.getStringExtra(MY_NAME)));
                 editor.apply();
-                user.setUid(prefs.getString("id", null));
+                user.setUid(prefs.getString(MY_ID, null));
                 addUserToDB(user);
                 break;
             case AppServer.CALLBACK_POST_TOKEN:
@@ -121,11 +144,11 @@ public class MainActivity extends AppCompatActivity {
                 SharedPreferences.Editor sharedPreferences = getSharedPreferences(USER_INFO, Context.MODE_PRIVATE).edit();
                 switch (resultCode) {
                     case AppServer.CODE_SUCCESS:
-                        sharedPreferences.putBoolean("uploaded", true);
+                        sharedPreferences.putBoolean(UPLOADED, true);
                         Toast.makeText(this, getString(R.string.user_registered), Toast.LENGTH_SHORT).show();
                         break;
                     case AppServer.CODE_ERROR:
-                        sharedPreferences.putBoolean("uploaded", false);
+                        sharedPreferences.putBoolean(UPLOADED, false);
 
                 }
                 sharedPreferences.apply();
@@ -140,35 +163,6 @@ public class MainActivity extends AppCompatActivity {
                         Log.e(TAG, "Error sending alert");
                         Toast.makeText(this, getString(R.string.general_error), Toast.LENGTH_LONG).show();
                 }
-
-            /*case CUSTOMIZED_REQUEST_CODE:
-                IntentResult result = IntentIntegrator.parseActivityResult(resultCode, data);
-                if(result.getContents() == null) {
-                    Intent originalIntent = result.getOriginalIntent();
-                    if (originalIntent == null) {
-                        Log.d("MainActivity", "Cancelled scan");
-                        Toast.makeText(this, "Cancelled", Toast.LENGTH_LONG).show();
-                    } else if(originalIntent.hasExtra(Intents.Scan.MISSING_CAMERA_PERMISSION)) {
-                        Log.d("MainActivity", "Cancelled scan due to missing camera permission");
-                        Toast.makeText(this, "Cancelled due to missing camera permission", Toast.LENGTH_LONG).show();
-                    }
-                } else {
-                    Log.d("MainActivity", "Scanned");
-                    String friendTag = result.getContents();
-                    String friendName = friendTag.substring(friendTag.indexOf(' ') + 1);
-                    String  friendId = friendTag.substring(0, friendTag.indexOf(' ') + 1);
-                    SharedPreferences friends = getSharedPreferences(FRIENDS, Context.MODE_PRIVATE);
-                    HashSet<String> friendIdSet = new HashSet<>(friends.getStringSet("ids", new HashSet<String>()));
-                    HashSet<String> friendNameSet = new HashSet<>(friends.getStringSet("names", new HashSet<String>()));
-                    friendIdSet.add(friendId);
-                    friendNameSet.add(friendName);
-                    SharedPreferences.Editor editor1 = friends.edit();
-                    editor1.putStringSet("ids", friendIdSet);
-                    editor1.putStringSet("names", friendNameSet);
-                    editor1.apply();
-                }
-
-             */
         }
         super.onActivityResult(requestCode, resultCode, data);
     }
@@ -199,32 +193,29 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void getToken() {
-        FirebaseInstanceId.getInstance().getInstanceId().addOnCompleteListener(new OnCompleteListener<InstanceIdResult>() {
-            @Override
-            public void onComplete(@NonNull Task<InstanceIdResult> task) {
-                if (!task.isSuccessful()) {
-                    Log.w(TAG, "getInstanceId failed", task.getException());
-                    return;
-                }
-
-                // Get new Instance ID token
-                token = task.getResult().getToken();
-                Log.d(TAG, "Got token! " + token);
-                user.setToken(token);
-
-                SharedPreferences preferences = getSharedPreferences(USER_INFO, Context.MODE_PRIVATE);
-                if (!token.equals(preferences.getString("token", ""))) {
-                    if (user.getUid() == null && preferences.getBoolean("uploaded", false)) {
-                        preferences.edit().putBoolean("uploaded", false).apply();
-                    } else {
-                        updateToken(user);
-                    }
-                }
-
-                // Log and toast
-                String msg = getString(R.string.msg_token_fmt, token);
-                Log.d(TAG, msg);
+        FirebaseInstanceId.getInstance().getInstanceId().addOnCompleteListener(task -> {
+            if (!task.isSuccessful()) {
+                Log.w(TAG, "getInstanceId failed", task.getException());
+                return;
             }
+
+            // Get new Instance ID token
+            token = task.getResult().getToken();
+            Log.d(TAG, "Got token! " + token);
+            user.setToken(token);
+
+            SharedPreferences preferences = getSharedPreferences(USER_INFO, Context.MODE_PRIVATE);
+            if (!token.equals(preferences.getString(MY_TOKEN, ""))) {
+                if (user.getUid() == null && preferences.getBoolean(UPLOADED, false)) {
+                    preferences.edit().putBoolean(UPLOADED, false).apply();
+                } else {
+                    updateToken(user);
+                }
+            }
+
+            // Log and toast
+            String msg = getString(R.string.msg_token_fmt, token);
+            Log.d(TAG, msg);
         });
     }
 
@@ -238,8 +229,13 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
+        populateFriendList();
+
+    }
+
+    private void populateFriendList() {
         SharedPreferences friends = getSharedPreferences(FRIENDS, Context.MODE_PRIVATE);
-        String friendJson = friends.getString("friends", null);
+        String friendJson = friends.getString(FRIEND_LIST, null);
         ArrayList<String[]> friendList = new ArrayList<>();
 
         Gson gson = new Gson();
@@ -268,11 +264,54 @@ public class MainActivity extends AppCompatActivity {
             public void onSendAlert(String id, String message) {
                 sendAlertToServer(id, message);
             }
+
+            @Override
+            public void onDeletePrompt(int position, String name) {
+
+                Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+
+                vibrator.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.EFFECT_HEAVY_CLICK));
+
+
+                AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
+                alertDialog.setTitle(getString(R.string.confirm_delete_title));
+                alertDialog.setMessage(getString(R.string.confirm_delete_message, name));
+                alertDialog.setButton(DialogInterface.BUTTON_POSITIVE, getString(R.string.yes), (dialogInterface, i) -> {
+                    deleteFriend(position);
+                    dialogInterface.cancel();
+                });
+                alertDialog.setButton(DialogInterface.BUTTON_NEGATIVE, getString(android.R.string.cancel), (dialogInterface, i) -> dialogInterface.cancel());
+                alertDialog.show();
+            }
         };
 
         adapter.setCallback(adapterListener);
 
         friendListView.setAdapter(adapter);
+    }
+
+    private void deleteFriend(int index) {
+        SharedPreferences friends = getSharedPreferences(FRIENDS, Context.MODE_PRIVATE);
+        String friendJson = friends.getString(FRIEND_LIST, null);
+        ArrayList<String[]> friendList;
+
+        Gson gson = new Gson();
+
+        if (friendJson == null) {
+            Log.w(TAG, "Friend list was null, unable to delete friend");
+            return;
+        }
+        Type arrayListType = new TypeToken<ArrayList<String[]>>() {
+        }.getType();
+        friendList = gson.fromJson(friendJson, arrayListType);
+
+        friendList.remove(index);
+        Log.d(TAG, "Removed friend");
+        SharedPreferences.Editor editor = friends.edit();
+        editor.putString(FRIEND_LIST, gson.toJson(friendList));
+        editor.apply();
+        populateFriendList();
+
     }
 
     private void sendAlertToServer(String id, String message) {
@@ -288,7 +327,7 @@ public class MainActivity extends AppCompatActivity {
         }
         intent.setAction(AppServer.ACTION_SEND_ALERT);
        // intent.putExtra(AppServer.EXTRA_PENDING_RESULT, pendingIntent);
-        AppServer.enqueueWork(this, intent);
+        AppServer.enqueueWork(this, intent, AppServer.CALLBACK_SEND_ALERT);
 
 
     }
@@ -330,9 +369,8 @@ public class MainActivity extends AppCompatActivity {
                 intent.putExtra(AppServer.EXTRA_ID, user.getUid());
                 intent.setAction(AppServer.ACTION_POST_TOKEN);
                 //intent.putExtra(AppServer.EXTRA_PENDING_RESULT, pendingIntent);
-                AppServer.enqueueWork(MainActivity.this, intent);
+                AppServer.enqueueWork(MainActivity.this, intent, AppServer.CALLBACK_POST_TOKEN);
                 Log.d(TAG, getString(R.string.log_sending_msg));
-                //todo send message
             }
         });
     }

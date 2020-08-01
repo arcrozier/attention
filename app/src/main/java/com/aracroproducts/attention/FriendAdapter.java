@@ -22,6 +22,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.widget.AppCompatImageButton;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -46,6 +47,9 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem
         private ProgressBar progressBar;
         private ConstraintLayout confirmButtonLayout;
         private Button addMessage;
+        private AppCompatImageButton cancelSend;
+
+        private int position;
 
         protected Callback callback;
 
@@ -66,16 +70,30 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem
             cancelButton = v.findViewById(R.id.cancel_button);
             progressBar = v.findViewById(R.id.progress_bar);
             addMessage = v.findViewById(R.id.add_message);
+            cancelSend = v.findViewById(R.id.cancel_send);
 
             textView.setOnClickListener(this);
             confirmButton.setOnClickListener(this);
             cancelButton.setOnClickListener(this);
+            cancelSend.setOnClickListener(this);
+            addMessage.setOnClickListener(this);
+
+            textView.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View view) {
+                    callback.onDeletePrompt(position, textView.getText().toString());
+                    return false;
+                }
+            });
         }
 
         public void setId(String id) {
             this.id = id;
         }
 
+        public void setPosition(int position) {
+            this.position = position;
+        }
         @Override
         public void onClick(View v) {
             if (v.getId() == textView.getId()) {
@@ -89,7 +107,7 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem
                 }
             } else if (v.getId() == confirmButton.getId()) {
                 alert(3500, null);
-            } else if (v.getId() == cancelButton.getId()) {
+            } else if (v.getId() == cancelButton.getId() || v.getId() == cancelSend.getId()) {
                 cancel();
 
             } else if (v.getId() == addMessage.getId()) {
@@ -115,11 +133,15 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem
                 });
                 builder.show();
             }
+
+
         }
+
 
         public void prompt() {
             confirmButtonLayout.setVisibility(View.VISIBLE);
             cancelButton.setVisibility(View.GONE);
+            textView.setAlpha(0.25f);
             alertState = State.CONFIRM;
         }
 
@@ -165,6 +187,7 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem
             Log.d(TAG, "Cancelled alert");
             cancelButton.setVisibility(View.GONE);
             confirmButtonLayout.setVisibility(View.GONE);
+            textView.setAlpha(1.0f);
             alertState = State.NORMAL;
             if (delay != null) delay.cancel();
         }
@@ -194,7 +217,6 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem
                             .addData("from", SENDER_ID)
                             .build());
                     Log.d(TAG, textView.getContext().getString(R.string.log_sending_msg));
-                    //todo send message
                 }
             });
             return false;
@@ -210,6 +232,7 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem
 
     public interface Callback {
         void onSendAlert(String id, String message);
+        void onDeletePrompt(int position, String name);
     }
 
     public void setCallback(Callback callback) {
@@ -229,6 +252,7 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem
     public void onBindViewHolder(FriendItem holder, int position) {
         holder.textView.setText(dataset[position][0]);
         holder.setId(dataset[position][1]);
+        holder.setPosition(position);
         holder.callback = callback;
     }
 

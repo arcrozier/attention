@@ -71,10 +71,10 @@ fwrite($log_file, "\n");
 fclose($log_file);
 echo json_encode($response);
 
-if (file_exists($log_dir) && filesize($log_dir) > 5000000) { 
+if (file_exists($log_dir) && filesize($log_dir) > 500000) { 
     $shrink_file = fopen($log_dir, 'r');
     $temp_log = fopen($temp_log_dir, 'a');
-    fseek($shrink_file, 1000000);
+    fseek($shrink_file, 100000);
     while ($line = fgets($shrink_file)) {
         fwrite($temp_log, $line);
     }

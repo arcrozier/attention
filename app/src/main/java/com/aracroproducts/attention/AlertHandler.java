@@ -1,25 +1,30 @@
 package com.aracroproducts.attention;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.os.IBinder;
+import android.content.SharedPreferences;
+import android.os.Build;
+import android.os.PowerManager;
+import android.provider.Settings;
 import android.util.Log;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 
-import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.iid.InstanceIdResult;
-import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
-import com.google.firebase.messaging.SendException;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.Map;
 
 public class AlertHandler extends FirebaseMessagingService {
 
@@ -27,21 +32,138 @@ public class AlertHandler extends FirebaseMessagingService {
 
     private Task<InstanceIdResult> idResultTask;
 
-    /*@Override
-    public void onNewToken(String token) {
+    protected static final String CHANNEL_ID = "Missed Alert Channel";
+    protected static final String ALERT_CHANNEL_ID = "Alert Channel";
+
+    protected static final String REMOTE_FROM = "alert_from";
+    protected static final String REMOTE_TO = "alert_to";
+    protected static final String REMOTE_MESSAGE = "alert_message";
+    protected static final String ASSOCIATED_NOTIFICATION = "notification_id";
+    protected static final String SHOULD_VIBRATE = "vibrate";
+
+    @Override
+    public void onNewToken(@NonNull String token) {
         Log.d(TAG, "New token: " + token);
 
-        sendRegistrationToServer(token);
-    }*/
+        SharedPreferences.Editor editor = getSharedPreferences(MainActivity.USER_INFO, Context.MODE_PRIVATE).edit();
+        editor.putBoolean(MainActivity.UPLOADED, false);
+        editor.apply();
+    }
 
     @Override
     public void onMessageReceived(RemoteMessage remoteMessage) {
         Log.d(TAG, "Message received! " + remoteMessage.toString());
-        //First: check if the sender is on the list in the shared preferences
-        //todo here is where the phone should vibrated, woken up, and pop-up dialog displayed (provided message is correct)
+        Map<String, String> messageData = remoteMessage.getData();
+        if (!senderIsFriend(messageData.get(REMOTE_FROM))) return; //checks if the sender is a friend of the user, ends if not
+
+        SharedPreferences userInfo = getSharedPreferences(MainActivity.USER_INFO, Context.MODE_PRIVATE);
+
+        if (!messageData.get(REMOTE_TO).equals(userInfo.getString(MainActivity.MY_ID, ""))) return; //if message is not addressed to the user, ends
+
+        NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        if (!manager.areNotificationsEnabled()) return;
+        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        /*if (!pm.isInteractive()) {
+            PowerManager.WakeLock wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP, TAG);
+            wakeLock.acquire(500);
+        }*/
+        String senderName = getFriendNameForID(messageData.get(REMOTE_FROM));
+        String message = messageData.get(REMOTE_MESSAGE);
+
+        message = message.equals("null") ? getString(R.string.default_message, senderName) : getString(R.string.message_prefix, senderName, message);
+
+        int id = showNotification(message, senderName);
+
+        if (!pm.isInteractive() || Settings.canDrawOverlays(this)) {
+
+            Intent intent = new Intent(this, Alert.class);
+            intent.putExtra(REMOTE_FROM, senderName);
+            intent.putExtra(REMOTE_MESSAGE, message);
+            intent.putExtra(ASSOCIATED_NOTIFICATION, id);
+            intent.putExtra(SHOULD_VIBRATE, true);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+
+            Log.d(TAG, "Sender: " + senderName + ", " + messageData.get(REMOTE_FROM) + " Message: " + message);
+
+            startActivity(intent);
+        }
     }
 
+    private boolean senderIsFriend(String sender) {
+        SharedPreferences friends = getSharedPreferences(MainActivity.FRIENDS, Context.MODE_PRIVATE);
+        String friendJson = friends.getString("friends", null);
+        ArrayList<String[]> friendList = new ArrayList<>();
 
+        Gson gson = new Gson();
+
+        if (friendJson != null) {
+            Type arrayListType = new TypeToken<ArrayList<String[]>>() {
+            }.getType();
+            friendList = gson.fromJson(friendJson, arrayListType);
+
+            Log.d(TAG, friendJson);
+        }
+
+        return isStringInFriendList(sender, friendList);
+    }
+
+    private boolean isStringInFriendList(String id, ArrayList<String[]> friendList) {
+        boolean found = false;
+        for (int i = 0; i < friendList.size(); i++) {
+            found = id.equals(friendList.get(i)[1]);
+            if (found) break;
+        }
+        return found;
+    }
+
+    private String getFriendNameForID(String id) {
+        SharedPreferences friends = getSharedPreferences(MainActivity.FRIENDS, Context.MODE_PRIVATE);
+        String friendJson = friends.getString("friends", null);
+        ArrayList<String[]> friendList = new ArrayList<>();
+
+        Gson gson = new Gson();
+
+        if (friendJson != null) {
+            Type arrayListType = new TypeToken<ArrayList<String[]>>() {
+            }.getType();
+            friendList = gson.fromJson(friendJson, arrayListType);
+
+            Log.d(TAG, friendJson);
+        }
+
+        for (int i = 0; i < friendList.size(); i++) {
+            if (friendList.get(i)[1].equals(id)) {
+                return friendList.get(i)[0];
+            }
+        }
+
+        return null;
+    }
+
+    private int showNotification(String message, String senderName) {
+        createNotificationChannel();
+
+        Intent intent = new Intent(this, Alert.class);
+        intent.putExtra(REMOTE_MESSAGE, message);
+        intent.putExtra(REMOTE_FROM, senderName);
+        intent.putExtra(SHOULD_VIBRATE, false);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, AlertHandler.CHANNEL_ID);
+        builder
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setContentTitle(getString(R.string.alert_notification_title, senderName))
+                .setContentText(message)
+                .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setContentIntent(pendingIntent).setAutoCancel(true);
+
+        int notificationID = (int) (System.currentTimeMillis() % 1000000000L) + 1;
+        NotificationManagerCompat notificationManagerCompat = NotificationManagerCompat.from(this);
+        notificationManagerCompat.notify(notificationID, builder.build());
+
+        return notificationID;
+    }
 
    /* private void sendRegistrationToServer(String token) {
         User user = new User(getSharedPreferences(MainActivity.USER_INFO, Context.MODE_PRIVATE).getString("id", null), token);
@@ -58,41 +180,22 @@ public class AlertHandler extends FirebaseMessagingService {
         Log.d(TAG, getString(R.string.log_register_user));
     }*/
 
-    @Override
-    public void onMessageSent(String messageId) {
-        Log.d(TAG, getString(R.string.log_msg_sent, messageId));
-        Toast.makeText(this, getString(R.string.alert_sent), Toast.LENGTH_SHORT).show();
-    }
 
-    @Override
-    public void onSendError(String messageId, Exception exception) {
-        String exceptionId = exception.getMessage();
-        if (exception instanceof SendException) {
-            SendException sendException = (SendException) exception;
-            switch (sendException.getErrorCode()) {
-                case SendException.ERROR_TOO_MANY_MESSAGES:
-                    exceptionId = "Message dropped due to too many pending messages";
-                    Toast.makeText(this, getString(R.string.too_many_messages), Toast.LENGTH_SHORT).show();
-                    break;
-                case SendException.ERROR_INVALID_PARAMETERS:
-                    exceptionId = "Invalid parameters";
-                    break;
-                case SendException.ERROR_SIZE:
-                    exceptionId = "Message too large";
-                    break;
-                case SendException.ERROR_TTL_EXCEEDED:
-                    exceptionId = "Message timed out";
-                    break;
-                case SendException.ERROR_UNKNOWN:
-                    exceptionId = "Unknown error";
-                    break;
-            }
 
-            if (sendException.getErrorCode() != SendException.ERROR_TOO_MANY_MESSAGES) {
-                Toast.makeText(this, getString(R.string.general_error), Toast.LENGTH_SHORT).show();
-            }
+    private void createNotificationChannel() {
+        // Create the NotificationChannel, but only on API 26+ because
+        // the NotificationChannel class is new and not in the support library
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = getString(R.string.alert_channel_name);
+            String description = getString(R.string.alert_channel_description);
+            int importance = NotificationManager.IMPORTANCE_HIGH;
+            NotificationChannel channel = new NotificationChannel(ALERT_CHANNEL_ID, name, importance);
+            channel.setDescription(description);
+            // Register the channel with the system; you can't change the importance
+            // or other notification behaviors after this
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
         }
-        Log.d(TAG, getString(R.string.log_send_error, messageId, exceptionId));
     }
 
 }
