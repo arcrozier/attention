@@ -1,9 +1,11 @@
 package com.aracroproducts.attention;
 
 import android.app.AlertDialog;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
@@ -11,6 +13,7 @@ import android.os.Bundle;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.provider.Settings;
+import android.text.Layout;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -20,6 +23,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -28,6 +32,7 @@ import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.iid.InstanceIdResult;
 import com.google.gson.Gson;
@@ -37,6 +42,7 @@ import java.lang.reflect.Type;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
+import java.util.Objects;
 
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
@@ -61,7 +67,35 @@ public class MainActivity extends AppCompatActivity {
     private String token;
     private User user;
 
-    //todo put in a BroadcastReceiver up here
+    private BroadcastReceiver networkCallback = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.d(TAG, "Received callback from network class");
+            SharedPreferences.Editor editor = getSharedPreferences(USER_INFO, Context.MODE_PRIVATE).edit();
+            int resultCode = intent.getIntExtra(AppServer.EXTRA_RESULT_CODE, AppServer.CODE_NA);
+
+            switch (Objects.requireNonNull(intent.getAction())) {
+                case AppServer.ACTION_POST_TOKEN:
+                    if (resultCode == AppServer.CODE_SUCCESS) {
+                        editor.putBoolean(UPLOADED, true);
+                        editor.putString(MY_TOKEN, token);
+                        Toast.makeText(MainActivity.this, getString(R.string.user_registered), Toast.LENGTH_SHORT).show();
+                    } else {
+                        editor.putBoolean(UPLOADED, false);
+                    }
+                    break;
+                case AppServer.ACTION_SEND_ALERT:
+                    if (resultCode == AppServer.CODE_SUCCESS) {
+                        View layout = findViewById(R.id.coordinatorLayout);
+                        Snackbar snackbar = Snackbar.make(layout, R.string.alert_sent, Snackbar.LENGTH_SHORT);
+                        snackbar.show();
+                    } else {
+                        Toast.makeText(MainActivity.this, getString(R.string.general_error), Toast.LENGTH_LONG).show();
+                    }
+            }
+            editor.apply();
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,6 +118,7 @@ public class MainActivity extends AppCompatActivity {
             editor.apply();
         }
 
+        token = prefs.getString(MY_TOKEN, null);
 
         if (!prefs.contains(MY_NAME) || !prefs.contains(MY_ID)) {
             user = new User();
@@ -124,6 +159,7 @@ public class MainActivity extends AppCompatActivity {
             });
             alertDialog.show();
         }
+
 
     }
 
@@ -231,6 +267,18 @@ public class MainActivity extends AppCompatActivity {
 
         populateFriendList();
 
+        IntentFilter filter = new IntentFilter(AppServer.ACTION_SEND_ALERT);
+        filter.addAction(AppServer.ACTION_POST_TOKEN);
+        LocalBroadcastManager manager = LocalBroadcastManager.getInstance(this);
+        manager.registerReceiver(networkCallback, filter);
+
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        LocalBroadcastManager manager = LocalBroadcastManager.getInstance(this);
+        manager.unregisterReceiver(networkCallback);
     }
 
     private void populateFriendList() {
@@ -327,7 +375,7 @@ public class MainActivity extends AppCompatActivity {
         }
         intent.setAction(AppServer.ACTION_SEND_ALERT);
        // intent.putExtra(AppServer.EXTRA_PENDING_RESULT, pendingIntent);
-        AppServer.enqueueWork(this, intent, AppServer.CALLBACK_SEND_ALERT);
+        AppServer.enqueueWork(this, intent);
 
 
     }
@@ -369,7 +417,7 @@ public class MainActivity extends AppCompatActivity {
                 intent.putExtra(AppServer.EXTRA_ID, user.getUid());
                 intent.setAction(AppServer.ACTION_POST_TOKEN);
                 //intent.putExtra(AppServer.EXTRA_PENDING_RESULT, pendingIntent);
-                AppServer.enqueueWork(MainActivity.this, intent, AppServer.CALLBACK_POST_TOKEN);
+                AppServer.enqueueWork(MainActivity.this, intent);
                 Log.d(TAG, getString(R.string.log_sending_msg));
             }
         });

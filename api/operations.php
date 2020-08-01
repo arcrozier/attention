@@ -128,6 +128,9 @@ class Operation
                     'alert_to' => $to,
                     'alert_from' => $from,
                     'alert_message' => $message
+                ),
+                'android' => array(
+                    'priority' => 'HIGH'
                 )
             )
         );

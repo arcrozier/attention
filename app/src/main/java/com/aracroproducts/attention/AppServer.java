@@ -6,6 +6,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.JobIntentService;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
@@ -28,15 +29,17 @@ public class AppServer extends JobIntentService {
     protected static final String EXTRA_FROM = "com.aracroproducts.attention.extra.from";
     protected static final String EXTRA_MESSAGE = "com.aracroproducts.attention.extra.message";
 
-    protected static final String EXTRA_PENDING_RESULT = "com.aracroproducts.attention.extra.pending_result";
     protected static final String EXTRA_DATA = "com.aracroproducts.attention.extra.data";
-    protected static final String JOB_ID_EXTRA = "com.aracroproducts.attention.extra.job_id";
+    protected static final String EXTRA_RESULT_CODE = "com.aracroproducts.attention.extra.result_code";
 
     protected static final int CODE_SUCCESS = 0;
     protected static final int CODE_ERROR = 1;
+    protected static final int CODE_NA = -1;
 
     protected static final int CALLBACK_POST_TOKEN = 10;
     protected static final int CALLBACK_SEND_ALERT = 11;
+
+    protected static final String NETWORK_COMPLETE_BROADCAST = "com.aracroproducts.attention.broadcast.network";
 
     private static final int JOB_ID = 0;
 
@@ -49,8 +52,7 @@ public class AppServer extends JobIntentService {
         super();
     }
 
-    public static void enqueueWork(Context context, Intent intent, int requestCode) {
-        intent.putExtra(JOB_ID_EXTRA, requestCode);
+    public static void enqueueWork(Context context, Intent intent) {
         enqueueWork(context, AppServer.class, JOB_ID, intent);
     }
 
@@ -60,7 +62,7 @@ public class AppServer extends JobIntentService {
         if (intent.getAction() != null) {
             Log.d(TAG, intent.toString() + " Action: " + intent.getAction());
             final String action = intent.getAction();
-            int requestCode = intent.getIntExtra(JOB_ID_EXTRA, 0);
+            LocalBroadcastManager manager = LocalBroadcastManager.getInstance(this);
 
             //PendingIntent reply = intent.getParcelableExtra(EXTRA_PENDING_RESULT);
             Intent result = new Intent();
@@ -68,15 +70,16 @@ public class AppServer extends JobIntentService {
                 case ACTION_POST_TOKEN:
                     String token = intent.getStringExtra(EXTRA_TOKEN);
                     String id = intent.getStringExtra(EXTRA_ID);
+                    result.setAction(ACTION_POST_TOKEN);
                     boolean success = connect(true, new String[][]{{"token", token}, {"id", id}}, PARAM_FUNCTION_ID);
                     if (success) {
                         Log.d(TAG, "Message sent");
                         result.putExtra(EXTRA_DATA, "Sent id successfully");
-                        //reply.send(this, CODE_SUCCESS, result);
+                        result.putExtra(EXTRA_RESULT_CODE, CODE_SUCCESS);
                     } else {
                         Log.e(TAG, "An error occurred");
                         result.putExtra(EXTRA_DATA, "Error sending ID");
-                        //reply.send(this, CODE_ERROR, result);
+                        result.putExtra(EXTRA_RESULT_CODE, CODE_ERROR);
                     }
                     break;
                 case ACTION_SEND_ALERT:
@@ -84,18 +87,22 @@ public class AppServer extends JobIntentService {
                     String from = intent.getStringExtra(EXTRA_FROM);
                     String message = intent.getStringExtra(EXTRA_MESSAGE);
                     success = connect(true, new String[][]{{"to", to}, {"from", from}, {"message", message}}, PARAM_FUNCTION_ALERT);
+                    result.setAction(ACTION_SEND_ALERT);
+
                     if (success) {
                         Log.d(TAG, "Alert sent");
                         result.putExtra(EXTRA_DATA, "Sent alert successfully");
-                        //reply.send(this, CODE_SUCCESS, result);
+                        result.putExtra(EXTRA_RESULT_CODE, CODE_SUCCESS);
                     } else {
                         Log.e(TAG, "An error occurred");
                         result.putExtra(EXTRA_DATA, "Error sending alert");
-                        //reply.send(this, CODE_ERROR, result);
+                        result.putExtra(EXTRA_RESULT_CODE, CODE_ERROR);
                     }
                     //todo provide real callbacks
                     //todo figure out a good way to pass result back (implement a BroadcastSender, probably)
             }
+
+            manager.sendBroadcast(result);
 
         }
     }

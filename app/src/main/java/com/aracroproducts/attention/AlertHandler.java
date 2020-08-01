@@ -15,8 +15,6 @@ import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
-import com.google.android.gms.tasks.Task;
-import com.google.firebase.iid.InstanceIdResult;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 import com.google.gson.Gson;
@@ -25,12 +23,11 @@ import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Objects;
 
 public class AlertHandler extends FirebaseMessagingService {
 
     private static final String TAG = AlertHandler.class.getName();
-
-    private Task<InstanceIdResult> idResultTask;
 
     protected static final String CHANNEL_ID = "Missed Alert Channel";
     protected static final String ALERT_CHANNEL_ID = "Alert Channel";
@@ -44,10 +41,14 @@ public class AlertHandler extends FirebaseMessagingService {
     @Override
     public void onNewToken(@NonNull String token) {
         Log.d(TAG, "New token: " + token);
-
-        SharedPreferences.Editor editor = getSharedPreferences(MainActivity.USER_INFO, Context.MODE_PRIVATE).edit();
-        editor.putBoolean(MainActivity.UPLOADED, false);
-        editor.apply();
+        SharedPreferences preferences = getSharedPreferences(MainActivity.USER_INFO, Context.MODE_PRIVATE);
+        if (!preferences.getString(MainActivity.MY_TOKEN, "").equals(token)) {
+            Log.d(TAG, "Token is new: updating shared preferences");
+            SharedPreferences.Editor editor = preferences.edit();
+            editor.putBoolean(MainActivity.UPLOADED, false);
+            editor.putString(MainActivity.MY_TOKEN, token);
+            editor.apply();
+        }
     }
 
     @Override
@@ -58,18 +59,19 @@ public class AlertHandler extends FirebaseMessagingService {
 
         SharedPreferences userInfo = getSharedPreferences(MainActivity.USER_INFO, Context.MODE_PRIVATE);
 
-        if (!messageData.get(REMOTE_TO).equals(userInfo.getString(MainActivity.MY_ID, ""))) return; //if message is not addressed to the user, ends
+        if (!Objects.equals(messageData.get(REMOTE_TO), userInfo.getString(MainActivity.MY_ID, ""))) return; //if message is not addressed to the user, ends
 
         NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         if (!manager.areNotificationsEnabled()) return;
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
-        /*if (!pm.isInteractive()) {
+        /*if (!pm.isInteractive()) { This functionality has been deprecated
             PowerManager.WakeLock wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP, TAG);
             wakeLock.acquire(500);
         }*/
         String senderName = getFriendNameForID(messageData.get(REMOTE_FROM));
         String message = messageData.get(REMOTE_MESSAGE);
 
+        assert message != null;
         message = message.equals("null") ? getString(R.string.default_message, senderName) : getString(R.string.message_prefix, senderName, message);
 
         int id = showNotification(message, senderName);
