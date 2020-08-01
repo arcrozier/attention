@@ -115,6 +115,7 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem
                 builder.setTitle(textView.getContext().getString(R.string.add_message));
 
                 final EditText input = new EditText(textView.getContext());
+                input.setHint(R.string.message_hint);
 
                 input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_AUTO_COMPLETE | InputType.TYPE_TEXT_FLAG_AUTO_CORRECT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
                 builder.setView(input);

@@ -16,6 +16,7 @@
     <string name="manual_input">Enter code manually</string>
     <string name="confirm_alert">Send notification?</string>
     <string name="add_message">Add message</string>
+    <string name="message_hint">Enter message…</string>
     <string name="cancel_alert">Cancel</string>
     <string name="describe_QR">QR code for another user to add you</string>
     <string name="invalid_id">You did not enter a valid ID</string>

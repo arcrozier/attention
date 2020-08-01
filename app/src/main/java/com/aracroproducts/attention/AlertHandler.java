@@ -61,20 +61,36 @@ public class AlertHandler extends FirebaseMessagingService {
 
         if (!Objects.equals(messageData.get(REMOTE_TO), userInfo.getString(MainActivity.MY_ID, ""))) return; //if message is not addressed to the user, ends
 
-        NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        if (!manager.areNotificationsEnabled()) return;
-        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
-        /*if (!pm.isInteractive()) { This functionality has been deprecated
-            PowerManager.WakeLock wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP, TAG);
-            wakeLock.acquire(500);
-        }*/
+
         String senderName = getFriendNameForID(messageData.get(REMOTE_FROM));
         String message = messageData.get(REMOTE_MESSAGE);
 
         assert message != null;
         message = message.equals("null") ? getString(R.string.default_message, senderName) : getString(R.string.message_prefix, senderName, message);
 
-        int id = showNotification(message, senderName);
+        NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        if (!manager.areNotificationsEnabled() || (manager.getCurrentInterruptionFilter() != NotificationManager.INTERRUPTION_FILTER_ALL && manager.getCurrentInterruptionFilter() != NotificationManager.INTERRUPTION_FILTER_UNKNOWN)) {
+            Log.d(TAG, "App is disabled from showing notifications or interruption filter is set to block notifications");
+            showNotification(message, senderName, true);
+            return;
+        }
+
+        try {
+            if (Settings.Global.getInt(getContentResolver(), "zen_mode") > 1) {
+                Log.d(TAG, "Device's zen mode is enabled");
+                return;
+            }
+        } catch (Settings.SettingNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        /*if (!pm.isInteractive()) { This functionality has been deprecated
+            PowerManager.WakeLock wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP, TAG);
+            wakeLock.acquire(500);
+        }*/
+
+        int id = showNotification(message, senderName, false);
 
         if (!pm.isInteractive() || Settings.canDrawOverlays(this)) {
 
@@ -142,8 +158,7 @@ public class AlertHandler extends FirebaseMessagingService {
         return null;
     }
 
-    private int showNotification(String message, String senderName) {
-        createNotificationChannel();
+    private int showNotification(String message, String senderName, boolean missed) {
 
         Intent intent = new Intent(this, Alert.class);
         intent.putExtra(REMOTE_MESSAGE, message);
@@ -151,14 +166,31 @@ public class AlertHandler extends FirebaseMessagingService {
         intent.putExtra(SHOULD_VIBRATE, false);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
 
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, AlertHandler.CHANNEL_ID);
-        builder
-                .setSmallIcon(R.drawable.ic_launcher_foreground)
-                .setContentTitle(getString(R.string.alert_notification_title, senderName))
-                .setContentText(message)
-                .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
-                .setPriority(NotificationCompat.PRIORITY_MAX)
-                .setContentIntent(pendingIntent).setAutoCancel(true);
+        NotificationCompat.Builder builder;
+
+        if (missed) {
+            createMissedNotificationChannel();
+
+            builder = new NotificationCompat.Builder(this, AlertHandler.CHANNEL_ID);
+            builder
+                    .setSmallIcon(R.mipmap.add_foreground)
+                    .setContentTitle(getString(R.string.notification_title, senderName))
+                    .setContentText(message)
+                    .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
+                    .setPriority(NotificationCompat.PRIORITY_MAX)
+                    .setContentIntent(pendingIntent).setAutoCancel(true);
+        } else {
+            createNotificationChannel();
+
+             builder = new NotificationCompat.Builder(this, AlertHandler.ALERT_CHANNEL_ID);
+            builder
+                    .setSmallIcon(R.mipmap.add_foreground)
+                    .setContentTitle(getString(R.string.alert_notification_title, senderName))
+                    .setContentText(message)
+                    .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
+                    .setPriority(NotificationCompat.PRIORITY_MAX)
+                    .setContentIntent(pendingIntent).setAutoCancel(true);
+        }
 
         int notificationID = (int) (System.currentTimeMillis() % 1000000000L) + 1;
         NotificationManagerCompat notificationManagerCompat = NotificationManagerCompat.from(this);
@@ -192,6 +224,20 @@ public class AlertHandler extends FirebaseMessagingService {
             String description = getString(R.string.alert_channel_description);
             int importance = NotificationManager.IMPORTANCE_HIGH;
             NotificationChannel channel = new NotificationChannel(ALERT_CHANNEL_ID, name, importance);
+            channel.setDescription(description);
+            // Register the channel with the system; you can't change the importance
+            // or other notification behaviors after this
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
+    }
+
+    private void createMissedNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = getString(R.string.channel_name);
+            String description = getString(R.string.channel_description);
+            int importance = NotificationManager.IMPORTANCE_HIGH;
+            NotificationChannel channel = new NotificationChannel(AlertHandler.CHANNEL_ID, name, importance);
             channel.setDescription(description);
             // Register the channel with the system; you can't change the importance
             // or other notification behaviors after this
