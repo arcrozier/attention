@@ -2,13 +2,8 @@
     <string name="app_name">Attention!</string>
     <string name="action_settings">Settings</string>
     <!-- Strings used for fragments for navigation -->
-    <string name="first_fragment_label">First Fragment</string>
-    <string name="second_fragment_label">Second Fragment</string>
     <string name="next">Next</string>
     <string name="previous">Previous</string>
-
-    <string name="hello_first_fragment">Hello first fragment</string>
-    <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
 
     <string name="name_dialog_title">Please enter your name</string>
     <string name="name">Full name</string>
@@ -17,14 +12,12 @@
     <string name="confirm_alert">Send notification?</string>
     <string name="add_message">Add message</string>
     <string name="message_hint">Enter message…</string>
-    <string name="cancel_alert">Cancel</string>
     <string name="describe_QR">QR code for another user to add you</string>
     <string name="invalid_id">You did not enter a valid ID</string>
     <string name="no_id">Please enter or scan an ID</string>
     <string name="scan_new">Please scan a new code</string>
     <string name="no_camera">No camera detected</string>
     <string name="alert_sent">Successfully sent alert</string>
-    <string name="too_many_messages">You have too many pending alerts. Please wait for some to send</string>
     <string name="general_error">Error: Could not send alert</string>
     <string name="user_registered">Your account has been registered!</string>
     <string name="default_message">%s wants your attention!</string>
@@ -35,7 +28,7 @@
     <string name="yes">Yes</string>
 
 
-    <string name="permissions_needed">Permissions required to scan</string>
+    <string name="permissions_needed">Permission required to scan</string>
     <string name="permission_details">Grant camera permission to scan your friend\'s QR code. You can also enter their user ID manually, if you prefer</string>
     <string name="channel_name">Missed alerts</string>
     <string name="channel_description">Notifies you when you missed an alert</string>
@@ -52,11 +45,11 @@
     <string name="open_settings">Open settings</string>
     <string name="do_not_ask_again">Do not ask again</string>
 
-    <string name="msg_token_fmt">Generated token: %s</string>
-    <string name="log_msg_sent">Message %s successfully sent</string>
-    <string name="log_register_user">Registering user with firebase</string>
-    <string name="log_send_error">Error sending message (Id: %s) with error %s</string>
-    <string name="log_sending_msg">Sending message to server</string>
+    <string name="msg_token_fmt" translatable="false">Generated token: %s</string>
+    <string name="log_msg_sent" translatable="false">Message %s successfully sent</string>
+    <string name="log_register_user" translatable="false">Registering user with firebase</string>
+    <string name="log_send_error" translatable="false">Error sending message (Id: %s) with error %s</string>
+    <string name="log_sending_msg" translatable="false">Sending message to server</string>
 
     <string name="no_play_services">No Google Play Services were found on your device</string>
 </resources>

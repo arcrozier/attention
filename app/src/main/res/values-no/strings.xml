@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Følg Med!</string>
+    <string name="action_settings">Instillinger</string>
+    <string name="next">Neste</string>
+    <string name="previous">Forrige</string>
+    <string name="name_dialog_title">Venligst tast inn navnet dit</string>
+    <string name="name">Fullt navn</string>
+    <string name="no_name">Venligst tast inn et navn</string>
+    <string name="manual_input">Tast inn koden manuelt</string>
+    <string name="confirm_alert">Send varsel</string>
+    <string name="add_message">Legg til en melding</string>
+    <string name="message_hint">Tast inn en melding</string>
+    <string name="describe_QR">QR kode for andre brukere til å legget deg til</string>
+    <string name="invalid_id">Du tastet ikke inn en gyldig ID</string>
+    <string name="no_id">Venligst tast inn eller skanne en ID</string>
+    <string name="scan_new">Venligst skanne en ny kode</string>
+    <string name="no_camera">Ingen kamera funnet</string>
+    <string name="alert_sent">Vellykket sendte varsel</string>
+    <string name="general_error">Feil: Kun ikke sendte varsel</string>
+    <string name="user_registered">Din konto har blit registret!</string>
+    <string name="default_message">%s vil ha opmerksomheten din</string>
+    <string name="message_prefix">%s sier: %s</string>
+    <string name="confirm_delete_title">Slett venn</string>
+    <string name="confirm_delete_message">Er du sikker du vil fjerne %s som en venn?</string>
+    <string name="yes">Ja</string>
+    <string name="permissions_needed">Tillatelse kreves til å skanne</string>
+    <string name="permission_details">Bevilge kamera tillatelse til å skanne vennens QR kode. Du kan også tast inn deres bruker ID manuelt, vist du vil</string>
+    <string name="channel_name">Varsler du gikk glip av</string>
+    <string name="channel_description">Varlser nåar du gå glipp av en varsling</string>
+    <string name="notification_title">Ubesvart varsel fra %s</string>
+    <string name="alert_notification_title">Varsel fra %s</string>
+    <string name="alert_channel_name">Varsler</string>
+    <string name="alert_channel_description">Varsler deg når du har nye varsler</string>
+    <string name="allow">Tillat</string>
+    <string name="deny">Benekte</string>
+    <string name="draw_title">Tegne overlegg</string>
+    <string name="draw_message">Tillat Følg Med! til å tegne overlegg? Dette muligjør visning av varsler når du bruker enheten din</string>
+    <string name="open_settings">Åpne instillinger</string>
+    <string name="do_not_ask_again">Ikke spørre igjen</string>
+    <string name="no_play_services">Ingen Google Play Services var funnet på enheten din</string>
+</resources>
