@@ -27,6 +27,10 @@
     <string name="confirm_delete_message">Are you sure you want to remove %s from your friends?</string>
     <string name="yes">Yes</string>
 
+    <string name="delete">Delete</string>
+    <string name="rename">Change name</string>
+    <string name="new_name">Enter new name</string>
+
 
     <string name="permissions_needed">Permission required to scan</string>
     <string name="permission_details">Grant camera permission to scan your friend\'s QR code. You can also enter their user ID manually, if you prefer</string>

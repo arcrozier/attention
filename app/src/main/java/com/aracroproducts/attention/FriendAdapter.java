@@ -9,6 +9,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.CountDownTimer;
+import android.os.Vibrator;
 import android.telecom.Call;
 import android.text.InputType;
 import android.util.Log;
@@ -38,7 +39,7 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem
     private static final String TAG = FriendAdapter.class.getName();
     private Callback callback;
 
-    public static class FriendItem extends RecyclerView.ViewHolder implements View.OnClickListener {
+    public static class FriendItem extends RecyclerView.ViewHolder implements View.OnClickListener, View.OnLongClickListener {
 
         public TextView textView;
         private Button confirmButton;
@@ -48,6 +49,9 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem
         private ConstraintLayout confirmButtonLayout;
         private Button addMessage;
         private AppCompatImageButton cancelSend;
+        private ConstraintLayout editLayout;
+        private Button rename;
+        private Button delete;
 
         private int position;
 
@@ -56,7 +60,7 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem
         private CountDownTimer delay;
 
         private enum State {
-            NORMAL, CONFIRM, CANCEL
+            NORMAL, CONFIRM, CANCEL, EDIT
         }
 
         private State alertState = State.NORMAL;
@@ -71,20 +75,21 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem
             progressBar = v.findViewById(R.id.progress_bar);
             addMessage = v.findViewById(R.id.add_message);
             cancelSend = v.findViewById(R.id.cancel_send);
+            editLayout = v.findViewById(R.id.edit_friend_layout);
+            rename = v.findViewById(R.id.rename_button);
+            delete = v.findViewById(R.id.delete_friend_button);
+
+
 
             textView.setOnClickListener(this);
+            textView.setOnLongClickListener(this);
             confirmButton.setOnClickListener(this);
             cancelButton.setOnClickListener(this);
             cancelSend.setOnClickListener(this);
             addMessage.setOnClickListener(this);
+            rename.setOnClickListener(this);
+            delete.setOnClickListener(this);
 
-            textView.setOnLongClickListener(new View.OnLongClickListener() {
-                @Override
-                public boolean onLongClick(View view) {
-                    callback.onDeletePrompt(position, textView.getText().toString());
-                    return false;
-                }
-            });
         }
 
         public void setId(String id) {
@@ -101,6 +106,7 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem
                     case NORMAL:
                         prompt();
                         break;
+                    case EDIT:
                     case CONFIRM:
                         cancel();
                         break;
@@ -133,23 +139,39 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem
                     }
                 });
                 builder.show();
+            } else if (v.getId() == rename.getId()) {
+                callback.onEditName(id);
+            } else if (v.getId() == delete.getId()) {
+                callback.onDeletePrompt(position, textView.getText().toString());
             }
+        }
 
+        @Override
+        public boolean onLongClick(View v) {
+            callback.onLongPress();
+            edit();
+            alertState = State.EDIT;
+            return false;
+        }
 
+        public void edit() {
+            reset();
+            textView.setAlpha(0.25f);
+            editLayout.setVisibility(View.VISIBLE);
         }
 
 
         public void prompt() {
+            reset();
             confirmButtonLayout.setVisibility(View.VISIBLE);
-            cancelButton.setVisibility(View.GONE);
             textView.setAlpha(0.25f);
             alertState = State.CONFIRM;
         }
 
         public void alert(final int undoTime, String message) {
+            reset();
             progressBar.setProgress(0);
             cancelButton.setVisibility(View.VISIBLE);
-            confirmButtonLayout.setVisibility(View.GONE);
             alertState = State.CANCEL;
             /*
             Intent intent = new Intent(textView.getContext(), AlertHandler.class);
@@ -184,11 +206,18 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem
             objectAnimator.start();
         }
 
+        public void reset() {
+            confirmButtonLayout.setVisibility(View.GONE);
+            cancelButton.setVisibility(View.GONE);
+            editLayout.setVisibility(View.GONE);
+            textView.setAlpha(1.0f);
+
+        }
+
         public void cancel() {
             Log.d(TAG, "Cancelled alert");
             cancelButton.setVisibility(View.GONE);
             confirmButtonLayout.setVisibility(View.GONE);
-            textView.setAlpha(1.0f);
             alertState = State.NORMAL;
             if (delay != null) delay.cancel();
         }
@@ -234,6 +263,8 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem
     public interface Callback {
         void onSendAlert(String id, String message);
         void onDeletePrompt(int position, String name);
+        void onEditName(String id);
+        void onLongPress();
     }
 
     public void setCallback(Callback callback) {

@@ -11,12 +11,25 @@ import androidx.appcompat.app.AppCompatActivity;
 public class DialogActivity extends AppCompatActivity {
 
     public static final int SUCCESS_CODE = 1;
+    public static final String EXTRA_EDIT_NAME = "com.aracroproducts.attention.extra.edit_name";
+    public static final String EXTRA_USER_ID = "com.aracroproducts.attention.extra.user_id";
+
+    private boolean friend_name = false;
+    private String friend_id;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.name_dialog);
         this.setFinishOnTouchOutside(false);
+
+        Intent intent = getIntent();
+        if (intent.hasExtra(EXTRA_EDIT_NAME)) {
+            friend_name = true;
+            TextView namePrompt = findViewById(R.id.name_prompt);
+            namePrompt.setText(getString(R.string.new_name));
+            friend_id = intent.getStringExtra(EXTRA_USER_ID);
+        }
 
     }
 
@@ -29,6 +42,9 @@ public class DialogActivity extends AppCompatActivity {
         }
         Intent intent = new Intent();
         intent.putExtra("name", name.toString());
+        if (friend_name) {
+            intent.putExtra(EXTRA_USER_ID, friend_id);
+        }
 
         setResult(SUCCESS_CODE, intent);
         finish();

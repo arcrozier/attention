@@ -31,6 +31,7 @@ public class Alert extends AppCompatActivity {
     private String message;
     private int id;
     private CountDownTimer timer;
+    private Ringtone r;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,7 +56,8 @@ public class Alert extends AppCompatActivity {
 
             if (audioManager.getRingerMode() == AudioManager.RINGER_MODE_NORMAL) {
                 Uri notification = RingtoneManager.getActualDefaultRingtoneUri(Alert.this, RingtoneManager.TYPE_RINGTONE);
-                Ringtone r = RingtoneManager.getRingtone(Alert.this, notification);
+                r = RingtoneManager.getRingtone(Alert.this, notification);
+                r.setVolume(1.0f);
                 r.play();
             }
 
@@ -111,6 +113,9 @@ public class Alert extends AppCompatActivity {
     public void onOK(View view) {
         if (timer != null) {
             timer.cancel();
+        }
+        if (r != null && r.isPlaying()) {
+            r.stop();
         }
         finish();
     }

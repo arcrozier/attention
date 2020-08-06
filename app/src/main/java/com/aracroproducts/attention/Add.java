@@ -65,8 +65,16 @@ public class Add extends AppCompatActivity {
             }
 
             lastText = result.getText();
+            int separatorIndex = lastText.lastIndexOf(' ');
+            String id = lastText.substring(separatorIndex + 1).trim();
             TextView enter_id = findViewById(R.id.manual_code);
-            enter_id.setText(lastText);
+            enter_id.setText(id);
+
+            if (separatorIndex != -1) {
+                String name = lastText.substring(0, separatorIndex).trim();
+                TextView enter_name = findViewById(R.id.manual_name);
+                enter_name.setText(name);
+            }
 
             pause();
 
@@ -133,17 +141,28 @@ public class Add extends AppCompatActivity {
     }
 
     public void finishActivity(View view) {
-        TextView textView = findViewById(R.id.manual_code);
-        String complete = textView.getText().toString();
-        if (complete.length() == 0) {
-            textView.setError(getString(R.string.no_id));
+        TextView idView = findViewById(R.id.manual_code);
+        TextView nameView = findViewById(R.id.manual_name);
+
+        String id = idView.getText().toString();
+        String name = nameView.getText().toString();
+
+        if (id.length() == 0) {
+            idView.setError(getString(R.string.no_id));
             resume();
             return;
         }
 
-        int separatorIndex = complete.lastIndexOf(' ');
-        if (separatorIndex == -1) {
-            textView.setError(getString(R.string.invalid_id));
+        if (name.length() == 0) {
+            nameView.setError(getString(R.string.no_name));
+            return;
+        }
+
+        id = id.trim();
+        name = name.trim();
+
+        if (id.contains(" ")) {
+            idView.setError(getString(R.string.invalid_id));
             resume();
             return;
         }
@@ -158,9 +177,7 @@ public class Add extends AppCompatActivity {
             friendList = gson.fromJson(friendJson, arrayListType);
         }
 
-        String id = complete.substring(separatorIndex + 1);
-        String name = complete.substring(0, separatorIndex);
-        String[] newFriend = {name.trim(), id.trim()};
+        String[] newFriend = {name, id};
         friendList.add(newFriend);
 
         SharedPreferences.Editor editor = preferences.edit();

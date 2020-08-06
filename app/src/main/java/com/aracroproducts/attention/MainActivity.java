@@ -61,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
     public static final String OVERLAY_NO_PROMPT = "OverlayDoNotAsk";
 
     public static final int NAME_CALLBACK = 0;
+    public static final int EDIT_NAME_CALLBACK = 1;
 
     private final String TAG = getClass().getName();
 
@@ -175,45 +176,57 @@ public class MainActivity extends AppCompatActivity {
                 user.setUid(prefs.getString(MY_ID, null));
                 addUserToDB(user);
                 break;
-            case AppServer.CALLBACK_POST_TOKEN:
+            case EDIT_NAME_CALLBACK:
+                Log.d(TAG, "Received edit name callback");
+                SharedPreferences friends = getSharedPreferences(FRIENDS, Context.MODE_PRIVATE);
+                ArrayList<String[]> friendList = parseFriends(friends.getString(FRIEND_LIST, null));
 
-                SharedPreferences.Editor sharedPreferences = getSharedPreferences(USER_INFO, Context.MODE_PRIVATE).edit();
-                switch (resultCode) {
-                    case AppServer.CODE_SUCCESS:
-                        sharedPreferences.putBoolean(UPLOADED, true);
-                        Toast.makeText(this, getString(R.string.user_registered), Toast.LENGTH_SHORT).show();
-                        break;
-                    case AppServer.CODE_ERROR:
-                        sharedPreferences.putBoolean(UPLOADED, false);
+                if (friendList == null) {
+                    Log.w(TAG, "FriendList was null, unable to edit");
+                    break;
+                }
 
-                }
-                sharedPreferences.apply();
-                break;
-            case AppServer.CALLBACK_SEND_ALERT:
-                switch (resultCode) {
-                    case AppServer.CODE_SUCCESS:
-                        Toast.makeText(this, getString(R.string.alert_sent), Toast.LENGTH_SHORT).show();
-                        Log.d(TAG, "Alert sent");
+                String friendId = data.getStringExtra(DialogActivity.EXTRA_USER_ID);
+
+                String[] friend = null;
+                int friendIndex = -1;
+
+                for (int i = 0; i < friendList.size(); i++) {
+                    if (friendList.get(i)[1].equals(friendId)) {
+                        friend = friendList.get(i);
+                        friendIndex = i;
                         break;
-                    case AppServer.CODE_ERROR:
-                        Log.e(TAG, "Error sending alert");
-                        Toast.makeText(this, getString(R.string.general_error), Toast.LENGTH_LONG).show();
+                    }
                 }
+
+                if (friend == null) {
+                    Log.e(TAG, "Could not find requested ID to rename");
+                    break;
+                }
+
+                friend[0] = data.getStringExtra(MY_NAME);
+
+                friendList.set(friendIndex, friend);
+
+                Gson gson = new Gson();
+                String friendJson = gson.toJson(friendList);
+
+                SharedPreferences.Editor friendEditor = friends.edit();
+                friendEditor.putString(FRIEND_LIST, friendJson);
+                friendEditor.apply();
+                populateFriendList();
+
         }
         super.onActivityResult(requestCode, resultCode, data);
     }
 
     private String makeId(String name) {
         String fullString = name + Build.FINGERPRINT;
-        byte[] salt = {69, 42, 0, 37, 10, 127, 34, 85, 83, 24, 98, 75, 49, 8, 67};
+        byte[] salt = {69, 42, 0, 37, 10, 127, 34, 85, 83, 24, 98, 75, 49, 8, 67}; // very secure salt but this isn't a cryptographic application so it doesn't really matter
 
         try {
             SecretKeyFactory secretKeyFactory;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                secretKeyFactory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512"); //not available to Android 7.1 and lower
-            } else {
-                secretKeyFactory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
-            }
+            secretKeyFactory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512"); //not available to Android 7.1 and lower
             PBEKeySpec spec = new PBEKeySpec(fullString.toCharArray(), salt, 32, 64);
             SecretKey key = secretKeyFactory.generateSecret(spec);
             byte[] hashed = key.getEncoded();
@@ -284,17 +297,8 @@ public class MainActivity extends AppCompatActivity {
     private void populateFriendList() {
         SharedPreferences friends = getSharedPreferences(FRIENDS, Context.MODE_PRIVATE);
         String friendJson = friends.getString(FRIEND_LIST, null);
-        ArrayList<String[]> friendList = new ArrayList<>();
 
-        Gson gson = new Gson();
-
-        if (friendJson != null) {
-            Type arrayListType = new TypeToken<ArrayList<String[]>>() {
-            }.getType();
-            friendList = gson.fromJson(friendJson, arrayListType);
-
-            Log.d(TAG, friendJson);
-        }
+        ArrayList<String[]> friendList = parseFriends(friendJson);
 
         RecyclerView friendListView = findViewById(R.id.friends_list);
         friendListView.setLayoutManager(new LinearLayoutManager(this));
@@ -316,9 +320,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onDeletePrompt(int position, String name) {
 
-                Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-
-                vibrator.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.EFFECT_HEAVY_CLICK));
 
 
                 AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
@@ -331,6 +332,22 @@ public class MainActivity extends AppCompatActivity {
                 alertDialog.setButton(DialogInterface.BUTTON_NEGATIVE, getString(android.R.string.cancel), (dialogInterface, i) -> dialogInterface.cancel());
                 alertDialog.show();
             }
+
+            @Override
+            public void onEditName(String id) {
+                Intent intent = new Intent(MainActivity.this, DialogActivity.class);
+                intent.putExtra(DialogActivity.EXTRA_EDIT_NAME, true);
+                intent.putExtra(DialogActivity.EXTRA_USER_ID, id);
+                startActivityForResult(intent, EDIT_NAME_CALLBACK);
+            }
+
+            @Override
+            public void onLongPress() {
+                Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+
+                vibrator.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.EFFECT_HEAVY_CLICK));
+            }
+
         };
 
         adapter.setCallback(adapterListener);
@@ -338,20 +355,30 @@ public class MainActivity extends AppCompatActivity {
         friendListView.setAdapter(adapter);
     }
 
+    public static ArrayList<String[]> parseFriends(String json) {
+        if (json == null) return null;
+        Gson gson = new Gson();
+
+            Type arrayListType = new TypeToken<ArrayList<String[]>>() {
+            }.getType();
+            return gson.fromJson(json, arrayListType);
+
+
+    }
+
     private void deleteFriend(int index) {
         SharedPreferences friends = getSharedPreferences(FRIENDS, Context.MODE_PRIVATE);
         String friendJson = friends.getString(FRIEND_LIST, null);
         ArrayList<String[]> friendList;
 
-        Gson gson = new Gson();
 
         if (friendJson == null) {
             Log.w(TAG, "Friend list was null, unable to delete friend");
             return;
         }
-        Type arrayListType = new TypeToken<ArrayList<String[]>>() {
-        }.getType();
-        friendList = gson.fromJson(friendJson, arrayListType);
+
+        Gson gson = new Gson();
+        friendList = parseFriends(friendJson);
 
         friendList.remove(index);
         Log.d(TAG, "Removed friend");
