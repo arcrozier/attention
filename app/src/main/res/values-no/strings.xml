@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Følg Med!</string>
-    <string name="action_settings">Instillinger</string>
+    <string name="action_settings">Innstillinger</string>
     <string name="next">Neste</string>
     <string name="previous">Forrige</string>
     <string name="name_dialog_title">Venligst tast inn navnet dit</string>
@@ -36,13 +36,13 @@
     <string name="deny">Benekte</string>
     <string name="draw_title">Tegne overlegg</string>
     <string name="draw_message">Tillat Følg Med! til å tegne overlegg? Dette muligjør visning av varsler når du bruker enheten din</string>
-    <string name="open_settings">Åpne instillinger</string>
+    <string name="open_settings">Åpne innstillinger</string>
     <string name="do_not_ask_again">Ikke spørre igjen</string>
     <string name="no_play_services">Ingen Google Play Services var funnet på enheten din</string>
     <string name="delete">Slett</string>
     <string name="rename">Endre navn</string>
     <string name="new_name">Tast inn nytt navn</string>
-    <string name="title_activity_settings">Instillinger</string>
+    <string name="title_activity_settings">Innstillinger</string>
     <string name="notifications_title">Varsler</string>
     <string name="user_title">Bruker</string>
     <string name="override_dnd">Overstyr Ikke Forstyr</string>
