@@ -1,0 +1,14 @@
+<resources>
+
+    <string-array name="notification_values">
+        <item>silent</item>
+        <item>vibrate</item>
+        <item>ring</item>
+    </string-array>
+
+    <string-array name="notification_entries">
+        <item>@string/silent</item>
+        <item>@string/vibrate</item>
+        <item>@string/ring</item>
+    </string-array>
+</resources>

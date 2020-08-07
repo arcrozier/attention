@@ -13,23 +13,21 @@ import android.os.Bundle;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.provider.Settings;
-import android.text.Layout;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
-import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
@@ -42,7 +40,9 @@ import java.lang.reflect.Type;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
@@ -112,6 +112,26 @@ public class MainActivity extends AppCompatActivity {
         }
 
         SharedPreferences prefs = getSharedPreferences(USER_INFO, Context.MODE_PRIVATE);
+        SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
+
+        String[] notificationValues = getResources().getStringArray(R.array.notification_values);
+
+        if (!settings.contains(getString(R.string.ring_preference_key))) {
+            SharedPreferences.Editor settingsEditor = settings.edit();
+            Set<String> ringAllowed = new HashSet<>();
+            ringAllowed.add(notificationValues[2]);
+            settingsEditor.putStringSet(getString(R.string.ring_preference_key), ringAllowed);
+            settingsEditor.apply();
+        }
+
+        if (!settings.contains(getString(R.string.vibrate_preference_key))) {
+            SharedPreferences.Editor settingsEditor = settings.edit();
+            Set<String> vibrateAllowed = new HashSet<>();
+            vibrateAllowed.add(notificationValues[1]);
+            vibrateAllowed.add(notificationValues[2]);
+            settingsEditor.putStringSet(getString(R.string.vibrate_preference_key), vibrateAllowed);
+            settingsEditor.apply();
+        }
 
         if (!prefs.contains(UPLOADED)) {
             SharedPreferences.Editor editor = prefs.edit();
@@ -121,7 +141,7 @@ public class MainActivity extends AppCompatActivity {
 
         token = prefs.getString(MY_TOKEN, null);
 
-        if (!prefs.contains(MY_NAME) || !prefs.contains(MY_ID)) {
+        if (!settings.contains(getString(R.string.name_key)) || !prefs.contains(MY_ID)) {
             user = new User();
             Intent intent = new Intent(this, DialogActivity.class);
             startActivityForResult(intent, NAME_CALLBACK);
@@ -170,9 +190,14 @@ public class MainActivity extends AppCompatActivity {
             case NAME_CALLBACK:
                 SharedPreferences prefs = getSharedPreferences(USER_INFO, Context.MODE_PRIVATE);
                 SharedPreferences.Editor editor = prefs.edit();
-                editor.putString(MY_NAME, data.getStringExtra(MY_NAME));
+                SharedPreferences.Editor settingsEditor = PreferenceManager.getDefaultSharedPreferences(this).edit();
+
+                settingsEditor.putString(getString(R.string.name_key), data.getStringExtra(MY_NAME));
                 editor.putString(MY_ID, makeId(data.getStringExtra(MY_NAME)));
+
                 editor.apply();
+                settingsEditor.apply();
+
                 user.setUid(prefs.getString(MY_ID, null));
                 addUserToDB(user);
                 break;
@@ -300,6 +325,8 @@ public class MainActivity extends AppCompatActivity {
 
         ArrayList<String[]> friendList = parseFriends(friendJson);
 
+        if (friendList == null) return;
+
         RecyclerView friendListView = findViewById(R.id.friends_list);
         friendListView.setLayoutManager(new LinearLayoutManager(this));
 
@@ -319,9 +346,6 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onDeletePrompt(int position, String name) {
-
-
-
                 AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
                 alertDialog.setTitle(getString(R.string.confirm_delete_title));
                 alertDialog.setMessage(getString(R.string.confirm_delete_message, name));
@@ -423,7 +447,8 @@ public class MainActivity extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
-            return true;
+            Intent intent = new Intent(this, SettingsActivity.class);
+            startActivity(intent);
         }
 
         return super.onOptionsItemSelected(item);
@@ -432,21 +457,18 @@ public class MainActivity extends AppCompatActivity {
     private void addUserToDB(User user) {
 
         Task<InstanceIdResult> idResultTask = FirebaseInstanceId.getInstance().getInstanceId();
-        idResultTask.addOnCompleteListener(new OnCompleteListener<InstanceIdResult>() {
-            @Override
-            public void onComplete(@NonNull Task<InstanceIdResult> task) {
-                user.setToken(task.getResult().getToken());
+        idResultTask.addOnCompleteListener(task -> {
+            user.setToken(task.getResult().getToken());
 
-                //PendingIntent pendingIntent = createPendingResult(AppServer.CALLBACK_POST_TOKEN, new Intent(), 0);
-                Intent intent = new Intent(MainActivity.this, AppServer.class);
+            //PendingIntent pendingIntent = createPendingResult(AppServer.CALLBACK_POST_TOKEN, new Intent(), 0);
+            Intent intent = new Intent(MainActivity.this, AppServer.class);
 
-                intent.putExtra(AppServer.EXTRA_TOKEN, user.getToken());
-                intent.putExtra(AppServer.EXTRA_ID, user.getUid());
-                intent.setAction(AppServer.ACTION_POST_TOKEN);
-                //intent.putExtra(AppServer.EXTRA_PENDING_RESULT, pendingIntent);
-                AppServer.enqueueWork(MainActivity.this, intent);
-                Log.d(TAG, getString(R.string.log_sending_msg));
-            }
+            intent.putExtra(AppServer.EXTRA_TOKEN, user.getToken());
+            intent.putExtra(AppServer.EXTRA_ID, user.getUid());
+            intent.setAction(AppServer.ACTION_POST_TOKEN);
+            //intent.putExtra(AppServer.EXTRA_PENDING_RESULT, pendingIntent);
+            AppServer.enqueueWork(MainActivity.this, intent);
+            Log.d(TAG, getString(R.string.log_sending_msg));
         });
     }
 

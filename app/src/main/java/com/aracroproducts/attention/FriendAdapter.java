@@ -19,6 +19,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
@@ -52,6 +53,7 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem
         private ConstraintLayout editLayout;
         private Button rename;
         private Button delete;
+        private ImageButton cancelEdit;
 
         private int position;
 
@@ -78,8 +80,7 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem
             editLayout = v.findViewById(R.id.edit_friend_layout);
             rename = v.findViewById(R.id.rename_button);
             delete = v.findViewById(R.id.delete_friend_button);
-
-
+            cancelEdit = v.findViewById(R.id.cancel_edit);
 
             textView.setOnClickListener(this);
             textView.setOnLongClickListener(this);
@@ -89,6 +90,7 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem
             addMessage.setOnClickListener(this);
             rename.setOnClickListener(this);
             delete.setOnClickListener(this);
+            cancelEdit.setOnClickListener(this);
 
         }
 
@@ -113,7 +115,7 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem
                 }
             } else if (v.getId() == confirmButton.getId()) {
                 alert(3500, null);
-            } else if (v.getId() == cancelButton.getId() || v.getId() == cancelSend.getId()) {
+            } else if (v.getId() == cancelButton.getId() || v.getId() == cancelSend.getId() || v.getId() == cancelEdit.getId()) {
                 cancel();
 
             } else if (v.getId() == addMessage.getId()) {
@@ -126,18 +128,8 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem
                 input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_AUTO_COMPLETE | InputType.TYPE_TEXT_FLAG_AUTO_CORRECT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
                 builder.setView(input);
 
-                builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        alert(0, input.getText().toString());
-                    }
-                });
-                builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        FriendItem.this.cancel();
-                    }
-                });
+                builder.setPositiveButton(android.R.string.ok, (dialogInterface, i) -> alert(0, input.getText().toString()));
+                builder.setNegativeButton(android.R.string.cancel, (dialogInterface, i) -> FriendItem.this.cancel());
                 builder.show();
             } else if (v.getId() == rename.getId()) {
                 callback.onEditName(id);
@@ -151,7 +143,7 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem
             callback.onLongPress();
             edit();
             alertState = State.EDIT;
-            return false;
+            return true;
         }
 
         public void edit() {
@@ -216,8 +208,7 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem
 
         public void cancel() {
             Log.d(TAG, "Cancelled alert");
-            cancelButton.setVisibility(View.GONE);
-            confirmButtonLayout.setVisibility(View.GONE);
+            reset();
             alertState = State.NORMAL;
             if (delay != null) delay.cancel();
         }

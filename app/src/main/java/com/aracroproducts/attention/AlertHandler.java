@@ -14,6 +14,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
+import androidx.preference.PreferenceManager;
 
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
@@ -68,8 +69,9 @@ public class AlertHandler extends FirebaseMessagingService {
         assert message != null;
         message = message.equals("null") ? getString(R.string.default_message, senderName) : getString(R.string.message_prefix, senderName, message);
 
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
         NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        if (!manager.areNotificationsEnabled() || (manager.getCurrentInterruptionFilter() != NotificationManager.INTERRUPTION_FILTER_ALL && manager.getCurrentInterruptionFilter() != NotificationManager.INTERRUPTION_FILTER_UNKNOWN)) {
+        if (!manager.areNotificationsEnabled() || (!preferences.getBoolean(getString(R.string.override_dnd_key), false) && (manager.getCurrentInterruptionFilter() != NotificationManager.INTERRUPTION_FILTER_ALL && manager.getCurrentInterruptionFilter() != NotificationManager.INTERRUPTION_FILTER_UNKNOWN))) {
             Log.d(TAG, "App is disabled from showing notifications or interruption filter is set to block notifications");
             showNotification(message, senderName, true);
             return;

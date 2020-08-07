@@ -33,7 +33,7 @@
 
         <Button
             android:id="@+id/rename_button"
-            style="@style/Widget.AppCompat.Button.Colored"
+            style="@style/Widget.AppCompat.Button"
             android:layout_width="0dp"
             android:layout_height="0dp"
             android:layout_marginTop="8dp"
@@ -49,6 +49,7 @@
 
         <Button
             android:id="@+id/delete_friend_button"
+            style="@style/Widget.AppCompat.Button.Colored"
             android:layout_width="wrap_content"
             android:layout_height="0dp"
             android:backgroundTint="@color/danger"

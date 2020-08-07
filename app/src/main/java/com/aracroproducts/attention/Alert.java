@@ -3,12 +3,14 @@ package com.aracroproducts.attention;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
+import androidx.preference.PreferenceManager;
 
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.media.AudioManager;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
@@ -22,6 +24,9 @@ import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
+
+import java.util.HashSet;
+import java.util.Set;
 
 public class Alert extends AppCompatActivity {
 
@@ -52,33 +57,79 @@ public class Alert extends AppCompatActivity {
 
         if (intent.getBooleanExtra(AlertHandler.SHOULD_VIBRATE, true)) {
 
-            AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+            SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
+            Set<String> vibrate = settings.getStringSet(getString(R.string.vibrate_preference_key), new HashSet<>());
+            Set<String> ring = settings.getStringSet(getString(R.string.ring_preference_key), new HashSet<>());
 
-            if (audioManager.getRingerMode() == AudioManager.RINGER_MODE_NORMAL) {
-                Uri notification = RingtoneManager.getActualDefaultRingtoneUri(Alert.this, RingtoneManager.TYPE_RINGTONE);
-                r = RingtoneManager.getRingtone(Alert.this, notification);
-                r.setVolume(1.0f);
-                r.play();
+            ring(ring);
+            vibrate(vibrate);
+        }
+    }
+
+    private boolean shouldRing(Set<String> ringAllowed) {
+        AudioManager manager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        switch (manager.getRingerMode()) {
+            case AudioManager.RINGER_MODE_SILENT:
+                if (ringAllowed.contains("silent")) return true;
+                break;
+            case AudioManager.RINGER_MODE_VIBRATE:
+                if (ringAllowed.contains("vibrate")) return true;
+                break;
+            case AudioManager.RINGER_MODE_NORMAL:
+                if (ringAllowed.contains("ring")) return true;
+                break;
+        }
+        return false;
+
+    }
+
+    private boolean shouldVibrate(Set<String> vibrateAllowed) {
+        AudioManager manager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        switch (manager.getRingerMode()) {
+            case AudioManager.RINGER_MODE_SILENT:
+                if (vibrateAllowed.contains("silent")) return true;
+                break;
+            case AudioManager.RINGER_MODE_VIBRATE:
+                if (vibrateAllowed.contains("vibrate")) return true;
+                break;
+            case AudioManager.RINGER_MODE_NORMAL:
+                if (vibrateAllowed.contains("ring")) return true;
+                break;
+        }
+        return false;
+    }
+
+    private void ring(Set<String> ringAllowed) {
+        if (shouldRing(ringAllowed)) {
+            Uri notification = RingtoneManager.getActualDefaultRingtoneUri(Alert.this, RingtoneManager.TYPE_RINGTONE);
+            r = RingtoneManager.getRingtone(Alert.this, notification);
+            r.setVolume(1.0f);
+            r.play();
+
+        }
+    }
+
+    private void vibrate(Set<String> vibrateAllowed) {
+        if (!shouldRing(vibrateAllowed)) return;
+
+        timer = new CountDownTimer(5000, 500) {
+            @Override
+            public void onTick(long l) {
+                if (shouldVibrate(vibrateAllowed)) {
+                    Log.d(TAG, "Vibrating device");
+                    Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+                    vibrator.vibrate(VibrationEffect.createOneShot(400, VibrationEffect.DEFAULT_AMPLITUDE));
+                }
+
             }
 
-            timer = new CountDownTimer(5000, 500) {
-                @Override
-                public void onTick(long l) {
-                    if (audioManager.getRingerMode() != AudioManager.RINGER_MODE_SILENT) {
-                        Log.d(TAG, "Vibrating device");
-                        Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-                        vibrator.vibrate(VibrationEffect.createOneShot(400, VibrationEffect.DEFAULT_AMPLITUDE));
-                    }
+            @Override
+            public void onFinish() {
 
-                }
+            }
+        };
+        timer.start();
 
-                @Override
-                public void onFinish() {
-
-                }
-            };
-            timer.start();
-        }
     }
 
     @Override

@@ -1,9 +1,5 @@
 package com.aracroproducts.attention;
 
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-
 import android.Manifest;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -11,7 +7,6 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Color;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
@@ -19,6 +14,12 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.preference.PreferenceManager;
 
 import com.google.android.material.snackbar.Snackbar;
 import com.google.gson.Gson;
@@ -36,7 +37,6 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
 
 public class Add extends AppCompatActivity {
 
@@ -78,12 +78,7 @@ public class Add extends AppCompatActivity {
 
             pause();
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                v.vibrate(VibrationEffect.createOneShot(250, VibrationEffect.DEFAULT_AMPLITUDE));
-            } else {
-                //deprecated in API 26
-                v.vibrate(500);
-            }
+            v.vibrate(VibrationEffect.createOneShot(250, VibrationEffect.DEFAULT_AMPLITUDE));
         }
     };
 
@@ -97,8 +92,8 @@ public class Add extends AppCompatActivity {
 
 
         QRCodeWriter writer = new QRCodeWriter();
-        String id = getSharedPreferences(MainActivity.USER_INFO, Context.MODE_PRIVATE).getString("id", null);
-        String name = getSharedPreferences(MainActivity.USER_INFO, Context.MODE_PRIVATE).getString("name", null);
+        String id = getSharedPreferences(MainActivity.USER_INFO, Context.MODE_PRIVATE).getString(MainActivity.MY_ID, null);
+        String name = PreferenceManager.getDefaultSharedPreferences(this).getString(getString(R.string.name_key), null);
         String user = name + " " + id;
         try {
             BitMatrix bitMatrix = writer.encode(user, BarcodeFormat.QR_CODE, 512, 512);
@@ -130,14 +125,7 @@ public class Add extends AppCompatActivity {
         barcodeView.initializeFromIntent(getIntent());
         barcodeView.decodeContinuous(callback);
 
-        barcodeView.setOnClickListener(new View.OnClickListener() {
-
-            @Override
-            public void onClick(View view) {
-                resume();
-            }
-
-        });
+        barcodeView.setOnClickListener(view -> resume());
     }
 
     public void finishActivity(View view) {
@@ -188,7 +176,7 @@ public class Add extends AppCompatActivity {
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         if (requestCode == CAMERA_CALLBACK_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 startScan();
@@ -228,10 +216,6 @@ public class Add extends AppCompatActivity {
         }
     }
 
-    public void triggerScan(View view) {
-        barcodeView.decodeSingle(callback);
-    }
-
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         return barcodeView.onKeyDown(keyCode, event) || super.onKeyDown(keyCode, event);
@@ -249,23 +233,13 @@ public class Add extends AppCompatActivity {
                 alert.setTitle(getString(R.string.permissions_needed));
                 alert.setMessage(getString(R.string.permission_details));
 
-                alert.setButton(DialogInterface.BUTTON_POSITIVE, getString(R.string.allow), new DialogInterface.OnClickListener() {
-
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        dialogInterface.cancel();
-                        ActivityCompat.requestPermissions(Add.this, new String[]{Manifest.permission.CAMERA}, CAMERA_CALLBACK_CODE);
-                        //Works as long as there is only one required permission. More complicated code refactoring may be necessary in the future
-                    }
+                alert.setButton(DialogInterface.BUTTON_POSITIVE, getString(R.string.allow), (dialogInterface, i) -> {
+                    dialogInterface.cancel();
+                    ActivityCompat.requestPermissions(Add.this, new String[]{Manifest.permission.CAMERA}, CAMERA_CALLBACK_CODE);
+                    //Works as long as there is only one required permission. More complicated code refactoring may be necessary in the future
                 });
 
-                alert.setButton(DialogInterface.BUTTON_NEGATIVE, this.getString(R.string.deny), new DialogInterface.OnClickListener() {
-
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        dialogInterface.cancel();
-                    }
-                });
+                alert.setButton(DialogInterface.BUTTON_NEGATIVE, this.getString(R.string.deny), (dialogInterface, i) -> dialogInterface.cancel());
 
                 alert.show();
                 return false;

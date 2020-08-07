@@ -42,4 +42,16 @@
     <string name="delete">Slett</string>
     <string name="rename">Endre navn</string>
     <string name="new_name">Tast inn nytt navn</string>
+    <string name="title_activity_settings">Instillinger</string>
+    <string name="notifications_title">Varsler</string>
+    <string name="user_title">Bruker</string>
+    <string name="override_dnd">Overstyr Ikke Forstyr</string>
+    <string name="override_summary_off">Varsler vil ikke vises når Ikke Forstyr er på</string>
+    <string name="override_summary_on">Varsler vil vises til og med når Ikke Forstyr er på</string>
+    <string name="vibrate_preference">Vibrer når enheten er satt til:</string>
+    <string name="ring_preference">Ring når enheten er satt til:</string>
+    <string name="silent">Stille</string>
+    <string name="vibrate">Vibrer</string>
+    <string name="ring">Ring</string>
+    <string name="display_name">Navn som skal vises</string>
 </resources>

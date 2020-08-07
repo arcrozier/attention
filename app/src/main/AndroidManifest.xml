@@ -20,19 +20,21 @@
         android:roundIcon="@mipmap/add_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-
-        <!--android:showOnLockScreen="true"-->
-        <activity android:name=".Alert"
-            android:showWhenLocked="true"
-            android:turnScreenOn="true"
+        <activity
+            android:name=".SettingsActivity"
+            android:label="@string/title_activity_settings"></activity>
+        <!-- android:showOnLockScreen="true" -->
+        <activity
+            android:name=".Alert"
             android:excludeFromRecents="true"
-            android:theme="@style/AppTheme.Dialog"/>
+            android:showWhenLocked="true"
+            android:theme="@style/AppTheme.Dialog"
+            android:turnScreenOn="true" />
 
         <service
             android:name=".AppServer"
             android:exported="false"
             android:permission="android.permission.BIND_JOB_SERVICE" />
-
         <service
             android:name=".AlertHandler"
             android:enabled="true"

@@ -1,0 +1,42 @@
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:iconSpaceReserved="false"
+    app:iconSpaceReserved="false">
+
+    <PreferenceCategory
+        app:iconSpaceReserved="false"
+        app:title="@string/notifications_title">
+        <SwitchPreference
+            android:defaultValue="false"
+            android:key="@string/override_dnd_key"
+            android:title="@string/override_dnd"
+            app:iconSpaceReserved="false"
+            app:summaryOff="@string/override_summary_off"
+            app:summaryOn="@string/override_summary_on" />
+        <MultiSelectListPreference
+            android:entries="@array/notification_entries"
+            android:entryValues="@array/notification_values"
+            android:key="@string/vibrate_preference_key"
+            android:title="@string/vibrate_preference"
+            app:iconSpaceReserved="false" />
+        <MultiSelectListPreference
+            android:entries="@array/notification_entries"
+            android:entryValues="@array/notification_values"
+            android:key="@string/ring_preference_key"
+            android:title="@string/ring_preference"
+            app:iconSpaceReserved="false" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:iconSpaceReserved="false"
+        app:title="@string/user_title">
+        <EditTextPreference
+            android:key="@string/name_key"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="@string/display_name"
+            app:iconSpaceReserved="false"
+            app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
+
+</PreferenceScreen>
