@@ -23,6 +23,7 @@ import com.google.gson.reflect.TypeToken;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -39,6 +40,10 @@ public class AlertHandler extends FirebaseMessagingService {
     protected static final String ASSOCIATED_NOTIFICATION = "notification_id";
     protected static final String SHOULD_VIBRATE = "vibrate";
 
+    /**
+     * Executed when the device gets a new Firebase token
+     * @param token - The new token to use
+     */
     @Override
     public void onNewToken(@NonNull String token) {
         Log.d(TAG, "New token: " + token);
@@ -52,6 +57,10 @@ public class AlertHandler extends FirebaseMessagingService {
         }
     }
 
+    /**
+     * Receives a message from Firebase (not called by local code)
+     * @param remoteMessage - The message from Firebase
+     */
     @Override
     public void onMessageReceived(RemoteMessage remoteMessage) {
         Log.d(TAG, "Message received! " + remoteMessage.toString());
@@ -71,14 +80,20 @@ public class AlertHandler extends FirebaseMessagingService {
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
         NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        if (!manager.areNotificationsEnabled() || (!preferences.getBoolean(getString(R.string.override_dnd_key), false) && (manager.getCurrentInterruptionFilter() != NotificationManager.INTERRUPTION_FILTER_ALL && manager.getCurrentInterruptionFilter() != NotificationManager.INTERRUPTION_FILTER_UNKNOWN))) {
+        NotificationManagerCompat compatManager = NotificationManagerCompat.from(this);
+        // Check if SDK >= Android 7.0, uses the new notification manager, else uses the compat manager (SDK 19+)
+        // Checks if the app should avoid notifying because it has notifications disabled or:
+        if ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.N ? !manager.areNotificationsEnabled() : !compatManager.areNotificationsEnabled())
+                || (!preferences.getBoolean(getString(R.string.override_dnd_key), false) // Checks whether it should not be overriding Do Not Disturb
+                && (manager.getCurrentInterruptionFilter() != NotificationManager.INTERRUPTION_FILTER_ALL // Do not disturb is on
+                && manager.getCurrentInterruptionFilter() != NotificationManager.INTERRUPTION_FILTER_UNKNOWN))) { // Also do not disturb is on
             Log.d(TAG, "App is disabled from showing notifications or interruption filter is set to block notifications");
             showNotification(message, senderName, true);
             return;
         }
 
         try {
-            if (Settings.Global.getInt(getContentResolver(), "zen_mode") > 1) {
+            if (Settings.Global.getInt(getContentResolver(), "zen_mode") > 1) { // a variant of do not disturb
                 Log.d(TAG, "Device's zen mode is enabled");
                 return;
             }
@@ -87,13 +102,11 @@ public class AlertHandler extends FirebaseMessagingService {
         }
 
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
-        /*if (!pm.isInteractive()) { This functionality has been deprecated
-            PowerManager.WakeLock wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP, TAG);
-            wakeLock.acquire(500);
-        }*/
 
+        // Stores the id so the notification can be cancelled by the user
         int id = showNotification(message, senderName, false);
 
+        // Device should only show pop up if the device is off or if it has the ability to draw overlays (required to show pop up if screen is on)
         if (!pm.isInteractive() || Settings.canDrawOverlays(this)) {
 
             Intent intent = new Intent(this, Alert.class);
@@ -109,15 +122,20 @@ public class AlertHandler extends FirebaseMessagingService {
         }
     }
 
+    /**
+     * Checks if the provided sender ID is a user's friend
+     * @param sender    - The provided ID of the sender
+     * @return          - Whether the sender is a friend of the user
+     */
     private boolean senderIsFriend(String sender) {
         SharedPreferences friends = getSharedPreferences(MainActivity.FRIENDS, Context.MODE_PRIVATE);
         String friendJson = friends.getString("friends", null);
-        ArrayList<String[]> friendList = new ArrayList<>();
+        List<String[]> friendList = new ArrayList<>();
 
         Gson gson = new Gson();
 
         if (friendJson != null) {
-            Type arrayListType = new TypeToken<ArrayList<String[]>>() {
+            Type arrayListType = new TypeToken<List<String[]>>() {
             }.getType();
             friendList = gson.fromJson(friendJson, arrayListType);
 
@@ -127,7 +145,13 @@ public class AlertHandler extends FirebaseMessagingService {
         return isStringInFriendList(sender, friendList);
     }
 
-    private boolean isStringInFriendList(String id, ArrayList<String[]> friendList) {
+    /**
+     * Helper method to determine if a friend ID is in the list of friends
+     * @param id            - The ID to search for
+     * @param friendList    - The friend list to search in
+     * @return              - Whether the ID is in the list
+     */
+    private boolean isStringInFriendList(String id, List<String[]> friendList) {
         boolean found = false;
         for (int i = 0; i < friendList.size(); i++) {
             found = id.equals(friendList.get(i)[1]);
@@ -136,17 +160,22 @@ public class AlertHandler extends FirebaseMessagingService {
         return found;
     }
 
+    /**
+     * Gets the name of the friend with the provided id
+     * @param id    - The ID to get the name for
+     * @return      - The name corresponding to the ID
+     */
     private String getFriendNameForID(String id) {
         SharedPreferences friends = getSharedPreferences(MainActivity.FRIENDS, Context.MODE_PRIVATE);
         String friendJson = friends.getString("friends", null);
-        ArrayList<String[]> friendList = new ArrayList<>();
+        List<String[]> friendList = new ArrayList<>();
 
         Gson gson = new Gson();
 
         if (friendJson != null) {
-            Type arrayListType = new TypeToken<ArrayList<String[]>>() {
+            Type listType = new TypeToken<List<String[]>>() {
             }.getType();
-            friendList = gson.fromJson(friendJson, arrayListType);
+            friendList = gson.fromJson(friendJson, listType);
 
             Log.d(TAG, friendJson);
         }
@@ -160,6 +189,13 @@ public class AlertHandler extends FirebaseMessagingService {
         return null;
     }
 
+    /**
+     * Helper method to show the notification
+     * @param message       - The message to show
+     * @param senderName    - The name of the sender
+     * @param missed        - Whether the alert was missed
+     * @return              - Returns the ID of the notification
+     */
     private int showNotification(String message, String senderName, boolean missed) {
 
         Intent intent = new Intent(this, Alert.class);

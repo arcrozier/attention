@@ -7,6 +7,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
@@ -48,13 +49,14 @@ public class Add extends AppCompatActivity {
 
     private static final int CAMERA_CALLBACK_CODE = 10;
 
-    private BarcodeCallback callback = new BarcodeCallback() {
+    // Handles events with the barcode scanner
+    private final BarcodeCallback callback = new BarcodeCallback() {
         @Override
         public void barcodeResult(BarcodeResult result) {
             if (result.getText() == null) {
                 return;
             }
-            if (result.getText().equals(lastText)) {
+            if (result.getText().equals(lastText)) { // this could be an issue if someone edits the recorded ID and then wants to scan the same barcode again
                 if ((System.currentTimeMillis() - lastSnackBar) > 5000) {
                     View layout = findViewById(R.id.add_constraint);
                     Snackbar snackbar = Snackbar.make(layout, R.string.scan_new, Snackbar.LENGTH_SHORT);
@@ -78,7 +80,12 @@ public class Add extends AppCompatActivity {
 
             pause();
 
-            v.vibrate(VibrationEffect.createOneShot(250, VibrationEffect.DEFAULT_AMPLITUDE));
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                v.vibrate(VibrationEffect.createOneShot(250, VibrationEffect.DEFAULT_AMPLITUDE));
+            } else {
+                v.vibrate(250);
+            }
+
         }
     };
 
@@ -117,6 +124,9 @@ public class Add extends AppCompatActivity {
 
     }
 
+    /**
+     * Helper method to start scanning for codes
+     */
     private void startScan() {
         barcodeView = findViewById(R.id.zxing_barcode_scanner);
 
@@ -128,6 +138,10 @@ public class Add extends AppCompatActivity {
         barcodeView.setOnClickListener(view -> resume());
     }
 
+    /**
+     * Validates the inputs before adding them to friend list and returning to the start screen
+     * @param view  - The view object that calls this method from the activity
+     */
     public void finishActivity(View view) {
         TextView idView = findViewById(R.id.manual_code);
         TextView nameView = findViewById(R.id.manual_name);
@@ -175,6 +189,12 @@ public class Add extends AppCompatActivity {
         finish();
     }
 
+    /**
+     * Receives the result of asking for camera permission and starts scanning if yes
+     * @param requestCode   - The request code attached to the permission request
+     * @param permissions   - The permissions requested
+     * @param grantResults  - The results for each permission
+     */
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         if (requestCode == CAMERA_CALLBACK_CODE) {
@@ -202,6 +222,9 @@ public class Add extends AppCompatActivity {
         }
     }
 
+    /**
+     * Helper method to pause the scanning
+     */
     public void pause() {
         if (cameraActive) {
             barcodeView.pause();
@@ -209,6 +232,9 @@ public class Add extends AppCompatActivity {
         }
     }
 
+    /**
+     * Helper method to resume scanning
+     */
     public void resume() {
         if (!cameraActive) {
             barcodeView.resume();
@@ -221,6 +247,9 @@ public class Add extends AppCompatActivity {
         return barcodeView.onKeyDown(keyCode, event) || super.onKeyDown(keyCode, event);
     }
 
+    /**
+     * Helper method to handle checking and getting the camera permission to start scanning
+     */
     private boolean hasCameraPermission() {
         if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)) {
 

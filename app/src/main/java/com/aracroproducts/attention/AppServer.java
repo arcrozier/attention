@@ -36,11 +36,6 @@ public class AppServer extends JobIntentService {
     protected static final int CODE_ERROR = 1;
     protected static final int CODE_NA = -1;
 
-    protected static final int CALLBACK_POST_TOKEN = 10;
-    protected static final int CALLBACK_SEND_ALERT = 11;
-
-    protected static final String NETWORK_COMPLETE_BROADCAST = "com.aracroproducts.attention.broadcast.network";
-
     private static final int JOB_ID = 0;
 
     private static final String PARAM_FUNCTION_ID = "post_id";
@@ -114,7 +109,7 @@ public class AppServer extends JobIntentService {
      * @param function  - Which function it is calling (one of 'post_id' or 'send_alert')
      * @return          - A boolean representing whether the request was successful
      */
-    private boolean connect(boolean post, String[][] params, String function) {
+    private boolean connect(@SuppressWarnings("SameParameterValue") boolean post, String[][] params, String function) {
         HttpURLConnection c;
         String getParams = parseGetParams(params, !post);
         try {

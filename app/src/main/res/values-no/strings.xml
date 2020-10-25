@@ -2,8 +2,6 @@
 <resources>
     <string name="app_name">Følg Med!</string>
     <string name="action_settings">Innstillinger</string>
-    <string name="next">Neste</string>
-    <string name="previous">Forrige</string>
     <string name="name_dialog_title">Venligst tast inn navnet dit</string>
     <string name="name">Fullt navn</string>
     <string name="no_name">Venligst tast inn et navn</string>
