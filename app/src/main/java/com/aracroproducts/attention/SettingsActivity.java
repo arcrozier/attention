@@ -1,17 +1,15 @@
 package com.aracroproducts.attention;
 
-import android.content.SharedPreferences;
 import android.os.Bundle;
 
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
-import androidx.preference.PreferenceManager;
 
+/**
+ * The class for the settings menu in the app
+ */
 public class SettingsActivity extends AppCompatActivity {
-
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,6 +25,9 @@ public class SettingsActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * A fragment for individual settings panels
+     */
     public static class SettingsFragment extends PreferenceFragmentCompat {
         @Override
         public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {

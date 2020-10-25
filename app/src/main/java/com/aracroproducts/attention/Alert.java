@@ -22,7 +22,6 @@ import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.util.Log;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.TextView;
 
 import java.util.HashSet;
@@ -30,7 +29,7 @@ import java.util.Set;
 
 public class Alert extends AppCompatActivity {
 
-    private String TAG = getClass().getName();
+    private final String TAG = getClass().getName();
 
     private String from;
     private String message;
@@ -103,7 +102,7 @@ public class Alert extends AppCompatActivity {
         if (shouldRing(ringAllowed)) {
             Uri notification = RingtoneManager.getActualDefaultRingtoneUri(Alert.this, RingtoneManager.TYPE_RINGTONE);
             r = RingtoneManager.getRingtone(Alert.this, notification);
-            r.setVolume(1.0f);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) r.setVolume(1.0f);
             r.play();
 
         }
@@ -118,7 +117,11 @@ public class Alert extends AppCompatActivity {
                 if (shouldVibrate(vibrateAllowed)) {
                     Log.d(TAG, "Vibrating device");
                     Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-                    vibrator.vibrate(VibrationEffect.createOneShot(400, VibrationEffect.DEFAULT_AMPLITUDE));
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        vibrator.vibrate(VibrationEffect.createOneShot(400, VibrationEffect.DEFAULT_AMPLITUDE));
+                    } else {
+                        vibrator.vibrate(400);
+                    }
                 }
 
             }

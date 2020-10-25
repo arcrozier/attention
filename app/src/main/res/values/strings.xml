@@ -2,8 +2,6 @@
     <string name="app_name">Attention!</string>
     <string name="action_settings">Settings</string>
     <!-- Strings used for fragments for navigation -->
-    <string name="next">Next</string>
-    <string name="previous">Previous</string>
 
     <string name="name_dialog_title">Please enter your name</string>
     <string name="name">Full name</string>
@@ -50,9 +48,6 @@
     <string name="do_not_ask_again">Do not ask again</string>
 
     <string name="msg_token_fmt" translatable="false">Generated token: %s</string>
-    <string name="log_msg_sent" translatable="false">Message %s successfully sent</string>
-    <string name="log_register_user" translatable="false">Registering user with firebase</string>
-    <string name="log_send_error" translatable="false">Error sending message (Id: %s) with error %s</string>
     <string name="log_sending_msg" translatable="false">Sending message to server</string>
 
     <string name="no_play_services">No Google Play Services were found on your device</string>

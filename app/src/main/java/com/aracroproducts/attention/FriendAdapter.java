@@ -1,16 +1,8 @@
 package com.aracroproducts.attention;
 
 import android.animation.ObjectAnimator;
-import android.animation.ValueAnimator;
 import android.app.AlertDialog;
-import android.app.PendingIntent;
-import android.content.Context;
-import android.content.DialogInterface;
-import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.CountDownTimer;
-import android.os.Vibrator;
-import android.telecom.Call;
 import android.text.InputType;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -28,32 +20,25 @@ import androidx.appcompat.widget.AppCompatImageButton;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
-import com.google.firebase.iid.FirebaseInstanceId;
-import com.google.firebase.iid.InstanceIdResult;
-import com.google.firebase.messaging.FirebaseMessaging;
-import com.google.firebase.messaging.RemoteMessage;
-
 public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem> {
-    private String[][] dataset;
+    private final String[][] dataset;
     private static final String TAG = FriendAdapter.class.getName();
     private Callback callback;
 
     public static class FriendItem extends RecyclerView.ViewHolder implements View.OnClickListener, View.OnLongClickListener {
 
-        public TextView textView;
-        private Button confirmButton;
-        private FrameLayout cancelButton;
+        public final TextView textView;
+        private final Button confirmButton;
+        private final FrameLayout cancelButton;
         private String id;
-        private ProgressBar progressBar;
-        private ConstraintLayout confirmButtonLayout;
-        private Button addMessage;
-        private AppCompatImageButton cancelSend;
-        private ConstraintLayout editLayout;
-        private Button rename;
-        private Button delete;
-        private ImageButton cancelEdit;
+        private final ProgressBar progressBar;
+        private final ConstraintLayout confirmButtonLayout;
+        private final Button addMessage;
+        private final AppCompatImageButton cancelSend;
+        private final ConstraintLayout editLayout;
+        private final Button rename;
+        private final Button delete;
+        private final ImageButton cancelEdit;
 
         private int position;
 
@@ -187,12 +172,9 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem
 
             //final ProgressBar progressBar = textView.findViewById(R.id.progress_bar);
             final ObjectAnimator objectAnimator = ObjectAnimator.ofInt(progressBar, "progress", progressBar.getProgress(), 100).setDuration(3000);
-            objectAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-                @Override
-                public void onAnimationUpdate(ValueAnimator valueAnimator) {
-                    int progress = (int) valueAnimator.getAnimatedValue();
-                    progressBar.setProgress(progress);
-                }
+            objectAnimator.addUpdateListener(valueAnimator -> {
+                int progress = (int) valueAnimator.getAnimatedValue();
+                progressBar.setProgress(progress);
             });
 
             objectAnimator.start();
@@ -262,8 +244,7 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendItem
         this.callback = callback;
     }
 
-
-
+    @NonNull
     @Override
     public FriendAdapter.FriendItem onCreateViewHolder(ViewGroup parent, int viewType) {
         View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_layout, parent, false);

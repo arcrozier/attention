@@ -39,8 +39,8 @@ import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
-import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -60,6 +60,8 @@ public class MainActivity extends AppCompatActivity {
     public static final String FRIEND_LIST = "friends";
     public static final String OVERLAY_NO_PROMPT = "OverlayDoNotAsk";
 
+    private static final int COMPAT_HEAVY_CLICK = 5;
+
     public static final int NAME_CALLBACK = 0;
     public static final int EDIT_NAME_CALLBACK = 1;
 
@@ -68,7 +70,7 @@ public class MainActivity extends AppCompatActivity {
     private String token;
     private User user;
 
-    private BroadcastReceiver networkCallback = new BroadcastReceiver() {
+    private final BroadcastReceiver networkCallback = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             Log.d(TAG, "Received callback from network class");
@@ -184,10 +186,16 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    /**
+     * Receives results from input dialog boxes that are displayed to the user
+     * @param requestCode   - The code corresponding to the type of request that was made
+     * @param resultCode    - The result of the dialog (not used)
+     * @param data          - Contains the user input
+     */
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         switch (requestCode) {
-            case NAME_CALLBACK:
+            case NAME_CALLBACK: // when the user adds or changes their name
                 SharedPreferences prefs = getSharedPreferences(USER_INFO, Context.MODE_PRIVATE);
                 SharedPreferences.Editor editor = prefs.edit();
                 SharedPreferences.Editor settingsEditor = PreferenceManager.getDefaultSharedPreferences(this).edit();
@@ -201,10 +209,10 @@ public class MainActivity extends AppCompatActivity {
                 user.setUid(prefs.getString(MY_ID, null));
                 addUserToDB(user);
                 break;
-            case EDIT_NAME_CALLBACK:
+            case EDIT_NAME_CALLBACK: // when the user changes one of their friends' names
                 Log.d(TAG, "Received edit name callback");
                 SharedPreferences friends = getSharedPreferences(FRIENDS, Context.MODE_PRIVATE);
-                ArrayList<String[]> friendList = parseFriends(friends.getString(FRIEND_LIST, null));
+                List<String[]> friendList = parseFriends(friends.getString(FRIEND_LIST, null));
 
                 if (friendList == null) {
                     Log.w(TAG, "FriendList was null, unable to edit");
@@ -245,13 +253,19 @@ public class MainActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
     }
 
+    /**
+     * Helper method that makes a unique user ID
+     * @param name  - The name that the ID is based on
+     * @return      - The ID
+     */
     private String makeId(String name) {
-        String fullString = name + Build.FINGERPRINT;
+        String fullString = name == null? "" : name + Build.FINGERPRINT;
         byte[] salt = {69, 42, 0, 37, 10, 127, 34, 85, 83, 24, 98, 75, 49, 8, 67}; // very secure salt but this isn't a cryptographic application so it doesn't really matter
 
         try {
             SecretKeyFactory secretKeyFactory;
-            secretKeyFactory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512"); //not available to Android 7.1 and lower
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) secretKeyFactory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512"); //not available to Android 7.1 and lower
+            else secretKeyFactory = SecretKeyFactory.getInstance("PBKDF2withHmacSHA1"); // available since API 10
             PBEKeySpec spec = new PBEKeySpec(fullString.toCharArray(), salt, 32, 64);
             SecretKey key = secretKeyFactory.generateSecret(spec);
             byte[] hashed = key.getEncoded();
@@ -266,6 +280,9 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Helper method that gets the Firebase token
+     */
     private void getToken() {
         FirebaseInstanceId.getInstance().getInstanceId().addOnCompleteListener(task -> {
             if (!task.isSuccessful()) {
@@ -319,11 +336,14 @@ public class MainActivity extends AppCompatActivity {
         manager.unregisterReceiver(networkCallback);
     }
 
+    /**
+     * Helper method to put all the friends into the recycler view
+     */
     private void populateFriendList() {
         SharedPreferences friends = getSharedPreferences(FRIENDS, Context.MODE_PRIVATE);
         String friendJson = friends.getString(FRIEND_LIST, null);
 
-        ArrayList<String[]> friendList = parseFriends(friendJson);
+        List<String[]> friendList = parseFriends(friendJson);
 
         if (friendList == null) return;
 
@@ -368,8 +388,14 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onLongPress() {
                 Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-
-                vibrator.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.EFFECT_HEAVY_CLICK));
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    VibrationEffect effect;
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) effect = VibrationEffect.createPredefined(VibrationEffect.EFFECT_HEAVY_CLICK);
+                    else effect = VibrationEffect.createOneShot(100, COMPAT_HEAVY_CLICK);
+                    vibrator.vibrate(effect);
+                } else {
+                    vibrator.vibrate(100);
+                }
             }
 
         };
@@ -379,21 +405,28 @@ public class MainActivity extends AppCompatActivity {
         friendListView.setAdapter(adapter);
     }
 
-    public static ArrayList<String[]> parseFriends(String json) {
+    /**
+     * Converts a json string of friends into a List of {friend name, friend ID} pairs
+     * @param json  - JSON string to parse
+     * @return      - The list of friends
+     */
+    public static List<String[]> parseFriends(String json) {
         if (json == null) return null;
         Gson gson = new Gson();
 
-            Type arrayListType = new TypeToken<ArrayList<String[]>>() {
+            Type arrayListType = new TypeToken<List<String[]>>() {
             }.getType();
             return gson.fromJson(json, arrayListType);
-
-
     }
 
+    /**
+     * Deletes the user's friend with the given index
+     * @param index - The index that the friend is at
+     */
     private void deleteFriend(int index) {
         SharedPreferences friends = getSharedPreferences(FRIENDS, Context.MODE_PRIVATE);
         String friendJson = friends.getString(FRIEND_LIST, null);
-        ArrayList<String[]> friendList;
+        List<String[]> friendList;
 
 
         if (friendJson == null) {
@@ -413,6 +446,11 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    /**
+     * Sends the user's notification to the server
+     * @param id        - The recipient ID
+     * @param message   - The message to send to the person
+     */
     private void sendAlertToServer(String id, String message) {
         Log.d(TAG, "Sending alert to server via AppServer service");
         //PendingIntent pendingIntent = createPendingResult(AppServer.CALLBACK_POST_TOKEN, new Intent(), 0);
@@ -445,7 +483,6 @@ public class MainActivity extends AppCompatActivity {
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
             Intent intent = new Intent(this, SettingsActivity.class);
             startActivity(intent);
@@ -454,6 +491,11 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
+
+    /**
+     * Adds the specified new user to the Aracro Products database
+     * @param user  - The user to add to the database
+     */
     private void addUserToDB(User user) {
 
         Task<InstanceIdResult> idResultTask = FirebaseInstanceId.getInstance().getInstanceId();
@@ -472,6 +514,10 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Alias for addUserToDB()
+     * @param user  - the user to add to the database
+     */
     private void updateToken(User user) {
         addUserToDB(user);
         /*DatabaseReference database = FirebaseDatabase.getInstance().getReference();
