@@ -28,11 +28,9 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
-import com.google.android.gms.tasks.Task;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
-import com.google.firebase.iid.FirebaseInstanceId;
-import com.google.firebase.iid.InstanceIdResult;
+import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
@@ -284,14 +282,14 @@ public class MainActivity extends AppCompatActivity {
      * Helper method that gets the Firebase token
      */
     private void getToken() {
-        FirebaseInstanceId.getInstance().getInstanceId().addOnCompleteListener(task -> {
+        FirebaseMessaging.getInstance().getToken().addOnCompleteListener(task -> {
             if (!task.isSuccessful()) {
                 Log.w(TAG, "getInstanceId failed", task.getException());
                 return;
             }
 
             // Get new Instance ID token
-            token = task.getResult().getToken();
+            token = task.getResult();
             Log.d(TAG, "Got token! " + token);
             user.setToken(token);
 
@@ -497,10 +495,8 @@ public class MainActivity extends AppCompatActivity {
      * @param user  - The user to add to the database
      */
     private void addUserToDB(User user) {
-
-        Task<InstanceIdResult> idResultTask = FirebaseInstanceId.getInstance().getInstanceId();
-        idResultTask.addOnCompleteListener(task -> {
-            user.setToken(task.getResult().getToken());
+        FirebaseMessaging.getInstance().getToken().addOnCompleteListener(task -> {
+            user.setToken(task.getResult());
 
             //PendingIntent pendingIntent = createPendingResult(AppServer.CALLBACK_POST_TOKEN, new Intent(), 0);
             Intent intent = new Intent(MainActivity.this, AppServer.class);

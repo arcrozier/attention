@@ -23,6 +23,7 @@
         android:fullBackupContent="@xml/backup_descriptor">
         <activity
             android:name=".SettingsActivity"
+            android:exported="false"
             android:label="@string/title_activity_settings"/>
         <!-- android:showOnLockScreen="true" -->
         <activity
@@ -31,6 +32,7 @@
             android:showWhenLocked="true"
             android:theme="@style/AppTheme.Dialog"
             android:turnScreenOn="true"
+            android:exported="false"
             tools:targetApi="o_mr1" />
 
         <service
@@ -49,15 +51,18 @@
 
         <activity
             android:name=".Add"
+            android:exported="false"
             android:screenOrientation="fullSensor"
             android:windowSoftInputMode="stateAlwaysHidden" />
         <activity
             android:name=".DialogActivity"
             android:label="Enter Name"
+            android:exported="false"
             android:parentActivityName=".MainActivity"
             android:theme="@style/AppTheme.Dialog" />
         <activity
             android:name=".MainActivity"
+            android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
