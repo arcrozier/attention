@@ -24,6 +24,7 @@
     <string name="confirm_delete_title">Delete friend</string>
     <string name="confirm_delete_message">Are you sure you want to remove %s from your friends?</string>
     <string name="yes">Yes</string>
+    <string name="add_friend">Add new friend</string>
 
     <string name="delete">Delete</string>
     <string name="rename">Change name</string>

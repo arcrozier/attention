@@ -52,4 +52,5 @@
     <string name="vibrate">Vibrer</string>
     <string name="ring">Ring</string>
     <string name="display_name">Navn som skal vises</string>
+    <string name="add_friend">Legg til ny venn</string>
 </resources>
