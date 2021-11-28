@@ -4,18 +4,13 @@ import android.Manifest
 import androidx.appcompat.app.AppCompatActivity
 import com.journeyapps.barcodescanner.DecoratedBarcodeView
 import com.journeyapps.barcodescanner.BarcodeCallback
-import com.journeyapps.barcodescanner.BarcodeResult
-import com.aracroproducts.attention.R
 import com.google.android.material.snackbar.Snackbar
 import android.widget.TextView
 import com.google.zxing.qrcode.QRCodeWriter
-import com.aracroproducts.attention.MainActivity
-import com.google.zxing.common.BitMatrix
 import com.google.zxing.BarcodeFormat
 import android.graphics.Bitmap
 import com.google.zxing.WriterException
 import com.journeyapps.barcodescanner.DefaultDecoderFactory
-import android.content.SharedPreferences
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import android.content.pm.PackageManager
@@ -54,12 +49,12 @@ class Add : AppCompatActivity() {
         lastText = result.text.toString()
         val separatorIndex = lastText.lastIndexOf(' ')
         val id = lastText.substring(separatorIndex + 1).trim { it <= ' ' }
-        val enter_id = findViewById<TextView>(R.id.manual_code)
-        enter_id.text = id
+        val enterId = findViewById<TextView>(R.id.manual_code)
+        enterId.text = id
         if (separatorIndex != -1) {
             val name = lastText.substring(0, separatorIndex).trim { it <= ' ' }
-            val enter_name = findViewById<TextView>(R.id.manual_name)
-            enter_name.text = name
+            val enterName = findViewById<TextView>(R.id.manual_name)
+            enterName.text = name
         }
         pause()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -74,7 +69,7 @@ class Add : AppCompatActivity() {
         setContentView(R.layout.activity_add)
         v = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val vibratorManager =  this.getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
-            vibratorManager.defaultVibrator;
+            vibratorManager.defaultVibrator
         } else {
             getSystemService(VIBRATOR_SERVICE) as Vibrator
         }
@@ -167,7 +162,7 @@ class Add : AppCompatActivity() {
                 startScan()
             }
         }
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
     }
 
     override fun onResume() {
@@ -185,7 +180,7 @@ class Add : AppCompatActivity() {
     /**
      * Helper method to pause the scanning
      */
-    fun pause() {
+    private fun pause() {
         if (cameraActive) {
             barcodeView.pause()
             cameraActive = false
@@ -195,15 +190,15 @@ class Add : AppCompatActivity() {
     /**
      * Helper method to resume scanning
      */
-    fun resume() {
+    private fun resume() {
         if (!cameraActive) {
-            barcodeView!!.resume()
+            barcodeView.resume()
             cameraActive = true
         }
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        return barcodeView!!.onKeyDown(keyCode, event) || super.onKeyDown(keyCode, event)
+        return barcodeView.onKeyDown(keyCode, event) || super.onKeyDown(keyCode, event)
     }
 
     /**

@@ -3,6 +3,7 @@ package com.aracroproducts.attention
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.content.Intent
+import android.view.View
 import android.widget.TextView
 import android.widget.Toast
 
@@ -22,7 +23,7 @@ class DialogActivity : AppCompatActivity() {
         }
     }
 
-    fun setName() {
+    fun setName(view: View) {
         val nameField = findViewById<TextView>(R.id.person_name_field)
         val name = nameField.text
         if (name.isEmpty()) {

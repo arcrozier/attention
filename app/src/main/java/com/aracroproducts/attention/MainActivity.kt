@@ -1,17 +1,18 @@
 package com.aracroproducts.attention
 
+import android.app.Activity
 import android.content.*
 import android.net.Uri
-import android.os.Build
-import android.os.Bundle
-import android.os.VibrationEffect
-import android.os.Vibrator
+import android.os.*
 import android.provider.Settings
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
+import androidx.activity.result.ActivityResult
+import androidx.activity.result.ActivityResultCallback
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
@@ -34,12 +35,12 @@ import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
 
 class MainActivity : AppCompatActivity() {
-    private val TAG = javaClass.name
+    private val sTAG = javaClass.name
     private var token: String? = null
     private var user: User? = null
     private val networkCallback: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            Log.d(TAG, "Received callback from network class")
+            Log.d(sTAG, "Received callback from network class")
             val editor = getSharedPreferences(USER_INFO, MODE_PRIVATE).edit()
             val resultCode = intent.getIntExtra(AppServer.EXTRA_RESULT_CODE, AppServer.CODE_NA)
             when (Objects.requireNonNull(intent.action)) {
@@ -63,6 +64,66 @@ class MainActivity : AppCompatActivity() {
             editor.apply()
         }
     }
+
+    /**
+     * Callback for retrieving the user's name - passed to
+     */
+    private val nameCallback: ActivityResultCallback<ActivityResult> =
+            ActivityResultCallback<ActivityResult> {
+                if (it.resultCode != Activity.RESULT_OK) return@ActivityResultCallback
+                val prefs = getSharedPreferences(USER_INFO, MODE_PRIVATE)
+                val editor = prefs.edit()
+                val settingsEditor = PreferenceManager.getDefaultSharedPreferences(this).edit()
+                settingsEditor.putString(getString(R.string.name_key),
+                        it.data?.getStringExtra(MY_NAME))
+                editor.putString(MY_ID, makeId(it.data?.getStringExtra(MY_NAME)))
+                editor.apply()
+                settingsEditor.apply()
+                user!!.uid = prefs.getString(MY_ID, null)
+                addUserToDB(user)
+            }
+
+    private val editNameCallback = ActivityResultCallback<ActivityResult> {
+        if (it.resultCode != Activity.RESULT_OK) return@ActivityResultCallback
+        val data = it.data
+        Log.d(sTAG, "Received edit name callback")
+        val friends = getSharedPreferences(FRIENDS, MODE_PRIVATE)
+        val friendList = parseFriends(friends.getString(FRIEND_LIST, null))
+        if (friendList == null) {
+            Log.w(sTAG, "FriendList was null, unable to edit")
+        } else {
+            val friendId = data!!.getStringExtra(DialogActivity.EXTRA_USER_ID)
+            var friend: Array<String>? = null
+            var friendIndex = -1
+            var i = 0
+            while (i < friendList.size) {
+                if (friendList[i][1] == friendId) {
+                    friend = friendList[i]
+                    friendIndex = i
+                    break
+                }
+                i++
+            }
+            if (friend == null) {
+                Log.e(sTAG, "Could not find requested ID to rename")
+            } else {
+                friend[0] = data.getStringExtra(MY_NAME).toString()
+                friendList[friendIndex] = friend
+                val gson = Gson()
+                val friendJson = gson.toJson(friendList)
+                val friendEditor = friends.edit()
+                friendEditor.putString(FRIEND_LIST, friendJson)
+                friendEditor.apply()
+                populateFriendList()
+            }
+        }
+    }
+
+    private val startNameDialogForResult = registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult(), nameCallback)
+
+    private val startEditNameDialogForResult = registerForActivityResult(ActivityResultContracts
+            .StartActivityForResult(), editNameCallback)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -102,7 +163,7 @@ class MainActivity : AppCompatActivity() {
         if (!settings.contains(getString(R.string.name_key)) || !prefs.contains(MY_ID)) {
             user = User()
             val intent = Intent(this, DialogActivity::class.java)
-            startActivityForResult(intent, NAME_CALLBACK)
+            startNameDialogForResult.launch(intent)
         } else {
             user = User(prefs.getString(MY_ID, null), token)
         }
@@ -112,89 +173,29 @@ class MainActivity : AppCompatActivity() {
             getToken()
         }
         val fab = findViewById<FloatingActionButton>(R.id.fab)
-        fab.setOnClickListener(object : View.OnClickListener {
-            override fun onClick(view: View) {
-                Log.d(this.javaClass.name, "Attempting to add")
-                val intent = Intent(view.context, Add::class.java)
-                startActivity(intent)
-            }
-        })
+        fab.setOnClickListener { view: View ->
+            Log.d(this.javaClass.name, "Attempting to add")
+            val intent = Intent(view.context, Add::class.java)
+            startActivity(intent)
+        }
         if (!Settings.canDrawOverlays(this) && !prefs.contains(OVERLAY_NO_PROMPT)) {
             val alertDialog = AlertDialog.Builder(this).create()
             alertDialog.setTitle(getString(R.string.draw_title))
             alertDialog.setMessage(getString(R.string.draw_message))
             alertDialog.setButton(DialogInterface.BUTTON_POSITIVE, getString(
-                    R.string.open_settings)) { dialogInterface: DialogInterface?, i: Int ->
+                    R.string.open_settings)) { _: DialogInterface?, _: Int ->
                 val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                         Uri.parse("package:" + applicationContext.packageName))
                 startActivity(intent)
             }
             alertDialog.setButton(DialogInterface.BUTTON_NEGATIVE, getString(
-                    R.string.do_not_ask_again)) { dialogInterface: DialogInterface?, i: Int ->
+                    R.string.do_not_ask_again)) { _: DialogInterface?, _: Int ->
                 val editor = prefs.edit()
                 editor.putBoolean(OVERLAY_NO_PROMPT, true)
                 editor.apply()
             }
             alertDialog.show()
         }
-    }
-
-    /**
-     * Receives results from input dialog boxes that are displayed to the user
-     * @param requestCode   - The code corresponding to the type of request that was made
-     * @param resultCode    - The result of the dialog (not used)
-     * @param data          - Contains the user input
-     */
-    public override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        when (requestCode) {
-            NAME_CALLBACK -> {
-                val prefs = getSharedPreferences(USER_INFO, MODE_PRIVATE)
-                val editor = prefs.edit()
-                val settingsEditor = PreferenceManager.getDefaultSharedPreferences(this).edit()
-                settingsEditor.putString(getString(R.string.name_key),
-                        data!!.getStringExtra(MY_NAME))
-                editor.putString(MY_ID, makeId(data.getStringExtra(MY_NAME)))
-                editor.apply()
-                settingsEditor.apply()
-                user!!.uid = prefs.getString(MY_ID, null)
-                addUserToDB(user)
-            }
-            EDIT_NAME_CALLBACK -> {
-                Log.d(TAG, "Received edit name callback")
-                val friends = getSharedPreferences(FRIENDS, MODE_PRIVATE)
-                val friendList = parseFriends(friends.getString(FRIEND_LIST, null))
-                if (friendList == null) {
-                    Log.w(TAG, "FriendList was null, unable to edit")
-                } else {
-                    val friendId = data!!.getStringExtra(DialogActivity.EXTRA_USER_ID)
-                    var friend: Array<String>? = null
-                    var friendIndex = -1
-                    var i = 0
-                    while (i < friendList.size) {
-                        if (friendList[i][1] == friendId) {
-                            friend = friendList[i]
-                            friendIndex = i
-                            break
-                        }
-                        i++
-                    }
-                    if (friend == null) {
-                        Log.e(TAG, "Could not find requested ID to rename")
-                    } else {
-                        friend[0] = data.getStringExtra(MY_NAME).toString()
-                        friendList[friendIndex] = friend
-                        val gson = Gson()
-                        val friendJson = gson.toJson(friendList)
-                        val friendEditor = friends.edit()
-                        friendEditor.putString(FRIEND_LIST, friendJson)
-                        friendEditor.apply()
-                        populateFriendList()
-                    }
-                }
-            }
-        }
-        // TODO
-        super.onActivityResult(requestCode, resultCode, data)
     }
 
     /**
@@ -207,8 +208,7 @@ class MainActivity : AppCompatActivity() {
         val salt = byteArrayOf(69, 42, 0, 37, 10, 127, 34, 85, 83, 24, 98, 75, 49, 8,
                 67) // very secure salt but this isn't a cryptographic application so it doesn't really matter
         return try {
-            val secretKeyFactory: SecretKeyFactory
-            secretKeyFactory =
+            val secretKeyFactory: SecretKeyFactory =
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) SecretKeyFactory.getInstance(
                             "PBKDF2WithHmacSHA512") //not available to Android 7.1 and lower
                     else SecretKeyFactory.getInstance(
@@ -236,13 +236,13 @@ class MainActivity : AppCompatActivity() {
     private fun getToken() {
         FirebaseMessaging.getInstance().token.addOnCompleteListener { task: Task<String?> ->
             if (!task.isSuccessful) {
-                Log.w(TAG, "getInstanceId failed", task.exception)
+                Log.w(sTAG, "getInstanceId failed", task.exception)
                 return@addOnCompleteListener
             }
 
             // Get new Instance ID token
             token = task.result
-            Log.d(TAG, "Got token! $token")
+            Log.d(sTAG, "Got token! $token")
             user!!.token = token
             val preferences = getSharedPreferences(USER_INFO, MODE_PRIVATE)
             if (token != preferences.getString(MY_TOKEN, "")) {
@@ -255,7 +255,7 @@ class MainActivity : AppCompatActivity() {
 
             // Log and toast
             val msg = getString(R.string.msg_token_fmt, token)
-            Log.d(TAG, msg)
+            Log.d(sTAG, msg)
         }
     }
 
@@ -310,7 +310,7 @@ class MainActivity : AppCompatActivity() {
                     dialogInterface.cancel()
                 }
                 alertDialog.setButton(DialogInterface.BUTTON_NEGATIVE, getString(
-                        android.R.string.cancel)) { dialogInterface: DialogInterface, i: Int -> dialogInterface.cancel() }
+                        android.R.string.cancel)) { dialogInterface: DialogInterface, _: Int -> dialogInterface.cancel() }
                 alertDialog.show()
             }
 
@@ -318,11 +318,16 @@ class MainActivity : AppCompatActivity() {
                 val intent = Intent(this@MainActivity, DialogActivity::class.java)
                 intent.putExtra(DialogActivity.EXTRA_EDIT_NAME, true)
                 intent.putExtra(DialogActivity.EXTRA_USER_ID, id)
-                startActivityForResult(intent, EDIT_NAME_CALLBACK)
+                startEditNameDialogForResult.launch(intent)
             }
 
             override fun onLongPress() {
-                val vibrator = getSystemService(VIBRATOR_SERVICE) as Vibrator
+                val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    val vibratorManager = getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
+                    vibratorManager.defaultVibrator
+                } else {
+                    getSystemService(VIBRATOR_SERVICE) as Vibrator
+                }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     val effect: VibrationEffect =
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) VibrationEffect.createPredefined(
@@ -347,13 +352,13 @@ class MainActivity : AppCompatActivity() {
         val friendJson = friends.getString(FRIEND_LIST, null)
         val friendList: List<Array<String>>?
         if (friendJson == null) {
-            Log.w(TAG, "Friend list was null, unable to delete friend")
+            Log.w(sTAG, "Friend list was null, unable to delete friend")
             return
         }
         val gson = Gson()
         friendList = parseFriends(friendJson)
         friendList!!.removeAt(index)
-        Log.d(TAG, "Removed friend")
+        Log.d(sTAG, "Removed friend")
         val editor = friends.edit()
         editor.putString(FRIEND_LIST, gson.toJson(friendList))
         editor.apply()
@@ -366,7 +371,7 @@ class MainActivity : AppCompatActivity() {
      * @param message   - The message to send to the person
      */
     private fun sendAlertToServer(id: String, message: String?) {
-        Log.d(TAG, "Sending alert to server via AppServer service")
+        Log.d(sTAG, "Sending alert to server via AppServer service")
         //PendingIntent pendingIntent = createPendingResult(AppServer.CALLBACK_POST_TOKEN, new Intent(), 0);
         val intent = Intent(this@MainActivity, AppServer::class.java)
         intent.putExtra(AppServer.EXTRA_TO, id)
@@ -412,7 +417,7 @@ class MainActivity : AppCompatActivity() {
             intent.action = AppServer.ACTION_POST_TOKEN
             //intent.putExtra(AppServer.EXTRA_PENDING_RESULT, pendingIntent);
             AppServer.enqueueWork(this@MainActivity, intent)
-            Log.d(TAG, getString(R.string.log_sending_msg))
+            Log.d(sTAG, getString(R.string.log_sending_msg))
         }
     }
 
@@ -438,8 +443,6 @@ class MainActivity : AppCompatActivity() {
         const val FRIEND_LIST = "friends"
         const val OVERLAY_NO_PROMPT = "OverlayDoNotAsk"
         private const val COMPAT_HEAVY_CLICK = 5
-        const val NAME_CALLBACK = 0
-        const val EDIT_NAME_CALLBACK = 1
 
         /**
          * Converts a json string of friends into a List of {friend name, friend ID} pairs

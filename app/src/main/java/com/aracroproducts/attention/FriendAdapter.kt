@@ -130,7 +130,7 @@ class FriendAdapter(private val dataset: Array<Array<String>>, private var callb
             objectAnimator.start()
         }
 
-        fun reset() {
+        private fun reset() {
             confirmButtonLayout.visibility = View.GONE
             cancelButton.visibility = View.GONE
             editLayout.visibility = View.GONE
@@ -187,10 +187,6 @@ class FriendAdapter(private val dataset: Array<Array<String>>, private var callb
         fun onDeletePrompt(position: Int, name: String)
         fun onEditName(id: String)
         fun onLongPress()
-    }
-
-    fun setCallback(callback: Callback) {
-        this.callback = callback
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FriendItem {
