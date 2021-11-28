@@ -81,7 +81,7 @@ class Alert : AppCompatActivity() {
                     Log.d(sTAG, "Vibrating device")
                     val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                         val vibratorManager =  getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
-                        vibratorManager.defaultVibrator;
+                        vibratorManager.defaultVibrator
                     } else {
                         getSystemService(VIBRATOR_SERVICE) as Vibrator
                     }
@@ -108,7 +108,7 @@ class Alert : AppCompatActivity() {
         val intent = Intent(this, Alert::class.java)
         intent.putExtra("alert_message", message)
         intent.putExtra("alert_from", from)
-        val pendingIntent = PendingIntent.getActivity(this, 0, intent, 0)
+        val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
         createNotificationChannel()
         val builder = NotificationCompat.Builder(this, AlertHandler.CHANNEL_ID)
         builder
@@ -122,7 +122,7 @@ class Alert : AppCompatActivity() {
         notificationManagerCompat.notify(System.currentTimeMillis().toInt(), builder.build())
     }
 
-    fun onOK(view: View?) {
+    fun onOK(view: View) {
         if (timer != null) {
             timer!!.cancel()
         }
