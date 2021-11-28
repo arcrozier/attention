@@ -1,192 +1,158 @@
-package com.aracroproducts.attention;
+package com.aracroproducts.attention
 
-import android.Manifest;
-import android.content.Context;
-import android.content.DialogInterface;
-import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.graphics.Color;
-import android.os.Build;
-import android.os.Bundle;
-import android.os.VibrationEffect;
-import android.os.Vibrator;
-import android.view.KeyEvent;
-import android.view.View;
-import android.widget.ImageView;
-import android.widget.TextView;
+import android.Manifest
+import androidx.appcompat.app.AppCompatActivity
+import com.journeyapps.barcodescanner.DecoratedBarcodeView
+import com.journeyapps.barcodescanner.BarcodeCallback
+import com.journeyapps.barcodescanner.BarcodeResult
+import com.aracroproducts.attention.R
+import com.google.android.material.snackbar.Snackbar
+import android.widget.TextView
+import com.google.zxing.qrcode.QRCodeWriter
+import com.aracroproducts.attention.MainActivity
+import com.google.zxing.common.BitMatrix
+import com.google.zxing.BarcodeFormat
+import android.graphics.Bitmap
+import com.google.zxing.WriterException
+import com.journeyapps.barcodescanner.DefaultDecoderFactory
+import android.content.SharedPreferences
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import android.content.pm.PackageManager
+import androidx.core.app.ActivityCompat
+import android.content.DialogInterface
+import android.graphics.Color
+import android.os.*
+import android.view.KeyEvent
+import android.view.View
+import android.widget.ImageView
+import androidx.appcompat.app.AlertDialog
+import androidx.preference.PreferenceManager
+import java.util.*
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.preference.PreferenceManager;
-
-import com.google.android.material.snackbar.Snackbar;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-import com.google.zxing.BarcodeFormat;
-import com.google.zxing.WriterException;
-import com.google.zxing.common.BitMatrix;
-import com.google.zxing.qrcode.QRCodeWriter;
-import com.journeyapps.barcodescanner.BarcodeCallback;
-import com.journeyapps.barcodescanner.BarcodeResult;
-import com.journeyapps.barcodescanner.DecoratedBarcodeView;
-import com.journeyapps.barcodescanner.DefaultDecoderFactory;
-
-import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-
-public class Add extends AppCompatActivity {
-
-    private DecoratedBarcodeView barcodeView;
-    private Vibrator v;
-    private String lastText;
-    private boolean cameraActive = true;
-    private long lastSnackBar = 0;
-
-    private static final int CAMERA_CALLBACK_CODE = 10;
+class Add : AppCompatActivity() {
+    private var barcodeView: DecoratedBarcodeView = DecoratedBarcodeView(this)
+    private var v: Vibrator? = null
+    private var lastText: String = ""
+    private var cameraActive = true
+    private var lastSnackBar: Long = 0
 
     // Handles events with the barcode scanner
-    private final BarcodeCallback callback = new BarcodeCallback() {
-        @Override
-        public void barcodeResult(BarcodeResult result) {
-            if (result.getText() == null) {
-                return;
-            }
-            if (result.getText().equals(lastText)) { // this could be an issue if someone edits the recorded ID and then wants to scan the same barcode again
-                if ((System.currentTimeMillis() - lastSnackBar) > 5000) {
-                    View layout = findViewById(R.id.add_constraint);
-                    Snackbar snackbar = Snackbar.make(layout, R.string.scan_new, Snackbar.LENGTH_SHORT);
-                    snackbar.show();
-                    lastSnackBar = System.currentTimeMillis();
-                }
-                return;
-            }
-
-            lastText = result.getText();
-            int separatorIndex = lastText.lastIndexOf(' ');
-            String id = lastText.substring(separatorIndex + 1).trim();
-            TextView enter_id = findViewById(R.id.manual_code);
-            enter_id.setText(id);
-
-            if (separatorIndex != -1) {
-                String name = lastText.substring(0, separatorIndex).trim();
-                TextView enter_name = findViewById(R.id.manual_name);
-                enter_name.setText(name);
-            }
-
-            pause();
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                v.vibrate(VibrationEffect.createOneShot(250, VibrationEffect.DEFAULT_AMPLITUDE));
-            } else {
-                v.vibrate(250);
-            }
-
+    private val callback = BarcodeCallback { result ->
+        if (result.text == null) {
+            return@BarcodeCallback
         }
-    };
+        if (result.text == lastText) { // this could be an issue if someone edits the recorded ID and then wants to scan the same barcode again
+            if (System.currentTimeMillis() - lastSnackBar > 5000) {
+                val layout = findViewById<View>(R.id.add_constraint)
+                val snackbar = Snackbar.make(layout, R.string.scan_new, Snackbar.LENGTH_SHORT)
+                snackbar.show()
+                lastSnackBar = System.currentTimeMillis()
+            }
+            return@BarcodeCallback
+        }
+        lastText = result.text.toString()
+        val separatorIndex = lastText.lastIndexOf(' ')
+        val id = lastText.substring(separatorIndex + 1).trim { it <= ' ' }
+        val enter_id = findViewById<TextView>(R.id.manual_code)
+        enter_id.text = id
+        if (separatorIndex != -1) {
+            val name = lastText.substring(0, separatorIndex).trim { it <= ' ' }
+            val enter_name = findViewById<TextView>(R.id.manual_name)
+            enter_name.text = name
+        }
+        pause()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            v!!.vibrate(VibrationEffect.createOneShot(250, VibrationEffect.DEFAULT_AMPLITUDE))
+        } else {
+            v!!.vibrate(250)
+        }
+    }
 
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_add);
-
-        v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-
-
-        QRCodeWriter writer = new QRCodeWriter();
-        String id = getSharedPreferences(MainActivity.USER_INFO, Context.MODE_PRIVATE).getString(MainActivity.MY_ID, null);
-        String name = PreferenceManager.getDefaultSharedPreferences(this).getString(getString(R.string.name_key), null);
-        String user = name + " " + id;
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_add)
+        v = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vibratorManager =  this.getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            vibratorManager.defaultVibrator;
+        } else {
+            getSystemService(VIBRATOR_SERVICE) as Vibrator
+        }
+        val writer = QRCodeWriter()
+        val id = getSharedPreferences(MainActivity.USER_INFO, MODE_PRIVATE).getString(MainActivity.MY_ID, null)
+        val name = PreferenceManager.getDefaultSharedPreferences(this).getString(getString(R.string.name_key), null)
+        val user = "$name $id"
         try {
-            BitMatrix bitMatrix = writer.encode(user, BarcodeFormat.QR_CODE, 512, 512);
-            int width = bitMatrix.getWidth();
-            int height = bitMatrix.getHeight();
-            Bitmap bmp = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
-            for (int x = 0; x < width; x++) {
-                for (int y = 0; y < height; y++) {
-                    bmp.setPixel(x, y, bitMatrix.get(x, y) ? Color.BLACK : Color.WHITE);
+            val bitMatrix = writer.encode(user, BarcodeFormat.QR_CODE, 512, 512)
+            val width = bitMatrix.width
+            val height = bitMatrix.height
+            val bmp = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565)
+            for (x in 0 until width) {
+                for (y in 0 until height) {
+                    bmp.setPixel(x, y, if (bitMatrix[x, y]) Color.BLACK else Color.WHITE)
                 }
             }
-            ((ImageView) findViewById(R.id.QR)).setImageBitmap(bmp);
-        } catch (WriterException e) {
-            e.printStackTrace();
+            (findViewById<View>(R.id.QR) as ImageView).setImageBitmap(bmp)
+        } catch (e: WriterException) {
+            e.printStackTrace()
         }
-        ((TextView) findViewById(R.id.user_id_text)).setText(user);
-
+        (findViewById<View>(R.id.user_id_text) as TextView).text = user
         if (hasCameraPermission()) {
-            startScan();
+            startScan()
         }
-
     }
 
     /**
      * Helper method to start scanning for codes
      */
-    private void startScan() {
-        barcodeView = findViewById(R.id.zxing_barcode_scanner);
-
-        Collection<BarcodeFormat> formats = Arrays.asList(BarcodeFormat.QR_CODE, BarcodeFormat.CODE_39);
-        barcodeView.getBarcodeView().setDecoderFactory(new DefaultDecoderFactory(formats));
-        barcodeView.initializeFromIntent(getIntent());
-        barcodeView.decodeContinuous(callback);
-
-        barcodeView.setOnClickListener(view -> resume());
+    private fun startScan() {
+        barcodeView = findViewById(R.id.zxing_barcode_scanner)
+        val formats: Collection<BarcodeFormat> = listOf(BarcodeFormat.QR_CODE, BarcodeFormat.CODE_39)
+        barcodeView.barcodeView.decoderFactory = DefaultDecoderFactory(formats)
+        barcodeView.initializeFromIntent(intent)
+        barcodeView.decodeContinuous(callback)
+        barcodeView.setOnClickListener { resume() }
     }
 
     /**
      * Validates the inputs before adding them to friend list and returning to the start screen
      * @param view  - The view object that calls this method from the activity
      */
-    public void finishActivity(View view) {
-        TextView idView = findViewById(R.id.manual_code);
-        TextView nameView = findViewById(R.id.manual_name);
-
-        String id = idView.getText().toString();
-        String name = nameView.getText().toString();
-
-        if (id.length() == 0) {
-            idView.setError(getString(R.string.no_id));
-            resume();
-            return;
+    fun finishActivity(view: View?) {
+        val idView = findViewById<TextView>(R.id.manual_code)
+        val nameView = findViewById<TextView>(R.id.manual_name)
+        var id = idView.text.toString()
+        var name = nameView.text.toString()
+        if (id.isEmpty()) {
+            idView.error = getString(R.string.no_id)
+            resume()
+            return
         }
-
-        if (name.length() == 0) {
-            nameView.setError(getString(R.string.no_name));
-            return;
+        if (name.isEmpty()) {
+            nameView.error = getString(R.string.no_name)
+            return
         }
-
-        id = id.trim();
-        name = name.trim();
-
+        id = id.trim { it <= ' ' }
+        name = name.trim { it <= ' ' }
         if (id.contains(" ")) {
-            idView.setError(getString(R.string.invalid_id));
-            resume();
-            return;
+            idView.error = getString(R.string.invalid_id)
+            resume()
+            return
         }
-
-        SharedPreferences preferences = getSharedPreferences(MainActivity.FRIENDS, Context.MODE_PRIVATE);
-        String friendJson = preferences.getString("friends", null);
-        ArrayList<String[]> friendList = new ArrayList<>();
-        Gson gson = new Gson();
-
+        val preferences = getSharedPreferences(MainActivity.FRIENDS, MODE_PRIVATE)
+        val friendJson = preferences.getString("friends", null)
+        var friendList = ArrayList<Array<String?>?>()
+        val gson = Gson()
         if (friendJson != null) {
-            Type arrayListType = new TypeToken<ArrayList<String[]>>() {}.getType();
-            friendList = gson.fromJson(friendJson, arrayListType);
+            val arrayListType = object : TypeToken<ArrayList<Array<String?>?>?>() {}.type
+            friendList = gson.fromJson(friendJson, arrayListType)
         }
-
-        String[] newFriend = {name, id};
-        friendList.add(newFriend);
-
-        SharedPreferences.Editor editor = preferences.edit();
-        editor.putString("friends", gson.toJson(friendList));
-        editor.apply();
-
-        finish();
+        val newFriend = arrayOf<String?>(name, id)
+        friendList.add(newFriend)
+        val editor = preferences.edit()
+        editor.putString("friends", gson.toJson(friendList))
+        editor.apply()
+        finish()
     }
 
     /**
@@ -195,94 +161,81 @@ public class Add extends AppCompatActivity {
      * @param permissions   - The permissions requested
      * @param grantResults  - The results for each permission
      */
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         if (requestCode == CAMERA_CALLBACK_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                startScan();
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                startScan()
             }
         }
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-
-        if (hasCameraPermission() && barcodeView != null) {
-            barcodeView.resume();
+    override fun onResume() {
+        super.onResume()
+        if (hasCameraPermission()) {
+            barcodeView.resume()
         }
     }
 
-    @Override
-    protected void onPause() {
-        super.onPause();
-
-        if (barcodeView != null) {
-            barcodeView.pause();
-        }
+    override fun onPause() {
+        super.onPause()
+        barcodeView.pause()
     }
 
     /**
      * Helper method to pause the scanning
      */
-    public void pause() {
+    fun pause() {
         if (cameraActive) {
-            barcodeView.pause();
-            cameraActive = false;
+            barcodeView.pause()
+            cameraActive = false
         }
     }
 
     /**
      * Helper method to resume scanning
      */
-    public void resume() {
+    fun resume() {
         if (!cameraActive) {
-            barcodeView.resume();
-            cameraActive = true;
+            barcodeView!!.resume()
+            cameraActive = true
         }
     }
 
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        return barcodeView.onKeyDown(keyCode, event) || super.onKeyDown(keyCode, event);
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        return barcodeView!!.onKeyDown(keyCode, event) || super.onKeyDown(keyCode, event)
     }
 
     /**
      * Helper method to handle checking and getting the camera permission to start scanning
      */
-    private boolean hasCameraPermission() {
-        if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)) {
-
+    private fun hasCameraPermission(): Boolean {
+        return if (packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)) {
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) //app already has camera permission. Great!
-                return true;
-            else if (ActivityCompat.shouldShowRequestPermissionRationale(this, // display dialog explaining why the app is requesting camera permission
-                    Manifest.permission.CAMERA)) {
-
-                AlertDialog alert = new AlertDialog.Builder(this).create();
-                alert.setTitle(getString(R.string.permissions_needed));
-                alert.setMessage(getString(R.string.permission_details));
-
-                alert.setButton(DialogInterface.BUTTON_POSITIVE, getString(R.string.allow), (dialogInterface, i) -> {
-                    dialogInterface.cancel();
-                    ActivityCompat.requestPermissions(Add.this, new String[]{Manifest.permission.CAMERA}, CAMERA_CALLBACK_CODE);
-                    //Works as long as there is only one required permission. More complicated code refactoring may be necessary in the future
-                });
-
-                alert.setButton(DialogInterface.BUTTON_NEGATIVE, this.getString(R.string.deny), (dialogInterface, i) -> dialogInterface.cancel());
-
-                alert.show();
-                return false;
-
+                true else if (ActivityCompat.shouldShowRequestPermissionRationale(this,  // display dialog explaining why the app is requesting camera permission
+                            Manifest.permission.CAMERA)) {
+                val alert = AlertDialog.Builder(this).create()
+                alert.setTitle(getString(R.string.permissions_needed))
+                alert.setMessage(getString(R.string.permission_details))
+                alert.setButton(DialogInterface.BUTTON_POSITIVE, getString(R.string.allow)) { dialogInterface: DialogInterface, i: Int ->
+                    dialogInterface.cancel()
+                    ActivityCompat.requestPermissions(this@Add, arrayOf(Manifest.permission.CAMERA), CAMERA_CALLBACK_CODE)
+                }
+                alert.setButton(DialogInterface.BUTTON_NEGATIVE, this.getString(R.string.deny)) { dialogInterface: DialogInterface, i: Int -> dialogInterface.cancel() }
+                alert.show()
+                false
             } else { // request the permission
-                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, CAMERA_CALLBACK_CODE);
-                return false;
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), CAMERA_CALLBACK_CODE)
+                false
             }
-
-
         } else { // device does not have a camera for some reason
-            barcodeView = findViewById(R.id.zxing_barcode_scanner);
-            barcodeView.setStatusText(getString(R.string.no_camera));
-            return false;
+            barcodeView = findViewById(R.id.zxing_barcode_scanner)
+            barcodeView.setStatusText(getString(R.string.no_camera))
+            false
         }
+    }
+
+    companion object {
+        private const val CAMERA_CALLBACK_CODE = 10
     }
 }

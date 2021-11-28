@@ -1,192 +1,150 @@
-package com.aracroproducts.attention;
+package com.aracroproducts.attention
 
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
-import androidx.preference.PreferenceManager;
+import androidx.appcompat.app.AppCompatActivity
+import android.media.Ringtone
+import android.widget.TextView
+import android.content.Intent
+import android.media.AudioManager
+import android.media.RingtoneManager
+import android.app.NotificationManager
+import android.app.PendingIntent
+import androidx.core.app.NotificationManagerCompat
+import android.app.NotificationChannel
+import android.os.*
+import android.util.Log
+import android.view.View
+import androidx.core.app.NotificationCompat
+import androidx.preference.PreferenceManager
+import java.util.HashSet
 
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
-import android.content.Context;
-import android.content.Intent;
-import android.content.SharedPreferences;
-import android.media.AudioManager;
-import android.media.Ringtone;
-import android.media.RingtoneManager;
-import android.net.Uri;
-import android.os.Build;
-import android.os.Bundle;
-import android.os.CountDownTimer;
-import android.os.VibrationEffect;
-import android.os.Vibrator;
-import android.util.Log;
-import android.view.View;
-import android.widget.TextView;
-
-import java.util.HashSet;
-import java.util.Set;
-
-public class Alert extends AppCompatActivity {
-
-    private final String TAG = getClass().getName();
-
-    private String from;
-    private String message;
-    private int id;
-    private CountDownTimer timer;
-    private Ringtone r;
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_alert);
-        this.setFinishOnTouchOutside(false);
-
-        Log.d(TAG, "Dialog opened");
-
-        TextView messageView = findViewById(R.id.alert_message_view);
-
-        Intent intent = getIntent();
-        from = intent.getStringExtra(AlertHandler.REMOTE_FROM);
-        message = intent.getStringExtra(AlertHandler.REMOTE_MESSAGE);
-        if (intent.hasExtra(AlertHandler.ASSOCIATED_NOTIFICATION)) id = intent.getIntExtra(AlertHandler.ASSOCIATED_NOTIFICATION, 0);
-
-        messageView.setText(message);
-
+class Alert : AppCompatActivity() {
+    private val sTAG = javaClass.name
+    private var from: String? = null
+    private var message: String? = null
+    private var id = 0
+    private var timer: CountDownTimer? = null
+    private var r: Ringtone? = null
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_alert)
+        setFinishOnTouchOutside(false)
+        Log.d(sTAG, "Dialog opened")
+        val messageView = findViewById<TextView>(R.id.alert_message_view)
+        val intent = intent
+        from = intent.getStringExtra(AlertHandler.REMOTE_FROM)
+        message = intent.getStringExtra(AlertHandler.REMOTE_MESSAGE)
+        if (intent.hasExtra(AlertHandler.ASSOCIATED_NOTIFICATION)) id = intent.getIntExtra(AlertHandler.ASSOCIATED_NOTIFICATION, 0)
+        messageView.text = message
         if (intent.getBooleanExtra(AlertHandler.SHOULD_VIBRATE, true)) {
-
-            SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
-            Set<String> vibrate = settings.getStringSet(getString(R.string.vibrate_preference_key), new HashSet<>());
-            Set<String> ring = settings.getStringSet(getString(R.string.ring_preference_key), new HashSet<>());
-
-            ring(ring);
-            vibrate(vibrate);
+            val settings = PreferenceManager.getDefaultSharedPreferences(this)
+            val vibrate = settings.getStringSet(getString(R.string.vibrate_preference_key), HashSet())
+            val ring = settings.getStringSet(getString(R.string.ring_preference_key), HashSet())
+            ring(ring)
+            vibrate(vibrate)
         }
     }
 
-    private boolean shouldRing(Set<String> ringAllowed) {
-        AudioManager manager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-        switch (manager.getRingerMode()) {
-            case AudioManager.RINGER_MODE_SILENT:
-                if (ringAllowed.contains("silent")) return true;
-                break;
-            case AudioManager.RINGER_MODE_VIBRATE:
-                if (ringAllowed.contains("vibrate")) return true;
-                break;
-            case AudioManager.RINGER_MODE_NORMAL:
-                if (ringAllowed.contains("ring")) return true;
-                break;
+    private fun shouldRing(ringAllowed: Set<String>?): Boolean {
+        val manager = getSystemService(AUDIO_SERVICE) as AudioManager
+        when (manager.ringerMode) {
+            AudioManager.RINGER_MODE_SILENT -> if (ringAllowed!!.contains("silent")) return true
+            AudioManager.RINGER_MODE_VIBRATE -> if (ringAllowed!!.contains("vibrate")) return true
+            AudioManager.RINGER_MODE_NORMAL -> if (ringAllowed!!.contains("ring")) return true
         }
-        return false;
-
+        return false
     }
 
-    private boolean shouldVibrate(Set<String> vibrateAllowed) {
-        AudioManager manager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-        switch (manager.getRingerMode()) {
-            case AudioManager.RINGER_MODE_SILENT:
-                if (vibrateAllowed.contains("silent")) return true;
-                break;
-            case AudioManager.RINGER_MODE_VIBRATE:
-                if (vibrateAllowed.contains("vibrate")) return true;
-                break;
-            case AudioManager.RINGER_MODE_NORMAL:
-                if (vibrateAllowed.contains("ring")) return true;
-                break;
+    private fun shouldVibrate(vibrateAllowed: Set<String>?): Boolean {
+        val manager = getSystemService(AUDIO_SERVICE) as AudioManager
+        when (manager.ringerMode) {
+            AudioManager.RINGER_MODE_SILENT -> if (vibrateAllowed!!.contains("silent")) return true
+            AudioManager.RINGER_MODE_VIBRATE -> if (vibrateAllowed!!.contains("vibrate")) return true
+            AudioManager.RINGER_MODE_NORMAL -> if (vibrateAllowed!!.contains("ring")) return true
         }
-        return false;
+        return false
     }
 
-    private void ring(Set<String> ringAllowed) {
+    private fun ring(ringAllowed: Set<String>?) {
         if (shouldRing(ringAllowed)) {
-            Uri notification = RingtoneManager.getActualDefaultRingtoneUri(Alert.this, RingtoneManager.TYPE_RINGTONE);
-            r = RingtoneManager.getRingtone(Alert.this, notification);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) r.setVolume(1.0f);
-            r.play();
-
+            val notification = RingtoneManager.getActualDefaultRingtoneUri(this@Alert, RingtoneManager.TYPE_RINGTONE)
+            r = RingtoneManager.getRingtone(this@Alert, notification)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) r!!.volume = 1.0f
+            r!!.play()
         }
     }
 
-    private void vibrate(Set<String> vibrateAllowed) {
-        if (!shouldRing(vibrateAllowed)) return;
-
-        timer = new CountDownTimer(5000, 500) {
-            @Override
-            public void onTick(long l) {
+    private fun vibrate(vibrateAllowed: Set<String>?) {
+        if (!shouldRing(vibrateAllowed)) return
+        timer = object : CountDownTimer(5000, 500) {
+            override fun onTick(l: Long) {
                 if (shouldVibrate(vibrateAllowed)) {
-                    Log.d(TAG, "Vibrating device");
-                    Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        vibrator.vibrate(VibrationEffect.createOneShot(400, VibrationEffect.DEFAULT_AMPLITUDE));
+                    Log.d(sTAG, "Vibrating device")
+                    val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        val vibratorManager =  getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
+                        vibratorManager.defaultVibrator;
                     } else {
-                        vibrator.vibrate(400);
+                        getSystemService(VIBRATOR_SERVICE) as Vibrator
+                    }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        vibrator.vibrate(VibrationEffect.createOneShot(400, VibrationEffect.DEFAULT_AMPLITUDE))
+                    } else {
+                        vibrator.vibrate(400)
                     }
                 }
-
             }
 
-            @Override
-            public void onFinish() {
-
-            }
-        };
-        timer.start();
-
+            override fun onFinish() {}
+        }
+        timer!!.start()
     }
 
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
+    public override fun onDestroy() {
+        super.onDestroy()
         if (id != 0) {
-            NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-            notificationManager.cancel(id);
+            val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.cancel(id)
         }
-
-        if (isFinishing()) return; // prevent this notification from being shown when the user clicks "ok"
-
-        Intent intent = new Intent(this, Alert.class);
-        intent.putExtra("alert_message", message);
-        intent.putExtra("alert_from", from);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
-
-        createNotificationChannel();
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, AlertHandler.CHANNEL_ID);
+        if (isFinishing) return  // prevent this notification from being shown when the user clicks "ok"
+        val intent = Intent(this, Alert::class.java)
+        intent.putExtra("alert_message", message)
+        intent.putExtra("alert_from", from)
+        val pendingIntent = PendingIntent.getActivity(this, 0, intent, 0)
+        createNotificationChannel()
+        val builder = NotificationCompat.Builder(this, AlertHandler.CHANNEL_ID)
         builder
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setContentTitle(getString(R.string.notification_title, from))
                 .setContentText(message)
-                .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
+                .setStyle(NotificationCompat.BigTextStyle().bigText(message))
                 .setPriority(NotificationCompat.PRIORITY_MAX)
-                .setContentIntent(pendingIntent).setAutoCancel(true);
-
-        NotificationManagerCompat notificationManagerCompat = NotificationManagerCompat.from(this);
-        notificationManagerCompat.notify((int) System.currentTimeMillis(), builder.build());
+                .setContentIntent(pendingIntent).setAutoCancel(true)
+        val notificationManagerCompat = NotificationManagerCompat.from(this)
+        notificationManagerCompat.notify(System.currentTimeMillis().toInt(), builder.build())
     }
 
-    public void onOK(View view) {
+    fun onOK(view: View?) {
         if (timer != null) {
-            timer.cancel();
+            timer!!.cancel()
         }
-        if (r != null && r.isPlaying()) {
-            r.stop();
+        if (r != null && r!!.isPlaying) {
+            r!!.stop()
         }
-        finish();
+        finish()
     }
 
-    private void createNotificationChannel() {
+    private fun createNotificationChannel() {
         // Create the NotificationChannel, but only on API 26+ because
         // the NotificationChannel class is new and not in the support library
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            CharSequence name = getString(R.string.channel_name);
-            String description = getString(R.string.channel_description);
-            int importance = NotificationManager.IMPORTANCE_HIGH;
-            NotificationChannel channel = new NotificationChannel(AlertHandler.CHANNEL_ID, name, importance);
-            channel.setDescription(description);
+            val name: CharSequence = getString(R.string.channel_name)
+            val description = getString(R.string.channel_description)
+            val importance = NotificationManager.IMPORTANCE_HIGH
+            val channel = NotificationChannel(AlertHandler.CHANNEL_ID, name, importance)
+            channel.description = description
             // Register the channel with the system; you can't change the importance
             // or other notification behaviors after this
-            NotificationManager notificationManager = getSystemService(NotificationManager.class);
-            notificationManager.createNotificationChannel(channel);
+            val notificationManager = getSystemService(NotificationManager::class.java)
+            notificationManager.createNotificationChannel(channel)
         }
     }
 }
