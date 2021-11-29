@@ -5,6 +5,9 @@ import androidx.core.app.JobIntentService
 import android.content.Intent
 import android.util.Log
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.aracroproducts.attention.AppServer.Companion.PARAM_FUNCTION_ALERT
+import com.aracroproducts.attention.AppServer.Companion.PARAM_FUNCTION_ID
+import retrofit2.http.Field
 import java.io.BufferedReader
 import java.io.DataOutputStream
 import java.io.IOException
@@ -13,7 +16,27 @@ import java.lang.StringBuilder
 import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.charset.StandardCharsets
+import retrofit2.http.POST
+import retrofit2.http.Path
 
+interface AppService {
+    @POST("$API_PATH?$FUNCTION=$PARAM_FUNCTION_ID&$TOKEN={$TOKEN}&$ID={$ID}")
+    suspend fun postId(@Path("token") token: String, @Path("id") id: String): Boolean
+
+    @POST("$API_PATH?$FUNCTION=$PARAM_FUNCTION_ALERT&")
+    suspend fun sendAlert(@Field(TO) to: String, @Field(FROM) from: String, @Field(MESSAGE) message:
+    String): Boolean
+
+    companion object {
+        const val API_PATH = "/attention/api/api.php"
+        const val FUNCTION = "function"
+        const val TOKEN = "token"
+        const val ID = "id"
+        const val TO = "to"
+        const val FROM = "from"
+        const val MESSAGE = "message"
+    }
+}
 // TODO
 open class AppServer : JobIntentService() {
     private val sTAG = javaClass.name
@@ -140,9 +163,10 @@ open class AppServer : JobIntentService() {
         const val CODE_ERROR = 1
         const val CODE_NA = -1
         private const val JOB_ID = 0
-        private const val PARAM_FUNCTION_ID = "post_id"
-        private const val PARAM_FUNCTION_ALERT = "send_alert"
-        private const val BASE_URL = "https://aracroproducts.com/attention/api/api.php?function="
+        const val PARAM_FUNCTION_ID = "post_id"
+        const val PARAM_FUNCTION_ALERT = "send_alert"
+        const val BASE_URL = "https://aracroproducts.com/attention/api/api.php?function="
+
         fun enqueueWork(context: Context?, intent: Intent?) {
             enqueueWork(context!!, AppServer::class.java, JOB_ID, intent!!)
         }
