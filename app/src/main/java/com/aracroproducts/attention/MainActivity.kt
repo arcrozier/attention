@@ -33,17 +33,19 @@ import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import java.lang.IllegalArgumentException
 import java.security.NoSuchAlgorithmException
 import java.security.spec.InvalidKeySpecException
 import java.util.*
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
+import kotlin.collections.HashMap
 
 class MainActivity : AppCompatActivity() {
     private val sTAG = javaClass.name
     private var token: String? = null
     private var user: User? = null
-
+    private var friendMap: MutableMap<String, String>? = null
 
     /**
      * Callback for retrieving the user's name from a pop-up dialog - passed to
@@ -75,34 +77,20 @@ class MainActivity : AppCompatActivity() {
         val data = it.data
         Log.d(sTAG, "Received edit name callback")
         val friends = getSharedPreferences(FRIENDS, MODE_PRIVATE)
-        val friendList = parseFriends(friends.getString(FRIEND_LIST, null))
-        if (friendList == null) {
+        if (friendMap == null) friendMap = parseFriends(friends.getString(FRIEND_LIST, null))
+        if (friendMap == null) {
             Log.w(sTAG, "FriendList was null, unable to edit")
         } else {
-            val friendId = data!!.getStringExtra(DialogActivity.EXTRA_USER_ID)
-            var friend: Array<String>? = null
-            var friendIndex = -1
-            var i = 0
-            while (i < friendList.size) {
-                if (friendList[i][1] == friendId) {
-                    friend = friendList[i]
-                    friendIndex = i
-                    break
-                }
-                i++
-            }
-            if (friend == null) {
-                Log.e(sTAG, "Could not find requested ID to rename")
-            } else {
-                friend[0] = data.getStringExtra(MY_NAME).toString()
-                friendList[friendIndex] = friend
-                val gson = Gson()
-                val friendJson = gson.toJson(friendList)
-                val friendEditor = friends.edit()
-                friendEditor.putString(FRIEND_LIST, friendJson)
-                friendEditor.apply()
-                populateFriendList()
-            }
+            val friendId = data?.getStringExtra(DialogActivity.EXTRA_USER_ID)
+                    ?: throw IllegalArgumentException("An ID to edit must be provided")
+            friendMap?.put(friendId, data.getStringExtra(MY_NAME).toString())
+            val gson = Gson()
+            val friendJson = gson.toJson(friendMap)
+            val friendEditor = friends.edit()
+            friendEditor.putString(FRIEND_LIST, friendJson)
+            friendEditor.apply()
+            populateFriendList()
+
         }
     }
 
@@ -275,27 +263,26 @@ class MainActivity : AppCompatActivity() {
     private fun populateFriendList() {
         val friends = getSharedPreferences(FRIENDS, MODE_PRIVATE)
         val friendJson = friends.getString(FRIEND_LIST, null)
-        val friendList = parseFriends(friendJson)
-                ?: return
+        val friendList = parseFriends(friendJson) ?: return
         val friendListView = findViewById<RecyclerView>(R.id.friends_list)
         friendListView.layoutManager = LinearLayoutManager(this)
         val dataset = Array(friendList.size) { arrayOf("", "") }
-        for (x in friendList.indices) {
-            dataset[x][0] = friendList[x][0]
-            dataset[x][1] = friendList[x][1]
+        for ((index, id) in friendList.keys.withIndex()) {
+            dataset[index][0] = id
+            dataset[index][1] = friendList[id] ?: ""
         }
         val adapterListener: FriendAdapter.Callback = object : FriendAdapter.Callback {
             override fun onSendAlert(id: String, message: String?) {
                 sendAlertToServer(id, message)
             }
 
-            override fun onDeletePrompt(position: Int, name: String) {
+            override fun onDeletePrompt(id: String, name: String) {
                 val alertDialog = android.app.AlertDialog.Builder(this@MainActivity).create()
                 alertDialog.setTitle(getString(R.string.confirm_delete_title))
                 alertDialog.setMessage(getString(R.string.confirm_delete_message, name))
                 alertDialog.setButton(DialogInterface.BUTTON_POSITIVE,
                         getString(R.string.yes)) { dialogInterface: DialogInterface, _: Int ->
-                    deleteFriend(position)
+                    deleteFriend(id)
                     dialogInterface.cancel()
                 }
                 alertDialog.setButton(DialogInterface.BUTTON_NEGATIVE, getString(
@@ -336,7 +323,7 @@ class MainActivity : AppCompatActivity() {
      * Deletes the user's friend with the given index
      * @param index - The index that the friend is at
      */
-    private fun deleteFriend(index: Int) {
+    private fun deleteFriend(id: String) {
         val friends = getSharedPreferences(FRIENDS, MODE_PRIVATE)
         val friendJson = friends.getString(FRIEND_LIST, null)
         if (friendJson == null) {
@@ -344,8 +331,8 @@ class MainActivity : AppCompatActivity() {
             return
         }
         val gson = Gson()
-        val friendList: Map<String, String>? = parseFriends(friendJson)
-        friendList!!.
+        val friendList = parseFriends(friendJson)
+        friendList!!.remove(id)
         Log.d(sTAG, "Removed friend")
         val editor = friends.edit()
         editor.putString(FRIEND_LIST, gson.toJson(friendList))
@@ -504,7 +491,7 @@ class MainActivity : AppCompatActivity() {
          * @param json  - JSON string to parse
          * @return      - The list of friends
          */
-        fun parseFriends(json: String?): Map<String, String>? {
+        fun parseFriends(json: String?): MutableMap<String, String>? {
             if (json == null) return null
             val gson = Gson()
             val mapType = object : TypeToken<Map<String, String>>() {}.type
