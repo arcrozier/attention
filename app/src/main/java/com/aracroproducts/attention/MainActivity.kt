@@ -38,6 +38,7 @@ class MainActivity : AppCompatActivity() {
     private val sTAG = javaClass.name
     private var token: String? = null
     private var user: User? = null
+    /*
     private val networkCallback: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             Log.d(sTAG, "Received callback from network class")
@@ -64,6 +65,7 @@ class MainActivity : AppCompatActivity() {
             editor.apply()
         }
     }
+     */
 
     /**
      * Callback for retrieving the user's name - passed to
@@ -268,16 +270,11 @@ class MainActivity : AppCompatActivity() {
             return
         }
         populateFriendList()
-        val filter = IntentFilter(AppServer.ACTION_SEND_ALERT)
-        filter.addAction(AppServer.ACTION_POST_TOKEN)
-        val manager = LocalBroadcastManager.getInstance(this)
-        manager.registerReceiver(networkCallback, filter)
     }
 
     public override fun onPause() {
         super.onPause()
         val manager = LocalBroadcastManager.getInstance(this)
-        manager.unregisterReceiver(networkCallback)
     }
 
     /**
