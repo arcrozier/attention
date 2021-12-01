@@ -16,6 +16,9 @@
     <string name="scan_new">Please scan a new code</string>
     <string name="no_camera">No camera detected</string>
     <string name="alert_sent">Successfully sent alert</string>
+    <string name="alert_failed">Failed to send</string>
+    <string name="alert_failed_bad_request">An error occurred while sending an alert to %s</string>
+    <string name="alert_failed_server_error">The server encountered an error while sending an alert to %s</string>
     <string name="general_error">Error: Could not send alert</string>
     <string name="user_registered">Your account has been registered!</string>
     <string name="default_message">%s wants your attention!</string>
@@ -35,6 +38,8 @@
     <string name="permission_details">Grant camera permission to scan your friend\'s QR code. You can also enter their user ID manually, if you prefer</string>
     <string name="channel_name">Missed alerts</string>
     <string name="channel_description">Notifies you when you missed an alert</string>
+    <string name="alert_failed_channel_name">Sending errors</string>
+    <string name="alert_failed_channel_description">Notifies you when an alert failed to send</string>
     <string name="notification_title">Missed alert from %s</string>
     <string name="alert_notification_title">Alert from %s</string>
     <string name="alert_channel_name">Alerts</string>

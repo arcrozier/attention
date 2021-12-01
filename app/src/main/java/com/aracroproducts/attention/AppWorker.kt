@@ -13,7 +13,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.charset.StandardCharsets
 
-class AppWorker(appContext: Context, private val workerParameters: WorkerParameters): Worker(appContext, workerParameters) {
+class AppWorker {
 
     private enum class ErrorType(val code: Int) {
         OK(CODE_SUCCESS),  // Request was successful
@@ -24,63 +24,65 @@ class AppWorker(appContext: Context, private val workerParameters: WorkerParamet
 
     private val sTAG = javaClass.name
 
-    override fun doWork(): Result {
-        val input = workerParameters.inputData
-        val result = Data.Builder()
+    inner class TokenWorker(appContext: Context, private val workerParameters: WorkerParameters): Worker(appContext, workerParameters) {
+        override fun doWork(): Result {
+            val input = workerParameters.inputData
+            val result = Data.Builder()
+            val token = input.getString(TOKEN)
+            val id = input.getString(ID)
+            val code = connect(arrayOf(arrayOf("token", token), arrayOf("id", id)), PARAM_FUNCTION_ID)
+            result.putInt(RESULT_CODE, code.code)
+            val built = result.build()
+            when (code) {
+                ErrorType.OK -> {
+                    Log.i(sTAG, "Token sent")
+                    return Result.success(built)
+                }
+                ErrorType.CONNECTION_FAILED -> {
+                    Log.w(sTAG, "Failed to upload id: connection failed; retrying")
+                    return Result.retry()
+                }
+                ErrorType.BAD_REQUEST -> {
+                    Log.e(sTAG, "Unable to send id: bad request; not retrying")
+                    return Result.failure(built)
+                }
+                ErrorType.SERVER_ERROR -> {
+                    Log.e(sTAG, "Unable to send id: server error; not retrying")
+                    return Result.failure(built)
+                }
+            }
+        }
+    }
 
-        when(input.getString(FUNCTION_KEY)) {
-            ACTION_POST_TOKEN -> {
-                val token = input.getString(TOKEN)
-                val id = input.getString(ID)
-                val code = connect(arrayOf(arrayOf("token", token), arrayOf("id", id)), PARAM_FUNCTION_ID)
-                result.putInt(RESULT_CODE, code.code)
-                val built = result.build()
-                when (code) {
-                    ErrorType.OK -> {
-                        Log.i(sTAG, "Token sent")
-                        return Result.success(built)
-                    }
-                    ErrorType.CONNECTION_FAILED -> {
-                        Log.w(sTAG, "Failed to upload id: connection failed; retrying")
-                        return Result.retry()
-                    }
-                    ErrorType.BAD_REQUEST -> {
-                        Log.e(sTAG, "Unable to send id: bad request; not retrying")
-                        return Result.failure(built)
-                    }
-                    ErrorType.SERVER_ERROR -> {
-                        Log.e(sTAG, "Unable to send id: server error; not retrying")
-                        return Result.failure(built)
-                    }
+    inner class MessageWorker(appContext: Context, private val workerParameters: WorkerParameters): Worker(appContext, workerParameters) {
+        override fun doWork(): Result {
+            val input = workerParameters.inputData
+            val result = Data.Builder()
+
+            val to = input.getString(TO)
+            val from = input.getString(FROM)
+            val message = input.getString(MESSAGE)
+            val code = connect(arrayOf(arrayOf("to", to), arrayOf("from", from), arrayOf("message", message)), PARAM_FUNCTION_ALERT)
+            result.putInt(RESULT_CODE, code.code)
+            val built = result.build()
+            when (code) {
+                ErrorType.OK -> {
+                    Log.i(sTAG, "Message sent")
+                    return Result.success(built)
+                }
+                ErrorType.CONNECTION_FAILED -> {
+                    Log.w(sTAG, "Failed to send message: connection failed; retrying")
+                    return Result.retry()
+                }
+                ErrorType.BAD_REQUEST -> {
+                    Log.e(sTAG, "Unable to send message: bad request; not retrying")
+                    return Result.failure(built)
+                }
+                ErrorType.SERVER_ERROR -> {
+                    Log.e(sTAG, "Unable to send message: server error; not retrying")
+                    return Result.failure(built)
                 }
             }
-            ACTION_SEND_ALERT -> {
-                val to = input.getString(TO)
-                val from = input.getString(FROM)
-                val message = input.getString(MESSAGE)
-                val code = connect(arrayOf(arrayOf("to", to), arrayOf("from", from), arrayOf("message", message)), PARAM_FUNCTION_ALERT)
-                result.putInt(RESULT_CODE, code.code)
-                val built = result.build()
-                when (code) {
-                    ErrorType.OK -> {
-                        Log.i(sTAG, "Message sent")
-                        return Result.success(built)
-                    }
-                    ErrorType.CONNECTION_FAILED -> {
-                        Log.w(sTAG, "Failed to send message: connection failed; retrying")
-                        return Result.retry()
-                    }
-                    ErrorType.BAD_REQUEST -> {
-                        Log.e(sTAG, "Unable to send message: bad request; not retrying")
-                        return Result.failure(built)
-                    }
-                    ErrorType.SERVER_ERROR -> {
-                        Log.e(sTAG, "Unable to send message: server error; not retrying")
-                        return Result.failure(built)
-                    }
-                }
-            }
-            else -> throw IllegalArgumentException("An invalid argument was passed to the worker: ${input.getString(FUNCTION_KEY)}")
         }
     }
 

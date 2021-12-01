@@ -3,6 +3,7 @@ package com.aracroproducts.attention
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.PowerManager
@@ -45,7 +46,7 @@ open class AlertHandler : FirebaseMessagingService() {
         if (!senderIsFriend(messageData[REMOTE_FROM])) return  //checks if the sender is a friend of the user, ends if not
         val userInfo = getSharedPreferences(MainActivity.USER_INFO, MODE_PRIVATE)
         if (messageData[REMOTE_TO] != userInfo.getString(MainActivity.MY_ID, "")) return  //if message is not addressed to the user, ends
-        val senderName = getFriendNameForID(messageData[REMOTE_FROM])
+        val senderName = getFriendNameForID(this, messageData[REMOTE_FROM])
         var message = messageData[REMOTE_MESSAGE]!!
         message = if (message == "null") getString(R.string.default_message, senderName) else getString(R.string.message_prefix, senderName, message)
         val preferences = PreferenceManager.getDefaultSharedPreferences(this)
@@ -118,29 +119,6 @@ open class AlertHandler : FirebaseMessagingService() {
             if (found) break
         }
         return found
-    }
-
-    /**
-     * Gets the name of the friend with the provided id
-     * @param id    - The ID to get the name for
-     * @return      - The name corresponding to the ID
-     */
-    private fun getFriendNameForID(id: String?): String? {
-        val friends = getSharedPreferences(MainActivity.FRIENDS, MODE_PRIVATE)
-        val friendJson = friends.getString("friends", null)
-        var friendList: List<Array<String>> = ArrayList()
-        val gson = Gson()
-        if (friendJson != null) {
-            val listType = object : TypeToken<List<Array<String?>?>?>() {}.type
-            friendList = gson.fromJson(friendJson, listType)
-            Log.d(TAG, friendJson)
-        }
-        for (i in friendList.indices) {
-            if (friendList[i][1] == id) {
-                return friendList[i][0]
-            }
-        }
-        return null
     }
 
     /**
@@ -240,5 +218,29 @@ open class AlertHandler : FirebaseMessagingService() {
         const val REMOTE_MESSAGE = "alert_message"
         const val ASSOCIATED_NOTIFICATION = "notification_id"
         const val SHOULD_VIBRATE = "vibrate"
+
+
+        /**
+         * Gets the name of the friend with the provided id
+         * @param id    - The ID to get the name for
+         * @return      - The name corresponding to the ID
+         */
+        fun getFriendNameForID(context: Context, id: String?): String? {
+            val friends = context.getSharedPreferences(MainActivity.FRIENDS, MODE_PRIVATE)
+            val friendJson = friends.getString("friends", null)
+            var friendList: List<Array<String>> = ArrayList()
+            val gson = Gson()
+            if (friendJson != null) {
+                val listType = object : TypeToken<List<Array<String?>?>?>() {}.type
+                friendList = gson.fromJson(friendJson, listType)
+                Log.d(TAG, friendJson)
+            }
+            for (i in friendList.indices) {
+                if (friendList[i][1] == id) {
+                    return friendList[i][0]
+                }
+            }
+            return null
+        }
     }
 }
