@@ -1,6 +1,9 @@
 package com.aracroproducts.attention
 
 import android.app.Activity
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.*
 import android.net.Uri
 import android.os.*
@@ -16,10 +19,14 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.work.*
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import com.google.android.gms.tasks.Task
@@ -129,6 +136,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        createFailedAlertNotificationChannel()
         setContentView(R.layout.activity_main)
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
@@ -274,7 +282,6 @@ class MainActivity : AppCompatActivity() {
 
     public override fun onPause() {
         super.onPause()
-        val manager = LocalBroadcastManager.getInstance(this)
     }
 
     /**
@@ -370,15 +377,47 @@ class MainActivity : AppCompatActivity() {
     private fun sendAlertToServer(id: String, message: String?) {
         Log.d(sTAG, "Sending alert to server via AppServer service")
         //PendingIntent pendingIntent = createPendingResult(AppServer.CALLBACK_POST_TOKEN, new Intent(), 0);
-        val intent = Intent(this@MainActivity, AppServer::class.java)
-        intent.putExtra(AppServer.EXTRA_TO, id)
-        intent.putExtra(AppServer.EXTRA_FROM, user!!.uid)
-        if (message != null) {
-            intent.putExtra(AppServer.EXTRA_MESSAGE, message)
-        }
-        intent.action = AppServer.ACTION_SEND_ALERT
-        // intent.putExtra(AppServer.EXTRA_PENDING_RESULT, pendingIntent);
-        AppServer.enqueueWork(this, intent)
+        val data = Data.Builder().putString(AppWorker.TO, id).putString(AppWorker.FROM, user!!.uid).putString(AppWorker.MESSAGE, message).build()
+        val constraints = Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .build()
+        val workRequest = OneTimeWorkRequestBuilder<AppWorker.MessageWorker>().apply {
+            setInputData(data)
+            setConstraints(constraints)
+            setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+        }.build()
+        val workManager = WorkManager.getInstance(this)
+        workManager.enqueue(workRequest)
+
+        workManager.getWorkInfoByIdLiveData(workRequest.id)
+                .observe(this, androidx.lifecycle.Observer {
+                    if (it != null && it.state == WorkInfo.State.SUCCEEDED) {
+                        val layout = findViewById<View>(R.id.coordinatorLayout)
+                        val snackbar = Snackbar.make(layout, R.string.alert_sent, Snackbar.LENGTH_SHORT)
+                        snackbar.show()
+                    } else if (it != null && it.state == WorkInfo.State.FAILED) {
+                        val code = it.outputData.getInt(AppWorker.RESULT_CODE, AppWorker.CODE_BAD_REQUEST)
+                        val name = AlertHandler.getFriendNameForID(this, id)
+                        val text = if (code == AppWorker.CODE_SERVER_ERROR) getString(R.string.alert_failed_server_error, name) else getString(R.string.alert_failed_bad_request, name)
+
+                        val intent = Intent(this, MainActivity::class.java)
+                        val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+
+                        createFailedAlertNotificationChannel()
+                        val builder: NotificationCompat.Builder = NotificationCompat.Builder(this, FAILED_ALERT_CHANNEL_ID)
+                        builder
+                                .setSmallIcon(R.mipmap.add_foreground)
+                                .setContentTitle(getString(R.string.alert_failed))
+                                .setContentText(text)
+                                .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+                                .setPriority(NotificationCompat.PRIORITY_MAX)
+                                .setContentIntent(pendingIntent).setAutoCancel(true)
+
+                        val notificationID = (System.currentTimeMillis() % 1000000000L).toInt() + 1
+                        val notificationManagerCompat = NotificationManagerCompat.from(this)
+                        notificationManagerCompat.notify(notificationID, builder.build())
+                    }
+                })
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -430,6 +469,20 @@ class MainActivity : AppCompatActivity() {
         }*/
     }
 
+    private fun createFailedAlertNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val name: CharSequence = getString(R.string.alert_failed_channel_name)
+            val description = getString(R.string.alert_channel_description)
+            val importance = NotificationManager.IMPORTANCE_HIGH
+            val channel = NotificationChannel(FAILED_ALERT_CHANNEL_ID, name, importance)
+            channel.description = description
+            // Register the channel with the system; you can't change the importance
+            // or other notification behaviors after this
+            val notificationManager = getSystemService(NotificationManager::class.java)
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
+
     companion object {
         const val USER_INFO = "user"
         const val FRIENDS = "listen"
@@ -440,6 +493,7 @@ class MainActivity : AppCompatActivity() {
         const val FRIEND_LIST = "friends"
         const val OVERLAY_NO_PROMPT = "OverlayDoNotAsk"
         private const val COMPAT_HEAVY_CLICK = 5
+        private const val FAILED_ALERT_CHANNEL_ID = "Failed alert channel"
 
         /**
          * Converts a json string of friends into a List of {friend name, friend ID} pairs
