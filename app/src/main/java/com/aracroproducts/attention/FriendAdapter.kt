@@ -30,6 +30,8 @@ class FriendAdapter(private val dataset: Array<Array<String>>, private var callb
         val textView: TextView = v.findViewById(R.id.friend_name)
         private val confirmButton: Button = v.findViewById(R.id.confirm_button)
         private val cancelButton: FrameLayout = v.findViewById(R.id.cancel_button)
+
+        // ID of the friend in this adapter
         private var id: String? = null
         private val progressBar: ProgressBar = v.findViewById(R.id.progress_bar)
         private val confirmButtonLayout: ConstraintLayout = v.findViewById(R.id.confirmLayout)
@@ -40,7 +42,6 @@ class FriendAdapter(private val dataset: Array<Array<String>>, private var callb
         private val delete: Button = v.findViewById(R.id.delete_friend_button)
         private val cancelEdit: ImageButton = v.findViewById(R.id.cancel_edit)
         private var delay: CountDownTimer? = null
-        var friendIndex: Int? = null
 
 
         private var alertState = State.NORMAL
@@ -77,7 +78,7 @@ class FriendAdapter(private val dataset: Array<Array<String>>, private var callb
             } else if (v.id == rename.id) {
                 id?.let { callback.onEditName(it) }
             } else if (v.id == delete.id) {
-                if (friendIndex != null) callback.onDeletePrompt(friendIndex!!, textView.text.toString())
+                callback.onDeletePrompt(id!!, textView.text.toString())
             }
         }
 
@@ -146,28 +147,7 @@ class FriendAdapter(private val dataset: Array<Array<String>>, private var callb
 
         private fun sendAlert(id: String, message: String?) {
             callback.onSendAlert(id, message)
-        } /*
-        private boolean sendAlertToServer(final String recipientId, String message) {
-
-            String SENDER_ID = textView.getContext().getSharedPreferences(MainActivity.USER_INFO, Context.MODE_PRIVATE).getString("id", null);
-
-            Task<InstanceIdResult> idResultTask = FirebaseInstanceId.getInstance().getInstanceId();
-            idResultTask.addOnCompleteListener(new OnCompleteListener<InstanceIdResult>() {
-                @Override
-                public void onComplete(@NonNull Task<InstanceIdResult> task) {
-                    String messageId = Long.toString(System.currentTimeMillis());
-                    FirebaseMessaging fm = FirebaseMessaging.getInstance();
-                    fm.send(new RemoteMessage.Builder(SENDER_ID + "@fcm.googleapis.com")
-                            .setMessageId(messageId)
-                            .addData("action", "send_alert")
-                            .addData("to", recipientId)
-                            .addData("from", SENDER_ID)
-                            .build());
-                    Log.d(TAG, textView.getContext().getString(R.string.log_sending_msg));
-                }
-            });
-            return false;
-        }*/
+        }
 
         init {
             textView.setOnClickListener(this)
@@ -184,7 +164,7 @@ class FriendAdapter(private val dataset: Array<Array<String>>, private var callb
 
     interface Callback {
         fun onSendAlert(id: String, message: String?)
-        fun onDeletePrompt(position: Int, name: String)
+        fun onDeletePrompt(id: String, name: String)
         fun onEditName(id: String)
         fun onLongPress()
     }
@@ -197,7 +177,6 @@ class FriendAdapter(private val dataset: Array<Array<String>>, private var callb
     override fun onBindViewHolder(holder: FriendItem, position: Int) {
         holder.textView.text = dataset[position][0]
         holder.setId(dataset[position][1])
-        holder.friendIndex = position
     }
 
     override fun getItemCount(): Int {
