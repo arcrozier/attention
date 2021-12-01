@@ -21,8 +21,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.core.content.ContentProviderCompat.requireContext
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -45,37 +43,11 @@ class MainActivity : AppCompatActivity() {
     private val sTAG = javaClass.name
     private var token: String? = null
     private var user: User? = null
-    /*
-    private val networkCallback: BroadcastReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            Log.d(sTAG, "Received callback from network class")
-            val editor = getSharedPreferences(USER_INFO, MODE_PRIVATE).edit()
-            val resultCode = intent.getIntExtra(AppServer.EXTRA_RESULT_CODE, AppServer.CODE_NA)
-            when (Objects.requireNonNull(intent.action)) {
-                AppServer.ACTION_POST_TOKEN -> if (resultCode == AppServer.CODE_SUCCESS) {
-                    editor.putBoolean(UPLOADED, true)
-                    editor.putString(MY_TOKEN, token)
-                    Toast.makeText(this@MainActivity, getString(R.string.user_registered),
-                            Toast.LENGTH_SHORT).show()
-                } else {
-                    editor.putBoolean(UPLOADED, false)
-                }
-                AppServer.ACTION_SEND_ALERT -> if (resultCode == AppServer.CODE_SUCCESS) {
-                    val layout = findViewById<View>(R.id.coordinatorLayout)
-                    val snackbar = Snackbar.make(layout, R.string.alert_sent, Snackbar.LENGTH_SHORT)
-                    snackbar.show()
-                } else {
-                    Toast.makeText(this@MainActivity, getString(R.string.general_error),
-                            Toast.LENGTH_LONG).show()
-                }
-            }
-            editor.apply()
-        }
-    }
-     */
+
 
     /**
-     * Callback for retrieving the user's name - passed to
+     * Callback for retrieving the user's name from a pop-up dialog - passed to
+     * registerForActivityResult
      */
     private val nameCallback: ActivityResultCallback<ActivityResult> =
             ActivityResultCallback<ActivityResult> {
@@ -92,8 +64,14 @@ class MainActivity : AppCompatActivity() {
                 addUserToDB(user)
             }
 
+    /**
+     * Callback for getting the user's name after they edit it in a pop-up dialog - passed to
+     * registerForActivityResult
+     */
     private val editNameCallback = ActivityResultCallback<ActivityResult> {
         if (it.resultCode != Activity.RESULT_OK) return@ActivityResultCallback
+
+        // data returned from the activity
         val data = it.data
         Log.d(sTAG, "Received edit name callback")
         val friends = getSharedPreferences(FRIENDS, MODE_PRIVATE)
@@ -128,9 +106,15 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // Can call launch(Intent) on this to start the activity specified by the intent with the
+    // result passed to nameCallback (an Intent to launch DialogActivity)
     private val startNameDialogForResult = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult(), nameCallback)
 
+    // Can call launch(Intent) on this to start the activity specified by the intent with the
+    // result passed to editNameCallback
+    // Used with DialogActivity, with extra DialogActivity.EXTRA_EDIT_NAME set to true and
+    // extra DialogActivity.EXTRA_USER_ID set to the user id whose name you want to id
     private val startEditNameDialogForResult = registerForActivityResult(ActivityResultContracts
             .StartActivityForResult(), editNameCallback)
 
@@ -271,6 +255,7 @@ class MainActivity : AppCompatActivity() {
 
     public override fun onResume() {
         super.onResume()
+        // if Google API isn't available, do this - it's from the docs, should be correct
         if (GoogleApiAvailability.getInstance()
                         .isGooglePlayServicesAvailable(this) != ConnectionResult.SUCCESS) {
             Toast.makeText(this, getString(R.string.no_play_services), Toast.LENGTH_LONG).show()
@@ -354,14 +339,13 @@ class MainActivity : AppCompatActivity() {
     private fun deleteFriend(index: Int) {
         val friends = getSharedPreferences(FRIENDS, MODE_PRIVATE)
         val friendJson = friends.getString(FRIEND_LIST, null)
-        val friendList: List<Array<String>>?
         if (friendJson == null) {
             Log.w(sTAG, "Friend list was null, unable to delete friend")
             return
         }
         val gson = Gson()
-        friendList = parseFriends(friendJson)
-        friendList!!.removeAt(index)
+        val friendList: Map<String, String>? = parseFriends(friendJson)
+        friendList!!.
         Log.d(sTAG, "Removed friend")
         val editor = friends.edit()
         editor.putString(FRIEND_LIST, gson.toJson(friendList))
@@ -390,7 +374,7 @@ class MainActivity : AppCompatActivity() {
         workManager.enqueue(workRequest)
 
         workManager.getWorkInfoByIdLiveData(workRequest.id)
-                .observe(this, androidx.lifecycle.Observer {
+                .observe(this, {
                     if (it != null && it.state == WorkInfo.State.SUCCEEDED) {
                         val layout = findViewById<View>(R.id.coordinatorLayout)
                         val snackbar = Snackbar.make(layout, R.string.alert_sent, Snackbar.LENGTH_SHORT)
@@ -445,15 +429,35 @@ class MainActivity : AppCompatActivity() {
     private fun addUserToDB(user: User?) {
         FirebaseMessaging.getInstance().token.addOnCompleteListener { task: Task<String?> ->
             user!!.token = task.result
-
-            //PendingIntent pendingIntent = createPendingResult(AppServer.CALLBACK_POST_TOKEN, new Intent(), 0);
-            val intent = Intent(this@MainActivity, AppServer::class.java)
-            intent.putExtra(AppServer.EXTRA_TOKEN, user.token)
-            intent.putExtra(AppServer.EXTRA_ID, user.uid)
-            intent.action = AppServer.ACTION_POST_TOKEN
-            //intent.putExtra(AppServer.EXTRA_PENDING_RESULT, pendingIntent);
-            AppServer.enqueueWork(this@MainActivity, intent)
             Log.d(sTAG, getString(R.string.log_sending_msg))
+            val data = Data.Builder()
+                    .putString(AppWorker.TOKEN, user.token)
+                    .putString(AppWorker.ID, user.uid)
+                    .build()
+            val constraints = Constraints.Builder()
+                    .setRequiredNetworkType(NetworkType.CONNECTED)
+                    .build()
+            val workRequest = OneTimeWorkRequestBuilder<AppWorker.TokenWorker>().apply {
+                setInputData(data)
+                setConstraints(constraints)
+                setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+            }.build()
+            val workManager = WorkManager.getInstance(this)
+            workManager.enqueue(workRequest)
+
+            workManager.getWorkInfoByIdLiveData(workRequest.id)
+                    .observe(this, {
+                        val editor = getSharedPreferences(USER_INFO, MODE_PRIVATE).edit()
+                        if (it != null && it.state == WorkInfo.State.SUCCEEDED) {
+                            editor.putBoolean(UPLOADED, true)
+                            editor.putString(MY_TOKEN, token)
+                            Toast.makeText(this@MainActivity, getString(R.string.user_registered),
+                                    Toast.LENGTH_SHORT).show()
+                        } else if (it != null && it.state == WorkInfo.State.FAILED) {
+                            editor.putBoolean(UPLOADED, false)
+                        }
+                        editor.apply()
+                    })
         }
     }
 
@@ -500,11 +504,11 @@ class MainActivity : AppCompatActivity() {
          * @param json  - JSON string to parse
          * @return      - The list of friends
          */
-        fun parseFriends(json: String?): MutableList<Array<String>>? {
+        fun parseFriends(json: String?): Map<String, String>? {
             if (json == null) return null
             val gson = Gson()
-            val arrayListType = object : TypeToken<List<Array<String>?>?>() {}.type
-            return gson.fromJson(json, arrayListType)
+            val mapType = object : TypeToken<Map<String, String>>() {}.type
+            return gson.fromJson(json, mapType)
         }
     }
 }
