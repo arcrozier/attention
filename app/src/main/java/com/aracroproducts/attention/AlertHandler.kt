@@ -19,6 +19,9 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.util.*
 
+/**
+ * Handles Firebase alerts
+ */
 open class AlertHandler : FirebaseMessagingService() {
     /**
      * Executed when the device gets a new Firebase token
@@ -43,27 +46,33 @@ open class AlertHandler : FirebaseMessagingService() {
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         Log.d(TAG, "Message received! $remoteMessage")
         val messageData = remoteMessage.data
-        if (!senderIsFriend(messageData[REMOTE_FROM])) return  //checks if the sender is a friend of the user, ends if not
+        if (!senderIsFriend(
+                        messageData[REMOTE_FROM])) return  //checks if the sender is a friend of the user, ends if not
         val userInfo = getSharedPreferences(MainActivity.USER_INFO, MODE_PRIVATE)
-        if (messageData[REMOTE_TO] != userInfo.getString(MainActivity.MY_ID, "")) return  //if message is not addressed to the user, ends
+        if (messageData[REMOTE_TO] != userInfo.getString(MainActivity.MY_ID,
+                        "")) return  //if message is not addressed to the user, ends
         val senderName = getFriendNameForID(this, messageData[REMOTE_FROM])
         var message = messageData[REMOTE_MESSAGE]!!
-        message = if (message == "null") getString(R.string.default_message, senderName) else getString(R.string.message_prefix, senderName, message)
+        message = if (message == "null") getString(R.string.default_message,
+                senderName) else getString(R.string.message_prefix, senderName, message)
         val preferences = PreferenceManager.getDefaultSharedPreferences(this)
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         NotificationManagerCompat.from(this)
         // Check if SDK >= Android 7.0, uses the new notification manager, else uses the compat manager (SDK 19+)
         // Checks if the app should avoid notifying because it has notifications disabled or:
         if ((!manager.areNotificationsEnabled())
-                || (!preferences.getBoolean(getString(R.string.override_dnd_key), false) // Checks whether it should not be overriding Do Not Disturb
+                || (!preferences.getBoolean(getString(R.string.override_dnd_key),
+                        false) // Checks whether it should not be overriding Do Not Disturb
                         && (manager.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL // Do not disturb is on
                         && manager.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_UNKNOWN))) { // Also do not disturb is on
-            Log.d(TAG, "App is disabled from showing notifications or interruption filter is set to block notifications")
+            Log.d(TAG,
+                    "App is disabled from showing notifications or interruption filter is set to block notifications")
             showNotification(message, senderName, true)
             return
         }
         try {
-            if (Settings.Global.getInt(contentResolver, "zen_mode") > 1) { // a variant of do not disturb
+            if (Settings.Global.getInt(contentResolver,
+                            "zen_mode") > 1) { // a variant of do not disturb
                 Log.d(TAG, "Device's zen mode is enabled")
                 return
             }
@@ -83,7 +92,8 @@ open class AlertHandler : FirebaseMessagingService() {
             intent.putExtra(ASSOCIATED_NOTIFICATION, id)
             intent.putExtra(SHOULD_VIBRATE, true)
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-            Log.d(TAG, "Sender: " + senderName + ", " + messageData[REMOTE_FROM] + " Message: " + message)
+            Log.d(TAG,
+                    "Sender: " + senderName + ", " + messageData[REMOTE_FROM] + " Message: " + message)
             startActivity(intent)
         }
     }
@@ -94,31 +104,7 @@ open class AlertHandler : FirebaseMessagingService() {
      * @return          - Whether the sender is a friend of the user
      */
     private fun senderIsFriend(sender: String?): Boolean {
-        val friends = getSharedPreferences(MainActivity.FRIENDS, MODE_PRIVATE)
-        val friendJson = friends.getString("friends", null)
-        var friendList: List<Array<String>> = ArrayList()
-        val gson = Gson()
-        if (friendJson != null) {
-            val arrayListType = object : TypeToken<List<Array<String?>?>?>() {}.type
-            friendList = gson.fromJson(friendJson, arrayListType)
-            Log.d(TAG, friendJson)
-        }
-        return isStringInFriendList(sender, friendList)
-    }
-
-    /**
-     * Helper method to determine if a friend ID is in the list of friends
-     * @param id            - The ID to search for
-     * @param friendList    - The friend list to search in
-     * @return              - Whether the ID is in the list
-     */
-    private fun isStringInFriendList(id: String?, friendList: List<Array<String>>): Boolean {
-        var found = false
-        for (i in friendList.indices) {
-            found = id == friendList[i][1]
-            if (found) break
-        }
-        return found
+        return MainActivity.getFriendMap(this)?.containsKey(sender) ?: false
     }
 
     /**
@@ -137,7 +123,7 @@ open class AlertHandler : FirebaseMessagingService() {
 
         val builder: NotificationCompat.Builder
         if (missed) {
-            createMissedNotificationChannel()
+            createMissedNotificationChannel(this)
             builder = NotificationCompat.Builder(this, CHANNEL_ID)
             builder
                     .setSmallIcon(R.mipmap.add_foreground)
@@ -163,22 +149,9 @@ open class AlertHandler : FirebaseMessagingService() {
         return notificationID
     }
 
-    /* private void sendRegistrationToServer(String token) {
-        User user = new User(getSharedPreferences(MainActivity.USER_INFO, Context.MODE_PRIVATE).getString("id", null), token);
-        if (user.getUid() == null) return;
-        PendingIntent pendingIntent = MainActivity.createPendingResult(AppServer.ACTION_POST_TOKEN);
-
-        */
-    /*FirebaseMessaging fm = FirebaseMessaging.getInstance();
-        fm.send(new RemoteMessage.Builder(SENDER_ID + "@fcm.googleapis.com")
-                .setMessageId(messageId)
-                .addData("action", "update_id")
-                .addData("id", SENDER_ID)
-                .addData("token", token)
-                .build());*/
-    /*
-        Log.d(TAG, getString(R.string.log_register_user));
-    }*/
+    /**
+     * Creates the notification channel for notifications that are displayed alongside dialogs
+     */
     private fun createNotificationChannel() {
         // Create the NotificationChannel, but only on API 26+ because
         // the NotificationChannel class is new and not in the support library
@@ -195,19 +168,6 @@ open class AlertHandler : FirebaseMessagingService() {
         }
     }
 
-    private fun createMissedNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name: CharSequence = getString(R.string.channel_name)
-            val description = getString(R.string.channel_description)
-            val importance = NotificationManager.IMPORTANCE_HIGH
-            val channel = NotificationChannel(CHANNEL_ID, name, importance)
-            channel.description = description
-            // Register the channel with the system; you can't change the importance
-            // or other notification behaviors after this
-            val notificationManager = getSystemService(NotificationManager::class.java)
-            notificationManager.createNotificationChannel(channel)
-        }
-    }
 
     companion object {
         private val TAG = AlertHandler::class.java.name
@@ -241,6 +201,25 @@ open class AlertHandler : FirebaseMessagingService() {
                 }
             }
             return null
+        }
+
+        /**
+         * Creates the missed alerts notification channel on Android O and later
+         *
+         * @param context - The app context to use for getting strings and the NotificationManager
+         */
+        fun createMissedNotificationChannel(context: Context) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val name: CharSequence = context.getString(R.string.channel_name)
+                val description = context.getString(R.string.channel_description)
+                val importance = NotificationManager.IMPORTANCE_HIGH
+                val channel = NotificationChannel(CHANNEL_ID, name, importance)
+                channel.description = description
+                // Register the channel with the system; you can't change the importance
+                // or other notification behaviors after this
+                val notificationManager = context.getSystemService(NotificationManager::class.java)
+                notificationManager.createNotificationChannel(channel)
+            }
         }
     }
 }

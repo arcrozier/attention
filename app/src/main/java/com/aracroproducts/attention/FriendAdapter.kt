@@ -15,7 +15,6 @@ import android.widget.*
 import androidx.appcompat.widget.AppCompatImageButton
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.RecyclerView
-import com.aracroproducts.attention.FriendAdapter
 import com.aracroproducts.attention.FriendAdapter.FriendItem
 
 class FriendAdapter(private val dataset: Array<Array<String>>, private var callback: Callback) :
@@ -25,8 +24,11 @@ class FriendAdapter(private val dataset: Array<Array<String>>, private var callb
         NORMAL, CONFIRM, CANCEL, EDIT
     }
 
+    /**
+     * A single element of the list view
+     */
     inner class FriendItem(v: View) : RecyclerView.ViewHolder(v), View.OnClickListener,
-            OnLongClickListener {
+                                      OnLongClickListener {
         val textView: TextView = v.findViewById(R.id.friend_name)
         private val confirmButton: Button = v.findViewById(R.id.confirm_button)
         private val cancelButton: FrameLayout = v.findViewById(R.id.cancel_button)
@@ -49,24 +51,34 @@ class FriendAdapter(private val dataset: Array<Array<String>>, private var callb
             this.id = id
         }
 
+        /**
+         * Handles all click events
+         */
         override fun onClick(v: View) {
+            // when the normal element (background) gets tapped
             if (v.id == textView.id) {
                 when (alertState) {
                     State.NORMAL -> prompt()
                     State.EDIT, State.CONFIRM -> cancel()
-                    else -> {}
+                    else -> {
+                    }
                 }
-            } else if (v.id == confirmButton.id) {
+            } else if (v.id == confirmButton.id) {  // when the user taps confirm
                 alert(3500, null)
             } else if (v.id == cancelButton.id || v.id == cancelSend.id || v.id == cancelEdit.id) {
+                // when the user taps any cancel button
                 cancel()
-            } else if (v.id == addMessage.id) {
+            } else if (v.id == addMessage.id) {  // the user taps "add message"
                 val builder = AlertDialog.Builder(textView.context)
                 builder.setTitle(textView.context.getString(R.string.add_message))
                 val input = EditText(textView.context)
                 input.setHint(R.string.message_hint)
                 input.inputType =
-                        InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_AUTO_COMPLETE or InputType.TYPE_TEXT_FLAG_AUTO_CORRECT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+                        InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_AUTO_COMPLETE or
+                                InputType.TYPE_TEXT_FLAG_AUTO_CORRECT or
+                                InputType.TYPE_TEXT_FLAG_CAP_SENTENCES or
+                                InputType.TYPE_TEXT_FLAG_MULTI_LINE or
+                                InputType.TYPE_TEXT_VARIATION_SHORT_MESSAGE
                 builder.setView(input)
                 builder.setPositiveButton(
                         android.R.string.ok) { _: DialogInterface?, _: Int ->
@@ -82,6 +94,11 @@ class FriendAdapter(private val dataset: Array<Array<String>>, private var callb
             }
         }
 
+        /**
+         * Transitions the item into the edit state - sets alertState to EDIT
+         *
+         * Calls edit()
+         */
         override fun onLongClick(v: View): Boolean {
             callback.onLongPress()
             edit()
@@ -89,12 +106,18 @@ class FriendAdapter(private val dataset: Array<Array<String>>, private var callb
             return true
         }
 
+        /**
+         * Displays the edit buttons (does not modify alertState)
+         */
         private fun edit() {
             reset()
             textView.alpha = 0.25f
             editLayout.visibility = View.VISIBLE
         }
 
+        /**
+         * Puts the view adapter into the confirm state
+         */
         private fun prompt() {
             reset()
             confirmButtonLayout.visibility = View.VISIBLE
@@ -102,16 +125,19 @@ class FriendAdapter(private val dataset: Array<Array<String>>, private var callb
             alertState = State.CONFIRM
         }
 
+        /**
+         * Sends an alert after a time delay, during which the user can cancel the alert
+         *
+         * @param undoTime  - The amount of time it takes for the progress bar to complete
+         * @param message   - The message to send with the alert
+         */
         private fun alert(undoTime: Int, message: String?) {
             reset()
             progressBar.progress = 0
             cancelButton.visibility = View.VISIBLE
             alertState = State.CANCEL
-            /*
-            Intent intent = new Intent(textView.getContext(), AlertHandler.class);
-            intent.putExtra("to", id);
-            textView.getContext().startService(intent);
-            */delay = object : CountDownTimer(undoTime.toLong(), 3500) {
+
+            delay = object : CountDownTimer(undoTime.toLong(), 3500) {
                 override fun onTick(l: Long) {}
                 override fun onFinish() {
                     id?.let { sendAlert(it, message) }
@@ -120,7 +146,6 @@ class FriendAdapter(private val dataset: Array<Array<String>>, private var callb
             }
             (delay as CountDownTimer).start()
 
-            //final ProgressBar progressBar = textView.findViewById(R.id.progress_bar);
             val objectAnimator =
                     ObjectAnimator.ofInt(progressBar, "progress", progressBar.progress, 100)
                             .setDuration(3000)
@@ -131,6 +156,11 @@ class FriendAdapter(private val dataset: Array<Array<String>>, private var callb
             objectAnimator.start()
         }
 
+        /**
+         * Resets display of the view adapter by setting all the other layouts' visibilities to gone
+         *
+         * Does not modify the state
+         */
         private fun reset() {
             confirmButtonLayout.visibility = View.GONE
             cancelButton.visibility = View.GONE
@@ -138,6 +168,9 @@ class FriendAdapter(private val dataset: Array<Array<String>>, private var callb
             textView.alpha = 1.0f
         }
 
+        /**
+         * Cancels the alert
+         */
         fun cancel() {
             Log.d(TAG, "Cancelled alert")
             reset()
@@ -145,6 +178,12 @@ class FriendAdapter(private val dataset: Array<Array<String>>, private var callb
             if (delay != null) delay!!.cancel()
         }
 
+        /**
+         * Sends an alert
+         *
+         * @param id    - The ID to send to
+         * @param message   - The message to include
+         */
         private fun sendAlert(id: String, message: String?) {
             callback.onSendAlert(id, message)
         }
@@ -162,23 +201,61 @@ class FriendAdapter(private val dataset: Array<Array<String>>, private var callb
         }
     }
 
+    /**
+     * An interface for callbacks from actions the user does
+     */
     interface Callback {
+        /**
+         * Sends an alert to the provided ID, with an optional message
+         *
+         * @param id    - The recipient ID
+         * @param message   - The message to include (optional)
+         */
         fun onSendAlert(id: String, message: String?)
+
+        /**
+         * Called when the user presses "delete" on this friend. Should display a confirmation dialog
+         *
+         * @param id    - The ID of the friend to delete
+         * @param name  - The name of the friend to delete
+         */
         fun onDeletePrompt(id: String, name: String)
+
+        /**
+         * Called when a user wants to edit the name of one of their friends
+         *
+         * @param id    - The ID of the friend to edit
+         */
         fun onEditName(id: String)
+
+        /**
+         * Called when the user long presses on the adapter
+         */
         fun onLongPress()
     }
 
+    /**
+     * Creates FriendItems
+     */
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FriendItem {
         val v = LayoutInflater.from(parent.context).inflate(R.layout.item_layout, parent, false)
         return FriendItem(v)
     }
 
+    /**
+     * Initializes the FriendItem to the specified position
+     *
+     * @param holder    - The FriendItem to initialize
+     * @param position  - The position of the FriendItem in the list - dictates the data stored in it
+     */
     override fun onBindViewHolder(holder: FriendItem, position: Int) {
         holder.textView.text = dataset[position][0]
         holder.setId(dataset[position][1])
     }
 
+    /**
+     * @return  The number of friends that need to be displayed
+     */
     override fun getItemCount(): Int {
         return dataset.size
     }
