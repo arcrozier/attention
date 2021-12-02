@@ -25,6 +25,10 @@ import androidx.appcompat.app.AlertDialog
 import androidx.preference.PreferenceManager
 import java.util.*
 
+/**
+ * An activity that displays a QR code and has a camera feed to add a friend and allow people to add
+ * the user
+ */
 class Add : AppCompatActivity() {
     private var barcodeView: DecoratedBarcodeView = DecoratedBarcodeView(this)
     private var v: Vibrator? = null
@@ -32,7 +36,9 @@ class Add : AppCompatActivity() {
     private var cameraActive = true
     private var lastSnackBar: Long = 0
 
-    // Handles events with the barcode scanner
+    /**
+     * Handles events with the barcode scanner
+     */
     private val callback = BarcodeCallback { result ->
         if (result.text == null) {
             return@BarcodeCallback
@@ -68,14 +74,16 @@ class Add : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_add)
         v = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val vibratorManager =  this.getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            val vibratorManager = this.getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
             vibratorManager.defaultVibrator
         } else {
             getSystemService(VIBRATOR_SERVICE) as Vibrator
         }
         val writer = QRCodeWriter()
-        val id = getSharedPreferences(MainActivity.USER_INFO, MODE_PRIVATE).getString(MainActivity.MY_ID, null)
-        val name = PreferenceManager.getDefaultSharedPreferences(this).getString(getString(R.string.name_key), null)
+        val id = getSharedPreferences(MainActivity.USER_INFO, MODE_PRIVATE).getString(
+                MainActivity.MY_ID, null)
+        val name = PreferenceManager.getDefaultSharedPreferences(this)
+                .getString(getString(R.string.name_key), null)
         val user = "$name $id"
         try {
             val bitMatrix = writer.encode(user, BarcodeFormat.QR_CODE, 512, 512)
@@ -102,7 +110,8 @@ class Add : AppCompatActivity() {
      */
     private fun startScan() {
         barcodeView = findViewById(R.id.zxing_barcode_scanner)
-        val formats: Collection<BarcodeFormat> = listOf(BarcodeFormat.QR_CODE, BarcodeFormat.CODE_39)
+        val formats: Collection<BarcodeFormat> =
+                listOf(BarcodeFormat.QR_CODE, BarcodeFormat.CODE_39)
         barcodeView.barcodeView.decoderFactory = DefaultDecoderFactory(formats)
         barcodeView.initializeFromIntent(intent)
         barcodeView.decodeContinuous(callback)
@@ -156,7 +165,8 @@ class Add : AppCompatActivity() {
      * @param permissions   - The permissions requested
      * @param grantResults  - The results for each permission
      */
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>,
+                                            grantResults: IntArray) {
         if (requestCode == CAMERA_CALLBACK_CODE) {
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 startScan()
@@ -197,6 +207,9 @@ class Add : AppCompatActivity() {
         }
     }
 
+    /**
+     * Passes key presses to the barcode view
+     */
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         return barcodeView.onKeyDown(keyCode, event) || super.onKeyDown(keyCode, event)
     }
@@ -206,21 +219,30 @@ class Add : AppCompatActivity() {
      */
     private fun hasCameraPermission(): Boolean {
         return if (packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)) {
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) //app already has camera permission. Great!
-                true else if (ActivityCompat.shouldShowRequestPermissionRationale(this,  // display dialog explaining why the app is requesting camera permission
+            if (ActivityCompat.checkSelfPermission(this,
+                            Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
+            // app already has camera permission. Great!
+                true
+            else if (ActivityCompat.shouldShowRequestPermissionRationale(
+                            this,
                             Manifest.permission.CAMERA)) {
+                // display dialog explaining why the app is requesting camera permission
                 val alert = AlertDialog.Builder(this).create()
                 alert.setTitle(getString(R.string.permissions_needed))
                 alert.setMessage(getString(R.string.permission_details))
-                alert.setButton(DialogInterface.BUTTON_POSITIVE, getString(R.string.allow)) { dialogInterface: DialogInterface, i: Int ->
+                alert.setButton(DialogInterface.BUTTON_POSITIVE,
+                        getString(R.string.allow)) { dialogInterface: DialogInterface, _: Int ->
                     dialogInterface.cancel()
-                    ActivityCompat.requestPermissions(this@Add, arrayOf(Manifest.permission.CAMERA), CAMERA_CALLBACK_CODE)
+                    ActivityCompat.requestPermissions(this@Add, arrayOf(Manifest.permission.CAMERA),
+                            CAMERA_CALLBACK_CODE)
                 }
-                alert.setButton(DialogInterface.BUTTON_NEGATIVE, this.getString(R.string.deny)) { dialogInterface: DialogInterface, i: Int -> dialogInterface.cancel() }
+                alert.setButton(DialogInterface.BUTTON_NEGATIVE, this.getString(
+                        R.string.deny)) { dialogInterface: DialogInterface, _: Int -> dialogInterface.cancel() }
                 alert.show()
                 false
             } else { // request the permission
-                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), CAMERA_CALLBACK_CODE)
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA),
+                        CAMERA_CALLBACK_CODE)
                 false
             }
         } else { // device does not have a camera for some reason

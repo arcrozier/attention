@@ -3,7 +3,6 @@ package com.aracroproducts.attention
 import android.app.Activity
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.PendingIntent
 import android.content.*
 import android.net.Uri
 import android.os.*
@@ -19,8 +18,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -33,7 +30,6 @@ import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import java.lang.IllegalArgumentException
 import java.security.NoSuchAlgorithmException
 import java.security.spec.InvalidKeySpecException
 import java.util.*
@@ -76,51 +72,63 @@ class MainActivity : AppCompatActivity() {
         // data returned from the activity
         val data = it.data
         Log.d(sTAG, "Received edit name callback")
-        val friends = getSharedPreferences(FRIENDS, MODE_PRIVATE)
-        if (friendMap == null) friendMap = parseFriends(friends.getString(FRIEND_LIST, null))
+        if (friendMap == null) updateFriendMap()
         if (friendMap == null) {
             Log.w(sTAG, "FriendList was null, unable to edit")
         } else {
             val friendId = data?.getStringExtra(DialogActivity.EXTRA_USER_ID)
                     ?: throw IllegalArgumentException("An ID to edit must be provided")
             friendMap?.put(friendId, data.getStringExtra(MY_NAME).toString())
-            val gson = Gson()
-            val friendJson = gson.toJson(friendMap)
-            val friendEditor = friends.edit()
-            friendEditor.putString(FRIEND_LIST, friendJson)
-            friendEditor.apply()
+            saveFriendMap()
             populateFriendList()
 
         }
     }
 
-    // Can call launch(Intent) on this to start the activity specified by the intent with the
-    // result passed to nameCallback (an Intent to launch DialogActivity)
+    /**
+     * Can call launch(Intent) on this to start the activity specified by the intent with the
+     * result passed to nameCallback (an Intent to launch DialogActivity)
+     */
     private val startNameDialogForResult = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult(), nameCallback)
 
-    // Can call launch(Intent) on this to start the activity specified by the intent with the
-    // result passed to editNameCallback
-    // Used with DialogActivity, with extra DialogActivity.EXTRA_EDIT_NAME set to true and
-    // extra DialogActivity.EXTRA_USER_ID set to the user id whose name you want to id
+    /**
+     * Can call launch(Intent) on this to start the activity specified by the intent with the
+     * result passed to editNameCallback
+     * Used with DialogActivity, with extra DialogActivity.EXTRA_EDIT_NAME set to true and
+     * extra DialogActivity.EXTRA_USER_ID set to the user id whose name you want to id
+     */
     private val startEditNameDialogForResult = registerForActivityResult(ActivityResultContracts
             .StartActivityForResult(), editNameCallback)
 
+    /**
+     * Called when the activity is created
+     *
+     * @param savedInstanceState    Instance data saved from before the activity was killed
+     */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        createFailedAlertNotificationChannel()
+
+        // Creates a notification channel for displaying failed-to-send notifications
+        createFailedAlertNotificationChannel(this)
+
+        // Set up UI
         setContentView(R.layout.activity_main)
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
         if (GoogleApiAvailability.getInstance()
                         .isGooglePlayServicesAvailable(this) != ConnectionResult.SUCCESS) {
+            // check for Google Play Services
             Toast.makeText(this, getString(R.string.no_play_services), Toast.LENGTH_LONG).show()
             GoogleApiAvailability.getInstance().makeGooglePlayServicesAvailable(this)
             return
         }
+
+        // Load user preferences and data
         val prefs = getSharedPreferences(USER_INFO, MODE_PRIVATE)
         val settings = PreferenceManager.getDefaultSharedPreferences(this)
         val notificationValues = resources.getStringArray(R.array.notification_values)
+        // Set up default preferences
         if (!settings.contains(getString(R.string.ring_preference_key))) {
             val settingsEditor = settings.edit()
             val ringAllowed: MutableSet<String> = HashSet()
@@ -141,6 +149,11 @@ class MainActivity : AppCompatActivity() {
             editor.putBoolean(UPLOADED, false)
             editor.apply()
         }
+
+        // Load the friendMap
+        updateFriendMap()
+
+        // Verify Firebase token and continue configuring settings
         token = prefs.getString(MY_TOKEN, null)
         if (!settings.contains(getString(R.string.name_key)) || !prefs.contains(MY_ID)) {
             user = User()
@@ -150,16 +163,20 @@ class MainActivity : AppCompatActivity() {
             user = User(prefs.getString(MY_ID, null), token)
         }
         if (user!!.uid != null && user!!.token != null && !prefs.getBoolean(UPLOADED, false)) {
-            updateToken(user)
+            addUserToDB(user)
         } else {
             getToken()
         }
+
+        // Configure "add friend" button
         val fab = findViewById<FloatingActionButton>(R.id.fab)
         fab.setOnClickListener { view: View ->
             Log.d(this.javaClass.name, "Attempting to add")
             val intent = Intent(view.context, Add::class.java)
             startActivity(intent)
         }
+
+        // Request permission to draw overlays
         if (!Settings.canDrawOverlays(this) && !prefs.contains(OVERLAY_NO_PROMPT)) {
             val alertDialog = AlertDialog.Builder(this).create()
             alertDialog.setTitle(getString(R.string.draw_title))
@@ -231,7 +248,7 @@ class MainActivity : AppCompatActivity() {
                 if (user!!.uid == null && preferences.getBoolean(UPLOADED, false)) {
                     preferences.edit().putBoolean(UPLOADED, false).apply()
                 } else {
-                    updateToken(user)
+                    addUserToDB(user)
                 }
             }
 
@@ -250,32 +267,36 @@ class MainActivity : AppCompatActivity() {
             GoogleApiAvailability.getInstance().makeGooglePlayServicesAvailable(this)
             return
         }
+        updateFriendMap()
         populateFriendList()
-    }
-
-    public override fun onPause() {
-        super.onPause()
     }
 
     /**
      * Helper method to put all the friends into the recycler view
+     *
+     * Assumes friendMap is up to date. Do not use in a situation where friendMap is not correct
      */
     private fun populateFriendList() {
-        val friends = getSharedPreferences(FRIENDS, MODE_PRIVATE)
-        val friendJson = friends.getString(FRIEND_LIST, null)
-        val friendList = parseFriends(friendJson) ?: return
+        // if no friends, we're already done
+        val mFriendMap = friendMap ?: return
+
+        // begin configuring the list view
         val friendListView = findViewById<RecyclerView>(R.id.friends_list)
         friendListView.layoutManager = LinearLayoutManager(this)
-        val dataset = Array(friendList.size) { arrayOf("", "") }
-        for ((index, id) in friendList.keys.withIndex()) {
+
+        // convert the map to an array that the list view can use
+        val dataset = Array(mFriendMap.size) { arrayOf("", "") }
+        for ((index, id) in mFriendMap.keys.withIndex()) {
             dataset[index][0] = id
-            dataset[index][1] = friendList[id] ?: ""
+            dataset[index][1] = mFriendMap[id] ?: ""
         }
         val adapterListener: FriendAdapter.Callback = object : FriendAdapter.Callback {
+            // Sends the alert
             override fun onSendAlert(id: String, message: String?) {
                 sendAlertToServer(id, message)
             }
 
+            // Prompts the user to confirm deleting the friend
             override fun onDeletePrompt(id: String, name: String) {
                 val alertDialog = android.app.AlertDialog.Builder(this@MainActivity).create()
                 alertDialog.setTitle(getString(R.string.confirm_delete_title))
@@ -290,6 +311,7 @@ class MainActivity : AppCompatActivity() {
                 alertDialog.show()
             }
 
+            // Shows the edit name dialog
             override fun onEditName(id: String) {
                 val intent = Intent(this@MainActivity, DialogActivity::class.java)
                 intent.putExtra(DialogActivity.EXTRA_EDIT_NAME, true)
@@ -297,9 +319,11 @@ class MainActivity : AppCompatActivity() {
                 startEditNameDialogForResult.launch(intent)
             }
 
+            // Provides haptic feedback
             override fun onLongPress() {
                 val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    val vibratorManager = getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
+                    val vibratorManager =
+                            getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
                     vibratorManager.defaultVibrator
                 } else {
                     getSystemService(VIBRATOR_SERVICE) as Vibrator
@@ -320,73 +344,82 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * Deletes the user's friend with the given index
-     * @param index - The index that the friend is at
+     * Deletes the user's friend with the given ID
+     * @param id - The ID of the friend to remove
      */
     private fun deleteFriend(id: String) {
-        val friends = getSharedPreferences(FRIENDS, MODE_PRIVATE)
-        val friendJson = friends.getString(FRIEND_LIST, null)
-        if (friendJson == null) {
-            Log.w(sTAG, "Friend list was null, unable to delete friend")
-            return
-        }
-        val gson = Gson()
-        val friendList = parseFriends(friendJson)
-        friendList!!.remove(id)
+        updateFriendMap()
+        friendMap?.remove(id)
         Log.d(sTAG, "Removed friend")
-        val editor = friends.edit()
-        editor.putString(FRIEND_LIST, gson.toJson(friendList))
-        editor.apply()
+        saveFriendMap()
         populateFriendList()
+    }
+
+    /**
+     * Update the friendMap from disk
+     *
+     * @see friendMap
+     * @modifies friendMap
+     */
+    private fun updateFriendMap() {
+        friendMap = getFriendMap(this)
+    }
+
+    /**
+     * Writes the friendMap to shared preferences in map encoding
+     */
+    private fun saveFriendMap() {
+        val editor = getSharedPreferences(FRIENDS, MODE_PRIVATE).edit()
+        val gson = Gson()
+        editor.putString(FRIEND_LIST, gson.toJson(friendMap))
+        editor.apply()
     }
 
     /**
      * Sends the user's notification to the server
      * @param id        - The recipient ID
-     * @param message   - The message to send to the person
+     * @param message   - The message to send to the person (if null, goes as regular alert)
      */
     private fun sendAlertToServer(id: String, message: String?) {
-        Log.d(sTAG, "Sending alert to server via AppServer service")
-        //PendingIntent pendingIntent = createPendingResult(AppServer.CALLBACK_POST_TOKEN, new Intent(), 0);
-        val data = Data.Builder().putString(AppWorker.TO, id).putString(AppWorker.FROM, user!!.uid).putString(AppWorker.MESSAGE, message).build()
+        Log.d(sTAG, "Sending alert to server via AppWorker")
+
+        // set up the input data
+        val data = Data.Builder().putString(AppWorker.TO, id).putString(AppWorker.FROM, user!!.uid)
+                .putString(AppWorker.MESSAGE, message).build()
+        // should only run when connected to internet
         val constraints = Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)
                 .build()
+        // configure work request
         val workRequest = OneTimeWorkRequestBuilder<AppWorker.MessageWorker>().apply {
             setInputData(data)
             setConstraints(constraints)
             setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
         }.build()
+
+        // enqueue the work
         val workManager = WorkManager.getInstance(this)
         workManager.enqueue(workRequest)
 
+        // get the result from the work
         workManager.getWorkInfoByIdLiveData(workRequest.id)
                 .observe(this, {
+                    val layout = findViewById<View>(R.id.coordinatorLayout)
                     if (it != null && it.state == WorkInfo.State.SUCCEEDED) {
-                        val layout = findViewById<View>(R.id.coordinatorLayout)
-                        val snackbar = Snackbar.make(layout, R.string.alert_sent, Snackbar.LENGTH_SHORT)
+                        // Success! Let the user know, but not a big deal
+                        val snackbar =
+                                Snackbar.make(layout, R.string.alert_sent, Snackbar.LENGTH_SHORT)
                         snackbar.show()
                     } else if (it != null && it.state == WorkInfo.State.FAILED) {
-                        val code = it.outputData.getInt(AppWorker.RESULT_CODE, AppWorker.CODE_BAD_REQUEST)
+                        // Something went wrong. Show the user, since they're still in the app
                         val name = AlertHandler.getFriendNameForID(this, id)
-                        val text = if (code == AppWorker.CODE_SERVER_ERROR) getString(R.string.alert_failed_server_error, name) else getString(R.string.alert_failed_bad_request, name)
-
-                        val intent = Intent(this, MainActivity::class.java)
-                        val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
-
-                        createFailedAlertNotificationChannel()
-                        val builder: NotificationCompat.Builder = NotificationCompat.Builder(this, FAILED_ALERT_CHANNEL_ID)
-                        builder
-                                .setSmallIcon(R.mipmap.add_foreground)
-                                .setContentTitle(getString(R.string.alert_failed))
-                                .setContentText(text)
-                                .setStyle(NotificationCompat.BigTextStyle().bigText(message))
-                                .setPriority(NotificationCompat.PRIORITY_MAX)
-                                .setContentIntent(pendingIntent).setAutoCancel(true)
-
-                        val notificationID = (System.currentTimeMillis() % 1000000000L).toInt() + 1
-                        val notificationManagerCompat = NotificationManagerCompat.from(this)
-                        notificationManagerCompat.notify(notificationID, builder.build())
+                        val code = it.outputData.getInt(AppWorker.RESULT_CODE,
+                                AppWorker.CODE_BAD_REQUEST)
+                        val text = if (code == AppWorker.CODE_BAD_REQUEST)
+                            getString(R.string.alert_failed_bad_request, name)
+                        else
+                            getString(R.string.alert_failed_server_error, name)
+                        Snackbar.make(layout, text, Snackbar.LENGTH_LONG).show()
                     }
                 })
     }
@@ -410,7 +443,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * Adds the specified new user to the Aracro Products database
+     * Adds the specified new user to the Aracro Products database. If the user already exists,
+     * updates the token associated with it
+     *
      * @param user  - The user to add to the database
      */
     private fun addUserToDB(user: User?) {
@@ -448,31 +483,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * Alias for addUserToDB()
-     * @param user  - the user to add to the database
-     */
-    private fun updateToken(user: User?) {
-        addUserToDB(user)
-        /*DatabaseReference database = FirebaseDatabase.getInstance().getReference();
-        if (user.getUid() != null) {
-            database.child("users").child(user.getUid()).child("token").setValue(user.getToken());
-        }*/
-    }
-
-    private fun createFailedAlertNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name: CharSequence = getString(R.string.alert_failed_channel_name)
-            val description = getString(R.string.alert_channel_description)
-            val importance = NotificationManager.IMPORTANCE_HIGH
-            val channel = NotificationChannel(FAILED_ALERT_CHANNEL_ID, name, importance)
-            channel.description = description
-            // Register the channel with the system; you can't change the importance
-            // or other notification behaviors after this
-            val notificationManager = getSystemService(NotificationManager::class.java)
-            notificationManager.createNotificationChannel(channel)
-        }
-    }
 
     companion object {
         const val USER_INFO = "user"
@@ -482,20 +492,62 @@ class MainActivity : AppCompatActivity() {
         const val MY_TOKEN = "token"
         const val UPLOADED = "uploaded"
         const val FRIEND_LIST = "friends"
+        private const val FRIENDS_MAP = "friend map"
         const val OVERLAY_NO_PROMPT = "OverlayDoNotAsk"
         private const val COMPAT_HEAVY_CLICK = 5
-        private const val FAILED_ALERT_CHANNEL_ID = "Failed alert channel"
 
         /**
-         * Converts a json string of friends into a List of {friend name, friend ID} pairs
-         * @param json  - JSON string to parse
-         * @return      - The list of friends
+         * Helper function to create the notification channel for the failed alert
+         *
+         * @param context   A context for getting strings
          */
-        fun parseFriends(json: String?): MutableMap<String, String>? {
-            if (json == null) return null
+        fun createFailedAlertNotificationChannel(context: Context) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val name: CharSequence = context.getString(R.string.alert_failed_channel_name)
+                val description = context.getString(R.string.alert_channel_description)
+                val importance = NotificationManager.IMPORTANCE_HIGH
+                val channel =
+                        NotificationChannel(AppWorker.FAILED_ALERT_CHANNEL_ID, name, importance)
+                channel.description = description
+                // Register the channel with the system; you can't change the importance
+                // or other notification behaviors after this
+                val notificationManager = context.getSystemService(NotificationManager::class.java)
+                notificationManager.createNotificationChannel(channel)
+            }
+        }
+
+        fun getFriendMap(context: Context): MutableMap<String, String>? {
+            val friends = context.getSharedPreferences(FRIENDS, MODE_PRIVATE)
+            val friendJson = friends.getString(FRIEND_LIST, null) ?: ""
+
+            // checks if it was last saved as a map or a list
+            val map = friends.getBoolean(FRIENDS_MAP, false)
+            if (friendJson == "") {
+                return null
+            }
             val gson = Gson()
-            val mapType = object : TypeToken<Map<String, String>>() {}.type
-            return gson.fromJson(json, mapType)
+            // Deserialize the map
+            if (map) {
+                val mapType = object : TypeToken<Map<String, String>>() {}.type
+                return gson.fromJson(friendJson, mapType)
+            } else { // was saved as a list, deserialize as list
+                val editor = friends.edit()
+                val listType = object : TypeToken<List<Array<String?>?>>() {}.type
+                val list: List<Array<String?>?> = gson.fromJson(friendJson, listType)
+                val newFriendMap: MutableMap<String, String> = HashMap()
+                for (pair in list) {
+                    if (pair == null) continue
+                    val id = pair[0] ?: continue
+                    val name = pair[1] ?: continue
+
+                    newFriendMap[id] = name
+                }
+                // save the map again
+                editor.putString(FRIEND_LIST, gson.toJson(newFriendMap))
+                editor.putBoolean(FRIENDS_MAP, true)
+                editor.apply()
+                return newFriendMap
+            }
         }
     }
 }

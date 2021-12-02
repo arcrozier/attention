@@ -7,9 +7,16 @@ import android.view.View
 import android.widget.TextView
 import android.widget.Toast
 
+/**
+ * An activity that prompts the user to input a name
+ */
 class DialogActivity : AppCompatActivity() {
     private var friendName = false
     private var friendId: String? = null
+
+    /**
+     * Called when activity is created
+     */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.name_dialog)
@@ -23,6 +30,9 @@ class DialogActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Sets the name (either the user's or the friend's)
+     */
     fun setName(view: View) {
         val nameField = findViewById<TextView>(R.id.person_name_field)
         val name = nameField.text
@@ -39,6 +49,9 @@ class DialogActivity : AppCompatActivity() {
         finish()
     }
 
+    /**
+     * Prevent back button from doing anything
+     */
     override fun onBackPressed() {}
 
     companion object {
