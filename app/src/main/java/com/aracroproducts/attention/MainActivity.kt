@@ -12,14 +12,19 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
+import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -116,10 +121,12 @@ class MainActivity : AppCompatActivity() {
         // Creates a notification channel for displaying failed-to-send notifications
         createFailedAlertNotificationChannel(this)
 
+        /*
         // Set up UI
         setContentView(R.layout.activity_main)
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
+         */
         if (GoogleApiAvailability.getInstance()
                         .isGooglePlayServicesAvailable(this) != ConnectionResult.SUCCESS) {
             // check for Google Play Services
@@ -156,6 +163,13 @@ class MainActivity : AppCompatActivity() {
 
         // Load the friendMap
         updateFriendMap()
+
+        setContent {
+            AppTheme {
+                Home(friendMap ?: HashMap())
+            }
+        }
+
 
         // Verify Firebase token and continue configuring settings
         token = prefs.getString(MY_TOKEN, null)
@@ -202,13 +216,29 @@ class MainActivity : AppCompatActivity() {
     }
 
     @Composable
-    fun Home(friends: Map<String, String>) {
+    fun Home(friends: Map<String, Friend>) {
+        LazyColumn{
+            items(friends.values.toMutableList()) { friend ->
+                FriendCard(friend = friend)
 
+            }
+        }
     }
 
     @Composable
     fun FriendCard(friend: Friend) {
-        Text(friend.name)
+        Text(text = friend.name,
+        style = MaterialTheme.typography.subtitle1)
+    }
+
+    @Preview
+    @Composable
+    fun PreviewHome() {
+        val previewMap = mapOf("1" to Friend("1", "Grace"), "2" to Friend("1",
+                "Anita"))
+        AppTheme {
+            Home(previewMap)
+        }
     }
 
     /**
