@@ -20,6 +20,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.MaterialTheme
@@ -28,6 +29,7 @@ import androidx.compose.material.Text
 import androidx.compose.material.TopAppBar
 import androidx.compose.material.FloatingActionButton
 import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.preference.PreferenceManager
@@ -227,16 +229,17 @@ class MainActivity : AppCompatActivity() {
                     TopAppBar {
                         Text("Title")
                     }
-                }
-                        floatingActionButton = {
-                    FloatingActionButton(onClick = { view: View ->
+                },
+                floatingActionButton = {
+                    FloatingActionButton(onClick = {
                         Log.d(this.javaClass.name, "Attempting to add")
-                        val intent = Intent(view.context, Add::class.java)
+                        val intent = Intent(this, Add::class.java)
                         startActivity(intent)
-                    }) {
+                    },
+                    modifier = Modifier.background(MaterialTheme.colors.secondary) ) {
                         Image(
                                 painter = painterResource(R.drawable.add_foreground),
-                                contentDescription = "Contact profile picture",
+                                contentDescription = "Add new friend",
                         )
                     }
                 }
