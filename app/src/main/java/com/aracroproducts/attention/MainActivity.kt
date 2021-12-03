@@ -18,6 +18,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -199,8 +200,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     @Composable
-    fun Home() {
+    fun Home(friends: Map<String, String>) {
 
+    }
+
+    @Composable
+    fun Friend(name: String) {
+        Text(name)
     }
 
     /**
