@@ -17,7 +17,8 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.RecyclerView
 import com.aracroproducts.attention.FriendAdapter.FriendItem
 
-class FriendAdapter(private val dataset: Array<Array<String>>, private var callback: Callback) :
+class FriendAdapter(private val dataset: List<Pair<String, Friend>>, private var callback:
+Callback) :
         RecyclerView.Adapter<FriendItem>() {
 
     private enum class State {
@@ -249,8 +250,8 @@ class FriendAdapter(private val dataset: Array<Array<String>>, private var callb
      * @param position  - The position of the FriendItem in the list - dictates the data stored in it
      */
     override fun onBindViewHolder(holder: FriendItem, position: Int) {
-        holder.textView.text = dataset[position][0]
-        holder.setId(dataset[position][1])
+        holder.textView.text = dataset[position].second.name
+        holder.setId(dataset[position].first)
     }
 
     /**
