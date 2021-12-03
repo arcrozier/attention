@@ -19,11 +19,16 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material.TopAppBar
+import androidx.compose.material.FloatingActionButton
+import androidx.compose.runtime.*
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -86,7 +91,7 @@ class MainActivity : AppCompatActivity() {
         } else {
             val friendId = data?.getStringExtra(DialogActivity.EXTRA_USER_ID)
                     ?: throw IllegalArgumentException("An ID to edit must be provided")
-            friendMap?.getOrPut(friendId, fun(): Friend {return Friend(id = friendId, name = "")})
+            friendMap?.getOrPut(friendId, fun(): Friend { return Friend(id = friendId, name = "") })
                     ?.name = data.getStringExtra(MY_NAME).toString()
             saveFriendMap()
             populateFriendList()
@@ -217,18 +222,40 @@ class MainActivity : AppCompatActivity() {
 
     @Composable
     fun Home(friends: Map<String, Friend>) {
-        LazyColumn{
-            items(friends.values.toMutableList()) { friend ->
-                FriendCard(friend = friend)
+        Scaffold(
+                topBar = {
+                    TopAppBar {
+                        Text("Title")
+                    }
+                }
+                        floatingActionButton = {
+                    FloatingActionButton(onClick = { view: View ->
+                        Log.d(this.javaClass.name, "Attempting to add")
+                        val intent = Intent(view.context, Add::class.java)
+                        startActivity(intent)
+                    }) {
+                        Image(
+                                painter = painterResource(R.drawable.add_foreground),
+                                contentDescription = "Contact profile picture",
+                        )
+                    }
+                }
+        ) {
+            LazyColumn {
+                items(friends.values.toMutableList()) { friend ->
+                    FriendCard(friend = friend)
 
+                }
             }
         }
     }
 
     @Composable
     fun FriendCard(friend: Friend) {
+        var state by remember { mutableStateOf(FriendAdapter.State.NORMAL) }
+
         Text(text = friend.name,
-        style = MaterialTheme.typography.subtitle1)
+                style = MaterialTheme.typography.subtitle1)
     }
 
     @Preview
