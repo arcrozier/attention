@@ -21,7 +21,7 @@ class FriendAdapter(private val dataset: List<Pair<String, Friend>>, private var
 Callback) :
         RecyclerView.Adapter<FriendItem>() {
 
-    private enum class State {
+    enum class State {
         NORMAL, CONFIRM, CANCEL, EDIT
     }
 
