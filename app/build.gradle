@@ -35,7 +35,7 @@ android {
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion '1.0.5'
+        kotlinCompilerExtensionVersion '1.1.0-beta04'
     }
 }
 
@@ -73,6 +73,7 @@ dependencies {
     implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.4.0'
     // UI Tests
     androidTestImplementation 'androidx.compose.ui:ui-test-junit4:1.0.5'
+    implementation("androidx.compose.material3:material3:1.0.0-alpha02")
 
 }
 repositories {
