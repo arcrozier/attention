@@ -37,13 +37,14 @@ import java.security.spec.InvalidKeySpecException
 import java.util.*
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
+import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 
 class MainActivity : AppCompatActivity() {
     private val sTAG = javaClass.name
     private var token: String? = null
     private var user: User? = null
-    private var friendMap: MutableMap<String, String>? = null
+    private var friendMap: MutableMap<String, Friend>? = null
 
     /**
      * Callback for retrieving the user's name from a pop-up dialog - passed to
@@ -80,7 +81,8 @@ class MainActivity : AppCompatActivity() {
         } else {
             val friendId = data?.getStringExtra(DialogActivity.EXTRA_USER_ID)
                     ?: throw IllegalArgumentException("An ID to edit must be provided")
-            friendMap?.put(friendId, data.getStringExtra(MY_NAME).toString())
+            friendMap?.getOrPut(friendId, fun(): Friend {return Friend(id = friendId, name = "")})
+                    ?.name = data.getStringExtra(MY_NAME).toString()
             saveFriendMap()
             populateFriendList()
 
@@ -205,8 +207,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     @Composable
-    fun Friend(name: String) {
-        Text(name)
+    fun FriendCard(friend: Friend) {
+        Text(friend.name)
     }
 
     /**
@@ -297,10 +299,9 @@ class MainActivity : AppCompatActivity() {
         friendListView.layoutManager = LinearLayoutManager(this)
 
         // convert the map to an array that the list view can use
-        val dataset = Array(mFriendMap.size) { arrayOf("", "") }
-        for ((index, id) in mFriendMap.keys.withIndex()) {
-            dataset[index][0] = id
-            dataset[index][1] = mFriendMap[id] ?: ""
+        val dataset = ArrayList<Pair<String, Friend>>(mFriendMap.size)
+        for (id in mFriendMap.keys) {
+            dataset.add(Pair(id, mFriendMap[id] ?: Friend(id, "")))
         }
         val adapterListener: FriendAdapter.Callback = object : FriendAdapter.Callback {
             // Sends the alert
@@ -504,9 +505,10 @@ class MainActivity : AppCompatActivity() {
         const val MY_TOKEN = "token"
         const val UPLOADED = "uploaded"
         const val FRIEND_LIST = "friends"
-        private const val FRIENDS_MAP = "friend map"
+        private const val FRIENDS_MAP_VERSION = "friend map"
         const val OVERLAY_NO_PROMPT = "OverlayDoNotAsk"
         private const val COMPAT_HEAVY_CLICK = 5
+        private const val FRIEND_V1 = 1
 
         /**
          * Helper function to create the notification channel for the failed alert
@@ -528,37 +530,40 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        fun getFriendMap(context: Context): MutableMap<String, String>? {
+        fun getFriendMap(context: Context): MutableMap<String, Friend>? {
             val friends = context.getSharedPreferences(FRIENDS, MODE_PRIVATE)
             val friendJson = friends.getString(FRIEND_LIST, null) ?: ""
 
             // checks if it was last saved as a map or a list
-            val map = friends.getBoolean(FRIENDS_MAP, false)
+            val map = friends.getInt(FRIENDS_MAP_VERSION, 0)
             if (friendJson == "") {
                 return null
             }
             val gson = Gson()
             // Deserialize the map
-            if (map) {
-                val mapType = object : TypeToken<Map<String, String>>() {}.type
-                return gson.fromJson(friendJson, mapType)
-            } else { // was saved as a list, deserialize as list
-                val editor = friends.edit()
-                val listType = object : TypeToken<List<Array<String?>?>>() {}.type
-                val list: List<Array<String?>?> = gson.fromJson(friendJson, listType)
-                val newFriendMap: MutableMap<String, String> = HashMap()
-                for (pair in list) {
-                    if (pair == null) continue
-                    val id = pair[0] ?: continue
-                    val name = pair[1] ?: continue
-
-                    newFriendMap[id] = name
+            return when (map) {
+                FRIEND_V1 -> {
+                    val mapType = object : TypeToken<Map<String, Friend>>() {}.type
+                    gson.fromJson(friendJson, mapType)
                 }
-                // save the map again
-                editor.putString(FRIEND_LIST, gson.toJson(newFriendMap))
-                editor.putBoolean(FRIENDS_MAP, true)
-                editor.apply()
-                return newFriendMap
+                else -> {
+                    val editor = friends.edit()
+                    val listType = object : TypeToken<List<Array<String?>?>>() {}.type
+                    val list: List<Array<String?>?> = gson.fromJson(friendJson, listType)
+                    val newFriendMap: MutableMap<String, Friend> = HashMap()
+                    for (pair in list) {
+                        if (pair == null) continue
+                        val id = pair[0] ?: continue
+                        val name = pair[1] ?: continue
+
+                        newFriendMap[id] = Friend(id, name)
+                    }
+                    // save the map again
+                    editor.putString(FRIEND_LIST, gson.toJson(newFriendMap))
+                    editor.putInt(FRIENDS_MAP_VERSION, FRIEND_V1)
+                    editor.apply()
+                    newFriendMap
+                }
             }
         }
     }
