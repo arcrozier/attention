@@ -19,19 +19,22 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
+import androidx.compose.foundation.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Scaffold
-import androidx.compose.material.Text
-import androidx.compose.material.TopAppBar
-import androidx.compose.material.FloatingActionButton
+import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -57,6 +60,10 @@ class MainActivity : AppCompatActivity() {
     private var token: String? = null
     private var user: User? = null
     private var friendMap: MutableMap<String, Friend>? = null
+
+    enum class State {
+        NORMAL, CONFIRM, CANCEL, EDIT
+    }
 
     /**
      * Callback for retrieving the user's name from a pop-up dialog - passed to
@@ -122,6 +129,7 @@ class MainActivity : AppCompatActivity() {
      *
      * @param savedInstanceState    Instance data saved from before the activity was killed
      */
+    @OptIn(ExperimentalFoundationApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -222,12 +230,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    @ExperimentalFoundationApi
     @Composable
     fun Home(friends: Map<String, Friend>) {
         Scaffold(
                 topBar = {
                     TopAppBar {
-                        Text("Title")
+                        Text(getString(R.string.app_name))
                     }
                 },
                 floatingActionButton = {
@@ -236,11 +245,8 @@ class MainActivity : AppCompatActivity() {
                         val intent = Intent(this, Add::class.java)
                         startActivity(intent)
                     },
-                    modifier = Modifier.background(MaterialTheme.colors.secondary) ) {
-                        Image(
-                                painter = painterResource(R.drawable.add_foreground),
-                                contentDescription = "Add new friend",
-                        )
+                    backgroundColor = MaterialTheme.colors.secondary) {
+                        Icon(Icons.Filled.Add, contentDescription = getString(R.string.add_friend))
                     }
                 }
         ) {
@@ -253,14 +259,35 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    @ExperimentalFoundationApi
     @Composable
     fun FriendCard(friend: Friend) {
-        var state by remember { mutableStateOf(FriendAdapter.State.NORMAL) }
+        var state by remember { mutableStateOf(State.NORMAL) }
 
-        Text(text = friend.name,
-                style = MaterialTheme.typography.subtitle1)
+        Box(modifier = Modifier.fillMaxWidth(1F).padding(10.dp).combinedClickable(onClick = {
+            state = when (state) {
+                State.NORMAL -> State.CONFIRM
+                State.CONFIRM, State.CANCEL, State.EDIT -> State.NORMAL
+            }
+        }, onLongClick = {
+            state = when (state) {
+                State.NORMAL -> State.EDIT
+                else -> state
+            }
+            onLongPress()
+        })) {
+            Text(text = friend.name,
+                    style = MaterialTheme.typography.subtitle1,
+            modifier = Modifier.alpha((if (State.NORMAL) 1F else 0.5)))
+            when (state) {
+                State.NORMAL ->
+
+            }
+
+        }
     }
 
+    @ExperimentalFoundationApi
     @Preview
     @Composable
     fun PreviewHome() {
@@ -345,6 +372,49 @@ class MainActivity : AppCompatActivity() {
         populateFriendList()
     }
 
+    // Prompts the user to confirm deleting the friend
+    fun onDeletePrompt(id: String, name: String) {
+        val alertDialog = android.app.AlertDialog.Builder(this).create()
+        alertDialog.setTitle(getString(R.string.confirm_delete_title))
+        alertDialog.setMessage(getString(R.string.confirm_delete_message, name))
+        alertDialog.setButton(DialogInterface.BUTTON_POSITIVE,
+                getString(R.string.yes)) { dialogInterface: DialogInterface, _: Int ->
+            deleteFriend(id)
+            dialogInterface.cancel()
+        }
+        alertDialog.setButton(DialogInterface.BUTTON_NEGATIVE, getString(
+                android.R.string.cancel)) { dialogInterface: DialogInterface, _: Int -> dialogInterface.cancel() }
+        alertDialog.show()
+    }
+
+    // Shows the edit name dialog
+    fun onEditName(id: String) {
+        val intent = Intent(this@MainActivity, DialogActivity::class.java)
+        intent.putExtra(DialogActivity.EXTRA_EDIT_NAME, true)
+        intent.putExtra(DialogActivity.EXTRA_USER_ID, id)
+        startEditNameDialogForResult.launch(intent)
+    }
+
+    // Provides haptic feedback
+    fun onLongPress() {
+        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vibratorManager =
+                    getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            vibratorManager.defaultVibrator
+        } else {
+            getSystemService(VIBRATOR_SERVICE) as Vibrator
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val effect: VibrationEffect =
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) VibrationEffect.createPredefined(
+                            VibrationEffect.EFFECT_HEAVY_CLICK) else VibrationEffect.createOneShot(
+                            100, COMPAT_HEAVY_CLICK)
+            vibrator.vibrate(effect)
+        } else {
+            vibrator.vibrate(100)
+        }
+    }
+
     /**
      * Helper method to put all the friends into the recycler view
      *
@@ -363,57 +433,20 @@ class MainActivity : AppCompatActivity() {
         for (id in mFriendMap.keys) {
             dataset.add(Pair(id, mFriendMap[id] ?: Friend(id, "")))
         }
-        val adapterListener: FriendAdapter.Callback = object : FriendAdapter.Callback {
+        /*val adapterListener: FriendAdapter.Callback = object : FriendAdapter.Callback {
             // Sends the alert
             override fun onSendAlert(id: String, message: String?) {
                 sendAlertToServer(id, message)
             }
 
-            // Prompts the user to confirm deleting the friend
-            override fun onDeletePrompt(id: String, name: String) {
-                val alertDialog = android.app.AlertDialog.Builder(this@MainActivity).create()
-                alertDialog.setTitle(getString(R.string.confirm_delete_title))
-                alertDialog.setMessage(getString(R.string.confirm_delete_message, name))
-                alertDialog.setButton(DialogInterface.BUTTON_POSITIVE,
-                        getString(R.string.yes)) { dialogInterface: DialogInterface, _: Int ->
-                    deleteFriend(id)
-                    dialogInterface.cancel()
-                }
-                alertDialog.setButton(DialogInterface.BUTTON_NEGATIVE, getString(
-                        android.R.string.cancel)) { dialogInterface: DialogInterface, _: Int -> dialogInterface.cancel() }
-                alertDialog.show()
-            }
 
-            // Shows the edit name dialog
-            override fun onEditName(id: String) {
-                val intent = Intent(this@MainActivity, DialogActivity::class.java)
-                intent.putExtra(DialogActivity.EXTRA_EDIT_NAME, true)
-                intent.putExtra(DialogActivity.EXTRA_USER_ID, id)
-                startEditNameDialogForResult.launch(intent)
-            }
 
-            // Provides haptic feedback
-            override fun onLongPress() {
-                val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    val vibratorManager =
-                            getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
-                    vibratorManager.defaultVibrator
-                } else {
-                    getSystemService(VIBRATOR_SERVICE) as Vibrator
-                }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    val effect: VibrationEffect =
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) VibrationEffect.createPredefined(
-                                    VibrationEffect.EFFECT_HEAVY_CLICK) else VibrationEffect.createOneShot(
-                                    100, COMPAT_HEAVY_CLICK)
-                    vibrator.vibrate(effect)
-                } else {
-                    vibrator.vibrate(100)
-                }
-            }
+
+
+
         }
-        val adapter = FriendAdapter(dataset, adapterListener)
-        friendListView.adapter = adapter
+        //val adapter = FriendAdapter(dataset, adapterListener)
+        //friendListView.adapter = adapter*/
     }
 
     /**
