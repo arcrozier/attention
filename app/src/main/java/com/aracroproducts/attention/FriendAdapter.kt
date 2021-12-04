@@ -13,21 +13,26 @@ import android.view.View.OnLongClickListener
 import android.view.ViewGroup
 import android.widget.*
 import androidx.appcompat.widget.AppCompatImageButton
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.RecyclerView
-import com.aracroproducts.attention.FriendAdapter.FriendItem
 
+/*
 class FriendAdapter(private val dataset: List<Pair<String, Friend>>, private var callback:
-Callback) :
-        RecyclerView.Adapter<FriendItem>() {
+Callback) {
 
-    enum class State {
-        NORMAL, CONFIRM, CANCEL, EDIT
-    }
 
-    /**
+    /*
      * A single element of the list view
-     */
+
     inner class FriendItem(v: View) : RecyclerView.ViewHolder(v), View.OnClickListener,
                                       OnLongClickListener {
         val textView: TextView = v.findViewById(R.id.friend_name)
@@ -95,99 +100,7 @@ Callback) :
             }
         }
 
-        /**
-         * Transitions the item into the edit state - sets alertState to EDIT
-         *
-         * Calls edit()
-         */
-        override fun onLongClick(v: View): Boolean {
-            callback.onLongPress()
-            edit()
-            alertState = State.EDIT
-            return true
-        }
 
-        /**
-         * Displays the edit buttons (does not modify alertState)
-         */
-        private fun edit() {
-            reset()
-            textView.alpha = 0.25f
-            editLayout.visibility = View.VISIBLE
-        }
-
-        /**
-         * Puts the view adapter into the confirm state
-         */
-        private fun prompt() {
-            reset()
-            confirmButtonLayout.visibility = View.VISIBLE
-            textView.alpha = 0.25f
-            alertState = State.CONFIRM
-        }
-
-        /**
-         * Sends an alert after a time delay, during which the user can cancel the alert
-         *
-         * @param undoTime  - The amount of time it takes for the progress bar to complete
-         * @param message   - The message to send with the alert
-         */
-        private fun alert(undoTime: Int, message: String?) {
-            reset()
-            progressBar.progress = 0
-            cancelButton.visibility = View.VISIBLE
-            alertState = State.CANCEL
-
-            delay = object : CountDownTimer(undoTime.toLong(), 3500) {
-                override fun onTick(l: Long) {}
-                override fun onFinish() {
-                    id?.let { sendAlert(it, message) }
-                    this@FriendItem.cancel()
-                }
-            }
-            (delay as CountDownTimer).start()
-
-            val objectAnimator =
-                    ObjectAnimator.ofInt(progressBar, "progress", progressBar.progress, 100)
-                            .setDuration(3000)
-            objectAnimator.addUpdateListener { valueAnimator: ValueAnimator ->
-                val progress = valueAnimator.animatedValue as Int
-                progressBar.progress = progress
-            }
-            objectAnimator.start()
-        }
-
-        /**
-         * Resets display of the view adapter by setting all the other layouts' visibilities to gone
-         *
-         * Does not modify the state
-         */
-        private fun reset() {
-            confirmButtonLayout.visibility = View.GONE
-            cancelButton.visibility = View.GONE
-            editLayout.visibility = View.GONE
-            textView.alpha = 1.0f
-        }
-
-        /**
-         * Cancels the alert
-         */
-        fun cancel() {
-            Log.d(TAG, "Cancelled alert")
-            reset()
-            alertState = State.NORMAL
-            if (delay != null) delay!!.cancel()
-        }
-
-        /**
-         * Sends an alert
-         *
-         * @param id    - The ID to send to
-         * @param message   - The message to include
-         */
-        private fun sendAlert(id: String, message: String?) {
-            callback.onSendAlert(id, message)
-        }
 
         init {
             textView.setOnClickListener(this)
@@ -264,4 +177,78 @@ Callback) :
     companion object {
         private val TAG = FriendAdapter::class.java.name
     }
-}
+
+    /**
+     * Transitions the item into the edit state - sets alertState to EDIT
+     *
+     * Calls edit()
+     */
+    fun onLongClick(v: View): Boolean {
+        callback.onLongPress()
+        return true
+    }
+
+    /**
+     * Sends an alert after a time delay, during which the user can cancel the alert
+     *
+     * @param undoTime  - The amount of time it takes for the progress bar to complete
+     * @param message   - The message to send with the alert
+     */
+    private fun alert(undoTime: Int, message: String?) {
+        reset()
+        progressBar.progress = 0
+        cancelButton.visibility = View.VISIBLE
+        alertState = State.CANCEL
+
+        delay = object : CountDownTimer(undoTime.toLong(), 3500) {
+            override fun onTick(l: Long) {}
+            override fun onFinish() {
+                id?.let { sendAlert(it, message) }
+                this@FriendItem.cancel()
+            }
+        }
+        (delay as CountDownTimer).start()
+
+        val objectAnimator =
+                ObjectAnimator.ofInt(progressBar, "progress", progressBar.progress, 100)
+                        .setDuration(3000)
+        objectAnimator.addUpdateListener { valueAnimator: ValueAnimator ->
+            val progress = valueAnimator.animatedValue as Int
+            progressBar.progress = progress
+        }
+        objectAnimator.start()
+    }
+
+    /**
+     * Resets display of the view adapter by setting all the other layouts' visibilities to gone
+     *
+     * Does not modify the state
+     */
+    private fun reset() {
+        confirmButtonLayout.visibility = View.GONE
+        cancelButton.visibility = View.GONE
+        editLayout.visibility = View.GONE
+        textView.alpha = 1.0f
+    }
+
+    /**
+     * Cancels the alert
+     */
+    fun cancel() {
+        Log.d(TAG, "Cancelled alert")
+        reset()
+        alertState = State.NORMAL
+        if (delay != null) delay!!.cancel()
+    }
+
+    /**
+     * Sends an alert
+     *
+     * @param id    - The ID to send to
+     * @param message   - The message to include
+     */
+    private fun sendAlert(id: String, message: String?) {
+        callback.onSendAlert(id, message)
+    }
+     */
+} */
