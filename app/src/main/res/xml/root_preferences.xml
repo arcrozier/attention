@@ -8,13 +8,6 @@
     <PreferenceCategory
         app:iconSpaceReserved="false"
         app:title="@string/notifications_title">
-        <SwitchPreference
-            android:defaultValue="false"
-            android:key="@string/override_dnd_key"
-            android:title="@string/override_dnd"
-            app:iconSpaceReserved="false"
-            app:summaryOff="@string/override_summary_off"
-            app:summaryOn="@string/override_summary_on" />
         <MultiSelectListPreference
             android:entries="@array/notification_entries"
             android:entryValues="@array/notification_values"
@@ -27,6 +20,13 @@
             android:key="@string/ring_preference_key"
             android:title="@string/ring_preference"
             app:iconSpaceReserved="false" />
+        <SwitchPreference
+            android:defaultValue="false"
+            android:key="@string/override_dnd_key"
+            android:title="@string/override_dnd"
+            app:iconSpaceReserved="false"
+            app:summaryOff="@string/override_summary_off"
+            app:summaryOn="@string/override_summary_on" />
     </PreferenceCategory>
 
     <PreferenceCategory
@@ -39,6 +39,36 @@
             android:title="@string/display_name"
             app:iconSpaceReserved="false"
             app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
+    <PreferenceCategory app:title="@string/messages_header">
+
+        <EditTextPreference
+            app:key="signature"
+            app:title="@string/signature_title"
+            app:useSimpleSummaryProvider="true" />
+
+        <ListPreference
+            app:defaultValue="reply"
+            app:entries="@array/reply_entries"
+            app:entryValues="@array/reply_values"
+            app:key="reply"
+            app:title="@string/reply_title"
+            app:useSimpleSummaryProvider="true" />
+
+    </PreferenceCategory>
+    <PreferenceCategory app:title="@string/sync_header">
+
+        <SwitchPreferenceCompat
+            app:key="sync"
+            app:title="@string/sync_title" />
+
+        <SwitchPreferenceCompat
+            app:dependency="sync"
+            app:key="attachment"
+            app:summaryOff="@string/attachment_summary_off"
+            app:summaryOn="@string/attachment_summary_on"
+            app:title="@string/attachment_title" />
+
     </PreferenceCategory>
 
 </PreferenceScreen>

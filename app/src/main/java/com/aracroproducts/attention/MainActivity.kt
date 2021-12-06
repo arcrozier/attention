@@ -7,10 +7,12 @@ import android.content.*
 import android.net.Uri
 import android.os.*
 import android.provider.Settings
+import android.text.InputType
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResult
@@ -19,19 +21,20 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -201,6 +204,7 @@ class MainActivity : AppCompatActivity() {
             getToken()
         }
 
+        /*
         // Configure "add friend" button
         val fab = findViewById<FloatingActionButton>(R.id.fab)
         fab.setOnClickListener { view: View ->
@@ -208,6 +212,7 @@ class MainActivity : AppCompatActivity() {
             val intent = Intent(view.context, Add::class.java)
             startActivity(intent)
         }
+         */
 
         // Request permission to draw overlays
         if (!Settings.canDrawOverlays(this) && !prefs.contains(OVERLAY_NO_PROMPT)) {
@@ -235,9 +240,18 @@ class MainActivity : AppCompatActivity() {
     fun Home(friends: Map<String, Friend>) {
         Scaffold(
                 topBar = {
-                    TopAppBar {
-                        Text(getString(R.string.app_name))
-                    }
+                    TopAppBar (
+                            title = { Text(getString(R.string.app_name)) },
+                            actions = {
+                                IconButton(onClick = { val intent = Intent(applicationContext,
+                                        SettingsActivity::class.java)
+                                    startActivity(intent) }) {
+                                    Icon(Icons.Filled.Settings, contentDescription = getString(R
+                                            .string.action_settings))
+
+                                }
+                            }
+                            )
                 },
                 floatingActionButton = {
                     FloatingActionButton(onClick = {
@@ -263,25 +277,124 @@ class MainActivity : AppCompatActivity() {
     @Composable
     fun FriendCard(friend: Friend) {
         var state by remember { mutableStateOf(State.NORMAL) }
+        var message: String? by remember { mutableStateOf(null)}
 
-        Box(modifier = Modifier.fillMaxWidth(1F).padding(10.dp).combinedClickable(onClick = {
-            state = when (state) {
-                State.NORMAL -> State.CONFIRM
-                State.CONFIRM, State.CANCEL, State.EDIT -> State.NORMAL
-            }
-        }, onLongClick = {
-            state = when (state) {
-                State.NORMAL -> State.EDIT
-                else -> state
-            }
-            onLongPress()
-        })) {
+        Box(modifier = Modifier
+                .fillMaxWidth(1F)
+                .padding(10.dp)
+                .combinedClickable(onClick = {
+                    state = when (state) {
+                        State.NORMAL -> State.CONFIRM
+                        State.CONFIRM, State.CANCEL, State.EDIT -> State.NORMAL
+                    }
+                }, onLongClick = {
+                    state = when (state) {
+                        State.NORMAL -> State.EDIT
+                        else -> state
+                    }
+                    onLongPress()
+                })) {
             Text(text = friend.name,
                     style = MaterialTheme.typography.subtitle1,
-            modifier = Modifier.alpha((if (State.NORMAL) 1F else 0.5)))
+            modifier = Modifier
+                    .alpha(if (state == State.NORMAL) 1F else 0.5F)
+                    .blur(if (state ==
+                            State.NORMAL) 0.dp else 5.dp))
             when (state) {
-                State.NORMAL ->
+                State.EDIT -> {
+                    Row {
+                        Button(onClick = { state = State.NORMAL}, colors = ButtonDefaults.buttonColors(
+                                backgroundColor = MaterialTheme.colors.background,
+                                contentColor = MaterialTheme.colors.onBackground
+                        )) {
 
+                            Icon(Icons.Filled.Close,
+                                    contentDescription = getString(R.string.cancel))
+                        }
+                        Button(onClick = { onDeletePrompt(friend.id, friend.name) }, colors =
+                        ButtonDefaults
+                                .buttonColors(backgroundColor = MaterialTheme.colors.error,
+                                        contentColor = MaterialTheme.colors.onError)) {
+                                Text(getString(R.string.delete))
+                        }
+                        Button(onClick = {onEditName(friend.id)}, colors = ButtonDefaults
+                                .buttonColors(backgroundColor = MaterialTheme.colors.secondary,
+                                        contentColor = MaterialTheme.colors.onSecondary)) {
+                            Text(getString(R.string.rename))
+                        }
+                    }
+                }
+                State.CONFIRM -> {
+                    Row {
+                        Button(onClick = { state = State.NORMAL}, colors = ButtonDefaults.buttonColors(
+                                backgroundColor = MaterialTheme.colors.background,
+                                contentColor = MaterialTheme.colors.onBackground
+                        )) {
+
+                            Icon(Icons.Filled.Close,
+                                    contentDescription = getString(R.string.cancel))
+                        }
+                        Button(onClick = { state = State.CANCEL
+                            message = null
+                                         }, colors =
+                        ButtonDefaults
+                                .buttonColors(backgroundColor = MaterialTheme.colors.error,
+                                        contentColor = MaterialTheme.colors.onError)) {
+                            Text(getString(R.string.confirm_alert))
+                        }
+                        Button(onClick = {
+                            val context = applicationContext
+                            val builder = AlertDialog.Builder(context)
+                            builder.setTitle(getString(R.string.add_message))
+                            val input = EditText(context)
+                            input.setHint(R.string.message_hint)
+                            input.inputType =
+                                    InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_AUTO_COMPLETE or
+                                            InputType.TYPE_TEXT_FLAG_AUTO_CORRECT or
+                                            InputType.TYPE_TEXT_FLAG_CAP_SENTENCES or
+                                            InputType.TYPE_TEXT_FLAG_MULTI_LINE or
+                                            InputType.TYPE_TEXT_VARIATION_SHORT_MESSAGE
+                            builder.setView(input)
+                            builder.setPositiveButton(
+                                    android.R.string.ok) { _: DialogInterface?, _: Int ->
+                                message = input.text.toString()
+                                state = State.CANCEL
+                            }
+                            builder.setNegativeButton(
+                                    android.R.string.cancel) { _: DialogInterface?, _: Int -> }
+                            builder.show()}, colors = ButtonDefaults
+                                .buttonColors(backgroundColor = MaterialTheme.colors.secondary,
+                                        contentColor = MaterialTheme.colors.onSecondary)) {
+                            Text(getString(R.string.add_message))
+                        }
+                    }
+                }
+                State.CANCEL -> {
+                    var progress by remember { mutableStateOf(0f) }
+                    val animatedProgress by animateFloatAsState(
+                            targetValue = progress,
+                            animationSpec = ProgressIndicatorDefaults.ProgressAnimationSpec
+                    )
+
+                    val delay = object : CountDownTimer(UNDO_TIME, UNDO_TIME / UNDO_INTERVALS) {
+                        override fun onTick(p0: Long) {
+                            progress = (UNDO_TIME - p0).toFloat() / UNDO_TIME
+                        }
+
+                        override fun onFinish() {
+                            sendAlertToServer(friend.id, message = message)
+                        }
+                    }
+
+                    LinearProgressIndicator(progress = animatedProgress, modifier = Modifier.clickable {
+                        delay.cancel()
+                        state = State.NORMAL
+                    })
+
+
+                    delay.start()
+                }
+                else -> {}
             }
 
         }
@@ -304,7 +417,7 @@ class MainActivity : AppCompatActivity() {
      * @return      - The ID
      */
     private fun makeId(name: String?): String {
-        val fullString = if (name == null) "" else name + Build.FINGERPRINT
+        val fullString = (name ?: "") + Build.FINGERPRINT
         val salt = byteArrayOf(69, 42, 0, 37, 10, 127, 34, 85, 83, 24, 98, 75, 49, 8,
                 67) // very secure salt but this isn't a cryptographic application so it doesn't really matter
         return try {
@@ -602,6 +715,9 @@ class MainActivity : AppCompatActivity() {
         const val OVERLAY_NO_PROMPT = "OverlayDoNotAsk"
         private const val COMPAT_HEAVY_CLICK = 5
         private const val FRIEND_V1 = 1
+        // time (in milliseconds) that the user has to cancel sending an alert
+        private const val UNDO_TIME: Long = 3500
+        private const val UNDO_INTERVALS: Long = 10
 
         /**
          * Helper function to create the notification channel for the failed alert

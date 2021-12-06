@@ -22,13 +22,14 @@
     <string name="general_error">Error: Could not send alert</string>
     <string name="user_registered">Your account has been registered!</string>
     <string name="default_message">%s wants your attention!</string>
-    <string name="message_prefix">%s says: %s</string>
+    <string name="message_prefix">%1$s says: %2$s</string>
 
     <string name="confirm_delete_title">Delete friend</string>
     <string name="confirm_delete_message">Are you sure you want to remove %s from your friends?</string>
     <string name="yes">Yes</string>
     <string name="add_friend">Add new friend</string>
 
+    <string name="cancel">Cancel</string>
     <string name="delete">Delete</string>
     <string name="rename">Change name</string>
     <string name="new_name">Enter new name</string>
@@ -81,4 +82,19 @@
     <string name="override_dnd_key" translatable="false">com.aracroproducts.attention.key.override_dnd</string>
     <string name="ring_preference_key" translatable="false">com.aracroproducts.attention.key.ring</string>
     <string name="vibrate_preference_key" translatable="false">com.aracroproducts.attention.key.vibrate</string>
+
+    <!-- Preference Titles -->
+    <string name="messages_header">Messages</string>
+    <string name="sync_header">Sync</string>
+
+    <!-- Messages Preferences -->
+    <string name="signature_title">Your signature</string>
+    <string name="reply_title">Default reply action</string>
+
+    <!-- Sync Preferences -->
+    <string name="sync_title">Sync email periodically</string>
+    <string name="attachment_title">Download incoming attachments</string>
+    <string name="attachment_summary_on">Automatically download attachments for incoming emails
+    </string>
+    <string name="attachment_summary_off">Only download attachments when manually requested</string>
 </resources>
