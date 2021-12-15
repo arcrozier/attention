@@ -1,5 +1,6 @@
 package com.aracroproducts.attention
 
+import android.app.Activity
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.content.Intent
@@ -45,7 +46,7 @@ class DialogActivity : AppCompatActivity() {
         if (friendName) {
             intent.putExtra(EXTRA_USER_ID, friendId)
         }
-        setResult(SUCCESS_CODE, intent)
+        setResult(Activity.RESULT_OK, intent)
         finish()
     }
 
@@ -55,7 +56,6 @@ class DialogActivity : AppCompatActivity() {
     override fun onBackPressed() {}
 
     companion object {
-        const val SUCCESS_CODE = 1
         const val EXTRA_EDIT_NAME = "com.aracroproducts.attention.extra.edit_name"
         const val EXTRA_USER_ID = "com.aracroproducts.attention.extra.user_id"
     }
