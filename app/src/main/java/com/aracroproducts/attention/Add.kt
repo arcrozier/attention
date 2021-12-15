@@ -30,7 +30,7 @@ import java.util.*
  * the user
  */
 class Add : AppCompatActivity() {
-    private var barcodeView: DecoratedBarcodeView = DecoratedBarcodeView(this)
+    private var barcodeView: DecoratedBarcodeView = DecoratedBarcodeView(applicationContext)
     private var v: Vibrator? = null
     private var lastText: String = ""
     private var cameraActive = true

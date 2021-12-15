@@ -243,9 +243,11 @@ class MainActivity : AppCompatActivity() {
                     TopAppBar (
                             title = { Text(getString(R.string.app_name)) },
                             actions = {
-                                IconButton(onClick = { val intent = Intent(applicationContext,
-                                        SettingsActivity::class.java)
-                                    startActivity(intent) }) {
+                                IconButton(onClick = {
+                                    val intent = Intent(applicationContext,
+                                            SettingsActivity::class.java)
+                                    startActivity(intent)
+                                }) {
                                     Icon(Icons.Filled.Settings, contentDescription = getString(R
                                             .string.action_settings))
 
