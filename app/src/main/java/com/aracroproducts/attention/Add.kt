@@ -30,7 +30,7 @@ import java.util.*
  * the user
  */
 class Add : AppCompatActivity() {
-    private var barcodeView: DecoratedBarcodeView = DecoratedBarcodeView(applicationContext)
+    private var barcodeView: DecoratedBarcodeView? = null
     private var v: Vibrator? = null
     private var lastText: String = ""
     private var cameraActive = true
@@ -110,12 +110,13 @@ class Add : AppCompatActivity() {
      */
     private fun startScan() {
         barcodeView = findViewById(R.id.zxing_barcode_scanner)
+        val mBarcodeView = barcodeView ?: return
         val formats: Collection<BarcodeFormat> =
                 listOf(BarcodeFormat.QR_CODE, BarcodeFormat.CODE_39)
-        barcodeView.barcodeView.decoderFactory = DefaultDecoderFactory(formats)
-        barcodeView.initializeFromIntent(intent)
-        barcodeView.decodeContinuous(callback)
-        barcodeView.setOnClickListener { resume() }
+        mBarcodeView.barcodeView.decoderFactory = DefaultDecoderFactory(formats)
+        mBarcodeView.initializeFromIntent(intent)
+        mBarcodeView.decodeContinuous(callback)
+        mBarcodeView.setOnClickListener { resume() }
     }
 
     /**
@@ -178,13 +179,13 @@ class Add : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         if (hasCameraPermission()) {
-            barcodeView.resume()
+            barcodeView?.resume()
         }
     }
 
     override fun onPause() {
         super.onPause()
-        barcodeView.pause()
+        barcodeView?.pause()
     }
 
     /**
@@ -192,7 +193,7 @@ class Add : AppCompatActivity() {
      */
     private fun pause() {
         if (cameraActive) {
-            barcodeView.pause()
+            barcodeView?.pause()
             cameraActive = false
         }
     }
@@ -202,7 +203,7 @@ class Add : AppCompatActivity() {
      */
     private fun resume() {
         if (!cameraActive) {
-            barcodeView.resume()
+            barcodeView?.resume()
             cameraActive = true
         }
     }
@@ -211,7 +212,7 @@ class Add : AppCompatActivity() {
      * Passes key presses to the barcode view
      */
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        return barcodeView.onKeyDown(keyCode, event) || super.onKeyDown(keyCode, event)
+        return barcodeView?.onKeyDown(keyCode, event) ?: false || super.onKeyDown(keyCode, event)
     }
 
     /**
@@ -247,7 +248,7 @@ class Add : AppCompatActivity() {
             }
         } else { // device does not have a camera for some reason
             barcodeView = findViewById(R.id.zxing_barcode_scanner)
-            barcodeView.setStatusText(getString(R.string.no_camera))
+            barcodeView?.setStatusText(getString(R.string.no_camera))
             false
         }
     }
