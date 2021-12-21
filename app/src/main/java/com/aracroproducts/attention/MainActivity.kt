@@ -18,6 +18,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultCallback
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
@@ -62,7 +63,7 @@ class MainActivity : AppCompatActivity() {
     private val sTAG = javaClass.name
     private var token: String? = null
     private var user: User? = null
-    private var friendMap: MutableMap<String, Friend>? = null
+    private val friendModel: MainViewModel by viewModels()
 
     enum class State {
         NORMAL, CONFIRM, CANCEL, EDIT
@@ -97,7 +98,7 @@ class MainActivity : AppCompatActivity() {
         // data returned from the activity
         val data = it.data
         Log.d(sTAG, "Received edit name callback")
-        if (friendMap == null) updateFriendMap()
+        if (friendModel == null) updateFriendMap()
         if (friendMap == null) {
             Log.w(sTAG, "FriendList was null, unable to edit")
         } else {
@@ -180,11 +181,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Load the friendMap
-        updateFriendMap()
+        friendModel.onLaunch(this)
 
         setContent {
-            AppTheme {
-                Home(friendMap ?: HashMap())
+            MaterialTheme(colors = if (isSystemInDarkTheme()) darkColors else lightColors) {
+                Home(friendModel)
             }
         }
 
@@ -237,10 +238,11 @@ class MainActivity : AppCompatActivity() {
 
     @ExperimentalFoundationApi
     @Composable
-    fun Home(friends: Map<String, Friend>) {
+    fun Home(viewModel: MainViewModel) {
         Scaffold(
                 topBar = {
                     TopAppBar (
+                            backgroundColor = MaterialTheme.colors.primary,
                             title = { Text(getString(R.string.app_name)) },
                             actions = {
                                 IconButton(onClick = {
@@ -267,7 +269,7 @@ class MainActivity : AppCompatActivity() {
                 }
         ) {
             LazyColumn {
-                items(friends.values.toMutableList()) { friend ->
+                items(viewModel.friends.values.toMutableList()) { friend ->
                     FriendCard(friend = friend)
 
                 }
@@ -406,10 +408,9 @@ class MainActivity : AppCompatActivity() {
     @Preview
     @Composable
     fun PreviewHome() {
-        val previewMap = mapOf("1" to Friend("1", "Grace"), "2" to Friend("1",
-                "Anita"))
-        AppTheme {
-            Home(previewMap)
+        val previewViewModel = MainViewModel("1" to Friend("1", "Grace"), "2" to Friend("1","Anita"))
+        MaterialTheme(colors = if (isSystemInDarkTheme()) darkColors else lightColors) {
+            Home(previewViewModel)
         }
     }
 
@@ -483,8 +484,7 @@ class MainActivity : AppCompatActivity() {
             GoogleApiAvailability.getInstance().makeGooglePlayServicesAvailable(this)
             return
         }
-        updateFriendMap()
-        populateFriendList()
+        friendModel.onLaunch(this)
     }
 
     // Prompts the user to confirm deleting the friend
@@ -494,7 +494,7 @@ class MainActivity : AppCompatActivity() {
         alertDialog.setMessage(getString(R.string.confirm_delete_message, name))
         alertDialog.setButton(DialogInterface.BUTTON_POSITIVE,
                 getString(R.string.yes)) { dialogInterface: DialogInterface, _: Int ->
-            deleteFriend(id)
+            friendModel.onDeleteFriend(id, this)
             dialogInterface.cancel()
         }
         alertDialog.setButton(DialogInterface.BUTTON_NEGATIVE, getString(
@@ -528,72 +528,6 @@ class MainActivity : AppCompatActivity() {
         } else {
             vibrator.vibrate(100)
         }
-    }
-
-    /**
-     * Helper method to put all the friends into the recycler view
-     *
-     * Assumes friendMap is up to date. Do not use in a situation where friendMap is not correct
-     */
-    private fun populateFriendList() {
-        // if no friends, we're already done
-        val mFriendMap = friendMap ?: return
-
-        // begin configuring the list view
-        val friendListView = findViewById<RecyclerView>(R.id.friends_list)
-        friendListView.layoutManager = LinearLayoutManager(this)
-
-        // convert the map to an array that the list view can use
-        val dataset = ArrayList<Pair<String, Friend>>(mFriendMap.size)
-        for (id in mFriendMap.keys) {
-            dataset.add(Pair(id, mFriendMap[id] ?: Friend(id, "")))
-        }
-        /*val adapterListener: FriendAdapter.Callback = object : FriendAdapter.Callback {
-            // Sends the alert
-            override fun onSendAlert(id: String, message: String?) {
-                sendAlertToServer(id, message)
-            }
-
-
-
-
-
-
-        }
-        //val adapter = FriendAdapter(dataset, adapterListener)
-        //friendListView.adapter = adapter*/
-    }
-
-    /**
-     * Deletes the user's friend with the given ID
-     * @param id - The ID of the friend to remove
-     */
-    private fun deleteFriend(id: String) {
-        updateFriendMap()
-        friendMap?.remove(id)
-        Log.d(sTAG, "Removed friend")
-        saveFriendMap()
-        populateFriendList()
-    }
-
-    /**
-     * Update the friendMap from disk
-     *
-     * @see friendMap
-     * @modifies friendMap
-     */
-    private fun updateFriendMap() {
-        friendMap = getFriendMap(this)
-    }
-
-    /**
-     * Writes the friendMap to shared preferences in map encoding
-     */
-    private fun saveFriendMap() {
-        val editor = getSharedPreferences(FRIENDS, MODE_PRIVATE).edit()
-        val gson = Gson()
-        editor.putString(FRIEND_LIST, gson.toJson(friendMap))
-        editor.apply()
     }
 
     /**
@@ -717,6 +651,7 @@ class MainActivity : AppCompatActivity() {
         const val OVERLAY_NO_PROMPT = "OverlayDoNotAsk"
         private const val COMPAT_HEAVY_CLICK = 5
         private const val FRIEND_V1 = 1
+        private const val FRIEND_MAP_NOT_SUPPORTED = 0
         // time (in milliseconds) that the user has to cancel sending an alert
         private const val UNDO_TIME: Long = 3500
         private const val UNDO_INTERVALS: Long = 10
@@ -741,25 +676,29 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        fun getFriendMap(context: Context): MutableMap<String, Friend>? {
+        fun getFriendMap(context: Context): MutableMap<String, Friend> {
             val friends = context.getSharedPreferences(FRIENDS, MODE_PRIVATE)
-            val friendJson = friends.getString(FRIEND_LIST, null) ?: ""
+            val friendJson = friends.getString(FRIEND_LIST, "")
 
             // checks if it was last saved as a map or a list
-            val map = friends.getInt(FRIENDS_MAP_VERSION, 0)
+            val map = friends.getInt(FRIENDS_MAP_VERSION, FRIEND_MAP_NOT_SUPPORTED)
+            val editor = friends.edit()
             if (friendJson == "") {
-                return null
+                if (map == FRIEND_MAP_NOT_SUPPORTED) {
+                    editor.putInt(FRIENDS_MAP_VERSION, FRIEND_V1)
+                    editor.apply()
+                }
+                return HashMap()
             }
             val gson = Gson()
             // Deserialize the map
             return when (map) {
                 FRIEND_V1 -> {
-                    val mapType = object : TypeToken<Map<String, Friend>>() {}.type
+                    val mapType = object : TypeToken<HashMap<String, Friend>>() {}.type
                     gson.fromJson(friendJson, mapType)
                 }
                 else -> {
-                    val editor = friends.edit()
-                    val listType = object : TypeToken<List<Array<String?>?>>() {}.type
+                    val listType = object : TypeToken<ArrayList<Array<String?>?>>() {}.type
                     val list: List<Array<String?>?> = gson.fromJson(friendJson, listType)
                     val newFriendMap: MutableMap<String, Friend> = HashMap()
                     for (pair in list) {
