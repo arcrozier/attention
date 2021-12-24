@@ -23,6 +23,7 @@ import java.util.*
  * Handles Firebase alerts
  */
 open class AlertHandler : FirebaseMessagingService() {
+
     /**
      * Executed when the device gets a new Firebase token
      * @param token - The new token to use
@@ -46,15 +47,21 @@ open class AlertHandler : FirebaseMessagingService() {
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         Log.d(TAG, "Message received! $remoteMessage")
         val messageData = remoteMessage.data
-        if (!senderIsFriend(
-                        messageData[REMOTE_FROM])) return  //checks if the sender is a friend of the user, ends if not
+        val message = Message(timestamp = 0, otherId = messageData[REMOTE_FROM] ?: return,
+                direction = DIRECTION.Incoming, message = messageData[REMOTE_MESSAGE])
+        val repository = AttentionRepository(AttentionDB.getDB(applicationContext))
+        if (!repository.isFromFriend(message)) {
+                            return
+        }  //checks if the sender is a friend of
+            // the user, ends if not
         val userInfo = getSharedPreferences(MainActivity.USER_INFO, MODE_PRIVATE)
         if (messageData[REMOTE_TO] != userInfo.getString(MainActivity.MY_ID,
                         "")) return  //if message is not addressed to the user, ends
-        val senderName = getFriendNameForID(this, messageData[REMOTE_FROM])
-        var message = messageData[REMOTE_MESSAGE]!!
-        message = if (message == "null") getString(R.string.default_message,
-                senderName) else getString(R.string.message_prefix, senderName, message)
+        val senderName = repository.getFriend(message.otherId).name
+
+        val display = if (message.message == "null") getString(R.string.default_message,
+                senderName) else getString(R.string.message_prefix, senderName, message.message)
+
         val preferences = PreferenceManager.getDefaultSharedPreferences(this)
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         NotificationManagerCompat.from(this)
@@ -67,7 +74,7 @@ open class AlertHandler : FirebaseMessagingService() {
                         && manager.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_UNKNOWN))) { // Also do not disturb is on
             Log.d(TAG,
                     "App is disabled from showing notifications or interruption filter is set to block notifications")
-            showNotification(message, senderName, true)
+            showNotification(display, senderName, true)
             return
         }
         try {
@@ -82,29 +89,20 @@ open class AlertHandler : FirebaseMessagingService() {
         val pm = getSystemService(POWER_SERVICE) as PowerManager
 
         // Stores the id so the notification can be cancelled by the user
-        val id = showNotification(message, senderName, false)
+        val id = showNotification(display, senderName, false)
 
         // Device should only show pop up if the device is off or if it has the ability to draw overlays (required to show pop up if screen is on)
         if (!pm.isInteractive || Settings.canDrawOverlays(this)) {
             val intent = Intent(this, Alert::class.java)
             intent.putExtra(REMOTE_FROM, senderName)
-            intent.putExtra(REMOTE_MESSAGE, message)
+            intent.putExtra(REMOTE_MESSAGE, display)
             intent.putExtra(ASSOCIATED_NOTIFICATION, id)
             intent.putExtra(SHOULD_VIBRATE, true)
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-            Log.d(TAG,
-                    "Sender: " + senderName + ", " + messageData[REMOTE_FROM] + " Message: " + message)
+            Log.d(TAG,"Sender: $senderName, ${message.otherId} Message: ${message.message}")
             startActivity(intent)
         }
-    }
-
-    /**
-     * Checks if the provided sender ID is a user's friend
-     * @param sender    - The provided ID of the sender
-     * @return          - Whether the sender is a friend of the user
-     */
-    private fun senderIsFriend(sender: String?): Boolean {
-        return MainActivity.getFriendMap(this)?.containsKey(sender) ?: false
+        repository.appendMessage(message, resources.getBoolean(R.bool.save_messages))
     }
 
     /**
