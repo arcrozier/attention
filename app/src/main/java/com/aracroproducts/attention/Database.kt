@@ -4,11 +4,12 @@ import android.content.Context
 import androidx.room.*
 import com.aracroproducts.attention.AttentionDB.Companion.DB_V1
 import kotlinx.coroutines.flow.Flow
+import java.security.KeyPair
 
 /**
  * Represents the user of the app - Has the ID and the Firebase token
  */
-class User @JvmOverloads constructor(var uid: String? = null, var token: String? = null)
+class User @JvmOverloads constructor(var uid: KeyPair? = null, var token: String? = null)
 
 @Database(
         version = DB_V1,
@@ -22,7 +23,7 @@ abstract class AttentionDB: RoomDatabase() {
 
     companion object {
         const val DB_V1 = 1
-        const val DB_NAME = "attention_database"
+        private const val DB_NAME = "attention_database"
         @Volatile
         private var INSTANCE: AttentionDB? = null
 
