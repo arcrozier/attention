@@ -1,6 +1,12 @@
 package com.aracroproducts.attention
 
+import android.util.Base64
+import androidx.compose.runtime.key
+import com.android.volley.Response
 import kotlinx.coroutines.flow.Flow
+import java.security.*
+import java.security.spec.KeySpec
+import java.security.spec.X509EncodedKeySpec
 import java.util.*
 
 // Declares the DAO as a private property in the constructor. Pass in the DAO
@@ -43,8 +49,44 @@ class AttentionRepository(private val database: AttentionDB) {
         }
     }
 
-    fun sendMessage(message: Message, save: Boolean) {
-        // TODO handle internet call here
-        appendMessage(message, save)
+    fun getKeyPair(): KeyPair {
+        val generator = KeyPairGenerator.getInstance(SIGNING_ALGORITHM)
+        var keyPair: KeyPair? = null
+        while (keyPair == null) {
+            keyPair = generator.genKeyPair()
+        }
+        return keyPair
+    }
+
+    fun sendMessage(message: Message, from: String) {
+        // TODO send here - may need application context to get the RequestQueue
+        appendMessage(message, false)
+    }
+
+    fun <T> sendToken(token: String, publicKey: String, responseListener: Response.Listener<T>? =
+            null, errorListener: Response.ErrorListener? = null) {
+        // TODO send here - may need application context to get the RequestQueue
+    }
+
+    companion object {
+        private const val SIGNING_ALGORITHM = "DSA"
+
+        fun keyToString(key: Key): String {
+            return Base64.encodeToString(key.encoded, Base64.DEFAULT)
+        }
+
+        fun stringToPrivateKey(privateKey: String): PrivateKey {
+            val keyFactory = KeyFactory.getInstance(SIGNING_ALGORITHM)
+            return keyFactory.generatePrivate(stringToKeySpec(privateKey))
+        }
+
+        fun stringToPublicKey(publicKey: String): PublicKey {
+            val keyFactory = KeyFactory.getInstance(SIGNING_ALGORITHM)
+            return keyFactory.generatePublic(stringToKeySpec(publicKey))
+        }
+
+        private fun stringToKeySpec(key: String): KeySpec {
+            return X509EncodedKeySpec(Base64.decode(key, Base64.DEFAULT))
+        }
     }
 }

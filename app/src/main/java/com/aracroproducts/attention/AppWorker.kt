@@ -6,6 +6,7 @@ import android.content.Intent
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.work.Data
 import androidx.work.Worker
 import androidx.work.WorkerParameters
@@ -25,7 +26,7 @@ class AppWorker {
     /**
      * Used to store the different return types from the connect function
      */
-    private enum class ErrorType(val code: Int) {
+    enum class ErrorType(val code: Int) {
         OK(CODE_SUCCESS),  // Request was successful
         BAD_REQUEST(CODE_BAD_REQUEST),  // Something was wrong with the request (don't retry)
         SERVER_ERROR(CODE_SERVER_ERROR),  // The server isn't working (don't retry)
@@ -63,51 +64,14 @@ class AppWorker {
                 }
                 ErrorType.BAD_REQUEST -> {
                     Log.e(sTAG, "Unable to send id: bad request; not retrying")
-                    notifyUser(ErrorType.BAD_REQUEST, id)
                     return Result.failure(built)
                 }
                 ErrorType.SERVER_ERROR -> {
                     Log.e(sTAG, "Unable to send id: server error; not retrying")
-                    notifyUser(ErrorType.SERVER_ERROR, id)
                     return Result.failure(built)
                 }
             }
         }
-
-        /**
-         * Notifies the user that an alert was not successfully sent
-         *
-         * @param code  - The error type; used to display an appropriate message
-         * @param id    - The ID of the user that the alert was supposed to be sent to
-         * @requires    - Code is one of ErrorType.SERVER_ERROR or ErrorType.BAD_REQUEST
-         */
-        private fun notifyUser(code: ErrorType, id: String?) {
-            val context = applicationContext
-            val name = AlertHandler.getFriendNameForID(context, id)
-            val text = if (code == ErrorType.SERVER_ERROR)
-                context.getString(R.string.alert_failed_server_error, name)
-            else context.getString(R.string.alert_failed_bad_request, name)
-
-            val intent = Intent(context, MainActivity::class.java)
-            val pendingIntent =
-                    PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
-
-            MainActivity.createFailedAlertNotificationChannel(context)
-            val builder: NotificationCompat.Builder =
-                    NotificationCompat.Builder(context, FAILED_ALERT_CHANNEL_ID)
-            builder
-                    .setSmallIcon(R.mipmap.add_foreground)
-                    .setContentTitle(context.getString(R.string.alert_failed))
-                    .setContentText(text)
-                    .setPriority(NotificationCompat.PRIORITY_MAX)
-                    .setContentIntent(pendingIntent).setAutoCancel(true)
-
-            val notificationID = (System.currentTimeMillis() % 1000000000L).toInt() + 1
-            val notificationManagerCompat = NotificationManagerCompat.from(context)
-            notificationManagerCompat.notify(notificationID, builder.build())
-        }
-
-
     }
 
     /**
@@ -119,10 +83,14 @@ class AppWorker {
      */
     inner class MessageWorker(appContext: Context, private val workerParameters: WorkerParameters) :
             Worker(appContext, workerParameters) {
+
+        val model: MainViewModel by viewModels()
         override fun doWork(): Result {
             val input = workerParameters.inputData
             val result = Data.Builder()
 
+            val repository = AttentionRepository(AttentionDB.getDB(applicationContext))
+            repository.sendMessage()
             val to = input.getString(TO)
             val from = input.getString(FROM)
             val message = input.getString(MESSAGE)

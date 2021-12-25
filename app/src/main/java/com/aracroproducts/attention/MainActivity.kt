@@ -3,6 +3,7 @@ package com.aracroproducts.attention
 import android.app.Activity
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.*
 import android.net.Uri
 import android.os.*
@@ -39,6 +40,8 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -81,10 +84,8 @@ class MainActivity : AppCompatActivity() {
                 val settingsEditor = PreferenceManager.getDefaultSharedPreferences(this).edit()
                 settingsEditor.putString(getString(R.string.name_key),
                         it.data?.getStringExtra(MY_NAME))
-                editor.putString(MY_ID, makeId(it.data?.getStringExtra(MY_NAME)))
                 editor.apply()
                 settingsEditor.apply()
-                user!!.uid = prefs.getString(MY_ID, null)
                 addUserToDB(user)
             }
 
@@ -98,18 +99,9 @@ class MainActivity : AppCompatActivity() {
         // data returned from the activity
         val data = it.data
         Log.d(sTAG, "Received edit name callback")
-        if (friendModel == null) updateFriendMap()
-        if (friendMap == null) {
-            Log.w(sTAG, "FriendList was null, unable to edit")
-        } else {
-            val friendId = data?.getStringExtra(DialogActivity.EXTRA_USER_ID)
-                    ?: throw IllegalArgumentException("An ID to edit must be provided")
-            friendMap?.getOrPut(friendId, fun(): Friend { return Friend(id = friendId, name = "") })
-                    ?.name = data.getStringExtra(MY_NAME).toString()
-            saveFriendMap()
-            populateFriendList()
-
-        }
+        val friendId = data?.getStringExtra(DialogActivity.EXTRA_USER_ID)
+                ?: throw IllegalArgumentException("An ID to edit must be provided")
+        friendModel.onEditName(id = friendId, name = data.getStringExtra(MY_NAME).toString())
     }
 
     /**
@@ -140,19 +132,7 @@ class MainActivity : AppCompatActivity() {
         // Creates a notification channel for displaying failed-to-send notifications
         createFailedAlertNotificationChannel(this)
 
-        /*
-        // Set up UI
-        setContentView(R.layout.activity_main)
-        val toolbar = findViewById<Toolbar>(R.id.toolbar)
-        setSupportActionBar(toolbar)
-         */
-        if (GoogleApiAvailability.getInstance()
-                        .isGooglePlayServicesAvailable(this) != ConnectionResult.SUCCESS) {
-            // check for Google Play Services
-            Toast.makeText(this, getString(R.string.no_play_services), Toast.LENGTH_LONG).show()
-            GoogleApiAvailability.getInstance().makeGooglePlayServicesAvailable(this)
-            return
-        }
+        if (!checkPlayServices()) return
 
         // Load user preferences and data
         val prefs = getSharedPreferences(USER_INFO, MODE_PRIVATE)
@@ -180,40 +160,11 @@ class MainActivity : AppCompatActivity() {
             editor.apply()
         }
 
-        // Load the friendMap
-        friendModel.onLaunch(this)
-
         setContent {
             MaterialTheme(colors = if (isSystemInDarkTheme()) darkColors else lightColors) {
-                Home(friendModel)
+                Home(friendModel.friends.value ?: listOf())
             }
         }
-
-
-        // Verify Firebase token and continue configuring settings
-        token = prefs.getString(MY_TOKEN, null)
-        if (!settings.contains(getString(R.string.name_key)) || !prefs.contains(MY_ID)) {
-            user = User()
-            val intent = Intent(this, DialogActivity::class.java)
-            startNameDialogForResult.launch(intent)
-        } else {
-            user = User(prefs.getString(MY_ID, null), token)
-        }
-        if (user!!.uid != null && user!!.token != null && !prefs.getBoolean(UPLOADED, false)) {
-            addUserToDB(user)
-        } else {
-            getToken()
-        }
-
-        /*
-        // Configure "add friend" button
-        val fab = findViewById<FloatingActionButton>(R.id.fab)
-        fab.setOnClickListener { view: View ->
-            Log.d(this.javaClass.name, "Attempting to add")
-            val intent = Intent(view.context, Add::class.java)
-            startActivity(intent)
-        }
-         */
 
         // Request permission to draw overlays
         if (!Settings.canDrawOverlays(this) && !prefs.contains(OVERLAY_NO_PROMPT)) {
@@ -238,7 +189,7 @@ class MainActivity : AppCompatActivity() {
 
     @ExperimentalFoundationApi
     @Composable
-    fun Home(viewModel: MainViewModel) {
+    fun Home(friends: List<Friend>) {
         Scaffold(
                 topBar = {
                     TopAppBar (
@@ -269,7 +220,7 @@ class MainActivity : AppCompatActivity() {
                 }
         ) {
             LazyColumn {
-                items(viewModel.friends.values.toMutableList()) { friend ->
+                items(friends) { friend ->
                     FriendCard(friend = friend)
 
                 }
@@ -315,7 +266,7 @@ class MainActivity : AppCompatActivity() {
                             Icon(Icons.Filled.Close,
                                     contentDescription = getString(R.string.cancel))
                         }
-                        Button(onClick = { onDeletePrompt(friend.id, friend.name) }, colors =
+                        Button(onClick = { onDeletePrompt(friend) }, colors =
                         ButtonDefaults
                                 .buttonColors(backgroundColor = MaterialTheme.colors.error,
                                         contentColor = MaterialTheme.colors.onError)) {
@@ -408,70 +359,8 @@ class MainActivity : AppCompatActivity() {
     @Preview
     @Composable
     fun PreviewHome() {
-        val previewViewModel = MainViewModel("1" to Friend("1", "Grace"), "2" to Friend("1","Anita"))
         MaterialTheme(colors = if (isSystemInDarkTheme()) darkColors else lightColors) {
-            Home(previewViewModel)
-        }
-    }
-
-    /**
-     * Helper method that makes a unique user ID
-     * @param name  - The name that the ID is based on
-     * @return      - The ID
-     */
-    private fun makeId(name: String?): String {
-        val fullString = (name ?: "") + Build.FINGERPRINT
-        val salt = byteArrayOf(69, 42, 0, 37, 10, 127, 34, 85, 83, 24, 98, 75, 49, 8,
-                67) // very secure salt but this isn't a cryptographic application so it doesn't really matter
-        return try {
-            val secretKeyFactory: SecretKeyFactory =
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) SecretKeyFactory.getInstance(
-                            "PBKDF2WithHmacSHA512") //not available to Android 7.1 and lower
-                    else SecretKeyFactory.getInstance(
-                            "PBKDF2withHmacSHA1") // available since API 10
-            val spec = PBEKeySpec(fullString.toCharArray(), salt, 32, 64)
-            val key = secretKeyFactory.generateSecret(spec)
-            val hashed = key.encoded
-            val builder = StringBuilder()
-            for (letter in hashed) {
-                builder.append(letter.toInt())
-            }
-            builder.toString()
-        } catch (e: InvalidKeySpecException) {
-            e.printStackTrace()
-            throw RuntimeException()
-        } catch (e: NoSuchAlgorithmException) {
-            e.printStackTrace()
-            throw RuntimeException()
-        }
-    }
-
-    /**
-     * Helper method that gets the Firebase token
-     */
-    private fun getToken() {
-        FirebaseMessaging.getInstance().token.addOnCompleteListener { task: Task<String?> ->
-            if (!task.isSuccessful) {
-                Log.w(sTAG, "getInstanceId failed", task.exception)
-                return@addOnCompleteListener
-            }
-
-            // Get new Instance ID token
-            token = task.result
-            Log.d(sTAG, "Got token! $token")
-            user!!.token = token
-            val preferences = getSharedPreferences(USER_INFO, MODE_PRIVATE)
-            if (token != preferences.getString(MY_TOKEN, "")) {
-                if (user!!.uid == null && preferences.getBoolean(UPLOADED, false)) {
-                    preferences.edit().putBoolean(UPLOADED, false).apply()
-                } else {
-                    addUserToDB(user)
-                }
-            }
-
-            // Log and toast
-            val msg = getString(R.string.msg_token_fmt, token)
-            Log.d(sTAG, msg)
+            Home(listOf(Friend("1", "Grace"), Friend("2", "Anita")))
         }
     }
 
@@ -484,17 +373,16 @@ class MainActivity : AppCompatActivity() {
             GoogleApiAvailability.getInstance().makeGooglePlayServicesAvailable(this)
             return
         }
-        friendModel.onLaunch(this)
     }
 
     // Prompts the user to confirm deleting the friend
-    fun onDeletePrompt(id: String, name: String) {
+    private fun onDeletePrompt(friend: Friend) {
         val alertDialog = android.app.AlertDialog.Builder(this).create()
         alertDialog.setTitle(getString(R.string.confirm_delete_title))
-        alertDialog.setMessage(getString(R.string.confirm_delete_message, name))
+        alertDialog.setMessage(getString(R.string.confirm_delete_message, friend.name))
         alertDialog.setButton(DialogInterface.BUTTON_POSITIVE,
                 getString(R.string.yes)) { dialogInterface: DialogInterface, _: Int ->
-            friendModel.onDeleteFriend(id, this)
+            friendModel.onDeleteFriend(friend)
             dialogInterface.cancel()
         }
         alertDialog.setButton(DialogInterface.BUTTON_NEGATIVE, getString(
@@ -503,7 +391,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // Shows the edit name dialog
-    fun onEditName(id: String) {
+    private fun onEditName(id: String) {
         val intent = Intent(this@MainActivity, DialogActivity::class.java)
         intent.putExtra(DialogActivity.EXTRA_EDIT_NAME, true)
         intent.putExtra(DialogActivity.EXTRA_USER_ID, id)
@@ -511,7 +399,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // Provides haptic feedback
-    fun onLongPress() {
+    private fun onLongPress() {
         val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val vibratorManager =
                     getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
@@ -638,6 +526,50 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    fun checkPlayServices(): Boolean {
+        if (GoogleApiAvailability.getInstance()
+                        .isGooglePlayServicesAvailable(this) != ConnectionResult.SUCCESS) {
+            // check for Google Play Services
+            Toast.makeText(this, getString(R.string.no_play_services), Toast.LENGTH_LONG).show()
+            GoogleApiAvailability.getInstance().makeGooglePlayServicesAvailable(this)
+            return false
+        }
+        return true
+    }
+
+    /**
+     * Notifies the user that an alert was not successfully sent
+     *
+     * @param code  - The error type; used to display an appropriate message
+     * @param id    - The ID of the user that the alert was supposed to be sent to
+     * @requires    - Code is one of ErrorType.SERVER_ERROR or ErrorType.BAD_REQUEST
+     */
+    private fun notifyUser(code: AppWorker.ErrorType, id: String) {
+        val context = applicationContext
+        val name = friendModel.getFriend(id)
+        val text = if (code == AppWorker.ErrorType.SERVER_ERROR)
+            context.getString(R.string.alert_failed_server_error, name)
+        else context.getString(R.string.alert_failed_bad_request, name)
+
+        val intent = Intent(context, MainActivity::class.java)
+        val pendingIntent =
+                PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+
+        MainActivity.createFailedAlertNotificationChannel(context)
+        val builder: NotificationCompat.Builder =
+                NotificationCompat.Builder(context, AppWorker.FAILED_ALERT_CHANNEL_ID)
+        builder
+                .setSmallIcon(R.mipmap.add_foreground)
+                .setContentTitle(context.getString(R.string.alert_failed))
+                .setContentText(text)
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setContentIntent(pendingIntent).setAutoCancel(true)
+
+        val notificationID = (System.currentTimeMillis() % 1000000000L).toInt() + 1
+        val notificationManagerCompat = NotificationManagerCompat.from(context)
+        notificationManagerCompat.notify(notificationID, builder.build())
+    }
+
 
     companion object {
         const val USER_INFO = "user"
@@ -673,47 +605,6 @@ class MainActivity : AppCompatActivity() {
                 // or other notification behaviors after this
                 val notificationManager = context.getSystemService(NotificationManager::class.java)
                 notificationManager.createNotificationChannel(channel)
-            }
-        }
-
-        fun getFriendMap(context: Context): MutableMap<String, Friend> {
-            val friends = context.getSharedPreferences(FRIENDS, MODE_PRIVATE)
-            val friendJson = friends.getString(FRIEND_LIST, "")
-
-            // checks if it was last saved as a map or a list
-            val map = friends.getInt(FRIENDS_MAP_VERSION, FRIEND_MAP_NOT_SUPPORTED)
-            val editor = friends.edit()
-            if (friendJson == "") {
-                if (map == FRIEND_MAP_NOT_SUPPORTED) {
-                    editor.putInt(FRIENDS_MAP_VERSION, FRIEND_V1)
-                    editor.apply()
-                }
-                return HashMap()
-            }
-            val gson = Gson()
-            // Deserialize the map
-            return when (map) {
-                FRIEND_V1 -> {
-                    val mapType = object : TypeToken<HashMap<String, Friend>>() {}.type
-                    gson.fromJson(friendJson, mapType)
-                }
-                else -> {
-                    val listType = object : TypeToken<ArrayList<Array<String?>?>>() {}.type
-                    val list: List<Array<String?>?> = gson.fromJson(friendJson, listType)
-                    val newFriendMap: MutableMap<String, Friend> = HashMap()
-                    for (pair in list) {
-                        if (pair == null) continue
-                        val id = pair[0] ?: continue
-                        val name = pair[1] ?: continue
-
-                        newFriendMap[id] = Friend(id, name)
-                    }
-                    // save the map again
-                    editor.putString(FRIEND_LIST, gson.toJson(newFriendMap))
-                    editor.putInt(FRIENDS_MAP_VERSION, FRIEND_V1)
-                    editor.apply()
-                    newFriendMap
-                }
             }
         }
     }
