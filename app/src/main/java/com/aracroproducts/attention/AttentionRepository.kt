@@ -2,6 +2,7 @@ package com.aracroproducts.attention
 
 import android.util.Base64
 import androidx.compose.runtime.key
+import com.android.volley.RequestQueue
 import com.android.volley.Response
 import kotlinx.coroutines.flow.Flow
 import java.security.*
@@ -58,18 +59,25 @@ class AttentionRepository(private val database: AttentionDB) {
         return keyPair
     }
 
-    fun sendMessage(message: Message, from: String) {
+    fun <T> sendMessage(message: Message, from: String, requestQueue: RequestQueue,
+                        responseListener: Response.Listener<T>? = null, errorListener: Response
+            .ErrorListener? = null) {
         // TODO send here - may need application context to get the RequestQueue
+        // Use Volley: https://developer.android.com/training/volley
         appendMessage(message, false)
     }
 
-    fun <T> sendToken(token: String, publicKey: String, responseListener: Response.Listener<T>? =
+    fun <T> sendToken(token: String, publicKey: String, requestQueue: RequestQueue,
+                      responseListener: Response
+    .Listener<T>? =
             null, errorListener: Response.ErrorListener? = null) {
         // TODO send here - may need application context to get the RequestQueue
+        // https://developer.android.com/training/volley
     }
 
     companion object {
         private const val SIGNING_ALGORITHM = "DSA"
+        const val MAGIC_NUMBER = 0xDEADBEEF
 
         fun keyToString(key: Key): String {
             return Base64.encodeToString(key.encoded, Base64.DEFAULT)
