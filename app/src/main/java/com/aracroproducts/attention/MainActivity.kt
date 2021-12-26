@@ -130,7 +130,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         // Creates a notification channel for displaying failed-to-send notifications
-        createFailedAlertNotificationChannel(this)
+        MainViewModel.createFailedAlertNotificationChannel(this)
 
         if (!checkPlayServices()) return
 
@@ -162,10 +162,11 @@ class MainActivity : AppCompatActivity() {
 
         setContent {
             MaterialTheme(colors = if (isSystemInDarkTheme()) darkColors else lightColors) {
-                Home(friendModel.friends.value ?: listOf())
+                HomeWrapper(model = friendModel)
             }
         }
 
+        /*
         // Request permission to draw overlays
         if (!Settings.canDrawOverlays(this) && !prefs.contains(OVERLAY_NO_PROMPT)) {
             val alertDialog = AlertDialog.Builder(this).create()
@@ -185,11 +186,31 @@ class MainActivity : AppCompatActivity() {
             }
             alertDialog.show()
         }
+
+         */
     }
 
     @ExperimentalFoundationApi
     @Composable
-    fun Home(friends: List<Friend>) {
+    fun HomeWrapper(model: MainViewModel) {
+        val displayDialog: Pair<MainViewModel.DialogStatus, Friend?> by model.dialogState
+        Home(
+                friends = model.friends.value ?: listOf(),
+                onLongPress = {model.onLongPress()},
+                onEditName = {model.onEditName(it)},
+                onDeletePrompt = {model.onDeletePrompt(it)},
+                dialogState = displayDialog)
+    }
+
+    @ExperimentalFoundationApi
+    @Composable
+    fun Home(friends: List<Friend>, onLongPress: () -> Unit, onEditName: (friend: Friend) -> Unit,
+             onDeletePrompt: (friend: Friend) -> Unit,
+             dialogState: Pair<MainViewModel.DialogStatus, Friend?>) {
+
+        // TODO: Read off dialog state and overlay state and display dialogs appropriately
+        // Note: Settings dialog should display after other dialogs are resolved
+        // https://coflutter.com/jetpack-compose-how-to-show-dialog/
         Scaffold(
                 topBar = {
                     TopAppBar (
@@ -221,8 +242,12 @@ class MainActivity : AppCompatActivity() {
         ) {
             LazyColumn {
                 items(friends) { friend ->
-                    FriendCard(friend = friend)
-
+                    FriendCard(
+                            friend = friend,
+                            onLongPress = onLongPress,
+                            onEditName = onEditName,
+                            onDeletePrompt = onDeletePrompt
+                    )
                 }
             }
         }
@@ -230,7 +255,8 @@ class MainActivity : AppCompatActivity() {
 
     @ExperimentalFoundationApi
     @Composable
-    fun FriendCard(friend: Friend) {
+    fun FriendCard(friend: Friend, onLongPress: () -> Unit, onEditName: (friend: Friend) -> Unit,
+                   onDeletePrompt: (friend: Friend) -> Unit) {
         var state by remember { mutableStateOf(State.NORMAL) }
         var message: String? by remember { mutableStateOf(null)}
 
@@ -272,7 +298,7 @@ class MainActivity : AppCompatActivity() {
                                         contentColor = MaterialTheme.colors.onError)) {
                                 Text(getString(R.string.delete))
                         }
-                        Button(onClick = {onEditName(friend.id)}, colors = ButtonDefaults
+                        Button(onClick = {onEditName(friend)}, colors = ButtonDefaults
                                 .buttonColors(backgroundColor = MaterialTheme.colors.secondary,
                                         contentColor = MaterialTheme.colors.onSecondary)) {
                             Text(getString(R.string.rename))
@@ -360,62 +386,15 @@ class MainActivity : AppCompatActivity() {
     @Composable
     fun PreviewHome() {
         MaterialTheme(colors = if (isSystemInDarkTheme()) darkColors else lightColors) {
-            Home(listOf(Friend("1", "Grace"), Friend("2", "Anita")))
+            Home(listOf(Friend("1", "Grace"), Friend("2", "Anita")), {}, {}, {},
+                    Pair(MainViewModel.DialogStatus.NONE, null))
         }
     }
 
     public override fun onResume() {
         super.onResume()
         // if Google API isn't available, do this - it's from the docs, should be correct
-        if (GoogleApiAvailability.getInstance()
-                        .isGooglePlayServicesAvailable(this) != ConnectionResult.SUCCESS) {
-            Toast.makeText(this, getString(R.string.no_play_services), Toast.LENGTH_LONG).show()
-            GoogleApiAvailability.getInstance().makeGooglePlayServicesAvailable(this)
-            return
-        }
-    }
-
-    // Prompts the user to confirm deleting the friend
-    private fun onDeletePrompt(friend: Friend) {
-        val alertDialog = android.app.AlertDialog.Builder(this).create()
-        alertDialog.setTitle(getString(R.string.confirm_delete_title))
-        alertDialog.setMessage(getString(R.string.confirm_delete_message, friend.name))
-        alertDialog.setButton(DialogInterface.BUTTON_POSITIVE,
-                getString(R.string.yes)) { dialogInterface: DialogInterface, _: Int ->
-            friendModel.onDeleteFriend(friend)
-            dialogInterface.cancel()
-        }
-        alertDialog.setButton(DialogInterface.BUTTON_NEGATIVE, getString(
-                android.R.string.cancel)) { dialogInterface: DialogInterface, _: Int -> dialogInterface.cancel() }
-        alertDialog.show()
-    }
-
-    // Shows the edit name dialog
-    private fun onEditName(id: String) {
-        val intent = Intent(this@MainActivity, DialogActivity::class.java)
-        intent.putExtra(DialogActivity.EXTRA_EDIT_NAME, true)
-        intent.putExtra(DialogActivity.EXTRA_USER_ID, id)
-        startEditNameDialogForResult.launch(intent)
-    }
-
-    // Provides haptic feedback
-    private fun onLongPress() {
-        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val vibratorManager =
-                    getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
-            vibratorManager.defaultVibrator
-        } else {
-            getSystemService(VIBRATOR_SERVICE) as Vibrator
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val effect: VibrationEffect =
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) VibrationEffect.createPredefined(
-                            VibrationEffect.EFFECT_HEAVY_CLICK) else VibrationEffect.createOneShot(
-                            100, COMPAT_HEAVY_CLICK)
-            vibrator.vibrate(effect)
-        } else {
-            vibrator.vibrate(100)
-        }
+        if (!checkPlayServices()) return
     }
 
     /**
@@ -467,24 +446,6 @@ class MainActivity : AppCompatActivity() {
                 })
     }
 
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        menuInflater.inflate(R.menu.menu_main, menu)
-        return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        val id = item.itemId
-        if (id == R.id.action_settings) {
-            val intent = Intent(this, SettingsActivity::class.java)
-            startActivity(intent)
-        }
-        return super.onOptionsItemSelected(item)
-    }
-
     /**
      * Adds the specified new user to the Aracro Products database. If the user already exists,
      * updates the token associated with it
@@ -526,7 +487,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun checkPlayServices(): Boolean {
+    private fun checkPlayServices(): Boolean {
         if (GoogleApiAvailability.getInstance()
                         .isGooglePlayServicesAvailable(this) != ConnectionResult.SUCCESS) {
             // check for Google Play Services
@@ -537,38 +498,7 @@ class MainActivity : AppCompatActivity() {
         return true
     }
 
-    /**
-     * Notifies the user that an alert was not successfully sent
-     *
-     * @param code  - The error type; used to display an appropriate message
-     * @param id    - The ID of the user that the alert was supposed to be sent to
-     * @requires    - Code is one of ErrorType.SERVER_ERROR or ErrorType.BAD_REQUEST
-     */
-    private fun notifyUser(code: AppWorker.ErrorType, id: String) {
-        val context = applicationContext
-        val name = friendModel.getFriend(id)
-        val text = if (code == AppWorker.ErrorType.SERVER_ERROR)
-            context.getString(R.string.alert_failed_server_error, name)
-        else context.getString(R.string.alert_failed_bad_request, name)
 
-        val intent = Intent(context, MainActivity::class.java)
-        val pendingIntent =
-                PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
-
-        MainActivity.createFailedAlertNotificationChannel(context)
-        val builder: NotificationCompat.Builder =
-                NotificationCompat.Builder(context, AppWorker.FAILED_ALERT_CHANNEL_ID)
-        builder
-                .setSmallIcon(R.mipmap.add_foreground)
-                .setContentTitle(context.getString(R.string.alert_failed))
-                .setContentText(text)
-                .setPriority(NotificationCompat.PRIORITY_MAX)
-                .setContentIntent(pendingIntent).setAutoCancel(true)
-
-        val notificationID = (System.currentTimeMillis() % 1000000000L).toInt() + 1
-        val notificationManagerCompat = NotificationManagerCompat.from(context)
-        notificationManagerCompat.notify(notificationID, builder.build())
-    }
 
 
     companion object {
@@ -580,32 +510,12 @@ class MainActivity : AppCompatActivity() {
         const val UPLOADED = "uploaded"
         const val FRIEND_LIST = "friends"
         private const val FRIENDS_MAP_VERSION = "friend map"
-        const val OVERLAY_NO_PROMPT = "OverlayDoNotAsk"
-        private const val COMPAT_HEAVY_CLICK = 5
         private const val FRIEND_V1 = 1
         private const val FRIEND_MAP_NOT_SUPPORTED = 0
         // time (in milliseconds) that the user has to cancel sending an alert
         private const val UNDO_TIME: Long = 3500
         private const val UNDO_INTERVALS: Long = 10
 
-        /**
-         * Helper function to create the notification channel for the failed alert
-         *
-         * @param context   A context for getting strings
-         */
-        fun createFailedAlertNotificationChannel(context: Context) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val name: CharSequence = context.getString(R.string.alert_failed_channel_name)
-                val description = context.getString(R.string.alert_channel_description)
-                val importance = NotificationManager.IMPORTANCE_HIGH
-                val channel =
-                        NotificationChannel(AppWorker.FAILED_ALERT_CHANNEL_ID, name, importance)
-                channel.description = description
-                // Register the channel with the system; you can't change the importance
-                // or other notification behaviors after this
-                val notificationManager = context.getSystemService(NotificationManager::class.java)
-                notificationManager.createNotificationChannel(channel)
-            }
-        }
+
     }
 }
