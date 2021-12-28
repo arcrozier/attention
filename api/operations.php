@@ -2,7 +2,7 @@
 
 //require_once('/home2/stehekin/vendor/firebase/php-jwt/src/JWT.php');
 //require_once('/home2/stehekin/vendor/google-api-php-client/google-api-php-client/src/Google/Client.php');
-require_once('/home2/stehekin/vendor/autoload.php');
+require __DIR__ . '/vendor/autoload.php';
 
 use Firebase\JWT\JWT;
 
