@@ -14,3 +14,4 @@
 .cxx
 workspace-SPECTREx360.xml
 .idea
+/api/config.php
