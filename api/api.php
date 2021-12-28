@@ -1,6 +1,6 @@
 <?php
 
-require_once 'includes/operations.php';
+require_once 'operations.php';
 
 //checks if the params specified in the array are available, returns a standard response array
 // 'success' whether all the params were there, 'message' which specifies which params were missing
@@ -28,8 +28,8 @@ function paramsAvailable($params) {
 
 $response = array();
 $db = new Operation();
-$log_dir = "includes/log.txt";
-$temp_log_dir = "includes/temp_log.txt";
+$log_dir = "log.txt";
+$temp_log_dir = "temp_log.txt";
 
 
 $log_file = fopen($log_dir, "a");
