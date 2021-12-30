@@ -1,6 +1,7 @@
 <?php
 
 require_once 'operations.php';
+require_once dirname(__FILE__) . '/config.php';
 
 //checks if the params specified in the array are available, returns a standard response array
 // 'success' whether all the params were there, 'message' which specifies which params were missing
@@ -28,13 +29,8 @@ function paramsAvailable($params) {
 
 $response = array();
 $db = new Operation();
-$log_dir = "log.txt";
-$temp_log_dir = "temp_log.txt";
 
-
-$log_file = fopen($log_dir, "a");
-
-fwrite($log_file, ((string) date('Y-m-d H:i:s')) .  " IP: {$_SERVER['REMOTE_ADDR']}");
+$logger = Logger::getInstance();
 
 if(isset($_GET['function'])) {
 
@@ -51,35 +47,24 @@ if(isset($_GET['function'])) {
     switch ($function) {
         case 'post_id':
             if (($response = paramsAvailable(array('token', 'id')))['success']) {
-                $response = $db->pushID($_POST['token'], $_POST['id'], $response);
+                $db->pushID($_POST['token'], $_POST['id'], $response);
             }
         break;
         case 'send_alert':
-            if (($response = paramsAvailable(array('to', 'from', 'message')))['success']) {
-                $response = $db->sendAlert($_POST['to'], $_POST['from'], $_POST['message'], $response);
+            if (($response = paramsAvailable(array('to', 'from', 'message', 'signature')))['success']) {
+                $db->sendAlert($_POST['to'], $_POST['from'], $_POST['message'], $_POST['signature'], $response);
             } 
         break;
+        case 'get_challenge':
+            // TODO - verify that id is set, then call $db->getChallenge($id, $response)
+        break;
         default:
-        $response = $db->build_response($response, false, 'Invalid function specified', null, 400);
+        $db->build_response($response, false, 'Invalid function specified', null, 400);
     }
 } else {
-    $response = $db->build_response($response, false, "No function specified", null, 400);
+    $db->build_response($response, false, "No function specified", null, 400);
 }
 
-fwrite($log_file, " Response: " . json_encode($response), 1024);
-fwrite($log_file, "\n");
-fclose($log_file);
+$logger->log(" Response: " . json_encode($response), true, 1024);
 echo json_encode($response);
 
-if (file_exists($log_dir) && filesize($log_dir) > 500000) { 
-    $shrink_file = fopen($log_dir, 'r');
-    $temp_log = fopen($temp_log_dir, 'a');
-    fseek($shrink_file, 100000);
-    while ($line = fgets($shrink_file)) {
-        fwrite($temp_log, $line);
-    }
-    fclose($shrink_file);
-    fclose($temp_log);
-    unlink($log_dir); //delete the large log file
-    rename($temp_log_dir, $log_dir); //rename the temp file to be the new log file
-}

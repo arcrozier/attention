@@ -15,3 +15,4 @@
 workspace-SPECTREx360.xml
 .idea
 /api/config.php
+/api/auth-config-path.php
