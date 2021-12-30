@@ -5,7 +5,6 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
-import android.content.DialogInterface
 import android.content.Intent
 import android.os.Build
 import android.os.VibrationEffect
@@ -23,6 +22,7 @@ import androidx.preference.PreferenceManager
 import com.google.android.gms.tasks.Task
 import com.google.firebase.messaging.FirebaseMessaging
 import org.json.JSONObject
+import java.lang.IllegalStateException
 import java.security.KeyPair
 import javax.inject.Inject
 
@@ -152,24 +152,14 @@ class MainViewModel @Inject constructor(
         val defaultPrefs = PreferenceManager.getDefaultSharedPreferences(application)
         // Verify Firebase token and continue configuring settings
         val token = userInfo.getString(MainActivity.MY_TOKEN, null)
-        var privateKeyString = userInfo.getString(PREF_PRIVATE_KEY, null)
-        var publicKeyString = userInfo.getString(PREF_PUBLIC_KEY, null)
 
         // Check if there is already a key pair
-        if (privateKeyString == null || publicKeyString == null) {
+        if (!attentionRepository.keyExists()) {
             // No key pair - generate a new one
-            val keyPair = attentionRepository.getKeyPair()
+            attentionRepository.genKeyPair()
 
             // Update state
-            user.value = User(keyPair, token)
-            val editor = userInfo.edit()
-
-            // Save new keys
-            privateKeyString = AttentionRepository.keyToString(keyPair.private)
-            publicKeyString = AttentionRepository.keyToString(keyPair.public)
-            editor.putString(PREF_PUBLIC_KEY, publicKeyString)
-            editor.putString(PREF_PRIVATE_KEY, privateKeyString)
-            editor.apply()
+            user.value = User(attentionRepository.getPublicKey(), token)
 
             // Signal that the new key needs to be uploaded
             val defaultEditor = defaultPrefs.edit()
@@ -177,9 +167,11 @@ class MainViewModel @Inject constructor(
             defaultEditor.apply()
         } else {
             // Keys already created - load them
-            user.value = User(KeyPair(AttentionRepository.stringToPublicKey(publicKeyString),
-                    AttentionRepository.stringToPrivateKey(privateKeyString)))
+            user.value = User(attentionRepository.getPublicKey())
         }
+        val publicKeyString = AttentionRepository.keyToString(
+                attentionRepository.getPublicKey() ?: throw IllegalStateException("Public key " +
+                        "should not be null"))
 
         // Do we need to prompt user for a name?
         if (!defaultPrefs.contains(application.getString(R.string.name_key))) {

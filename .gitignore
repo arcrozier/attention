@@ -15,4 +15,7 @@
 workspace-SPECTREx360.xml
 .idea
 /api/config.php
+<<<<<<< HEAD
 /api/auth-config-path.php
+=======
+>>>>>>> 9d4aabd7444ee4e31e5f9a5a96a0f50068036265

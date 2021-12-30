@@ -5,11 +5,12 @@ import androidx.room.*
 import com.aracroproducts.attention.AttentionDB.Companion.DB_V1
 import kotlinx.coroutines.flow.Flow
 import java.security.KeyPair
+import java.security.PublicKey
 
 /**
  * Represents the user of the app - Has the ID and the Firebase token
  */
-class User @JvmOverloads constructor(var uid: KeyPair? = null, var token: String? = null)
+class User @JvmOverloads constructor(var uid: PublicKey? = null, var token: String? = null)
 
 @Database(
         version = DB_V1,

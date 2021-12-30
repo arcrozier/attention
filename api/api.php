@@ -1,7 +1,10 @@
 <?php
 
 require_once 'operations.php';
+<<<<<<< HEAD
 require_once dirname(__FILE__) . '/config.php';
+=======
+>>>>>>> 9d4aabd7444ee4e31e5f9a5a96a0f50068036265
 
 //checks if the params specified in the array are available, returns a standard response array
 // 'success' whether all the params were there, 'message' which specifies which params were missing
@@ -29,6 +32,11 @@ function paramsAvailable($params) {
 
 $response = array();
 $db = new Operation();
+<<<<<<< HEAD
+=======
+$log_dir = "log.txt";
+$temp_log_dir = "temp_log.txt";
+>>>>>>> 9d4aabd7444ee4e31e5f9a5a96a0f50068036265
 
 $logger = Logger::getInstance();
 
