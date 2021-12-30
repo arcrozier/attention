@@ -1,10 +1,13 @@
 package com.aracroproducts.attention
 
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
 import android.util.Base64
 import androidx.compose.runtime.key
 import com.android.volley.RequestQueue
 import com.android.volley.Response
 import kotlinx.coroutines.flow.Flow
+import java.lang.IllegalStateException
 import java.security.*
 import java.security.spec.KeySpec
 import java.security.spec.X509EncodedKeySpec
@@ -50,13 +53,50 @@ class AttentionRepository(private val database: AttentionDB) {
         }
     }
 
-    fun getKeyPair(): KeyPair {
-        val generator = KeyPairGenerator.getInstance(SIGNING_ALGORITHM)
+    fun genKeyPair() {
+        val generator = KeyPairGenerator.getInstance(KEYGEN_ALGORITHM, KEY_STORE)
+        val parameterSpec: KeyGenParameterSpec = KeyGenParameterSpec.Builder(
+                ALIAS,  // The spec will automatically save newly generated keys in the key store
+                // with this alias
+                KeyProperties.PURPOSE_SIGN
+        ).run {
+            setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
+            setKeySize(KEY_SIZE)
+            build()
+        }
+
+        generator.initialize(parameterSpec)
+
         var keyPair: KeyPair? = null
         while (keyPair == null) {
-            keyPair = generator.genKeyPair()
+            keyPair = generator.genKeyPair()  // automatically added to key store
         }
-        return keyPair
+    }
+
+    fun getPublicKey(): PublicKey? {
+        val keyStore: KeyStore = KeyStore.getInstance(KEY_STORE).apply { load(null) }
+        val privateKeyEntry = keyStore.getEntry(ALIAS, null) as? KeyStore.PrivateKeyEntry ?: return null
+        return privateKeyEntry.certificate.publicKey
+    }
+
+    fun keyExists(): Boolean {
+        val keyStore = KeyStore.getInstance(KEY_STORE).apply { load(null) }
+        return keyStore.isKeyEntry(ALIAS)
+    }
+
+    fun signChallenge(challenge: String): String {
+        val keyStore = KeyStore.getInstance(KEY_STORE).apply {
+            load(null)
+        }
+        val entry: KeyStore.Entry = keyStore.getEntry(ALIAS, null)
+        if (entry !is KeyStore.PrivateKeyEntry) {
+            throw IllegalStateException("A private key was not found to sign the challenge")
+        }
+        return String(Signature.getInstance(SIGNING_ALGORITHM).run {
+            initSign(entry.privateKey)
+            update(challenge.encodeToByteArray())
+            sign()
+        })
     }
 
     fun <T> sendMessage(message: Message, from: String, requestQueue: RequestQueue,
@@ -76,7 +116,11 @@ class AttentionRepository(private val database: AttentionDB) {
     }
 
     companion object {
-        private const val SIGNING_ALGORITHM = "DSA"
+        private const val SIGNING_ALGORITHM = "SHA256withECDSA"
+        private const val KEYGEN_ALGORITHM = KeyProperties.KEY_ALGORITHM_EC
+        private const val KEY_STORE = "AndroidKeyStore"
+        private const val ALIAS = "USERID"
+        private const val KEY_SIZE = 512
         const val MAGIC_NUMBER = 0xDEADBEEF
 
         fun keyToString(key: Key): String {
