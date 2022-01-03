@@ -202,6 +202,7 @@ class Operation
         // Return whether or not they match
         // If they match, delete the challenge from the database (UPDATE `id_lookup` SET challenge="" WHERE `app_id`=id)
         $stmt = $this->con->prepare("SELECT challenge FROM id_lookup WHERE app_id=?");
+        $challenge;
         if (!$stmt) {
             $this->logger->log("verifySignature: Prepared SQL statement was invalid when attempting to find the challenge for $id");
             return false;
@@ -209,13 +210,13 @@ class Operation
         $stmt->bind_param('s', $id);
 
         $stmt->execute();
-        $stmt->bind_result($token);
+        $stmt->bind_result($challenge);
         if (!$error_type = $stmt->fetch()) {
             $this->logger->log("verifySignature: Retrieving challenge for id $id failed - fetch() returned $error_type");
             $this->build_response($response, false, 'An error occurred retrieving the challenge for that ID', null, 403);
             return false;
         }
-        return openssl_verify();
+        return openssl_verify($challenge, $signed, $id, OPENSSL_ALGO_SHA512);
     }
 
     private function readFile(): string
