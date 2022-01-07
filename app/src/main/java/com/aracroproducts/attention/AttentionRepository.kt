@@ -120,7 +120,7 @@ class AttentionRepository(private val database: AttentionDB) {
         private const val KEYGEN_ALGORITHM = KeyProperties.KEY_ALGORITHM_EC
         private const val KEY_STORE = "AndroidKeyStore"
         private const val ALIAS = "USERID"
-        private const val KEY_SIZE = 512
+        private const val KEY_SIZE = 256
         const val MAGIC_NUMBER = 0xDEADBEEF
 
         fun keyToString(key: Key): String {
