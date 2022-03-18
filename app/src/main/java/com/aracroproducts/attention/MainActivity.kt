@@ -405,6 +405,8 @@ class MainActivity : AppCompatActivity() {
     private fun sendAlertToServer(id: String, message: String?) {
         Log.d(sTAG, "Sending alert to server via AppWorker")
 
+
+
         // set up the input data
         val data = Data.Builder().putString(AppWorker.TO, id).putString(AppWorker.FROM, user!!.uid)
                 .putString(AppWorker.MESSAGE, message).build()
@@ -425,7 +427,7 @@ class MainActivity : AppCompatActivity() {
 
         // get the result from the work
         workManager.getWorkInfoByIdLiveData(workRequest.id)
-                .observe(this, {
+                .observe(this) {
                     val layout = findViewById<View>(R.id.coordinatorLayout)
                     if (it != null && it.state == WorkInfo.State.SUCCEEDED) {
                         // Success! Let the user know, but not a big deal
@@ -443,7 +445,7 @@ class MainActivity : AppCompatActivity() {
                             getString(R.string.alert_failed_server_error, name)
                         Snackbar.make(layout, text, Snackbar.LENGTH_LONG).show()
                     }
-                })
+                }
     }
 
     /**
@@ -472,7 +474,7 @@ class MainActivity : AppCompatActivity() {
             workManager.enqueue(workRequest)
 
             workManager.getWorkInfoByIdLiveData(workRequest.id)
-                    .observe(this, {
+                    .observe(this) {
                         val editor = getSharedPreferences(USER_INFO, MODE_PRIVATE).edit()
                         if (it != null && it.state == WorkInfo.State.SUCCEEDED) {
                             editor.putBoolean(UPLOADED, true)
@@ -483,7 +485,7 @@ class MainActivity : AppCompatActivity() {
                             editor.putBoolean(UPLOADED, false)
                         }
                         editor.apply()
-                    })
+                    }
         }
     }
 

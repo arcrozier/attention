@@ -6,11 +6,30 @@ import com.aracroproducts.attention.AttentionDB.Companion.DB_V1
 import kotlinx.coroutines.flow.Flow
 import java.security.KeyPair
 import java.security.PublicKey
+import java.util.*
+import android.util.Base64
+import java.security.PrivateKey
+import java.security.Signature
 
 /**
  * Represents the user of the app - Has the ID and the Firebase token
  */
-class User @JvmOverloads constructor(var uid: PublicKey? = null, var token: String? = null)
+class User @JvmOverloads constructor(var uid: PublicKey? = null, var pk: PrivateKey? = null, var
+        token: String? = null) {
+
+    companion object {
+        val signer: Signature = Signature.getInstance("SHA256withECDSA")
+    }
+    fun getPublicKey(): String {
+        return Base64.encodeToString(uid?.encoded, Base64.URL_SAFE)
+    }
+
+    fun signChallenge(challenge: String): String {
+        signer.initSign(this.pk)
+        signer.update(challenge.encodeToByteArray())
+        return String(signer.sign())
+    }
+}
 
 @Database(
         version = DB_V1,
