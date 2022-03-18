@@ -15,9 +15,7 @@ import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.POST
 
-const val BASE_URL = "https://aracroproducts.com/attention/api/api.php"
-const val PARAM_FUNCTION_ID = "post_id"
-const val PARAM_FUNCTION_ALERT = "send_alert"
+const val BASE_URL = "https://attention.aracroproducts.com/api/v2"
 
 data class APIResponse (
         @SerializedName("success")
@@ -28,35 +26,6 @@ data class APIResponse (
     val code: Int
     )
 
-val retrofit: Retrofit = run {
-    val interceptor = HttpLoggingInterceptor()
-    interceptor.setLevel(HttpLoggingInterceptor.Level.BODY)
-    val client = OkHttpClient.Builder().addInterceptor(interceptor).build()
-    Retrofit.Builder()
-            .baseUrl(BASE_URL)
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(client)
-            .build()
-}
-
-
-interface APIInterface {
-    @FormUrlEncoded
-    @POST("?function=$PARAM_FUNCTION_ID")
-    suspend fun sendId(@Field("token") token: String, @Field("id")
-    id: String): APIResponse
-
-    @FormUrlEncoded
-    @POST("?function=$PARAM_FUNCTION_ALERT")
-    suspend fun sendAlert(@Field("to") to: String, @Field("from") from: String, @Field("message")
-    message: String?): APIResponse
-}
-
-object AttentionAPI {
-    val retrofitService : APIInterface by lazy {
-        retrofit.create(APIInterface::class.java)
-    }
-}
 
 class NetworkSingleton constructor(context: Context) {
     companion object {
