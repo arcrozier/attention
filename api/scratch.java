@@ -6,9 +6,19 @@ import java.util.concurrent.locks.ReentrantLock;
 /*
 import java.util.*;
 import java.security.*;
+import java.math.BigInteger;
 
-public class MyClass {
+public class Scratch {
     public static void main(String args[]) {
+        // random15Numbers();
+        for (int i = 0; i < 4; i++) {
+            genKeyAndSign();
+        }
+        
+    }
+    // MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEqMVmrjDof8oAmsQoIKYAqt59HGLWjUwurTjW540WXrl7+ZQQObQnNHC82LVRvN5ifXP86PvpxLvn/PVIWRDTyA==
+
+    public static void genKeyAndSign() {
         KeyPairGenerator generator;
         try {
             generator = KeyPairGenerator.getInstance("EC");
@@ -23,7 +33,7 @@ public class MyClass {
             keyPair = generator.genKeyPair();  // automatically added to key store
         }
         
-        System.out.println(Base64.getEncoder().encodeToString(keyPair.getPublic().getEncoded()));
+        System.out.println(Base64.getUrlEncoder().encodeToString(keyPair.getPublic().getEncoded()));
         Signature signature;
         try {
             signature = Signature.getInstance("SHA256withECDSA");
@@ -34,7 +44,7 @@ public class MyClass {
         byte[] signed;
         try {
             signature.initSign(keyPair.getPrivate());
-            signature.update("c~2:sdnzROtT[-Wi".getBytes());
+            signature.update("1".getBytes());
             signed = signature.sign();
         } catch (InvalidKeyException | SignatureException e) {
             System.out.println("Something went wrong with signature");
@@ -42,6 +52,20 @@ public class MyClass {
         }
         String signedStr = Base64.getEncoder().encodeToString(signed);
         System.out.println(signedStr);
+        System.out.println("\n");
+    }
+
+    public static void random15Numbers() {
+        System.out.print("{");
+        for (int i = 0; i < 15; i++) {
+            if (i != 0) {
+                System.out.print(", ");
+            }
+            System.out.println();
+            BigInteger randomNumber = new BigInteger(64, new Random());
+            System.out.print("\"" + randomNumber.toString() + "\"");
+        }
+        System.out.println("}");
     }
 }*/
 public class SpaceShip {

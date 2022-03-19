@@ -3,10 +3,13 @@ package com.aracroproducts.attention
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
-import androidx.compose.runtime.key
+import com.android.volley.Request
 import com.android.volley.RequestQueue
 import com.android.volley.Response
+import com.android.volley.VolleyError
+import com.android.volley.toolbox.JsonObjectRequest
 import kotlinx.coroutines.flow.Flow
+import org.json.JSONObject
 import java.lang.IllegalStateException
 import java.security.*
 import java.security.spec.KeySpec
@@ -41,7 +44,7 @@ class AttentionRepository(private val database: AttentionDB) {
     fun getMessages(friend: Friend): Flow<List<Message>> = database.getMessageDAO()
             .getMessagesFromUser(friend.id)
 
-    fun appendMessage(message: Message, save: Boolean) {
+    fun appendMessage(message: Message, save: Boolean = false) {
         if (save) {
             val mMessage = Message(timestamp = Calendar.getInstance().timeInMillis, direction =
             message.direction, otherId = message.otherId, message = message.message)
@@ -84,6 +87,25 @@ class AttentionRepository(private val database: AttentionDB) {
         return keyStore.isKeyEntry(ALIAS)
     }
 
+    fun retrieveAndSignChallenge(singleton: NetworkSingleton,
+                                 responseListener: Response.Listener<JSONObject>, errorListener:
+                                 Response.ErrorListener? = null) {
+        val keyStore = KeyStore.getInstance(KEY_STORE).apply {
+            load(null)
+        }
+        val uid = Base64.encode(keyStore.getCertificate(ALIAS).publicKey.encoded, Base64.URL_SAFE)
+        val request = JsonObjectRequest(Request.Method.GET, "$BASE_URL/get_challenge/$uid/",
+                null, { response ->
+                                        responseListener.onResponse(JSONObject(mapOf(
+                                                "signature" to signChallenge(response["data"] as String),
+                                                "challenge" to response["data"]
+                                        )))
+        }, errorListener).apply {
+            setShouldCache(false)
+        }
+        singleton.addToRequestQueue(request)
+    }
+
     fun signChallenge(challenge: String): String {
         val keyStore = KeyStore.getInstance(KEY_STORE).apply {
             load(null)
@@ -99,12 +121,27 @@ class AttentionRepository(private val database: AttentionDB) {
         })
     }
 
-    fun <T> sendMessage(message: Message, from: String, requestQueue: RequestQueue,
-                        responseListener: Response.Listener<T>? = null, errorListener: Response
+    fun <T> sendMessage(message: Message, from: String, to: String, singleton: NetworkSingleton,
+                        responseListener: Response.Listener<JSONObject>? = null, errorListener: Response
             .ErrorListener? = null) {
+
+        retrieveAndSignChallenge(singleton, { response ->
+            appendMessage(message)
+            val params = JSONObject(mapOf(
+                    "to" to to,
+                    "from" to from,
+                    "message" to message,
+                    "signature" to response["signature"],
+                    "challenge" to response["challenge"]
+            ))
+            val request = JsonObjectRequest(Request.Method.POST, "$BASE_URL/send_alert/", params,
+                    responseListener, errorListener)
+        }) { error ->
+            errorListener?.onErrorResponse(VolleyError("Failed to get challenge: ${error.message}"))
+        }
         // TODO send here - may need application context to get the RequestQueue
         // Use Volley: https://developer.android.com/training/volley
-        appendMessage(message, false)
+
     }
 
     fun <T> sendToken(token: String, publicKey: String, requestQueue: RequestQueue,
