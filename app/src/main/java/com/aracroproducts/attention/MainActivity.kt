@@ -56,6 +56,7 @@ import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.launch
 import java.security.NoSuchAlgorithmException
 import java.security.spec.InvalidKeySpecException
 import java.util.*
@@ -166,24 +167,47 @@ class MainActivity : AppCompatActivity() {
     @Composable
     fun HomeWrapper(model: MainViewModel) {
         val displayDialog: Pair<MainViewModel.DialogStatus, Friend?> by model.dialogState
+        val showSnackbar = model.isSnackBarShowing
+
         Home(
                 friends = model.friends.value ?: listOf(),
                 onLongPress = {model.onLongPress()},
                 onEditName = {model.onEditName(it)},
                 onDeletePrompt = {model.onDeletePrompt(it)},
-                dialogState = displayDialog)
+                dialogState = displayDialog,
+                showSnackbar = showSnackbar
+        )
     }
 
     @ExperimentalFoundationApi
     @Composable
     fun Home(friends: List<Friend>, onLongPress: () -> Unit, onEditName: (friend: Friend) -> Unit,
              onDeletePrompt: (friend: Friend) -> Unit,
-             dialogState: Pair<MainViewModel.DialogStatus, Friend?>) {
+             dialogState: Pair<MainViewModel.DialogStatus, Friend?>, showSnackbar: Boolean) {
 
+
+        val scaffoldState = rememberScaffoldState()
+        val scope = rememberCoroutineScope()
+        if (showSnackbar) {
+            LaunchedEffect(scaffoldState.snackbarHostState) {
+                scope.launch {
+                    val result = scaffoldState.snackbarHostState.showSnackbar(message = getString(R
+                    .string
+                            .alert_sent))  // cancels by default after a short amount of time
+
+                    when (result) {
+                        SnackbarResult.Dismissed -> {
+                            friendModel.dismissSnackBar()
+                        }
+                        else -> {}
+                    }
+                }
+            }
+        }
         // TODO: Read off dialog state and overlay state and display dialogs appropriately
         // Note: Settings dialog should display after other dialogs are resolved
         // https://coflutter.com/jetpack-compose-how-to-show-dialog/
-        Scaffold(
+        Scaffold(scaffoldState = scaffoldState,
                 topBar = {
                     TopAppBar (
                             backgroundColor = MaterialTheme.colors.primary,
@@ -359,7 +383,7 @@ class MainActivity : AppCompatActivity() {
     fun PreviewHome() {
         MaterialTheme(colors = if (isSystemInDarkTheme()) darkColors else lightColors) {
             Home(listOf(Friend("1", "Grace"), Friend("2", "Anita")), {}, {}, {},
-                    Pair(MainViewModel.DialogStatus.NONE, null))
+                    Pair(MainViewModel.DialogStatus.NONE, null), false)
         }
     }
 
@@ -381,11 +405,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     companion object {
-
-        const val FRIEND_LIST = "friends"
-        private const val FRIENDS_MAP_VERSION = "friend map"
-        private const val FRIEND_V1 = 1
-        private const val FRIEND_MAP_NOT_SUPPORTED = 0
         // time (in milliseconds) that the user has to cancel sending an alert
         private const val UNDO_TIME: Long = 3500
         private const val UNDO_INTERVALS: Long = 10

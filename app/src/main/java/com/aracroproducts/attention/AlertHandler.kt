@@ -15,9 +15,6 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.preference.PreferenceManager
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
-import java.util.*
 
 /**
  * Handles Firebase alerts
@@ -34,13 +31,17 @@ open class AlertHandler : FirebaseMessagingService() {
         if (preferences.getString(MainViewModel.MY_TOKEN, "") != token) {
             Log.d(TAG, "Token is new: updating shared preferences")
             val editor = preferences.edit()
-            editor.putBoolean(MainViewModel.UPLOADED, false)
+            editor.putBoolean(MainViewModel.TOKEN_UPLOADED, false)
             editor.putString(MainViewModel.MY_TOKEN, token)
             editor.apply()
             val repository = AttentionRepository(AttentionDB.getDB(applicationContext))
             repository.sendToken(token, NetworkSingleton.getInstance(applicationContext), {
-                Log.d(TAG, "Successfully uploaded token")}, {
-                    Log.e(TAG, "An error occurred when uploading token: ${it.message}")
+                Log.d(TAG, "Successfully uploaded token")
+                editor.putBoolean(MainViewModel.TOKEN_UPLOADED, true)
+                editor.putBoolean(MainViewModel.KEY_UPLOADED, true)
+                editor.apply()
+            }, {
+                Log.e(TAG, "An error occurred when uploading token: ${it.message}")
             })
         }
     }
@@ -56,9 +57,9 @@ open class AlertHandler : FirebaseMessagingService() {
                 direction = DIRECTION.Incoming, message = messageData[REMOTE_MESSAGE])
         val repository = AttentionRepository(AttentionDB.getDB(applicationContext))
         if (!repository.isFromFriend(message)) {
-                            return
+            return
         }  //checks if the sender is a friend of
-            // the user, ends if not
+        // the user, ends if not
         val userInfo = getSharedPreferences(MainViewModel.USER_INFO, MODE_PRIVATE)
         if (messageData[REMOTE_TO] != userInfo.getString(MainViewModel.MY_ID,
                         "")) return  //if message is not addressed to the user, ends
@@ -104,7 +105,7 @@ open class AlertHandler : FirebaseMessagingService() {
             intent.putExtra(ASSOCIATED_NOTIFICATION, id)
             intent.putExtra(SHOULD_VIBRATE, true)
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-            Log.d(TAG,"Sender: $senderName, ${message.otherId} Message: ${message.message}")
+            Log.d(TAG, "Sender: $senderName, ${message.otherId} Message: ${message.message}")
             startActivity(intent)
         }
         repository.appendMessage(message, resources.getBoolean(R.bool.save_messages))

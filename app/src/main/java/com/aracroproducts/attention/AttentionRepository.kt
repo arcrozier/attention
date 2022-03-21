@@ -122,15 +122,15 @@ class AttentionRepository(private val database: AttentionDB) {
         })
     }
 
-    fun sendMessage(message: Message, from: String, to: String, singleton: NetworkSingleton,
+    fun sendMessage(message: Message, singleton: NetworkSingleton,
                     responseListener: Response.Listener<JSONObject>? = null, errorListener: Response
             .ErrorListener? = null) {
-
+        assert(message.direction == DIRECTION.Outgoing)
         retrieveAndSignChallenge(singleton, { response ->
             appendMessage(message)
             val params = JSONObject(mapOf(
-                    "to" to to,
-                    "from" to from,
+                    "to" to message.otherId,
+                    "from" to getPublicKey()?.let { keyToString(it) },
                     "message" to message,
                     "signature" to response["signature"],
                     "challenge" to response["challenge"]
@@ -164,9 +164,7 @@ class AttentionRepository(private val database: AttentionDB) {
                         "signature" to response["signature"],
                         "challenge" to response["challenge"]
                 ))
-                sendToken(params, singleton, {
-                                             val preferences =
-                }, errorListener)
+                sendToken(params, singleton, responseListener, errorListener)
             }) { error ->
                 errorListener?.onErrorResponse(VolleyError("Failed to get challenge while " +
                         "sending token: ${error.message}"))
@@ -183,7 +181,6 @@ class AttentionRepository(private val database: AttentionDB) {
         private const val KEY_STORE = "AndroidKeyStore"
         private const val ALIAS = "USERID"
         private const val KEY_SIZE = 256
-        const val MAGIC_NUMBER = 0xDEADBEEF
 
         fun keyToString(key: Key): String {
             return Base64.encodeToString(key.encoded, Base64.DEFAULT)

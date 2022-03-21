@@ -14,17 +14,18 @@ import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.*
 import androidx.preference.PreferenceManager
 import com.google.android.gms.tasks.Task
+import com.google.api.client.util.DateTime
 import com.google.firebase.messaging.FirebaseMessaging
-import org.json.JSONObject
-import java.lang.IllegalStateException
-import java.security.KeyPair
-import java.util.HashSet
+import java.time.Instant
+import java.util.*
 import javax.inject.Inject
 
 class MainViewModel @Inject constructor(
@@ -38,7 +39,19 @@ class MainViewModel @Inject constructor(
     enum class DialogStatus {
         NONE, USERNAME, FRIEND_NAME, CONFIRM_DELETE
     }
+
     val friends = attentionRepository.getFriends().asLiveData()
+
+    var isSnackBarShowing: Boolean by mutableStateOf(false)
+        private set
+
+    private fun showSnackBar() {
+        isSnackBarShowing = true
+    }
+
+    fun dismissSnackBar() {
+        isSnackBarShowing = false
+    }
 
     /**
      * Used to determine which dialog to display (or none). If the dialog requires additional data,
@@ -168,12 +181,16 @@ class MainViewModel @Inject constructor(
             dialogState.value = Pair(DialogStatus.USERNAME, null)
         }
         // Do we need to upload a token (note we don't want to upload if we don't have a token yet)
-        if (token != null && !userInfo.getBoolean(UPLOADED, false)) {
-            attentionRepository.sendToken(token, NetworkSingleton
-                    .getInstance(application), {Log.d(sTAG, "Successfully uploaded token")}, {Log
-                    .e(sTAG, "Error uploading token: ${it.message}")},
-                    userInfo.getBoolean(KEY_UPLOADED,
-                    false))
+        if (token != null && !userInfo.getBoolean(TOKEN_UPLOADED, false)) {
+            attentionRepository.sendToken(token, NetworkSingleton.getInstance(application), {
+                Log.d(sTAG, "Successfully uploaded token")
+                val editor = userInfo.edit()
+                editor.putBoolean(KEY_UPLOADED, true)
+                editor.putBoolean(TOKEN_UPLOADED, true)
+                editor.apply()
+            }, {
+                Log.e(sTAG, "Error uploading token: ${it.message}")
+            }, userInfo.getBoolean(KEY_UPLOADED, false))
         } else if (token == null) { // We don't have a token, so let's get one
             getToken(application)
         }
@@ -208,9 +225,9 @@ class MainViewModel @Inject constructor(
                     vibrateAllowed)
             settingsEditor.apply()
         }
-        if (!prefs.contains(UPLOADED)) {
+        if (!prefs.contains(TOKEN_UPLOADED)) {
             val editor = prefs.edit()
-            editor.putBoolean(UPLOADED, false)
+            editor.putBoolean(TOKEN_UPLOADED, false)
             editor.apply()
         }
     }
@@ -228,14 +245,22 @@ class MainViewModel @Inject constructor(
     }
 
     fun sendAlert(to: String, message: String?) {
-        // TODO - get our ID, then call relevant method
+        attentionRepository.sendMessage(Message(timestamp = System.currentTimeMillis(),
+                otherId = to, message
+        = message, direction = DIRECTION.Outgoing),
+                NetworkSingleton.getInstance(getApplication<Application>()), {
+            showSnackBar()
+        }, {
+            Log.e(sTAG, "Error sending alert: ${it.message}")
+            notifyUser(AppWorker.ErrorType.BAD_REQUEST, to)
+        })
     }
 
     /**
-    * Helper method that gets the Firebase token
+     * Helper method that gets the Firebase token
      *
      * Automatically uploads the token and updates the "uploaded" sharedPreference
-    */
+     */
     private fun getToken(context: Context) {
         FirebaseMessaging.getInstance().token.addOnCompleteListener { task: Task<String?> ->
             if (!task.isSuccessful) {
@@ -254,12 +279,12 @@ class MainViewModel @Inject constructor(
                         .getInstance(context),
                         {
                             val editor = preferences.edit()
-                            editor.putBoolean(UPLOADED, true)
+                            editor.putBoolean(TOKEN_UPLOADED, true)
                             editor.apply()
                             Toast.makeText(context, context.getString(R.string.user_registered),
                                     Toast.LENGTH_SHORT).show()
-                        }, {error ->
-                            Log.e(sTAG, "An error occurred while uploading token: ${error.message}")
+                        }, { error ->
+                    Log.e(sTAG, "An error occurred while uploading token: ${error.message}")
                 }, preferences.getBoolean(KEY_UPLOADED, false))
             }
 
@@ -282,7 +307,6 @@ class MainViewModel @Inject constructor(
         const val MY_ID = "id"
         const val MY_NAME = "name"
         const val MY_TOKEN = "token"
-        const val UPLOADED = "uploaded"
 
         /**
          * Helper function to create the notification channel for the failed alert

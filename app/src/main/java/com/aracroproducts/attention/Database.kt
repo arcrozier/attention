@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.Flow
 import java.util.*
 import android.util.Base64
 import java.security.*
+import java.time.Instant
 
 /**
  * Represents the user of the app - Has the ID and the Firebase token
