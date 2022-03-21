@@ -46,9 +46,11 @@ import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.work.*
+import com.aracroproducts.attention.MainViewModel.Companion.MY_NAME
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import com.google.android.gms.tasks.Task
+import com.google.android.material.color.DynamicColors
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.messaging.FirebaseMessaging
@@ -64,8 +66,6 @@ import kotlin.collections.HashMap
 
 class MainActivity : AppCompatActivity() {
     private val sTAG = javaClass.name
-    private var token: String? = null
-    private var user: User? = null
     private val friendModel: MainViewModel by viewModels()
 
     enum class State {
@@ -79,14 +79,10 @@ class MainActivity : AppCompatActivity() {
     private val nameCallback: ActivityResultCallback<ActivityResult> =
             ActivityResultCallback<ActivityResult> {
                 if (it.resultCode != Activity.RESULT_OK) return@ActivityResultCallback
-                val prefs = getSharedPreferences(USER_INFO, MODE_PRIVATE)
-                val editor = prefs.edit()
                 val settingsEditor = PreferenceManager.getDefaultSharedPreferences(this).edit()
                 settingsEditor.putString(getString(R.string.name_key),
                         it.data?.getStringExtra(MY_NAME))
-                editor.apply()
                 settingsEditor.apply()
-                addUserToDB(user)
             }
 
     /**
@@ -134,31 +130,7 @@ class MainActivity : AppCompatActivity() {
 
         if (!checkPlayServices()) return
 
-        // Load user preferences and data
-        val prefs = getSharedPreferences(USER_INFO, MODE_PRIVATE)
-        val settings = PreferenceManager.getDefaultSharedPreferences(this)
-        val notificationValues = resources.getStringArray(R.array.notification_values)
-        // Set up default preferences
-        if (!settings.contains(getString(R.string.ring_preference_key))) {
-            val settingsEditor = settings.edit()
-            val ringAllowed: MutableSet<String> = HashSet()
-            ringAllowed.add(notificationValues[2])
-            settingsEditor.putStringSet(getString(R.string.ring_preference_key), ringAllowed)
-            settingsEditor.apply()
-        }
-        if (!settings.contains(getString(R.string.vibrate_preference_key))) {
-            val settingsEditor = settings.edit()
-            val vibrateAllowed: MutableSet<String> = HashSet()
-            vibrateAllowed.add(notificationValues[1])
-            vibrateAllowed.add(notificationValues[2])
-            settingsEditor.putStringSet(getString(R.string.vibrate_preference_key), vibrateAllowed)
-            settingsEditor.apply()
-        }
-        if (!prefs.contains(UPLOADED)) {
-            val editor = prefs.edit()
-            editor.putBoolean(UPLOADED, false)
-            editor.apply()
-        }
+        friendModel.loadUserPrefs()
 
         setContent {
             MaterialTheme(colors = if (isSystemInDarkTheme()) darkColors else lightColors) {
@@ -363,7 +335,7 @@ class MainActivity : AppCompatActivity() {
                         }
 
                         override fun onFinish() {
-                            sendAlertToServer(friend.id, message = message)
+                            friendModel.sendAlert(friend.id, message = message)
                         }
                     }
 
@@ -397,98 +369,6 @@ class MainActivity : AppCompatActivity() {
         if (!checkPlayServices()) return
     }
 
-    /**
-     * Sends the user's notification to the server
-     * @param id        - The recipient ID
-     * @param message   - The message to send to the person (if null, goes as regular alert)
-     */
-    private fun sendAlertToServer(id: String, message: String?) {
-        Log.d(sTAG, "Sending alert to server via AppWorker")
-
-
-
-        // set up the input data
-        val data = Data.Builder().putString(AppWorker.TO, id).putString(AppWorker.FROM, user!!.uid)
-                .putString(AppWorker.MESSAGE, message).build()
-        // should only run when connected to internet
-        val constraints = Constraints.Builder()
-                .setRequiredNetworkType(NetworkType.CONNECTED)
-                .build()
-        // configure work request
-        val workRequest = OneTimeWorkRequestBuilder<AppWorker.MessageWorker>().apply {
-            setInputData(data)
-            setConstraints(constraints)
-            setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
-        }.build()
-
-        // enqueue the work
-        val workManager = WorkManager.getInstance(this)
-        workManager.enqueue(workRequest)
-
-        // get the result from the work
-        workManager.getWorkInfoByIdLiveData(workRequest.id)
-                .observe(this) {
-                    val layout = findViewById<View>(R.id.coordinatorLayout)
-                    if (it != null && it.state == WorkInfo.State.SUCCEEDED) {
-                        // Success! Let the user know, but not a big deal
-                        val snackbar =
-                                Snackbar.make(layout, R.string.alert_sent, Snackbar.LENGTH_SHORT)
-                        snackbar.show()
-                    } else if (it != null && it.state == WorkInfo.State.FAILED) {
-                        // Something went wrong. Show the user, since they're still in the app
-                        val name = AlertHandler.getFriendNameForID(this, id)
-                        val code = it.outputData.getInt(AppWorker.RESULT_CODE,
-                                AppWorker.CODE_BAD_REQUEST)
-                        val text = if (code == AppWorker.CODE_BAD_REQUEST)
-                            getString(R.string.alert_failed_bad_request, name)
-                        else
-                            getString(R.string.alert_failed_server_error, name)
-                        Snackbar.make(layout, text, Snackbar.LENGTH_LONG).show()
-                    }
-                }
-    }
-
-    /**
-     * Adds the specified new user to the Aracro Products database. If the user already exists,
-     * updates the token associated with it
-     *
-     * @param user  - The user to add to the database
-     */
-    private fun addUserToDB(user: User?) {
-        FirebaseMessaging.getInstance().token.addOnCompleteListener { task: Task<String?> ->
-            user!!.token = task.result
-            Log.d(sTAG, getString(R.string.log_sending_msg))
-            val data = Data.Builder()
-                    .putString(AppWorker.TOKEN, user.token)
-                    .putString(AppWorker.ID, user.uid)
-                    .build()
-            val constraints = Constraints.Builder()
-                    .setRequiredNetworkType(NetworkType.CONNECTED)
-                    .build()
-            val workRequest = OneTimeWorkRequestBuilder<AppWorker.TokenWorker>().apply {
-                setInputData(data)
-                setConstraints(constraints)
-                setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
-            }.build()
-            val workManager = WorkManager.getInstance(this)
-            workManager.enqueue(workRequest)
-
-            workManager.getWorkInfoByIdLiveData(workRequest.id)
-                    .observe(this) {
-                        val editor = getSharedPreferences(USER_INFO, MODE_PRIVATE).edit()
-                        if (it != null && it.state == WorkInfo.State.SUCCEEDED) {
-                            editor.putBoolean(UPLOADED, true)
-                            editor.putString(MY_TOKEN, token)
-                            Toast.makeText(this@MainActivity, getString(R.string.user_registered),
-                                    Toast.LENGTH_SHORT).show()
-                        } else if (it != null && it.state == WorkInfo.State.FAILED) {
-                            editor.putBoolean(UPLOADED, false)
-                        }
-                        editor.apply()
-                    }
-        }
-    }
-
     private fun checkPlayServices(): Boolean {
         if (GoogleApiAvailability.getInstance()
                         .isGooglePlayServicesAvailable(this) != ConnectionResult.SUCCESS) {
@@ -500,16 +380,8 @@ class MainActivity : AppCompatActivity() {
         return true
     }
 
-
-
-
     companion object {
-        const val USER_INFO = "user"
-        const val FRIENDS = "listen"
-        const val MY_ID = "id"
-        const val MY_NAME = "name"
-        const val MY_TOKEN = "token"
-        const val UPLOADED = "uploaded"
+
         const val FRIEND_LIST = "friends"
         private const val FRIENDS_MAP_VERSION = "friend map"
         private const val FRIEND_V1 = 1

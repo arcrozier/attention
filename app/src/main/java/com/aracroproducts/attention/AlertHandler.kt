@@ -30,13 +30,18 @@ open class AlertHandler : FirebaseMessagingService() {
      */
     override fun onNewToken(token: String) {
         Log.d(TAG, "New token: $token")
-        val preferences = getSharedPreferences(MainActivity.USER_INFO, MODE_PRIVATE)
-        if (preferences.getString(MainActivity.MY_TOKEN, "") != token) {
+        val preferences = getSharedPreferences(MainViewModel.USER_INFO, MODE_PRIVATE)
+        if (preferences.getString(MainViewModel.MY_TOKEN, "") != token) {
             Log.d(TAG, "Token is new: updating shared preferences")
             val editor = preferences.edit()
-            editor.putBoolean(MainActivity.UPLOADED, false)
-            editor.putString(MainActivity.MY_TOKEN, token)
+            editor.putBoolean(MainViewModel.UPLOADED, false)
+            editor.putString(MainViewModel.MY_TOKEN, token)
             editor.apply()
+            val repository = AttentionRepository(AttentionDB.getDB(applicationContext))
+            repository.sendToken(token, NetworkSingleton.getInstance(applicationContext), {
+                Log.d(TAG, "Successfully uploaded token")}, {
+                    Log.e(TAG, "An error occurred when uploading token: ${it.message}")
+            })
         }
     }
 
@@ -54,8 +59,8 @@ open class AlertHandler : FirebaseMessagingService() {
                             return
         }  //checks if the sender is a friend of
             // the user, ends if not
-        val userInfo = getSharedPreferences(MainActivity.USER_INFO, MODE_PRIVATE)
-        if (messageData[REMOTE_TO] != userInfo.getString(MainActivity.MY_ID,
+        val userInfo = getSharedPreferences(MainViewModel.USER_INFO, MODE_PRIVATE)
+        if (messageData[REMOTE_TO] != userInfo.getString(MainViewModel.MY_ID,
                         "")) return  //if message is not addressed to the user, ends
         val senderName = repository.getFriend(message.otherId).name
 
@@ -176,30 +181,6 @@ open class AlertHandler : FirebaseMessagingService() {
         const val REMOTE_MESSAGE = "alert_message"
         const val ASSOCIATED_NOTIFICATION = "notification_id"
         const val SHOULD_VIBRATE = "vibrate"
-
-
-        /**
-         * Gets the name of the friend with the provided id
-         * @param id    - The ID to get the name for
-         * @return      - The name corresponding to the ID
-         */
-        fun getFriendNameForID(context: Context, id: String?): String? {
-            val friends = context.getSharedPreferences(MainActivity.FRIENDS, MODE_PRIVATE)
-            val friendJson = friends.getString("friends", null)
-            var friendList: List<Array<String>> = ArrayList()
-            val gson = Gson()
-            if (friendJson != null) {
-                val listType = object : TypeToken<List<Array<String?>?>?>() {}.type
-                friendList = gson.fromJson(friendJson, listType)
-                Log.d(TAG, friendJson)
-            }
-            for (i in friendList.indices) {
-                if (friendList[i][1] == id) {
-                    return friendList[i][0]
-                }
-            }
-            return null
-        }
 
         /**
          * Creates the missed alerts notification channel on Android O and later

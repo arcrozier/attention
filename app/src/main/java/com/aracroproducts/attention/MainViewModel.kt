@@ -24,6 +24,7 @@ import com.google.firebase.messaging.FirebaseMessaging
 import org.json.JSONObject
 import java.lang.IllegalStateException
 import java.security.KeyPair
+import java.util.HashSet
 import javax.inject.Inject
 
 class MainViewModel @Inject constructor(
@@ -38,8 +39,6 @@ class MainViewModel @Inject constructor(
         NONE, USERNAME, FRIEND_NAME, CONFIRM_DELETE
     }
     val friends = attentionRepository.getFriends().asLiveData()
-
-    val user: MutableLiveData<User> = MutableLiveData(User())
 
     /**
      * Used to determine which dialog to display (or none). If the dialog requires additional data,
@@ -148,46 +147,71 @@ class MainViewModel @Inject constructor(
     }
 
     init {
-        val userInfo = application.getSharedPreferences(MainActivity.USER_INFO, Context.MODE_PRIVATE)
+        val userInfo = application.getSharedPreferences(USER_INFO, Context.MODE_PRIVATE)
         val defaultPrefs = PreferenceManager.getDefaultSharedPreferences(application)
         // Verify Firebase token and continue configuring settings
-        val token = userInfo.getString(MainActivity.MY_TOKEN, null)
+        val token = userInfo.getString(MY_TOKEN, null)
 
         // Check if there is already a key pair
         if (!attentionRepository.keyExists()) {
             // No key pair - generate a new one
             attentionRepository.genKeyPair()
 
-            // Update state
-            user.value = User(attentionRepository.getPublicKey(), token)
-
             // Signal that the new key needs to be uploaded
             val defaultEditor = defaultPrefs.edit()
-            defaultEditor.putBoolean(MainActivity.UPLOADED, false)
+            defaultEditor.putBoolean(KEY_UPLOADED, false)
             defaultEditor.apply()
-        } else {
-            // Keys already created - load them
-            user.value = User(attentionRepository.getPublicKey())
         }
-        val publicKeyString = AttentionRepository.keyToString(
-                attentionRepository.getPublicKey() ?: throw IllegalStateException("Public key " +
-                        "should not be null"))
 
         // Do we need to prompt user for a name?
         if (!defaultPrefs.contains(application.getString(R.string.name_key))) {
             dialogState.value = Pair(DialogStatus.USERNAME, null)
         }
         // Do we need to upload a token (note we don't want to upload if we don't have a token yet)
-        if (token != null && !userInfo.getBoolean(MainActivity.UPLOADED, false)) {
-            attentionRepository.sendToken<JSONObject>(token, publicKeyString, NetworkSingleton
-                    .getInstance(application).requestQueue)
+        if (token != null && !userInfo.getBoolean(UPLOADED, false)) {
+            attentionRepository.sendToken(token, NetworkSingleton
+                    .getInstance(application), {Log.d(sTAG, "Successfully uploaded token")}, {Log
+                    .e(sTAG, "Error uploading token: ${it.message}")},
+                    userInfo.getBoolean(KEY_UPLOADED,
+                    false))
         } else if (token == null) { // We don't have a token, so let's get one
-            getToken(application, publicKeyString)
+            getToken(application)
         }
 
         if (!Settings.canDrawOverlays(application) && !userInfo.getBoolean(OVERLAY_NO_PROMPT,
                         false)) {
             promptOverlay.value = true
+        }
+    }
+
+    fun loadUserPrefs() {
+        val context = getApplication<Application>()
+        // Load user preferences and data
+        val prefs = context.getSharedPreferences(USER_INFO, AppCompatActivity.MODE_PRIVATE)
+        val settings = PreferenceManager.getDefaultSharedPreferences(context)
+        val notificationValues = context.resources.getStringArray(R.array.notification_values)
+        // Set up default preferences
+        if (!settings.contains(context.getString(R.string.ring_preference_key))) {
+            val settingsEditor = settings.edit()
+            val ringAllowed: MutableSet<String> = HashSet()
+            ringAllowed.add(notificationValues[2])
+            settingsEditor.putStringSet(context.getString(R.string.ring_preference_key),
+                    ringAllowed)
+            settingsEditor.apply()
+        }
+        if (!settings.contains(context.getString(R.string.vibrate_preference_key))) {
+            val settingsEditor = settings.edit()
+            val vibrateAllowed: MutableSet<String> = HashSet()
+            vibrateAllowed.add(notificationValues[1])
+            vibrateAllowed.add(notificationValues[2])
+            settingsEditor.putStringSet(context.getString(R.string.vibrate_preference_key),
+                    vibrateAllowed)
+            settingsEditor.apply()
+        }
+        if (!prefs.contains(UPLOADED)) {
+            val editor = prefs.edit()
+            editor.putBoolean(UPLOADED, false)
+            editor.apply()
         }
     }
 
@@ -203,12 +227,16 @@ class MainViewModel @Inject constructor(
          */
     }
 
+    fun sendAlert(to: String, message: String?) {
+        // TODO - get our ID, then call relevant method
+    }
+
     /**
     * Helper method that gets the Firebase token
      *
      * Automatically uploads the token and updates the "uploaded" sharedPreference
     */
-    private fun getToken(context: Context, publicKey: String) {
+    private fun getToken(context: Context) {
         FirebaseMessaging.getInstance().token.addOnCompleteListener { task: Task<String?> ->
             if (!task.isSuccessful) {
                 Log.w(sTAG, "getInstanceId failed", task.exception)
@@ -219,20 +247,20 @@ class MainViewModel @Inject constructor(
             val token = task.result
             Log.d(sTAG, "Got token! $token")
 
-            user.value?.token = token
-            val preferences = context.getSharedPreferences(MainActivity.USER_INFO,
+            val preferences = context.getSharedPreferences(USER_INFO,
                     AppCompatActivity.MODE_PRIVATE)
-            if (token != null && token != preferences.getString(MainActivity.MY_TOKEN, "")) {
-                attentionRepository.sendToken<JSONObject>(token, publicKey, NetworkSingleton
-                        .getInstance(context).requestQueue,
+            if (token != null && token != preferences.getString(MY_TOKEN, "")) {
+                attentionRepository.sendToken(token, NetworkSingleton
+                        .getInstance(context),
                         {
-                            // TODO make sure error checking happens in repository
                             val editor = preferences.edit()
-                            editor.putBoolean(MainActivity.UPLOADED, true)
+                            editor.putBoolean(UPLOADED, true)
                             editor.apply()
                             Toast.makeText(context, context.getString(R.string.user_registered),
                                     Toast.LENGTH_SHORT).show()
-                        })
+                        }, {error ->
+                            Log.e(sTAG, "An error occurred while uploading token: ${error.message}")
+                }, preferences.getBoolean(KEY_UPLOADED, false))
             }
 
             // Log and toast
@@ -244,12 +272,17 @@ class MainViewModel @Inject constructor(
     companion object {
         private val sTAG: String = MainViewModel::class.java.name
 
-        private const val PREF_PRIVATE_KEY = "private_key"
-        private const val PREF_PUBLIC_KEY = "public_key"
-
         private const val COMPAT_HEAVY_CLICK = 5
 
         const val OVERLAY_NO_PROMPT = "OverlayDoNotAsk"
+        const val KEY_UPLOADED = "public_key_requires_auth"
+        const val TOKEN_UPLOADED = "token_needs_upload"
+        const val USER_INFO = "user"
+        const val FRIENDS = "listen"
+        const val MY_ID = "id"
+        const val MY_NAME = "name"
+        const val MY_TOKEN = "token"
+        const val UPLOADED = "uploaded"
 
         /**
          * Helper function to create the notification channel for the failed alert
@@ -259,7 +292,7 @@ class MainViewModel @Inject constructor(
         fun createFailedAlertNotificationChannel(context: Context) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 val name: CharSequence = context.getString(R.string.alert_failed_channel_name)
-                val description = context.getString(R.string.alert_channel_description)
+                val description = context.getString(R.string.alert_failed_channel_description)
                 val importance = NotificationManager.IMPORTANCE_HIGH
                 val channel =
                         NotificationChannel(AppWorker.FAILED_ALERT_CHANNEL_ID, name, importance)

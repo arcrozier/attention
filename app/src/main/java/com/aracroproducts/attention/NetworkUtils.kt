@@ -17,15 +17,6 @@ import retrofit2.http.POST
 
 const val BASE_URL = "https://attention.aracroproducts.com/api/v2"
 
-data class APIResponse (
-        @SerializedName("success")
-    val success: Boolean,
-        @SerializedName("data")
-    val data: String,
-        @SerializedName("code")
-    val code: Int
-    )
-
 
 class NetworkSingleton constructor(context: Context) {
     companion object {

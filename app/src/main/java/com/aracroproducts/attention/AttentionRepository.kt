@@ -8,6 +8,7 @@ import com.android.volley.RequestQueue
 import com.android.volley.Response
 import com.android.volley.VolleyError
 import com.android.volley.toolbox.JsonObjectRequest
+import com.google.api.client.json.Json
 import kotlinx.coroutines.flow.Flow
 import org.json.JSONObject
 import java.lang.IllegalStateException
@@ -121,8 +122,8 @@ class AttentionRepository(private val database: AttentionDB) {
         })
     }
 
-    fun <T> sendMessage(message: Message, from: String, to: String, singleton: NetworkSingleton,
-                        responseListener: Response.Listener<JSONObject>? = null, errorListener: Response
+    fun sendMessage(message: Message, from: String, to: String, singleton: NetworkSingleton,
+                    responseListener: Response.Listener<JSONObject>? = null, errorListener: Response
             .ErrorListener? = null) {
 
         retrieveAndSignChallenge(singleton, { response ->
@@ -136,20 +137,44 @@ class AttentionRepository(private val database: AttentionDB) {
             ))
             val request = JsonObjectRequest(Request.Method.POST, "$BASE_URL/send_alert/", params,
                     responseListener, errorListener)
+            singleton.addToRequestQueue(request)
         }) { error ->
             errorListener?.onErrorResponse(VolleyError("Failed to get challenge: ${error.message}"))
         }
-        // TODO send here - may need application context to get the RequestQueue
-        // Use Volley: https://developer.android.com/training/volley
 
     }
 
-    fun <T> sendToken(token: String, publicKey: String, requestQueue: RequestQueue,
-                      responseListener: Response
-    .Listener<T>? =
-            null, errorListener: Response.ErrorListener? = null) {
-        // TODO send here - may need application context to get the RequestQueue
-        // https://developer.android.com/training/volley
+    private fun sendToken(params: JSONObject, singleton: NetworkSingleton,
+                          responseListener: Response.Listener<JSONObject>?, errorListener:
+                          Response.ErrorListener?) {
+        val request = JsonObjectRequest(Request.Method.POST, "$BASE_URL/post_id/", params,
+                responseListener, errorListener)
+        singleton.addToRequestQueue(request)
+    }
+
+    fun sendToken(token: String, singleton: NetworkSingleton,
+                      responseListener: Response.Listener<JSONObject>? = null,
+                      errorListener: Response.ErrorListener? = null, authRequired: Boolean =
+                          true) {
+        if (authRequired) {
+            retrieveAndSignChallenge(singleton, { response ->
+                val params = JSONObject(mapOf(
+                        "token" to token,
+                        "id" to getPublicKey(),
+                        "signature" to response["signature"],
+                        "challenge" to response["challenge"]
+                ))
+                sendToken(params, singleton, {
+                                             val preferences =
+                }, errorListener)
+            }) { error ->
+                errorListener?.onErrorResponse(VolleyError("Failed to get challenge while " +
+                        "sending token: ${error.message}"))
+            }
+        } else {
+            sendToken(JSONObject(mapOf("token" to token, "id" to getPublicKey())), singleton,
+                    responseListener, errorListener)
+        }
     }
 
     companion object {
