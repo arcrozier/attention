@@ -4,16 +4,6 @@ import android.content.Context
 import com.android.volley.Request
 import com.android.volley.RequestQueue
 import com.android.volley.toolbox.Volley
-import com.google.gson.annotations.SerializedName
-import retrofit2.converter.gson.GsonConverterFactory
-
-import retrofit2.Retrofit
-
-import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
-import retrofit2.http.Field
-import retrofit2.http.FormUrlEncoded
-import retrofit2.http.POST
 
 const val BASE_URL = "https://attention.aracroproducts.com/api/v2"
 

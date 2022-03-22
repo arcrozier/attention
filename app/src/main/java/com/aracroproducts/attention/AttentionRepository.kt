@@ -4,14 +4,11 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
 import com.android.volley.Request
-import com.android.volley.RequestQueue
 import com.android.volley.Response
 import com.android.volley.VolleyError
 import com.android.volley.toolbox.JsonObjectRequest
-import com.google.api.client.json.Json
 import kotlinx.coroutines.flow.Flow
 import org.json.JSONObject
-import java.lang.IllegalStateException
 import java.security.*
 import java.security.spec.KeySpec
 import java.security.spec.X509EncodedKeySpec

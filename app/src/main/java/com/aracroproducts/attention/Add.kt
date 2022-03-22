@@ -80,8 +80,8 @@ class Add : AppCompatActivity() {
             getSystemService(VIBRATOR_SERVICE) as Vibrator
         }
         val writer = QRCodeWriter()
-        val id = getSharedPreferences(MainActivity.USER_INFO, MODE_PRIVATE).getString(
-                MainActivity.MY_ID, null)
+        val id = getSharedPreferences(MainViewModel.USER_INFO, MODE_PRIVATE).getString(
+                MainViewModel.MY_ID, null)
         val name = PreferenceManager.getDefaultSharedPreferences(this)
                 .getString(getString(R.string.name_key), null)
         val user = "$name $id"
@@ -144,7 +144,7 @@ class Add : AppCompatActivity() {
             resume()
             return
         }
-        val preferences = getSharedPreferences(MainActivity.FRIENDS, MODE_PRIVATE)
+        val preferences = getSharedPreferences(MainViewModel.FRIENDS, MODE_PRIVATE)
         val friendJson = preferences.getString("friends", null)
         var friendList = ArrayList<Array<String?>?>()
         val gson = Gson()
