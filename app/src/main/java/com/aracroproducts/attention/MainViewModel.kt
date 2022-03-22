@@ -35,7 +35,7 @@ class MainViewModel @Inject constructor(
     // val friends: LiveData<MutableMap<String, Friend>> = _friends
 
     enum class DialogStatus {
-        NONE, USERNAME, FRIEND_NAME, CONFIRM_DELETE
+        USERNAME, OVERLAY_PERMISSION, FRIEND_NAME, CONFIRM_DELETE, NONE
     }
 
     val friends = attentionRepository.getFriends().asLiveData()
@@ -57,7 +57,7 @@ class MainViewModel @Inject constructor(
      */
     val dialogState = mutableStateOf(Pair<DialogStatus, Friend?>(DialogStatus.NONE, null))
 
-    val dialogQueue = PriorityQueue<Pair<DialogStatus, Friend?>> { t, t2 ->
+    private val dialogQueue = PriorityQueueSet<Pair<DialogStatus, Friend?>> { t, t2 ->
         val typeCompare = t.first.compareTo(t2.first)
         if (typeCompare != 0) {
             typeCompare
@@ -70,20 +70,54 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    val promptOverlay = mutableStateOf(false)
+    /**
+     * Called to get the next expected dialog state
+     *
+     * This will set the dialogState value and remove the current state from the queue
+     *
+     * As soon as the dialog state has been handled, call this again to update the UI. This
+     * should be called only by whatever is responsible for dealing with that state
+     */
+    fun popDialogState() {
+        synchronized(this) {
+            if (dialogQueue.isEmpty()) {
+                dialogState.value = Pair(DialogStatus.NONE, null)
+            } else {
+                dialogState.value = dialogQueue.remove()
+            }
+        }
+    }
+
+    /**
+     * Adds a new dialog state to the queue. If the queue is empty, updates dialogState immediately
+     */
+    fun appendDialogState(state: Pair<DialogStatus, Friend?>) {
+        if (state.first == DialogStatus.NONE) return
+        synchronized(this) {
+            if (dialogQueue.isEmpty()) dialogState.value = state
+            else dialogQueue.add(state)
+        }
+    }
 
     fun onAddFriend(friend: Friend) {
         attentionRepository.insert(friend)
     }
 
     fun onDeleteFriend(friend: Friend) {
-        attentionRepository.delete(friend)
-        dialogState.value = Pair(DialogStatus.NONE, null)
+        appendDialogState(Pair(DialogStatus.NONE, friend))
     }
 
-    fun onEditName(id: String, name: String) {
+    fun confirmDeleteFriend(friend: Friend) {
+        attentionRepository.delete(friend)
+    }
+
+    // Shows the edit name dialog
+    fun onEditName(friend: Friend) {
+        dialogState.value = Pair(DialogStatus.FRIEND_NAME, friend)
+    }
+
+    fun confirmEditName(id: String, name: String) {
         attentionRepository.edit(Friend(id = id, name = name))
-        dialogState.value = Pair(DialogStatus.NONE, null)
     }
 
     fun isFromFriend(message: Message): Boolean {
@@ -121,7 +155,7 @@ class MainViewModel @Inject constructor(
 
     // Prompts the user to confirm deleting the friend
     fun onDeletePrompt(friend: Friend) {
-        dialogState.value = Pair(DialogStatus.CONFIRM_DELETE, friend)
+        appendDialogState(Pair(DialogStatus.CONFIRM_DELETE, friend))
         /*
         val alertDialog = android.app.AlertDialog.Builder(this).create()
         alertDialog.setTitle(context.getString(R.string.confirm_delete_title))
@@ -189,7 +223,7 @@ class MainViewModel @Inject constructor(
 
         // Do we need to prompt user for a name?
         if (!defaultPrefs.contains(application.getString(R.string.name_key))) {
-            dialogState.value = Pair(DialogStatus.USERNAME, null)
+            appendDialogState(Pair(DialogStatus.USERNAME, null))
         }
         // Do we need to upload a token (note we don't want to upload if we don't have a token yet)
         if (token != null && !userInfo.getBoolean(TOKEN_UPLOADED, false)) {
@@ -208,7 +242,7 @@ class MainViewModel @Inject constructor(
 
         if (!Settings.canDrawOverlays(application) && !userInfo.getBoolean(OVERLAY_NO_PROMPT,
                         false)) {
-            promptOverlay.value = true
+            appendDialogState(Pair(DialogStatus.OVERLAY_PERMISSION, null))
         }
     }
 
@@ -241,18 +275,6 @@ class MainViewModel @Inject constructor(
             editor.putBoolean(TOKEN_UPLOADED, false)
             editor.apply()
         }
-    }
-
-    // Shows the edit name dialog
-    fun onEditName(friend: Friend) {
-        dialogState.value = Pair(DialogStatus.FRIEND_NAME, friend)
-        /*
-        val intent = Intent(getApplication(), DialogActivity::class.java)
-        intent.putExtra(DialogActivity.EXTRA_EDIT_NAME, true)
-        intent.putExtra(DialogActivity.EXTRA_USER_ID, id)
-        startEditNameDialogForResult.launch(intent)
-
-         */
     }
 
     fun sendAlert(to: String, message: String?) {
