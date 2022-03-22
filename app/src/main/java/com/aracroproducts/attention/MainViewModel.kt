@@ -38,6 +38,17 @@ class MainViewModel @Inject constructor(
         USERNAME, OVERLAY_PERMISSION, FRIEND_NAME, CONFIRM_DELETE, NONE
     }
 
+    /**
+     * Used to store the different return types from the connect function
+     */
+    enum class ErrorType(val code: Int) {
+        OK(CODE_SUCCESS),  // Request was successful
+        BAD_REQUEST(CODE_BAD_REQUEST),  // Something was wrong with the request (don't retry)
+        SERVER_ERROR(CODE_SERVER_ERROR),  // The server isn't working (don't retry)
+        CONNECTION_FAILED(
+                CODE_CONNECTION_FAILED)  // There was an issue with the connection (should retry)
+    }
+
     val friends = attentionRepository.getFriends().asLiveData()
 
     var isSnackBarShowing: Boolean by mutableStateOf(false)
@@ -178,10 +189,10 @@ class MainViewModel @Inject constructor(
      * @param id    - The ID of the user that the alert was supposed to be sent to
      * @requires    - Code is one of ErrorType.SERVER_ERROR or ErrorType.BAD_REQUEST
      */
-    private fun notifyUser(code: AppWorker.ErrorType, id: String) {
+    private fun notifyUser(code: ErrorType, id: String) {
         val context = getApplication<Application>()
         val name = getFriend(id)
-        val text = if (code == AppWorker.ErrorType.SERVER_ERROR)
+        val text = if (code == ErrorType.SERVER_ERROR)
             context.getString(R.string.alert_failed_server_error, name)
         else context.getString(R.string.alert_failed_bad_request, name)
 
@@ -191,7 +202,7 @@ class MainViewModel @Inject constructor(
 
         createFailedAlertNotificationChannel(context)
         val builder: NotificationCompat.Builder =
-                NotificationCompat.Builder(context, AppWorker.FAILED_ALERT_CHANNEL_ID)
+                NotificationCompat.Builder(context, FAILED_ALERT_CHANNEL_ID)
         builder
                 .setSmallIcon(R.mipmap.add_foreground)
                 .setContentTitle(context.getString(R.string.alert_failed))
@@ -285,7 +296,7 @@ class MainViewModel @Inject constructor(
             showSnackBar()
         }, {
             Log.e(sTAG, "Error sending alert: ${it.message}")
-            notifyUser(AppWorker.ErrorType.BAD_REQUEST, to)
+            notifyUser(ErrorType.BAD_REQUEST, to)
         })
     }
 
@@ -341,6 +352,13 @@ class MainViewModel @Inject constructor(
         const val MY_ID = "id"
         const val MY_NAME = "name"
         const val MY_TOKEN = "token"
+        const val FAILED_ALERT_CHANNEL_ID = "Failed alert channel"
+
+
+        const val CODE_SUCCESS = 0
+        const val CODE_SERVER_ERROR = 1
+        const val CODE_BAD_REQUEST = 2
+        const val CODE_CONNECTION_FAILED = -1
 
         /**
          * Helper function to create the notification channel for the failed alert
@@ -353,7 +371,7 @@ class MainViewModel @Inject constructor(
                 val description = context.getString(R.string.alert_failed_channel_description)
                 val importance = NotificationManager.IMPORTANCE_HIGH
                 val channel =
-                        NotificationChannel(AppWorker.FAILED_ALERT_CHANNEL_ID, name, importance)
+                        NotificationChannel(FAILED_ALERT_CHANNEL_ID, name, importance)
                 channel.description = description
                 // Register the channel with the system; you can't change the importance
                 // or other notification behaviors after this

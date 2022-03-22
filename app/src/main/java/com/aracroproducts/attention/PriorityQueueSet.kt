@@ -3,12 +3,11 @@ package com.aracroproducts.attention
 import java.util.*
 
 /**
- * See cse332/interfaces/worklists/PriorityWorkList.java
- * for method specifications.
+ * A priority queue that does not allow duplicates. See {@link PriorityQueue}
  */
 class PriorityQueueSet<E>(comparator: Comparator<E>) : Queue<E> {
 
-    private val priorityQueue = PriorityQueue<E>(comparator)
+    private val priorityQueue = PriorityQueue(comparator)
     private val elements = HashSet<E>()
 
     override fun add(element: E): Boolean {
@@ -16,10 +15,6 @@ class PriorityQueueSet<E>(comparator: Comparator<E>) : Queue<E> {
         elements.add(element)
         priorityQueue.add(element)
         return true
-    }
-
-    override fun size(): Int {
-        return priorityQueue.size
     }
 
     /**
@@ -115,7 +110,9 @@ class PriorityQueueSet<E>(comparator: Comparator<E>) : Queue<E> {
     }
 
     override fun offer(p0: E): Boolean {
-        TODO("Not yet implemented")
+        val accepted = priorityQueue.offer(p0)
+        if (accepted) elements.add(p0)
+        return accepted
     }
 
     override fun poll(): E? {
@@ -131,5 +128,8 @@ class PriorityQueueSet<E>(comparator: Comparator<E>) : Queue<E> {
     override fun peek(): E? {
         return priorityQueue.peek()
     }
+
+    override val size: Int
+        get() = priorityQueue.size
 
 }

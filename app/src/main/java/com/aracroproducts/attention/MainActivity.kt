@@ -74,50 +74,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * Callback for retrieving the user's name from a pop-up dialog - passed to
-     * registerForActivityResult
-     */
-    private val nameCallback: ActivityResultCallback<ActivityResult> =
-            ActivityResultCallback<ActivityResult> {
-                if (it.resultCode != Activity.RESULT_OK) return@ActivityResultCallback
-                val settingsEditor = PreferenceManager.getDefaultSharedPreferences(this).edit()
-                settingsEditor.putString(getString(R.string.name_key),
-                        it.data?.getStringExtra(MY_NAME))
-                settingsEditor.apply()
-            }
-
-    /**
-     * Callback for getting the user's name after they edit it in a pop-up dialog - passed to
-     * registerForActivityResult
-     */
-    private val editNameCallback = ActivityResultCallback<ActivityResult> {
-        if (it.resultCode != Activity.RESULT_OK) return@ActivityResultCallback
-
-        // data returned from the activity
-        val data = it.data
-        Log.d(sTAG, "Received edit name callback")
-        val friendId = data?.getStringExtra(DialogActivity.EXTRA_USER_ID)
-                ?: throw IllegalArgumentException("An ID to edit must be provided")
-        friendModel.onEditName(id = friendId, name = data.getStringExtra(MY_NAME).toString())
-    }
-
-    /**
-     * Can call launch(Intent) on this to start the activity specified by the intent with the
-     * result passed to nameCallback (an Intent to launch DialogActivity)
-     */
-    private val startNameDialogForResult = registerForActivityResult(
-            ActivityResultContracts.StartActivityForResult(), nameCallback)
-
-    /**
-     * Can call launch(Intent) on this to start the activity specified by the intent with the
-     * result passed to editNameCallback
-     * Used with DialogActivity, with extra DialogActivity.EXTRA_EDIT_NAME set to true and
-     * extra DialogActivity.EXTRA_USER_ID set to the user id whose name you want to id
-     */
-    private val startEditNameDialogForResult = registerForActivityResult(ActivityResultContracts
-            .StartActivityForResult(), editNameCallback)
-
-    /**
      * Called when the activity is created
      *
      * @param savedInstanceState    Instance data saved from before the activity was killed
@@ -213,7 +169,7 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
         ) {
-            LazyColumn {
+            LazyColumn(Modifier.background(MaterialTheme.colors.background)) {
                 items(friends) { friend ->
                     FriendCard(
                             friend = friend,
