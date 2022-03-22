@@ -138,29 +138,6 @@ class MainActivity : AppCompatActivity() {
                 HomeWrapper(model = friendModel)
             }
         }
-
-        /*
-        // Request permission to draw overlays
-        if (!Settings.canDrawOverlays(this) && !prefs.contains(OVERLAY_NO_PROMPT)) {
-            val alertDialog = AlertDialog.Builder(this).create()
-            alertDialog.setTitle(getString(R.string.draw_title))
-            alertDialog.setMessage(getString(R.string.draw_message))
-            alertDialog.setButton(DialogInterface.BUTTON_POSITIVE, getString(
-                    R.string.open_settings)) { _: DialogInterface?, _: Int ->
-                val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                        Uri.parse("package:" + applicationContext.packageName))
-                startActivity(intent)
-            }
-            alertDialog.setButton(DialogInterface.BUTTON_NEGATIVE, getString(
-                    R.string.do_not_ask_again)) { _: DialogInterface?, _: Int ->
-                val editor = prefs.edit()
-                editor.putBoolean(OVERLAY_NO_PROMPT, true)
-                editor.apply()
-            }
-            alertDialog.show()
-        }
-
-         */
     }
 
     @ExperimentalFoundationApi

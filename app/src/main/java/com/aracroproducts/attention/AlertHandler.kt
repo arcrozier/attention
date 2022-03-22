@@ -53,7 +53,7 @@ open class AlertHandler : FirebaseMessagingService() {
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         Log.d(TAG, "Message received! $remoteMessage")
         val messageData = remoteMessage.data
-        val message = Message(timestamp = 0, otherId = messageData[REMOTE_FROM] ?: return,
+        val message = Message(timestamp = System.currentTimeMillis(), otherId = messageData[REMOTE_FROM] ?: return,
                 direction = DIRECTION.Incoming, message = messageData[REMOTE_MESSAGE])
         val repository = AttentionRepository(AttentionDB.getDB(applicationContext))
         if (!repository.isFromFriend(message)) {
@@ -68,6 +68,7 @@ open class AlertHandler : FirebaseMessagingService() {
         val display = if (message.message == "null") getString(R.string.default_message,
                 senderName) else getString(R.string.message_prefix, senderName, message.message)
 
+        repository.appendMessage(message = message)
         val preferences = PreferenceManager.getDefaultSharedPreferences(this)
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         NotificationManagerCompat.from(this)
@@ -108,7 +109,6 @@ open class AlertHandler : FirebaseMessagingService() {
             Log.d(TAG, "Sender: $senderName, ${message.otherId} Message: ${message.message}")
             startActivity(intent)
         }
-        repository.appendMessage(message, resources.getBoolean(R.bool.save_messages))
     }
 
     /**

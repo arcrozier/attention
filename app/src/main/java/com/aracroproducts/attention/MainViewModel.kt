@@ -22,9 +22,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.*
 import androidx.preference.PreferenceManager
 import com.google.android.gms.tasks.Task
-import com.google.api.client.util.DateTime
 import com.google.firebase.messaging.FirebaseMessaging
-import java.time.Instant
 import java.util.*
 import javax.inject.Inject
 
@@ -58,6 +56,19 @@ class MainViewModel @Inject constructor(
      * like a user ID, this can be placed in the second part of the pair
      */
     val dialogState = mutableStateOf(Pair<DialogStatus, Friend?>(DialogStatus.NONE, null))
+
+    val dialogQueue = PriorityQueue<Pair<DialogStatus, Friend?>> { t, t2 ->
+        val typeCompare = t.first.compareTo(t2.first)
+        if (typeCompare != 0) {
+            typeCompare
+        } else {
+            if (t.second != null) {
+                t.second!!.name.compareTo(t.first.name)
+            } else {
+                1
+            }
+        }
+    }
 
     val promptOverlay = mutableStateOf(false)
 
@@ -171,9 +182,9 @@ class MainViewModel @Inject constructor(
             attentionRepository.genKeyPair()
 
             // Signal that the new key needs to be uploaded
-            val defaultEditor = defaultPrefs.edit()
-            defaultEditor.putBoolean(KEY_UPLOADED, false)
-            defaultEditor.apply()
+            val editor = userInfo.edit()
+            editor.putBoolean(KEY_UPLOADED, false)
+            editor.apply()
         }
 
         // Do we need to prompt user for a name?
@@ -280,6 +291,7 @@ class MainViewModel @Inject constructor(
                         {
                             val editor = preferences.edit()
                             editor.putBoolean(TOKEN_UPLOADED, true)
+                            editor.putBoolean(KEY_UPLOADED, true)
                             editor.apply()
                             Toast.makeText(context, context.getString(R.string.user_registered),
                                     Toast.LENGTH_SHORT).show()
