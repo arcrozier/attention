@@ -30,6 +30,9 @@ import java.util.*
  * the user
  */
 class Add : AppCompatActivity() {
+    // TODO open add user links and populate layout
+    // TODO make this JetPack compose too - see https://stackoverflow.com/questions/68139363/using-zxing-library-with-jetpack-compose
+    // or https://stackoverflow.com/questions/69618411/firebase-barcode-scanner-using-jetpack-compose-not-working
     private var barcodeView: DecoratedBarcodeView? = null
     private var v: Vibrator? = null
     private var lastText: String = ""
@@ -103,6 +106,10 @@ class Add : AppCompatActivity() {
         if (hasCameraPermission()) {
             startScan()
         }
+    }
+
+    fun shareUserID(view: View?) {
+        // TODO generate URL for User and open share dialog
     }
 
     /**

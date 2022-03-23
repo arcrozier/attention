@@ -114,11 +114,16 @@ class MainActivity : AppCompatActivity() {
             MainViewModel.DialogStatus.USERNAME -> UserNameDialog()
             MainViewModel.DialogStatus.OVERLAY_PERMISSION -> OverlaySettingsDialog()
             MainViewModel.DialogStatus.ADD_MESSAGE_TEXT -> dialogState.second?.let {
-                AddMessageText(friend = it, onSend = dialogState.third) }
-            MainViewModel.DialogStatus.FRIEND_NAME -> dialogState.second?.let {EditFriendNameDialog(
-                    friend = it)}
-            MainViewModel.DialogStatus.CONFIRM_DELETE -> dialogState.second?.let {DeleteFriendDialog(
-                    friend = it)}
+                AddMessageText(friend = it, onSend = dialogState.third)
+            }
+            MainViewModel.DialogStatus.FRIEND_NAME -> dialogState.second?.let {
+                EditFriendNameDialog(
+                        friend = it)
+            }
+            MainViewModel.DialogStatus.CONFIRM_DELETE -> dialogState.second?.let {
+                DeleteFriendDialog(
+                        friend = it)
+            }
             MainViewModel.DialogStatus.NONE -> {}
         }
 
@@ -166,37 +171,38 @@ class MainActivity : AppCompatActivity() {
 
     @Composable
     fun AddMessageText(friend: Friend, onSend: (message: String) -> Unit) {
-        // on ok call onSend(textfield value)
         var message by rememberSaveable {
             mutableStateOf("")
         }
         AlertDialog(onDismissRequest = { friendModel.popDialogState() },
                 confirmButton = {
-                    TextButton(onClick = {
-                            friendModel.popDialogState()
+                    Button(onClick = {
+                        friendModel.popDialogState()
                         onSend(message)
                     }) {
-                        Text( text = getString(R.string.save))
+                        Text(text = getString(R.string.save))
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = {
+                    OutlinedButton(onClick = {
                         friendModel.popDialogState()
                     }) {
                         Text(text = getString(R.string.cancel))
                     }
                 },
-                title = {Text(text = getString(R.string.rename))},
-                text = { OutlinedTextField(
-                        value = message,
-                        onValueChange = { message = it },
-                        keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Text,
-                                capitalization = KeyboardCapitalization.Words),
-                        singleLine = false,
-                        label = { Text(text = getString(R.string.message_label, friend.name)) },
-                        placeholder = { Text(text = getString(R.string.message_hint)) }
-                )}
+                title = { Text(text = getString(R.string.rename)) },
+                text = {
+                    OutlinedTextField(
+                            value = message,
+                            onValueChange = { message = it },
+                            keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Text,
+                                    capitalization = KeyboardCapitalization.Words),
+                            singleLine = false,
+                            label = { Text(text = getString(R.string.message_label, friend.name)) },
+                            placeholder = { Text(text = getString(R.string.message_hint)) }
+                    )
+                }
         )
     }
 
@@ -204,7 +210,7 @@ class MainActivity : AppCompatActivity() {
     fun DeleteFriendDialog(friend: Friend) {
         AlertDialog(onDismissRequest = { friendModel.popDialogState() },
                 confirmButton = {
-                    TextButton(onClick = {
+                    Button(onClick = {
                         friendModel.popDialogState()
                         friendModel.confirmDeleteFriend(friend = friend)
                     }) {
@@ -212,14 +218,14 @@ class MainActivity : AppCompatActivity() {
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = {
+                    OutlinedButton(onClick = {
                         friendModel.popDialogState()
                     }) {
                         Text(text = getString(R.string.do_not_ask_again))
                     }
                 },
-                title = {Text(text = getString(R.string.confirm_delete_title))},
-                text = { Text(text = getString(R.string.confirm_delete_message))}
+                title = { Text(text = getString(R.string.confirm_delete_title)) },
+                text = { Text(text = getString(R.string.confirm_delete_message)) }
         )
     }
 
@@ -231,7 +237,7 @@ class MainActivity : AppCompatActivity() {
         var error by remember { mutableStateOf(false) }
         AlertDialog(onDismissRequest = { friendModel.popDialogState() },
                 confirmButton = {
-                    TextButton(onClick = {
+                    Button(onClick = {
                         val savingName = name.trim()
                         if (savingName.isEmpty()) {
                             error = true
@@ -240,28 +246,30 @@ class MainActivity : AppCompatActivity() {
                             friendModel.popDialogState()
                         }
                     }) {
-                        Text( text = getString(R.string.save))
+                        Text(text = getString(R.string.save))
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = {
+                    OutlinedButton(onClick = {
                         friendModel.popDialogState()
                     }) {
                         Text(text = getString(R.string.cancel))
                     }
                 },
-                title = {Text(text = getString(R.string.rename))},
-                text = { OutlinedTextField(
-                        value = name,
-                        onValueChange = { name = it },
-                        keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Text,
-                                capitalization = KeyboardCapitalization.Words),
-                        singleLine = true,
-                        label = { Text(text = getString(R.string.name)) },
-                        isError = error,
-                        placeholder = { Text(text = getString(R.string.new_name)) }
-                )}
+                title = { Text(text = getString(R.string.rename)) },
+                text = {
+                    OutlinedTextField(
+                            value = name,
+                            onValueChange = { name = it },
+                            keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Text,
+                                    capitalization = KeyboardCapitalization.Words),
+                            singleLine = true,
+                            label = { Text(text = getString(R.string.name)) },
+                            isError = error,
+                            placeholder = { Text(text = getString(R.string.new_name)) }
+                    )
+                }
         )
     }
 
@@ -269,7 +277,7 @@ class MainActivity : AppCompatActivity() {
     fun OverlaySettingsDialog() {
         AlertDialog(onDismissRequest = { friendModel.popDialogState() },
                 confirmButton = {
-                    TextButton(onClick = {
+                    Button(onClick = {
                         val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                                 Uri.parse("package:" + applicationContext.packageName))
                         friendModel.popDialogState()
@@ -279,7 +287,9 @@ class MainActivity : AppCompatActivity() {
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { val editor = getSharedPreferences(MainViewModel.USER_INFO, MODE_PRIVATE).edit()
+                    OutlinedButton(onClick = {
+                        val editor = getSharedPreferences(MainViewModel
+                                .USER_INFO, MODE_PRIVATE).edit()
                         editor.putBoolean(MainViewModel.OVERLAY_NO_PROMPT, true)
                         editor.apply()
                         friendModel.popDialogState()
@@ -287,9 +297,9 @@ class MainActivity : AppCompatActivity() {
                         Text(text = getString(R.string.do_not_ask_again))
                     }
                 },
-                title = {Text(text = getString(R.string.draw_title))},
-                text = { Text(text = getString(R.string.draw_message))}
-                )
+                title = { Text(text = getString(R.string.draw_title)) },
+                text = { Text(text = getString(R.string.draw_message)) }
+        )
     }
 
     @Composable
@@ -304,7 +314,7 @@ class MainActivity : AppCompatActivity() {
                             modifier = Modifier.padding(all = 8.dp),
                             horizontalArrangement = Arrangement.Center
                     ) {
-                        TextButton(onClick = {
+                        Button(onClick = {
                             val savingName = name.trim()
                             if (savingName.isEmpty()) {
                                 error = true
@@ -395,8 +405,8 @@ class MainActivity : AppCompatActivity() {
                     Row {
                         Button(onClick = { state = State.NORMAL },
                                 colors = ButtonDefaults.buttonColors(
-                                        backgroundColor = MaterialTheme.colors.background,
-                                        contentColor = MaterialTheme.colors.onBackground
+                                        backgroundColor = MaterialTheme.colors.secondary,
+                                        contentColor = MaterialTheme.colors.onSecondary
                                 )) {
 
                             Icon(Icons.Filled.Close,
@@ -412,31 +422,11 @@ class MainActivity : AppCompatActivity() {
                             Text(getString(R.string.confirm_alert))
                         }
                         Button(onClick = {
-                            /*val context = applicationContext
-                            val builder = AlertDialog.Builder(context)
-                            builder.setTitle(getString(R.string.add_message))
-                            val input = EditText(context)
-                            input.setHint(R.string.message_hint)
-                            input.inputType =
-                                    InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_AUTO_COMPLETE or
-                                            InputType.TYPE_TEXT_FLAG_AUTO_CORRECT or
-                                            InputType.TYPE_TEXT_FLAG_CAP_SENTENCES or
-                                            InputType.TYPE_TEXT_FLAG_MULTI_LINE or
-                                            InputType.TYPE_TEXT_VARIATION_SHORT_MESSAGE
-                            builder.setView(input)
-                            builder.setPositiveButton(
-                                    android.R.string.ok) { _: DialogInterface?, _: Int ->
-                                message = input.text.toString()
+                            friendModel.appendDialogState(Triple(MainViewModel
+                                    .DialogStatus.ADD_MESSAGE_TEXT, friend) {
+                                message = it
                                 state = State.CANCEL
-                            }
-                            builder.setNegativeButton(
-                                    android.R.string.cancel) { _: DialogInterface?, _: Int -> }
-                            builder.show() */
-                                         friendModel.appendDialogState(Triple(MainViewModel
-                                                 .DialogStatus.ADD_MESSAGE_TEXT, friend) {
-                                             message = it
-                                             state = State.CANCEL
-                                         })
+                            })
                         }, colors = ButtonDefaults
                                 .buttonColors(backgroundColor = MaterialTheme.colors.secondary,
                                         contentColor = MaterialTheme.colors.onSecondary)) {
