@@ -129,6 +129,22 @@ class PriorityQueueSet<E>(comparator: Comparator<E>) : Queue<E> {
         return priorityQueue.peek()
     }
 
+    override fun hashCode(): Int {
+        return priorityQueue.hashCode()
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (other == null) return false
+        if (other is PriorityQueueSet<*>) {
+            return priorityQueue == other.priorityQueue
+        }
+        return false
+    }
+
+    override fun toString(): String {
+        return priorityQueue.toString()
+    }
+
     override val size: Int
         get() = priorityQueue.size
 

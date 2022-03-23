@@ -5,6 +5,7 @@
 
     <string name="name_dialog_title">Please enter your name</string>
     <string name="name">Full name</string>
+    <string name="placeholder_name">Name…</string>
     <string name="no_name">Please enter a name</string>
     <string name="manual_input">Enter code manually</string>
     <string name="confirm_alert">Send notification?</string>
@@ -49,8 +50,8 @@
 
     <string name="allow">Allow</string>
     <string name="deny">Deny</string>
-    <string name="draw_title">Draw overlays</string>
-    <string name="draw_message">Allow Attention! to draw overlays? This enables showing alerts while your device is in use</string>
+    <string name="draw_title">Allow Attention! to draw overlays?</string>
+    <string name="draw_message">This is required to show alerts while your device is in use. To enable it, open settings</string>
     <string name="open_settings">Open settings</string>
     <string name="do_not_ask_again">Do not ask again</string>
 

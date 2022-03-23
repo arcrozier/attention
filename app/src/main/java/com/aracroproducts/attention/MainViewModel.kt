@@ -35,7 +35,7 @@ class MainViewModel @Inject constructor(
     // val friends: LiveData<MutableMap<String, Friend>> = _friends
 
     enum class DialogStatus {
-        USERNAME, OVERLAY_PERMISSION, FRIEND_NAME, CONFIRM_DELETE, NONE
+        USERNAME, OVERLAY_PERMISSION, ADD_MESSAGE_TEXT, FRIEND_NAME, CONFIRM_DELETE, NONE
     }
 
     /**
@@ -66,9 +66,13 @@ class MainViewModel @Inject constructor(
      * Used to determine which dialog to display (or none). If the dialog requires additional data,
      * like a user ID, this can be placed in the second part of the pair
      */
-    val dialogState = mutableStateOf(Pair<DialogStatus, Friend?>(DialogStatus.NONE, null))
+    val dialogState = mutableStateOf(Triple<DialogStatus, Friend?, (String) -> Unit>(DialogStatus
+            .NONE,
+            null) {})
 
-    private val dialogQueue = PriorityQueueSet<Pair<DialogStatus, Friend?>> { t, t2 ->
+    private val dialogQueue = PriorityQueueSet<Triple<DialogStatus, Friend?, (String) -> Unit>> {
+        t,
+                                                                                             t2 ->
         val typeCompare = t.first.compareTo(t2.first)
         if (typeCompare != 0) {
             typeCompare
@@ -92,7 +96,7 @@ class MainViewModel @Inject constructor(
     fun popDialogState() {
         synchronized(this) {
             if (dialogQueue.isEmpty()) {
-                dialogState.value = Pair(DialogStatus.NONE, null)
+                dialogState.value = Triple(DialogStatus.NONE, null) {}
             } else {
                 dialogState.value = dialogQueue.remove()
             }
@@ -102,7 +106,7 @@ class MainViewModel @Inject constructor(
     /**
      * Adds a new dialog state to the queue. If the queue is empty, updates dialogState immediately
      */
-    fun appendDialogState(state: Pair<DialogStatus, Friend?>) {
+    fun appendDialogState(state: Triple<DialogStatus, Friend?, (String) -> Unit>) {
         if (state.first == DialogStatus.NONE) return
         synchronized(this) {
             if (dialogQueue.isEmpty()) dialogState.value = state
@@ -115,7 +119,7 @@ class MainViewModel @Inject constructor(
     }
 
     fun onDeleteFriend(friend: Friend) {
-        appendDialogState(Pair(DialogStatus.NONE, friend))
+        appendDialogState(Triple(DialogStatus.NONE, friend) {})
     }
 
     fun confirmDeleteFriend(friend: Friend) {
@@ -124,15 +128,11 @@ class MainViewModel @Inject constructor(
 
     // Shows the edit name dialog
     fun onEditName(friend: Friend) {
-        dialogState.value = Pair(DialogStatus.FRIEND_NAME, friend)
+        appendDialogState(Triple(DialogStatus.FRIEND_NAME, friend) {})
     }
 
     fun confirmEditName(id: String, name: String) {
         attentionRepository.edit(Friend(id = id, name = name))
-    }
-
-    fun isFromFriend(message: Message): Boolean {
-        return attentionRepository.isFromFriend(message = message)
     }
 
     fun getFriend(id: String): Friend {
@@ -166,7 +166,7 @@ class MainViewModel @Inject constructor(
 
     // Prompts the user to confirm deleting the friend
     fun onDeletePrompt(friend: Friend) {
-        appendDialogState(Pair(DialogStatus.CONFIRM_DELETE, friend))
+        appendDialogState(Triple(DialogStatus.CONFIRM_DELETE, friend) {})
         /*
         val alertDialog = android.app.AlertDialog.Builder(this).create()
         alertDialog.setTitle(context.getString(R.string.confirm_delete_title))
@@ -234,7 +234,7 @@ class MainViewModel @Inject constructor(
 
         // Do we need to prompt user for a name?
         if (!defaultPrefs.contains(application.getString(R.string.name_key))) {
-            appendDialogState(Pair(DialogStatus.USERNAME, null))
+            appendDialogState(Triple(DialogStatus.USERNAME, null) {})
         }
         // Do we need to upload a token (note we don't want to upload if we don't have a token yet)
         if (token != null && !userInfo.getBoolean(TOKEN_UPLOADED, false)) {
@@ -253,7 +253,7 @@ class MainViewModel @Inject constructor(
 
         if (!Settings.canDrawOverlays(application) && !userInfo.getBoolean(OVERLAY_NO_PROMPT,
                         false)) {
-            appendDialogState(Pair(DialogStatus.OVERLAY_PERMISSION, null))
+            appendDialogState(Triple(DialogStatus.OVERLAY_PERMISSION, null) {})
         }
     }
 
