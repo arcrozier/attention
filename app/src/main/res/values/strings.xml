@@ -11,6 +11,7 @@
     <string name="confirm_alert">Send notification?</string>
     <string name="add_message">Add message</string>
     <string name="message_hint">Enter message…</string>
+    <string name="message_label">Custom message to %s</string>
     <string name="describe_QR">QR code for another user to add you</string>
     <string name="invalid_id">You did not enter a valid ID</string>
     <string name="no_id">Please enter or scan an ID</string>
@@ -34,6 +35,7 @@
     <string name="delete">Delete</string>
     <string name="rename">Change name</string>
     <string name="new_name">Enter new name</string>
+    <string name="save">Save</string>
 
 
     <string name="permissions_needed">Permission required to scan</string>
@@ -83,19 +85,4 @@
     <string name="override_dnd_key" translatable="false">com.aracroproducts.attention.key.override_dnd</string>
     <string name="ring_preference_key" translatable="false">com.aracroproducts.attention.key.ring</string>
     <string name="vibrate_preference_key" translatable="false">com.aracroproducts.attention.key.vibrate</string>
-
-    <!-- Preference Titles -->
-    <string name="messages_header">Messages</string>
-    <string name="sync_header">Sync</string>
-
-    <!-- Messages Preferences -->
-    <string name="signature_title">Your signature</string>
-    <string name="reply_title">Default reply action</string>
-
-    <!-- Sync Preferences -->
-    <string name="sync_title">Sync email periodically</string>
-    <string name="attachment_title">Download incoming attachments</string>
-    <string name="attachment_summary_on">Automatically download attachments for incoming emails
-    </string>
-    <string name="attachment_summary_off">Only download attachments when manually requested</string>
 </resources>

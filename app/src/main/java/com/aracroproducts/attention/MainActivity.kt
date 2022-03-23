@@ -1,28 +1,14 @@
 package com.aracroproducts.attention
 
-import android.app.Activity
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
 import android.content.*
 import android.net.Uri
 import android.os.*
 import android.provider.Settings
-import android.text.InputType
 import android.util.Log
-import android.view.Menu
-import android.view.MenuItem
-import android.view.View
-import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.compose.setContent
-import androidx.activity.result.ActivityResult
-import androidx.activity.result.ActivityResultCallback
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.Toolbar
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -39,35 +25,15 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
 import androidx.preference.PreferenceManager
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import androidx.work.*
 import com.aracroproducts.attention.MainViewModel.Companion.MY_NAME
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
-import com.google.android.gms.tasks.Task
-import com.google.android.material.color.DynamicColors
-import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.google.android.material.snackbar.Snackbar
-import com.google.firebase.messaging.FirebaseMessaging
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.launch
-import java.security.NoSuchAlgorithmException
-import java.security.spec.InvalidKeySpecException
-import java.util.*
-import javax.crypto.SecretKeyFactory
-import javax.crypto.spec.PBEKeySpec
-import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
 
 class MainActivity : AppCompatActivity() {
     private val sTAG = javaClass.name
@@ -111,7 +77,7 @@ class MainActivity : AppCompatActivity() {
                 friends = model.friends.value ?: listOf(),
                 onLongPress = { model.onLongPress() },
                 onEditName = { model.onEditName(it) },
-                onDeletePrompt = { model.onDeletePrompt(it) },
+                onDeletePrompt = { model.onDeleteFriend(it) },
                 dialogState = displayDialog,
                 showSnackbar = showSnackbar
         )
@@ -201,16 +167,102 @@ class MainActivity : AppCompatActivity() {
     @Composable
     fun AddMessageText(friend: Friend, onSend: (message: String) -> Unit) {
         // on ok call onSend(textfield value)
+        var message by rememberSaveable {
+            mutableStateOf("")
+        }
+        AlertDialog(onDismissRequest = { friendModel.popDialogState() },
+                confirmButton = {
+                    TextButton(onClick = {
+                            friendModel.popDialogState()
+                        onSend(message)
+                    }) {
+                        Text( text = getString(R.string.save))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        friendModel.popDialogState()
+                    }) {
+                        Text(text = getString(R.string.cancel))
+                    }
+                },
+                title = {Text(text = getString(R.string.rename))},
+                text = { OutlinedTextField(
+                        value = message,
+                        onValueChange = { message = it },
+                        keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Text,
+                                capitalization = KeyboardCapitalization.Words),
+                        singleLine = false,
+                        label = { Text(text = getString(R.string.message_label, friend.name)) },
+                        placeholder = { Text(text = getString(R.string.message_hint)) }
+                )}
+        )
     }
 
     @Composable
     fun DeleteFriendDialog(friend: Friend) {
-
+        AlertDialog(onDismissRequest = { friendModel.popDialogState() },
+                confirmButton = {
+                    TextButton(onClick = {
+                        friendModel.popDialogState()
+                        friendModel.confirmDeleteFriend(friend = friend)
+                    }) {
+                        Text(text = getString(R.string.delete))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        friendModel.popDialogState()
+                    }) {
+                        Text(text = getString(R.string.do_not_ask_again))
+                    }
+                },
+                title = {Text(text = getString(R.string.confirm_delete_title))},
+                text = { Text(text = getString(R.string.confirm_delete_message))}
+        )
     }
 
     @Composable
     fun EditFriendNameDialog(friend: Friend) {
-
+        var name by rememberSaveable {
+            mutableStateOf("")
+        }
+        var error by remember { mutableStateOf(false) }
+        AlertDialog(onDismissRequest = { friendModel.popDialogState() },
+                confirmButton = {
+                    TextButton(onClick = {
+                        val savingName = name.trim()
+                        if (savingName.isEmpty()) {
+                            error = true
+                        } else {
+                            friendModel.confirmEditName(friend.id, savingName)
+                            friendModel.popDialogState()
+                        }
+                    }) {
+                        Text( text = getString(R.string.save))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        friendModel.popDialogState()
+                    }) {
+                        Text(text = getString(R.string.cancel))
+                    }
+                },
+                title = {Text(text = getString(R.string.rename))},
+                text = { OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Text,
+                                capitalization = KeyboardCapitalization.Words),
+                        singleLine = true,
+                        label = { Text(text = getString(R.string.name)) },
+                        isError = error,
+                        placeholder = { Text(text = getString(R.string.new_name)) }
+                )}
+        )
     }
 
     @Composable

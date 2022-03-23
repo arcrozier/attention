@@ -118,24 +118,38 @@ class MainViewModel @Inject constructor(
         attentionRepository.insert(friend)
     }
 
+    /**
+     * Updates `DialogState` to display the dialog to confirm deletion of the specified friend
+     */
     fun onDeleteFriend(friend: Friend) {
         appendDialogState(Triple(DialogStatus.NONE, friend) {})
     }
 
+    /**
+     * Deletes the friend from the Room database (does NOT display any confirmation)
+     */
     fun confirmDeleteFriend(friend: Friend) {
         attentionRepository.delete(friend)
     }
 
-    // Shows the edit name dialog
+    /**
+     * Shows the edit name dialog (by updating `DialogState`)
+     */
     fun onEditName(friend: Friend) {
         appendDialogState(Triple(DialogStatus.FRIEND_NAME, friend) {})
     }
 
+    /**
+     * Modifies the friend's name associated with the ID
+     *
+     * @param id    The ID of the friend to edit
+     * @param name  The new name of the friend
+     */
     fun confirmEditName(id: String, name: String) {
         attentionRepository.edit(Friend(id = id, name = name))
     }
 
-    fun getFriend(id: String): Friend {
+    private fun getFriend(id: String): Friend {
         return attentionRepository.getFriend(id)
     }
 
@@ -162,24 +176,6 @@ class MainViewModel @Inject constructor(
         } else {
             vibrator.vibrate(100)
         }
-    }
-
-    // Prompts the user to confirm deleting the friend
-    fun onDeletePrompt(friend: Friend) {
-        appendDialogState(Triple(DialogStatus.CONFIRM_DELETE, friend) {})
-        /*
-        val alertDialog = android.app.AlertDialog.Builder(this).create()
-        alertDialog.setTitle(context.getString(R.string.confirm_delete_title))
-        alertDialog.setMessage(context.getString(R.string.confirm_delete_message, friend.name))
-        alertDialog.setButton(DialogInterface.BUTTON_POSITIVE,
-                getString(R.string.yes)) { dialogInterface: DialogInterface, _: Int ->
-            friendModel.onDeleteFriend(friend)
-            dialogInterface.cancel()
-        }
-        alertDialog.setButton(DialogInterface.BUTTON_NEGATIVE, getString(
-                android.R.string.cancel)) { dialogInterface: DialogInterface, _: Int -> dialogInterface.cancel() }
-        alertDialog.show()
-         */
     }
 
     /**
