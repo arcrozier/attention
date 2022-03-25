@@ -1,8 +1,10 @@
 package com.aracroproducts.attentionv2
 
 import android.view.KeyEvent
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 
 class AddViewModel : ViewModel() {
@@ -11,10 +13,10 @@ class AddViewModel : ViewModel() {
     private val onResumeListeners = ArrayList<() -> Unit>()
     private val onKeyListeners = ArrayList<(Int, KeyEvent) -> Unit>()
     private val onSnackBarListeners = ArrayList<(String) -> Unit>()
-    var scanning = mutableStateOf(false)
-    val otherName = mutableStateOf("")
-    val otherID = mutableStateOf("")
-    val barcodeStatus = mutableStateOf("")
+    var scanning: Boolean by mutableStateOf(false)
+    var otherName: String by mutableStateOf("")
+    var otherID: String by mutableStateOf("")
+    var barcodeStatus: String by mutableStateOf("")
 
     fun addOnPauseListener(listener: () -> Unit) {
         onPauseListeners.add(listener)
@@ -57,7 +59,7 @@ class AddViewModel : ViewModel() {
     }
 
     fun startScan() {
-        scanning.value = true
+        scanning = true
     }
 
     fun showSnackBar(text: String) {

@@ -63,8 +63,8 @@ class Add : AppCompatActivity() {
             if (tempId == null || tempName == null) {
                 addModel.showSnackBar(getString(R.string.bad_add_link))
             } else {
-                addModel.otherID.value = tempId
-                addModel.otherName.value = tempName
+                addModel.otherID = tempId
+                addModel.otherName = tempName
             }
         }
 
@@ -89,19 +89,23 @@ class Add : AppCompatActivity() {
     fun AddScreen(name: String, id: String) {
         val scaffoldState = rememberScaffoldState()
         val scope = rememberCoroutineScope()
-        addModel.addOnSnackBarListener { scope.launch { scaffoldState.snackbarHostState.showSnackbar(message = it) } }
+        addModel.addOnSnackBarListener {
+            scope.launch {
+                scaffoldState.snackbarHostState.showSnackbar(message = it)
+            }
+        }
         Scaffold(scaffoldState = scaffoldState) {
             Column(modifier = Modifier.fillMaxHeight(), verticalArrangement = Arrangement
                     .spacedBy(Dp(32F))) {
-                BarcodeScannerPreview(addModel.scanning.value,
+                BarcodeScannerPreview(addModel.scanning,
                         onScan = { result ->
                             val separatorIndex = result.lastIndexOf(' ')
                             val idPart = result.substring(separatorIndex + 1).trim { it <= ' ' }
-                            addModel.otherID.value = idPart
+                            addModel.otherID = idPart
                             if (separatorIndex != -1) {
                                 val namePart =
                                         result.substring(0, separatorIndex).trim { it <= ' ' }
-                                addModel.otherName.value = namePart
+                                addModel.otherName = namePart
                             }
                             addModel.onPause()
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -116,7 +120,7 @@ class Add : AppCompatActivity() {
                                 scaffoldState.snackbarHostState.showSnackbar(message = it)
                             }
                         })
-                ManualEntry(name = addModel.otherName.value, id = addModel.otherID.value)
+                ManualEntry(name = addModel.otherName, id = addModel.otherID)
                 QRCode(nameAndID = "$name $id")
                 UserID(name, id)
             }
@@ -133,7 +137,7 @@ class Add : AppCompatActivity() {
             CompoundBarcodeView(this).apply {
                 val capture = CaptureManager(context as Activity, this)
                 capture.initializeFromIntent((context as Activity).intent, null)
-                this.setStatusText(addModel.barcodeStatus.value)
+                this.setStatusText(addModel.barcodeStatus)
                 capture.decode()
                 this.decodeContinuous { result ->
                     if (!scanning) {
@@ -158,13 +162,13 @@ class Add : AppCompatActivity() {
                 addModel.addOnPauseListener {
                     if (scanning) {
                         pause()
-                        addModel.scanning.value = false
+                        addModel.scanning = false
                     }
                 }
                 addModel.addOnResumeListener {
                     if (hasCameraPermission() && !scanning) {
                         resume()
-                        addModel.scanning.value = true
+                        addModel.scanning = true
                     }
                 }
             }
@@ -336,7 +340,7 @@ class Add : AppCompatActivity() {
                 false
             }
         } else { // device does not have a camera for some reason
-            addModel.barcodeStatus.value = getString(R.string.no_camera)
+            addModel.barcodeStatus = getString(R.string.no_camera)
             false
         }
     }

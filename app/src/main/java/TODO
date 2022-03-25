@@ -1,6 +1,6 @@
 TODO
 
-1. Update pop up dialog to use Jetpack Compose (or at least Material 3)
+✔️1. Update pop up dialog to use Jetpack Compose (or at least Material 3)
 2. Update settings to use Jetpack Compose (and get back navigation working)
 3. Enable backup/restore/transfer of their private key, friends, etc.
 4. Add an activity to allow people to share content via Attention

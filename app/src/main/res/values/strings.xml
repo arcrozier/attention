@@ -26,6 +26,7 @@
     <string name="user_registered">Your account has been registered!</string>
     <string name="default_message">%s wants your attention!</string>
     <string name="message_prefix">%1$s says: %2$s</string>
+    <string name="silence">Silence</string>
 
     <string name="bad_add_link">Invalid link</string>
 
@@ -88,4 +89,5 @@
     <string name="override_dnd_key" translatable="false">com.aracroproducts.attention.key.override_dnd</string>
     <string name="ring_preference_key" translatable="false">com.aracroproducts.attention.key.ring</string>
     <string name="vibrate_preference_key" translatable="false">com.aracroproducts.attention.key.vibrate</string>
+    <string name="alert_title">Attention!</string>
 </resources>
