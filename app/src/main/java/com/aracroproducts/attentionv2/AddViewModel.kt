@@ -10,7 +10,11 @@ class AddViewModel : ViewModel() {
     private val onPauseListeners = ArrayList<() -> Unit>()
     private val onResumeListeners = ArrayList<() -> Unit>()
     private val onKeyListeners = ArrayList<(Int, KeyEvent) -> Unit>()
+    private val onSnackBarListeners = ArrayList<(String) -> Unit>()
     var scanning = mutableStateOf(false)
+    val otherName = mutableStateOf("")
+    val otherID = mutableStateOf("")
+    val barcodeStatus = mutableStateOf("")
 
     fun addOnPauseListener(listener: () -> Unit) {
         onPauseListeners.add(listener)
@@ -22,6 +26,10 @@ class AddViewModel : ViewModel() {
 
     fun addOnKeyListener(listener: (Int, KeyEvent) -> Unit) {
         onKeyListeners.add(listener)
+    }
+
+    fun addOnSnackBarListener(listener: (String) -> Unit) {
+        onSnackBarListeners.add(listener)
     }
 
     /**
@@ -50,5 +58,11 @@ class AddViewModel : ViewModel() {
 
     fun startScan() {
         scanning.value = true
+    }
+
+    fun showSnackBar(text: String) {
+        for (listener in onSnackBarListeners) {
+            listener(text)
+        }
     }
 }

@@ -3,6 +3,7 @@ package com.aracroproducts.attentionv2
 import android.Manifest
 import android.app.Activity
 import android.content.DialogInterface
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Color
@@ -41,23 +42,32 @@ import kotlinx.coroutines.launch
  * the user
  */
 class Add : AppCompatActivity() {
-    // TODO open add user links and populate layout
-    // TODO make this JetPack compose too - see https://stackoverflow.com/questions/68139363/using-zxing-library-with-jetpack-compose
-    // or https://stackoverflow.com/questions/69618411/firebase-barcode-scanner-using-jetpack-compose-not-working
-    private var barcodeView: DecoratedBarcodeView? = null
     private var v: Vibrator? = null
     private val friendModel: MainViewModel by viewModels()
     private val addModel: AddViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContent {
             MaterialTheme(colors = if (isSystemInDarkTheme()) darkColors else lightColors) {
                 AddWrapper()
             }
         }
+
         val action: String? = intent?.action
         val data: Uri? = intent?.data
+
+        if (action == Intent.ACTION_VIEW) {
+            val tempId = data?.getQueryParameter("public-key")
+            val tempName = data?.getQueryParameter("name")
+            if (tempId == null || tempName == null) {
+                addModel.showSnackBar(getString(R.string.bad_add_link))
+            } else {
+                addModel.otherID.value = tempId
+                addModel.otherName.value = tempName
+            }
+        }
 
         v = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val vibratorManager = this.getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
@@ -80,12 +90,7 @@ class Add : AppCompatActivity() {
     fun AddScreen(name: String, id: String) {
         val scaffoldState = rememberScaffoldState()
         val scope = rememberCoroutineScope()
-        val scannedName = rememberSaveable {
-            mutableStateOf("")
-        }
-        val scannedID = rememberSaveable {
-            mutableStateOf("")
-        }
+        addModel.addOnSnackBarListener { scope.launch { scaffoldState.snackbarHostState.showSnackbar(message = it) } }
         Scaffold(scaffoldState = scaffoldState) {
             Column(modifier = Modifier.fillMaxHeight(), verticalArrangement = Arrangement
                     .spacedBy(Dp(32F))) {
@@ -93,11 +98,11 @@ class Add : AppCompatActivity() {
                         onScan = { result ->
                             val separatorIndex = result.lastIndexOf(' ')
                             val idPart = result.substring(separatorIndex + 1).trim { it <= ' ' }
-                            scannedID.value = idPart
+                            addModel.otherID.value = idPart
                             if (separatorIndex != -1) {
                                 val namePart =
                                         result.substring(0, separatorIndex).trim { it <= ' ' }
-                                scannedName.value = namePart
+                                addModel.otherName.value = namePart
                             }
                             addModel.onPause()
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -112,11 +117,9 @@ class Add : AppCompatActivity() {
                                 scaffoldState.snackbarHostState.showSnackbar(message = it)
                             }
                         })
-                ManualEntry(name = scannedName.value, id = scannedID.value) {
-                    scope.launch { scaffoldState.snackbarHostState.showSnackbar(message = it) }
-                }
+                ManualEntry(name = addModel.otherName.value, id = addModel.otherID.value)
                 QRCode(nameAndID = "$name $id")
-                UserID("$name $id")
+                UserID(name, id)
             }
         }
     }
@@ -131,7 +134,7 @@ class Add : AppCompatActivity() {
             CompoundBarcodeView(this).apply {
                 val capture = CaptureManager(context as Activity, this)
                 capture.initializeFromIntent((context as Activity).intent, null)
-                this.setStatusText("")
+                this.setStatusText(addModel.barcodeStatus.value)
                 capture.decode()
                 this.decodeContinuous { result ->
                     if (!scanning) {
@@ -180,7 +183,7 @@ class Add : AppCompatActivity() {
     }
 
     @Composable
-    fun ManualEntry(name: String, id: String, displaySnackbar: (String) -> Unit) {
+    fun ManualEntry(name: String, id: String) {
         var displayName by rememberSaveable {
             mutableStateOf(name)
         }
@@ -202,11 +205,11 @@ class Add : AppCompatActivity() {
             }
             Button(onClick = {
                 if (displayName.isBlank()) {
-                    displaySnackbar(getString(R.string.no_name))
+                    addModel.showSnackBar(getString(R.string.no_name))
                     nameIsError = true
                 }
                 if (displayID.isBlank()) {
-                    displaySnackbar(getString(R.string.no_id))
+                    addModel.showSnackBar(getString(R.string.no_id))
                     idIsError = true
                 }
                 if (displayName.isBlank() || displayID.isBlank()) {
@@ -216,7 +219,7 @@ class Add : AppCompatActivity() {
                     Base64.decode(displayID, Base64.URL_SAFE)
                 } catch (e: IllegalArgumentException) {
                     idIsError = true
-                    displaySnackbar(getString(R.string.invalid_id))
+                    addModel.showSnackBar(getString(R.string.invalid_id))
                     return@Button
                 }
                 friendModel.onAddFriend(Friend(displayID, displayName))
@@ -244,10 +247,19 @@ class Add : AppCompatActivity() {
     }
 
     @Composable
-    fun UserID(nameAndID: String) {
+    fun UserID(name: String, id: String) {
         Row {
-            Text(text = nameAndID, modifier = Modifier.fillMaxWidth())
-            IconButton(onClick = { /* TODO generate URL for User and open share dialog*/ }) {
+            Text(text = "$name $id", modifier = Modifier.fillMaxWidth())
+            IconButton(onClick = {
+                val sharingIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    val shareBody = "Add me on Attention! https://attention.aracroproducts" +
+                            ".com/app/add?public-key=$id&name=$name$"
+                    putExtra(Intent.EXTRA_TEXT, shareBody)
+                }
+                startActivity(Intent.createChooser(sharingIntent, null))
+
+            }) {
                 Icon(Icons.Filled.Share, contentDescription = getString(R.string.share_user_id))
             }
         }
@@ -325,8 +337,7 @@ class Add : AppCompatActivity() {
                 false
             }
         } else { // device does not have a camera for some reason
-            barcodeView = findViewById(R.id.zxing_barcode_scanner)
-            barcodeView?.setStatusText(getString(R.string.no_camera))
+            addModel.barcodeStatus.value = getString(R.string.no_camera)
             false
         }
     }

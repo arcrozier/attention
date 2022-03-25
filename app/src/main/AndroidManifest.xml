@@ -63,7 +63,7 @@
                 <data android:scheme="https"/>
                 <data
                     android:host="attention.aracroproducts.com"
-                    android:pathPattern="/app/add.*" />
+                    android:pathPrefix="/app/add?" />
             </intent-filter>
         </activity>
         <activity

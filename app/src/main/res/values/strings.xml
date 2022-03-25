@@ -27,6 +27,8 @@
     <string name="default_message">%s wants your attention!</string>
     <string name="message_prefix">%1$s says: %2$s</string>
 
+    <string name="bad_add_link">Invalid link</string>
+
     <string name="confirm_delete_title">Delete friend</string>
     <string name="confirm_delete_message">Are you sure you want to remove %s from your friends?</string>
     <string name="yes">Yes</string>
