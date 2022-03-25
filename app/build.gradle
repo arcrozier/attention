@@ -6,7 +6,7 @@ android {
     compileSdkVersion 32
 
     defaultConfig {
-        applicationId "com.aracroproducts.attention"
+        applicationId "com.aracroproducts.attentionv2"
         minSdkVersion 24
         targetSdkVersion 32
         versionCode 8

@@ -1,4 +1,4 @@
-package com.aracroproducts.attention
+package com.aracroproducts.attentionv2
 
 import android.app.NotificationChannel
 import android.app.NotificationManager

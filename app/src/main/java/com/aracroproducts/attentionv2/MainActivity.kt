@@ -1,4 +1,4 @@
-package com.aracroproducts.attention
+package com.aracroproducts.attentionv2
 
 import android.content.*
 import android.net.Uri
@@ -30,7 +30,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.preference.PreferenceManager
-import com.aracroproducts.attention.MainViewModel.Companion.MY_NAME
+import com.aracroproducts.attentionv2.MainViewModel.Companion.MY_NAME
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import kotlinx.coroutines.launch

@@ -1,29 +1,4 @@
-package com.aracroproducts.attention
-
-import android.animation.ObjectAnimator
-import android.animation.ValueAnimator
-import android.app.AlertDialog
-import android.content.DialogInterface
-import android.os.CountDownTimer
-import android.text.InputType
-import android.util.Log
-import android.view.LayoutInflater
-import android.view.View
-import android.view.View.OnLongClickListener
-import android.view.ViewGroup
-import android.widget.*
-import androidx.appcompat.widget.AppCompatImageButton
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
-import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.recyclerview.widget.RecyclerView
+package com.aracroproducts.attentionv2
 
 /*
 class FriendAdapter(private val dataset: List<Pair<String, Friend>>, private var callback:

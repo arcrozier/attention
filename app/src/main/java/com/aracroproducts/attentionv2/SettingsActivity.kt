@@ -1,4 +1,4 @@
-package com.aracroproducts.attention
+package com.aracroproducts.attentionv2
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity

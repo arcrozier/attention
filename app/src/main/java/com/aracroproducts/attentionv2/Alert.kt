@@ -1,4 +1,4 @@
-package com.aracroproducts.attention
+package com.aracroproducts.attentionv2
 
 import androidx.appcompat.app.AppCompatActivity
 import android.media.Ringtone
@@ -9,7 +9,6 @@ import android.media.RingtoneManager
 import android.app.NotificationManager
 import android.app.PendingIntent
 import androidx.core.app.NotificationManagerCompat
-import android.app.NotificationChannel
 import android.os.*
 import android.util.Log
 import android.view.View

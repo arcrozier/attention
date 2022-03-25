@@ -1,13 +1,10 @@
-package com.aracroproducts.attention
+package com.aracroproducts.attentionv2
 
 import android.content.Context
 import androidx.room.*
-import com.aracroproducts.attention.AttentionDB.Companion.DB_V1
+import com.aracroproducts.attentionv2.AttentionDB.Companion.DB_V1
 import kotlinx.coroutines.flow.Flow
-import java.util.*
-import android.util.Base64
 import java.security.*
-import java.time.Instant
 
 /**
  * Represents the user of the app - Has the ID and the Firebase token

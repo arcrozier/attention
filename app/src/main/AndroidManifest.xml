@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.aracroproducts.attention">
+    package="com.aracroproducts.attentionv2">
 
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.VIBRATE" />
@@ -13,6 +13,7 @@
     <uses-feature
         android:name="android.hardware.camera.autofocus"
         android:required="false" />
+
     <application
         android:name=".AttentionApplication"
         android:allowBackup="true"
@@ -21,12 +22,13 @@
         android:roundIcon="@mipmap/add_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
-        android:fullBackupContent="@xml/backup_descriptor">
+        android:fullBackupContent="@xml/backup_descriptor"
+        android:dataExtractionRules="@xml/data_extraction_rules">
         <activity
             android:name=".SettingsActivity"
             android:exported="false"
             android:label="@string/title_activity_settings"
-            android:parentActivityName=".MainActivity"/>
+            android:parentActivityName=".MainActivity" />
         <!-- android:showOnLockScreen="true" -->
         <activity
             android:name=".Alert"
@@ -36,11 +38,6 @@
             android:turnScreenOn="true"
             android:exported="false"
             tools:targetApi="o_mr1" />
-
-        <service
-            android:name=".AppServer"
-            android:exported="false"
-            android:permission="android.permission.BIND_JOB_SERVICE" />
         <service
             android:name=".AlertHandler"
             android:enabled="true"
@@ -55,7 +52,19 @@
             android:name=".Add"
             android:exported="false"
             android:screenOrientation="fullSensor"
-            android:windowSoftInputMode="stateAlwaysHidden" />
+            android:windowSoftInputMode="stateAlwaysHidden">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:scheme="https"
+                    android:host="attention.aracroproducts.com"
+                    android:pathPattern="/app/add.*" />
+            </intent-filter>
+        </activity>
         <activity
             android:name=".DialogActivity"
             android:label="Enter Name"

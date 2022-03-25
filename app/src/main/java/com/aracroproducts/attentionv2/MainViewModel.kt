@@ -1,4 +1,4 @@
-package com.aracroproducts.attention
+package com.aracroproducts.attentionv2
 
 import android.app.Application
 import android.app.NotificationChannel
@@ -23,6 +23,7 @@ import androidx.lifecycle.*
 import androidx.preference.PreferenceManager
 import com.google.android.gms.tasks.Task
 import com.google.firebase.messaging.FirebaseMessaging
+import java.security.PublicKey
 import java.util.*
 import javax.inject.Inject
 
@@ -333,6 +334,15 @@ class MainViewModel @Inject constructor(
             val msg = context.getString(R.string.msg_token_fmt, token)
             Log.d(sTAG, msg)
         }
+    }
+
+    fun getMyID(): PublicKey? {
+        return attentionRepository.getPublicKey()
+    }
+
+    fun getMyName(): String {
+        val context = getApplication<Application>()
+        return PreferenceManager.getDefaultSharedPreferences(context).getString(MY_NAME, "") ?: ""
     }
 
     companion object {

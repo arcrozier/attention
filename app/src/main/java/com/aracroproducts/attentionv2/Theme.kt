@@ -1,4 +1,4 @@
-package com.aracroproducts.attention
+package com.aracroproducts.attentionv2
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.darkColors
