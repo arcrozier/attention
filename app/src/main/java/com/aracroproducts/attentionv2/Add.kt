@@ -6,6 +6,7 @@ import android.content.DialogInterface
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.net.Uri
 import android.os.*
 import android.util.Base64
 import android.view.KeyEvent
@@ -55,6 +56,9 @@ class Add : AppCompatActivity() {
                 AddWrapper()
             }
         }
+        val action: String? = intent?.action
+        val data: Uri? = intent?.data
+
         v = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val vibratorManager = this.getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
             vibratorManager.defaultVibrator

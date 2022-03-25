@@ -50,17 +50,18 @@
 
         <activity
             android:name=".Add"
-            android:exported="false"
+            android:exported="true"
             android:screenOrientation="fullSensor"
             android:windowSoftInputMode="stateAlwaysHidden">
-            <intent-filter>
+            <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
 
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
+                <data android:scheme="http"/>
+                <data android:scheme="https"/>
                 <data
-                    android:scheme="https"
                     android:host="attention.aracroproducts.com"
                     android:pathPattern="/app/add.*" />
             </intent-filter>
