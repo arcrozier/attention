@@ -34,7 +34,6 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.qrcode.QRCodeWriter
 import com.journeyapps.barcodescanner.CaptureManager
 import com.journeyapps.barcodescanner.CompoundBarcodeView
-import com.journeyapps.barcodescanner.DecoratedBarcodeView
 import kotlinx.coroutines.launch
 
 /**
@@ -250,7 +249,7 @@ class Add : AppCompatActivity() {
     fun UserID(name: String, id: String) {
         Row {
             Text(text = "$name $id", modifier = Modifier.fillMaxWidth())
-            IconButton(onClick = {
+            OutlinedButton(onClick = {
                 val sharingIntent = Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"
                     val shareBody = "Add me on Attention! https://attention.aracroproducts" +
