@@ -4,3 +4,4 @@ TODO
 2. Update settings to use Jetpack Compose (and get back navigation working)
 3. Enable backup/restore/transfer of their private key, friends, etc.
 4. Add an activity to allow people to share content via Attention
+5. Make app icon support material theming
