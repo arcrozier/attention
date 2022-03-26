@@ -2,6 +2,8 @@ package com.aracroproducts.attentionv2
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.preference.MultiSelectListPreference
+import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 
 /**
@@ -26,6 +28,32 @@ class SettingsActivity : AppCompatActivity() {
     class SettingsFragment : PreferenceFragmentCompat() {
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
             setPreferencesFromResource(R.xml.root_preferences, rootKey)
+
+            val vibratePreference = findPreference("vibrate_preference") as MultiSelectListPreference?
+            if (vibratePreference != null) {
+                vibratePreference.onPreferenceChangeListener =
+                        Preference.OnPreferenceChangeListener { _, newValue ->
+                            vibratePreference.setSummaryFromValues((newValue as? Set<*>) ?:
+                            HashSet<String>())
+                            true
+                        }
+                vibratePreference.setSummaryFromValues(vibratePreference.values)
+            }
+
+            val ringPreference = findPreference("ring_preference") as MultiSelectListPreference?
+            if (ringPreference != null) {
+                ringPreference.onPreferenceChangeListener =
+                        Preference.OnPreferenceChangeListener { _, newValue ->
+                            ringPreference.setSummaryFromValues((newValue as? Set<*>) ?:
+                            HashSet<String>())
+                            true
+                        }
+                ringPreference.setSummaryFromValues(ringPreference.values)
+            }
+        }
+
+        private fun MultiSelectListPreference.setSummaryFromValues(values: Set<*>) {
+            summary = values.joinToString(", ") { entries[findIndexOfValue(it as? String ?: "")] }
         }
     }
 }

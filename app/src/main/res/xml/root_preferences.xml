@@ -9,12 +9,14 @@
         app:iconSpaceReserved="false"
         app:title="@string/notifications_title">
         <MultiSelectListPreference
+            android:id="@+id/vibrate_preference"
             android:entries="@array/notification_entries"
             android:entryValues="@array/notification_values"
             android:key="@string/vibrate_preference_key"
             android:title="@string/vibrate_preference"
             app:iconSpaceReserved="false" />
         <MultiSelectListPreference
+            android:id="@+id/ring_preference"
             android:entries="@array/notification_entries"
             android:entryValues="@array/notification_values"
             android:key="@string/ring_preference_key"
