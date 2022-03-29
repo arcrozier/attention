@@ -25,10 +25,20 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
     var emailCaption by mutableStateOf("")
 
     fun login(onLoggedIn: () -> Unit) {
-
+# TODO UI enabled = false
+# TODO use volley to call obtain token
+# on ok -> save username in default prefs and token in USER_INFO, call onLoggedIn
+# on error -> display message in password caption, set error on username and password, set UI enabled = true
     }
 
     fun createUser(onLoggedIn: () -> Unit) {
-
+# TODO UI enabled = false
+# TODO check username is not blank - display message in caption (and is error = true)
+# TODO check password is not blank (and check that in the API too) - display in password caption (and is error = true
+# TODO check passwords are the same - display in confirm password caption
+# TODO if failed, UI enabled = true
+# TODO use volley to call register user 
+# on ok -> call login, passing onLoggedIn
+# on error -> read message and display invalid username in username caption (check invalid usernames fail in API tests), invalid email in email caption, UI enabled = true
     }
 }
