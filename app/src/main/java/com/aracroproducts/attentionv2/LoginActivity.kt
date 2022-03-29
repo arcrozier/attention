@@ -49,6 +49,7 @@ class LoginActivity : AppCompatActivity() {
         }
         Column(verticalArrangement = Arrangement.Center) {
             TextField(
+# TODO use model is error - reset on edit
                     value = model.username,
                     onValueChange = { model.username = it },
                     label = { Text(text = getString(R.string.username)) },
@@ -65,6 +66,7 @@ class LoginActivity : AppCompatActivity() {
                 )
             }
             TextField(
+# TODO use model is error - reset on change
                     value = model.password,
                     onValueChange = { model.password = it },
                     visualTransformation = if (passwordHidden)
@@ -119,6 +121,7 @@ class LoginActivity : AppCompatActivity() {
         }
         Column(verticalArrangement = Arrangement.Center) {
             TextField(
+# use model is error - reset on change
                     value = model.username,
                     onValueChange = { value ->
                         model.username = value.substring(0, 150).filter {
@@ -176,6 +179,7 @@ class LoginActivity : AppCompatActivity() {
                 )
             }
             TextField(
+# TODO use model is error - reset on change
                     value = model.password,
                     onValueChange = { model.password = it },
                     visualTransformation = if (passwordHidden)
