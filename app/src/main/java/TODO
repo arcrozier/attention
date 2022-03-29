@@ -2,7 +2,10 @@ TODO
 
 ✔️1. Update pop up dialog to use Jetpack Compose (or at least Material 3)
 ❌ 2. Update settings to use Jetpack Compose - doesn't seem to be a good way to do this
-2.1 Get back navigation working
+    2.1. Get back navigation working
 3. Enable backup/restore/transfer of their private key, friends, etc.
+    3.1. KeyStore does not allow you to get the data out of it - options: going for a typical
+    username/password based model or just store it in sharedPreferences
+    3.2. Currently, database is not backed up
 4. Add an activity to allow people to share content via Attention
 5. Make app icon support material theming

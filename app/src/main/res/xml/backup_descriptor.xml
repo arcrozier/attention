@@ -2,10 +2,10 @@
 <full-backup-content>
     <!-- TODO Remove the following "exclude" elements to make them a part of the auto backup -->
     <!-- Exclude the shared preferences file that contains the GCM registrationId -->
-    <exclude
+    <include
         domain="sharedpref"
         path="user.xml" />
-    <exclude
+    <include
         domain="sharedpref"
         path="listen.xml" />
 </full-backup-content>
