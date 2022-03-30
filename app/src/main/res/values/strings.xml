@@ -11,6 +11,10 @@
     <string name="passwords_different">Passwords don\'t match</string>
     <string name="create_user">Create account</string>
     <string name="login">Log in</string>
+    <string name="wrong_password">Invalid username or password</string>
+    <string name="password_validation_failed">Password must be at least 8 characters</string>
+    <string name="username_in_use">Username is taken</string>
+    <string name="invalid_email">Email is invalid. Enter a valid email or leave blank</string>
     <string name="name_dialog_title">Please enter your name</string>
     <string name="name">Full name</string>
     <string name="placeholder_name">Name…</string>

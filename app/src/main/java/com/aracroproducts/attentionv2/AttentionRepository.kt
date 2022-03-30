@@ -54,35 +54,11 @@ class AttentionRepository(private val database: AttentionDB) {
         }
     }
 
-    fun genKeyPair() {
-        val generator = KeyPairGenerator.getInstance(KEYGEN_ALGORITHM, KEY_STORE)
-        val parameterSpec: KeyGenParameterSpec = KeyGenParameterSpec.Builder(
-                ALIAS,  // The spec will automatically save newly generated keys in the key store
-                // with this alias
-                KeyProperties.PURPOSE_SIGN
-        ).run {
-            setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
-            setKeySize(KEY_SIZE)
-            build()
-        }
-
-        generator.initialize(parameterSpec)
-
-        var keyPair: KeyPair? = null
-        while (keyPair == null) {
-            keyPair = generator.genKeyPair()  // automatically added to key store
-        }
-    }
-
     fun getPublicKey(): PublicKey? {
         val keyStore: KeyStore = KeyStore.getInstance(KEY_STORE).apply { load(null) }
-        val privateKeyEntry = keyStore.getEntry(ALIAS, null) as? KeyStore.PrivateKeyEntry ?: return null
+        val privateKeyEntry =
+                keyStore.getEntry(ALIAS, null) as? KeyStore.PrivateKeyEntry ?: return null
         return privateKeyEntry.certificate.publicKey
-    }
-
-    fun keyExists(): Boolean {
-        val keyStore = KeyStore.getInstance(KEY_STORE).apply { load(null) }
-        return keyStore.isKeyEntry(ALIAS)
     }
 
     fun retrieveAndSignChallenge(singleton: NetworkSingleton,
@@ -94,10 +70,10 @@ class AttentionRepository(private val database: AttentionDB) {
         val uid = Base64.encode(keyStore.getCertificate(ALIAS).publicKey.encoded, Base64.URL_SAFE)
         val request = JsonObjectRequest(Request.Method.GET, "$BASE_URL/get_challenge/$uid/",
                 null, { response ->
-                                        responseListener.onResponse(JSONObject(mapOf(
-                                                "signature" to signChallenge(response["data"] as String),
-                                                "challenge" to response["data"]
-                                        )))
+            responseListener.onResponse(JSONObject(mapOf(
+                    "signature" to signChallenge(response["data"] as String),
+                    "challenge" to response["data"]
+            )))
         }, errorListener).apply {
             setShouldCache(false)
         }
@@ -119,25 +95,32 @@ class AttentionRepository(private val database: AttentionDB) {
         })
     }
 
-    fun sendMessage(message: Message, singleton: NetworkSingleton,
+    fun sendMessage(message: Message, token: String, singleton: NetworkSingleton,
                     responseListener: Response.Listener<JSONObject>? = null, errorListener: Response
             .ErrorListener? = null) {
         assert(message.direction == DIRECTION.Outgoing)
-        retrieveAndSignChallenge(singleton, { response ->
-            appendMessage(message)
-            val params = JSONObject(mapOf(
-                    "to" to message.otherId,
-                    "from" to getPublicKey()?.let { keyToString(it) },
-                    "message" to message,
-                    "signature" to response["signature"],
-                    "challenge" to response["challenge"]
-            ))
-            val request = JsonObjectRequest(Request.Method.POST, "$BASE_URL/send_alert/", params,
-                    responseListener, errorListener)
-            singleton.addToRequestQueue(request)
-        }) { error ->
-            errorListener?.onErrorResponse(VolleyError("Failed to get challenge: ${error.message}"))
+        appendMessage(message)
+        val params = JSONObject(mapOf(
+                "to" to message.otherId,
+                "message" to message
+        ))
+        val request = object : JsonObjectRequest(Method.POST, "$BASE_URL/send_alert/",
+                params,
+                responseListener, { error ->
+            errorListener?.onErrorResponse(VolleyError("Couldn't send alert: ${
+                error
+                        .message
+            }"))
+        }) {
+
+            override fun getHeaders(): MutableMap<String, String> {
+                return mutableMapOf(
+                        "AUTHORIZATION" to "Token $token",
+                        "Content-Type" to "application/json; charset=UTF-8"
+                )
+            }
         }
+        singleton.addToRequestQueue(request)
 
     }
 
@@ -150,8 +133,8 @@ class AttentionRepository(private val database: AttentionDB) {
     }
 
     fun sendToken(token: String, singleton: NetworkSingleton,
-                      responseListener: Response.Listener<JSONObject>? = null,
-                      errorListener: Response.ErrorListener? = null, authRequired: Boolean =
+                  responseListener: Response.Listener<JSONObject>? = null,
+                  errorListener: Response.ErrorListener? = null, authRequired: Boolean =
                           true) {
         if (authRequired) {
             retrieveAndSignChallenge(singleton, { response ->
@@ -170,6 +153,34 @@ class AttentionRepository(private val database: AttentionDB) {
             sendToken(JSONObject(mapOf("token" to token, "id" to getPublicKey())), singleton,
                     responseListener, errorListener)
         }
+    }
+
+    fun registerUser(username: String, password: String, firstName: String, lastName: String,
+                     email: String, singleton: NetworkSingleton, responseListener: Response
+            .Listener<JSONObject>? = null, errorListener: Response.ErrorListener? = null) {
+        val params = JSONObject(buildMap {
+            "username" to username
+            "password" to password
+            "firstName" to firstName
+            "lastName" to lastName
+            if (email.isNotBlank()) { put("email", email) }
+        })
+        val request = JsonObjectRequest(Request.Method.POST, "$BASE_URL/register_user/", params,
+                responseListener, errorListener)
+        singleton.addToRequestQueue(request)
+    }
+
+    fun getAuthToken(username: String, password: String, singleton: NetworkSingleton,
+                     responseListener: Response.Listener<JSONObject>? = null, errorListener:
+                     Response
+                     .ErrorListener? = null) {
+        val params = JSONObject(mapOf(
+                "username" to username,
+                "password" to password
+        ))
+        val request = JsonObjectRequest(Request.Method.POST, "$BASE_URL/api_token_auth/", params,
+                responseListener, errorListener)
+        singleton.addToRequestQueue(request)
     }
 
     companion object {

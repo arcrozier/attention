@@ -111,7 +111,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
         when (dialogState.first) {
-            MainViewModel.DialogStatus.USERNAME -> UserNameDialog()
+            MainViewModel.DialogStatus.ADD_FRIEND -> UserNameDialog()
             MainViewModel.DialogStatus.OVERLAY_PERMISSION -> OverlaySettingsDialog()
             MainViewModel.DialogStatus.ADD_MESSAGE_TEXT -> dialogState.second?.let {
                 AddMessageText(friend = it, onSend = dialogState.third)

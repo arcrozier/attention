@@ -7,6 +7,7 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -49,26 +50,27 @@ class LoginActivity : AppCompatActivity() {
         }
         Column(verticalArrangement = Arrangement.Center) {
             TextField(
-# TODO use model is error - reset on edit
                     value = model.username,
-                    onValueChange = { model.username = it },
+                    onValueChange = { model.username = it
+                                    model.passwordCaption = ""},
                     label = { Text(text = getString(R.string.username)) },
                     keyboardOptions = KeyboardOptions(autoCorrect = false, imeAction = ImeAction
                             .Next),
-                    enabled = model.uiEnabled
+                    enabled = model.uiEnabled,
+                    isError = model.passwordCaption.isNotBlank(),
             )
             if (model.usernameCaption.isNotBlank()) {
                 Text(
-                        text=model.usernameCaption,
+                        text = model.usernameCaption,
                         color = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium),
                         style = MaterialTheme.typography.caption,
                         modifier = Modifier.padding(start = 16.dp)
                 )
             }
             TextField(
-# TODO use model is error - reset on change
                     value = model.password,
-                    onValueChange = { model.password = it },
+                    onValueChange = { model.password = it
+                                    model.passwordCaption = ""},
                     visualTransformation = if (passwordHidden)
                         PasswordVisualTransformation() else
                         VisualTransformation.None,
@@ -94,11 +96,12 @@ class LoginActivity : AppCompatActivity() {
                                 model.login { finish() }
                             }
                     ),
-                    enabled = model.uiEnabled
+                    enabled = model.uiEnabled,
+                    isError = model.passwordCaption.isNotBlank()
             )
             if (model.passwordCaption.isNotBlank()) {
                 Text(
-                        text=model.passwordCaption,
+                        text = model.passwordCaption,
                         color = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium),
                         style = MaterialTheme.typography.caption,
                         modifier = Modifier.padding(start = 16.dp)
@@ -106,11 +109,13 @@ class LoginActivity : AppCompatActivity() {
             }
             Button(
                     onClick = { model.login { finish() } },
-            enabled = model.uiEnabled,
-
-            ) {
-            Text(text = getString(R.string.login))
-        }
+                    enabled = model.uiEnabled,
+                    ) {
+                Text(text = getString(R.string.login))
+                if (!model.uiEnabled) {
+                    CircularProgressIndicator(modifier = Modifier.fillMaxSize())
+                }
+            }
         }
     }
 
@@ -121,21 +126,24 @@ class LoginActivity : AppCompatActivity() {
         }
         Column(verticalArrangement = Arrangement.Center) {
             TextField(
-# use model is error - reset on change
+                    // use model is error - reset on change
                     value = model.username,
                     onValueChange = { value ->
                         model.username = value.substring(0, 150).filter {
                             it.isLetterOrDigit() or (it == '@') or (it == '_') or (it == '-') or (it ==
                                     '+') or (it == '.')
                         }
+                        model.usernameCaption = ""
                     },
+                    isError = model.usernameCaption.isNotBlank(),
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(autoCorrect = false, imeAction = ImeAction.Next),
+                    keyboardOptions = KeyboardOptions(autoCorrect = false,
+                            imeAction = ImeAction.Next),
                     enabled = model.uiEnabled
             )
             if (model.usernameCaption.isNotBlank()) {
                 Text(
-                        text=model.usernameCaption,
+                        text = model.usernameCaption,
                         color = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium),
                         style = MaterialTheme.typography.caption,
                         modifier = Modifier.padding(start = 16.dp)
@@ -143,7 +151,7 @@ class LoginActivity : AppCompatActivity() {
             }
             TextField(
                     value = model.firstName,
-                    onValueChange = {model.firstName = it},
+                    onValueChange = { model.firstName = it },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
                             autoCorrect = true,
@@ -153,7 +161,7 @@ class LoginActivity : AppCompatActivity() {
             )
             TextField(
                     value = model.lastName,
-                    onValueChange = {model.lastName = it},
+                    onValueChange = { model.lastName = it },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
                             autoCorrect = true,
@@ -163,8 +171,11 @@ class LoginActivity : AppCompatActivity() {
             )
             TextField(
                     value = model.email,
-                    onValueChange = {model.email = it},
-                    isError = android.util.Patterns.EMAIL_ADDRESS.matcher(model.email).matches(),
+                    onValueChange = {
+                        model.email = it
+                        model.emailCaption = ""
+                    },
+                    isError = !android.util.Patterns.EMAIL_ADDRESS.matcher(model.email).matches(),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Email
@@ -172,16 +183,18 @@ class LoginActivity : AppCompatActivity() {
             )
             if (model.emailCaption.isNotBlank()) {
                 Text(
-                        text=model.emailCaption,
+                        text = model.emailCaption,
                         color = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium),
                         style = MaterialTheme.typography.caption,
                         modifier = Modifier.padding(start = 16.dp)
                 )
             }
             TextField(
-# TODO use model is error - reset on change
                     value = model.password,
-                    onValueChange = { model.password = it },
+                    onValueChange = {
+                        model.password = it
+                        model.passwordCaption = ""
+                    },
                     visualTransformation = if (passwordHidden)
                         PasswordVisualTransformation() else
                         VisualTransformation.None,
@@ -196,6 +209,7 @@ class LoginActivity : AppCompatActivity() {
                             Icon(imageVector = visibilityIcon, contentDescription = description)
                         }
                     },
+                    isError = model.passwordCaption.isNotBlank(),
                     label = {
                         Text(text = getString(R.string.password))
                     },
@@ -208,7 +222,7 @@ class LoginActivity : AppCompatActivity() {
             )
             if (model.passwordCaption.isNotBlank()) {
                 Text(
-                        text=model.passwordCaption,
+                        text = model.passwordCaption,
                         color = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium),
                         style = MaterialTheme.typography.caption,
                         modifier = Modifier.padding(start = 16.dp)
@@ -216,7 +230,10 @@ class LoginActivity : AppCompatActivity() {
             }
             TextField(
                     value = model.confirmPassword,
-                    onValueChange = { model.confirmPassword = it },
+                    onValueChange = {
+                        model.confirmPassword = it
+                        model.confirmPasswordCaption = ""
+                    },
                     visualTransformation = if (passwordHidden)
                         PasswordVisualTransformation() else
                         VisualTransformation.None,
@@ -236,6 +253,7 @@ class LoginActivity : AppCompatActivity() {
                     label = {
                         Text(text = getString(R.string.password))
                     },
+                    isError = model.confirmPasswordCaption.isNotBlank(),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
                             autoCorrect = false,
@@ -253,7 +271,7 @@ class LoginActivity : AppCompatActivity() {
             )
             if (model.confirmPasswordCaption.isNotBlank()) {
                 Text(
-                        text=model.confirmPasswordCaption,
+                        text = model.confirmPasswordCaption,
                         color = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium),
                         style = MaterialTheme.typography.caption,
                         modifier = Modifier.padding(start = 16.dp)
@@ -263,8 +281,11 @@ class LoginActivity : AppCompatActivity() {
                     onClick = { model.createUser { finish() } },
                     enabled = model.uiEnabled,
 
-            ) {
+                    ) {
                 Text(text = getString(R.string.create_user))
+                if (!model.uiEnabled) {
+                    CircularProgressIndicator(modifier = Modifier.fillMaxSize())
+                }
             }
         }
     }

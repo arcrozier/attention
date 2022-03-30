@@ -36,7 +36,7 @@ class MainViewModel @Inject constructor(
     // val friends: LiveData<MutableMap<String, Friend>> = _friends
 
     enum class DialogStatus {
-        USERNAME, OVERLAY_PERMISSION, ADD_MESSAGE_TEXT, FRIEND_NAME, CONFIRM_DELETE, NONE
+        ADD_FRIEND, OVERLAY_PERMISSION, ADD_MESSAGE_TEXT, FRIEND_NAME, CONFIRM_DELETE, NONE
     }
 
     /**
@@ -214,39 +214,9 @@ class MainViewModel @Inject constructor(
 
     init {
         val userInfo = application.getSharedPreferences(USER_INFO, Context.MODE_PRIVATE)
-        val defaultPrefs = PreferenceManager.getDefaultSharedPreferences(application)
-        // Verify Firebase token and continue configuring settings
-        val token = userInfo.getString(MY_TOKEN, null)
 
-        // Check if there is already a key pair
-        if (!attentionRepository.keyExists()) {
-            // No key pair - generate a new one
-            attentionRepository.genKeyPair()
-
-            // Signal that the new key needs to be uploaded
-            val editor = userInfo.edit()
-            editor.putBoolean(KEY_UPLOADED, false)
-            editor.apply()
-        }
-
-        // Do we need to prompt user for a name?
-        if (!defaultPrefs.contains(application.getString(R.string.name_key))) {
-            appendDialogState(Triple(DialogStatus.USERNAME, null) {})
-        }
-        // Do we need to upload a token (note we don't want to upload if we don't have a token yet)
-        if (token != null && !userInfo.getBoolean(TOKEN_UPLOADED, false)) {
-            attentionRepository.sendToken(token, NetworkSingleton.getInstance(application), {
-                Log.d(sTAG, "Successfully uploaded token")
-                val editor = userInfo.edit()
-                editor.putBoolean(KEY_UPLOADED, true)
-                editor.putBoolean(TOKEN_UPLOADED, true)
-                editor.apply()
-            }, {
-                Log.e(sTAG, "Error uploading token: ${it.message}")
-            }, userInfo.getBoolean(KEY_UPLOADED, false))
-        } else if (token == null) { // We don't have a token, so let's get one
-            getToken(application)
-        }
+        // TODO if we don't have a token saved, show log in screen
+        // TODO download user info - on error, show log in screen
 
         if (!Settings.canDrawOverlays(application) && !userInfo.getBoolean(OVERLAY_NO_PROMPT,
                         false)) {
@@ -285,55 +255,27 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    private fun launchLogin() {
+        val loginIntent = Intent(getApplication(), LoginActivity::class.java)
+        getApplication<Application>().startActivity(loginIntent)
+    }
+
     fun sendAlert(to: String, message: String?) {
+        val token = getApplication<Application>().getSharedPreferences(USER_INFO, Context
+                .MODE_PRIVATE).getString(MY_TOKEN, null)
+        if (token == null) {
+            launchLogin()
+            return
+        }
         attentionRepository.sendMessage(Message(timestamp = System.currentTimeMillis(),
                 otherId = to, message
-        = message, direction = DIRECTION.Outgoing),
+        = message, direction = DIRECTION.Outgoing), token = token,
                 NetworkSingleton.getInstance(getApplication<Application>()), {
             showSnackBar()
         }, {
-            Log.e(sTAG, "Error sending alert: ${it.message}")
-            notifyUser(ErrorType.BAD_REQUEST, to)
-        })
-    }
-
-    /**
-     * Helper method that gets the Firebase token
-     *
-     * Automatically uploads the token and updates the "uploaded" sharedPreference
-     */
-    private fun getToken(context: Context) {
-        FirebaseMessaging.getInstance().token.addOnCompleteListener { task: Task<String?> ->
-            if (!task.isSuccessful) {
-                Log.w(sTAG, "getInstanceId failed", task.exception)
-                return@addOnCompleteListener
-            }
-
-            // Get new Instance ID token
-            val token = task.result
-            Log.d(sTAG, "Got token! $token")
-
-            val preferences = context.getSharedPreferences(USER_INFO,
-                    AppCompatActivity.MODE_PRIVATE)
-            if (token != null && token != preferences.getString(MY_TOKEN, "")) {
-                attentionRepository.sendToken(token, NetworkSingleton
-                        .getInstance(context),
-                        {
-                            val editor = preferences.edit()
-                            editor.putBoolean(TOKEN_UPLOADED, true)
-                            editor.putBoolean(KEY_UPLOADED, true)
-                            editor.apply()
-                            Toast.makeText(context, context.getString(R.string.user_registered),
-                                    Toast.LENGTH_SHORT).show()
-                        }, { error ->
-                    Log.e(sTAG, "An error occurred while uploading token: ${error.message}")
-                }, preferences.getBoolean(KEY_UPLOADED, false))
-            }
-
-            // Log and toast
-            val msg = context.getString(R.string.msg_token_fmt, token)
-            Log.d(sTAG, msg)
-        }
+                Log.e(sTAG, "Error sending alert: ${it.message}")
+                notifyUser(ErrorType.BAD_REQUEST, to)
+            })
     }
 
     fun getMyID(): PublicKey? {
