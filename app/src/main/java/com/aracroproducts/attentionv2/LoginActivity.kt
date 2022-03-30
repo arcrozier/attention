@@ -1,6 +1,7 @@
 package com.aracroproducts.attentionv2
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.os.PersistableBundle
 import androidx.activity.viewModels
@@ -13,10 +14,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
@@ -36,10 +34,17 @@ class LoginActivity : AppCompatActivity() {
 
     @Composable
     fun Screen(model: LoginViewModel) {
-        if (model.login) {
-            Login(model)
-        } else {
-            CreateUser(model)
+        Scaffold(topBar = {
+            TopAppBar(
+                    backgroundColor = MaterialTheme.colors.primary,
+                    title = { Text(getString(R.string.app_name)) },
+            )
+        },) {
+            if (model.login) {
+                Login(model)
+            } else {
+                CreateUser(model)
+            }
         }
     }
 
