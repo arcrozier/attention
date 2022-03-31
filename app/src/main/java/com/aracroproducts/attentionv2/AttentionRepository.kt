@@ -104,22 +104,12 @@ class AttentionRepository(private val database: AttentionDB) {
                 "to" to message.otherId,
                 "message" to message
         ))
-        val request = object : JsonObjectRequest(Method.POST, "$BASE_URL/send_alert/",
+        val request = AuthorizedJsonObjectRequest(Request.Method.POST, "$BASE_URL/send_alert/",
                 params,
                 responseListener, { error ->
-            errorListener?.onErrorResponse(VolleyError("Couldn't send alert: ${
-                error
-                        .message
-            }"))
-        }) {
-
-            override fun getHeaders(): MutableMap<String, String> {
-                return mutableMapOf(
-                        "AUTHORIZATION" to "Token $token",
-                        "Content-Type" to "application/json; charset=UTF-8"
-                )
-            }
-        }
+            errorListener?.onErrorResponse(
+                    VolleyError("Couldn't send alert: ${error.message}"))
+        }, token)
         singleton.addToRequestQueue(request)
 
         // TODO store last sent alert ID for each user

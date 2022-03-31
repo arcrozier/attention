@@ -3,7 +3,10 @@ package com.aracroproducts.attentionv2
 import android.content.Context
 import com.android.volley.Request
 import com.android.volley.RequestQueue
+import com.android.volley.Response
+import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
+import org.json.JSONObject
 
 const val BASE_URL = "https://attention.aracroproducts.com/api/v2"
 
@@ -28,5 +31,21 @@ class NetworkSingleton constructor(context: Context) {
 
     fun <T> addToRequestQueue(req: Request<T>) {
         requestQueue.add(req)
+    }
+}
+
+class AuthorizedJsonObjectRequest(method: Int,
+                           URL: String,
+                           params: JSONObject? = null,
+                           responseListener: Response.Listener<JSONObject>? = null,
+                           errorListener: Response.ErrorListener? = null,
+                           private val token: String
+) : JsonObjectRequest(method, URL, params, responseListener, errorListener) {
+
+    override fun getHeaders(): MutableMap<String, String> {
+        return mutableMapOf(
+                "AUTHORIZATION" to "Token $token",
+                "Content-Type" to "application/json; charset=UTF-8"
+        )
     }
 }
