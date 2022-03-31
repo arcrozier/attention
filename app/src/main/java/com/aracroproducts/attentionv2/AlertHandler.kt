@@ -51,6 +51,8 @@ open class AlertHandler : FirebaseMessagingService() {
      * @param remoteMessage - The message from Firebase
      */
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
+        // TODO parse out alert read and alert incoming messages
+        // TODO store received alerts somewhere
         Log.d(TAG, "Message received! $remoteMessage")
         val messageData = remoteMessage.data
         val message = Message(timestamp = System.currentTimeMillis(), otherId = messageData[REMOTE_FROM] ?: return,

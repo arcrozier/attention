@@ -122,6 +122,8 @@ class AttentionRepository(private val database: AttentionDB) {
         }
         singleton.addToRequestQueue(request)
 
+        // TODO store last sent alert ID for each user
+
     }
 
     private fun sendToken(params: JSONObject, singleton: NetworkSingleton,
@@ -154,6 +156,16 @@ class AttentionRepository(private val database: AttentionDB) {
                     responseListener, errorListener)
         }
     }
+
+    // TODO editUser function
+
+    // TODO getUserInfo function
+
+    // TODO register device function
+
+    // TODO alert read function
+
+    // TODO have alert-read function which updates the last_message_read field
 
     fun registerUser(username: String, password: String, firstName: String, lastName: String,
                      email: String, singleton: NetworkSingleton, responseListener: Response

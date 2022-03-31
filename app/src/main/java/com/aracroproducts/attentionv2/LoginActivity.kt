@@ -152,6 +152,7 @@ class LoginActivity : AppCompatActivity() {
                     },
                     isError = model.usernameCaption.isNotBlank(),
                     singleLine = true,
+                    label = {Text(text = getString(R.string.username))},
                     keyboardOptions = KeyboardOptions(autoCorrect = false,
                             imeAction = ImeAction.Next),
                     enabled = model.uiEnabled
@@ -168,6 +169,7 @@ class LoginActivity : AppCompatActivity() {
                     value = model.firstName,
                     onValueChange = { model.firstName = it },
                     singleLine = true,
+                    label = {Text(text = getString(R.string.first_name))},
                     keyboardOptions = KeyboardOptions(
                             autoCorrect = true,
                             imeAction = ImeAction.Next,
@@ -177,6 +179,7 @@ class LoginActivity : AppCompatActivity() {
             TextField(
                     value = model.lastName,
                     onValueChange = { model.lastName = it },
+                    label = {Text(text = getString(R.string.last_name))},
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
                             autoCorrect = true,
@@ -192,6 +195,7 @@ class LoginActivity : AppCompatActivity() {
                     },
                     isError = !android.util.Patterns.EMAIL_ADDRESS.matcher(model.email).matches(),
                     singleLine = true,
+                    label = {Text(text = getString(R.string.email))},
                     keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Email
                     )
@@ -266,7 +270,7 @@ class LoginActivity : AppCompatActivity() {
                         Icon(imageVector = visibilityIcon, contentDescription = description)
                     },
                     label = {
-                        Text(text = getString(R.string.password))
+                        Text(text = getString(R.string.confirm_password))
                     },
                     isError = model.confirmPasswordCaption.isNotBlank(),
                     singleLine = true,

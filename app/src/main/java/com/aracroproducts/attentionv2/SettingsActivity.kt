@@ -29,6 +29,11 @@ class SettingsActivity : AppCompatActivity() {
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
             setPreferencesFromResource(R.xml.root_preferences, rootKey)
 
+            // TODO add a preference change listener to first name, last name, and email
+            // https://developer.android.com/guide/topics/ui/settings/use-saved-values
+            // TODO add a preference clicked listener to password
+            // https://developer.android.com/guide/topics/ui/settings/customize-your-settings#onpreferenceclicklistener
+
             val vibratePreference = findPreference("vibrate_preference") as MultiSelectListPreference?
             if (vibratePreference != null) {
                 vibratePreference.onPreferenceChangeListener =

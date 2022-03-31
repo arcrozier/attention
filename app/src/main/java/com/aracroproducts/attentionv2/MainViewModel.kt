@@ -213,9 +213,14 @@ class MainViewModel @Inject constructor(
     }
 
     init {
+        val context = getApplication<Application>()
         val userInfo = application.getSharedPreferences(USER_INFO, Context.MODE_PRIVATE)
 
-        // TODO if we don't have a token saved, show log in screen
+        val token = userInfo.getString(MY_TOKEN, null)
+        if (token == null) {
+            val loginIntent = Intent(context, LoginActivity::class.java)
+            context.startActivity(loginIntent)
+        }
         // TODO download user info - on error, show log in screen
 
         if (!Settings.canDrawOverlays(application) && !userInfo.getBoolean(OVERLAY_NO_PROMPT,

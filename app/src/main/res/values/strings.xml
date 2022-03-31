@@ -11,12 +11,17 @@
     <string name="passwords_different">Passwords don\'t match</string>
     <string name="create_user">Create account</string>
     <string name="login">Log in</string>
+    <string name="first_name">First name</string>
+    <string name="last_name">Last name</string>
+    <string name="email">Email</string>
+    <string name="confirm_password">Confirm password</string>
     <string name="wrong_password">Invalid username or password</string>
     <string name="password_validation_failed">Password must be at least 8 characters</string>
     <string name="username_in_use">Username is taken</string>
     <string name="invalid_email">Email is invalid. Enter a valid email or leave blank</string>
     <string name="invalid_username">Enter a valid username. This value may contain only English
         letters, numbers, and @/./+/-/_ characters.</string>
+    <string name="account">Account</string>
     <string name="network_error">An error occurred when connecting to server. Please try
         again later</string>
     <string name="connection_error">Unable to connect to the server. Check your internet
@@ -110,5 +115,11 @@
     <string name="override_dnd_key" translatable="false">com.aracroproducts.attention.key.override_dnd</string>
     <string name="ring_preference_key" translatable="false">com.aracroproducts.attention.key.ring</string>
     <string name="vibrate_preference_key" translatable="false">com.aracroproducts.attention.key.vibrate</string>
+    <string name="username_key" translatable="false">com.aracroproducts.attention.key.username</string>
+    <string name="email_key" translatable="false">com.aracroproducts.attention.key.email</string>
+    <string name="first_name_key" translatable="false">com.aracroproducts.attention.key
+        .first_name</string>
+    <string name="last_name_key" translatable="false">com.aracroproducts.attention.key
+        .last_name</string>
     <string name="alert_title">Attention!</string>
 </resources>

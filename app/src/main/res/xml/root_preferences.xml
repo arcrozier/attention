@@ -7,6 +7,35 @@
 
     <PreferenceCategory
         app:iconSpaceReserved="false"
+        app:title="@string/account">
+        <EditTextPreference
+            android:id="@+id/show_username_preference"
+            android:enabled="false"
+            android:key="@string/username_key"
+            android:title="@string/username" />
+
+        <EditTextPreference
+            android:id="@+id/email_preference"
+            android:key="@string/email_key"
+            android:title="@string/email" />
+
+        <EditTextPreference
+            android:id="@+id/first_name_preference"
+            android:key="@string/first_name_key"
+            android:title="@string/first_name" />
+
+        <EditTextPreference
+            android:id="@+id/last_name_preference"
+            android:key="@string/last_name_key"
+            android:title="@string/last_name" />
+
+        <Preference
+            android:persistent="false"
+            android:title="@string/password" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:iconSpaceReserved="false"
         app:title="@string/notifications_title">
         <MultiSelectListPreference
             android:id="@+id/vibrate_preference"
