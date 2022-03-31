@@ -1,11 +1,11 @@
 package com.aracroproducts.attentionv2
 
-import android.content.Context
-import android.content.Intent
 import android.os.Bundle
 import android.os.PersistableBundle
+import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,26 +14,36 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.CoroutineScope
 
 class LoginActivity : AppCompatActivity() {
 
-    val loginViewModel: LoginViewModel by viewModels()
+    private val loginViewModel: LoginViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?, persistentState: PersistableBundle?) {
         super.onCreate(savedInstanceState, persistentState)
 
-
+        setContent {
+            MaterialTheme(colors = if (isSystemInDarkTheme()) darkColors else lightColors) {
+                Screen(model = loginViewModel)
+            }
+        }
     }
 
     @Composable
     fun Screen(model: LoginViewModel) {
+        val scaffoldState = rememberScaffoldState()
+        val coroutineScope = rememberCoroutineScope()
+
         Scaffold(topBar = {
             TopAppBar(
                     backgroundColor = MaterialTheme.colors.primary,
@@ -41,15 +51,15 @@ class LoginActivity : AppCompatActivity() {
             )
         },) {
             if (model.login) {
-                Login(model)
+                Login(model, scaffoldState = scaffoldState, coroutineScope = coroutineScope)
             } else {
-                CreateUser(model)
+                CreateUser(model, scaffoldState = scaffoldState, coroutineScope = coroutineScope)
             }
         }
     }
 
     @Composable
-    fun Login(model: LoginViewModel) {
+    fun Login(model: LoginViewModel, scaffoldState: ScaffoldState, coroutineScope: CoroutineScope) {
         var passwordHidden by remember {
             mutableStateOf(true)
         }
@@ -98,7 +108,7 @@ class LoginActivity : AppCompatActivity() {
                             imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(
                             onDone = {
-                                model.login { finish() }
+                                model.login(scaffoldState = scaffoldState, scope = coroutineScope) { finish() }
                             }
                     ),
                     enabled = model.uiEnabled,
@@ -113,7 +123,7 @@ class LoginActivity : AppCompatActivity() {
                 )
             }
             Button(
-                    onClick = { model.login { finish() } },
+                    onClick = { model.login(scaffoldState = scaffoldState, scope = coroutineScope) { finish() } },
                     enabled = model.uiEnabled,
                     ) {
                 Text(text = getString(R.string.login))
@@ -125,7 +135,7 @@ class LoginActivity : AppCompatActivity() {
     }
 
     @Composable
-    fun CreateUser(model: LoginViewModel) {
+    fun CreateUser(model: LoginViewModel, scaffoldState: ScaffoldState, coroutineScope: CoroutineScope) {
         var passwordHidden by remember {
             mutableStateOf(true)
         }
@@ -267,7 +277,7 @@ class LoginActivity : AppCompatActivity() {
                     ),
                     keyboardActions = KeyboardActions(
                             onDone = {
-                                model.createUser {
+                                model.createUser(scaffoldState = scaffoldState, scope = coroutineScope) {
                                     finish()
                                 }
                             }
@@ -283,7 +293,7 @@ class LoginActivity : AppCompatActivity() {
                 )
             }
             Button(
-                    onClick = { model.createUser { finish() } },
+                    onClick = { model.createUser(scaffoldState = scaffoldState, scope = coroutineScope) { finish() } },
                     enabled = model.uiEnabled,
 
                     ) {

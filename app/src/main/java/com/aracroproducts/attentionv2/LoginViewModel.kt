@@ -118,7 +118,10 @@ class LoginViewModel(
                         strResponse.contains("username taken", true) -> {
                             usernameCaption = context.getString(R.string.username_in_use)
                         }
-                        strResponse.contains("invalid email address", true) -> {
+                        strResponse.contains("enter a valid username", true) -> {
+                            usernameCaption = context.getString(R.string.invalid_username)
+                        }
+                        strResponse.contains("email address", true) -> {
                             emailCaption = context.getString(R.string.invalid_email)
                         }
                         strResponse.contains("password", true) -> {

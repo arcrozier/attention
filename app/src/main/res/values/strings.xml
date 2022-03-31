@@ -15,6 +15,8 @@
     <string name="password_validation_failed">Password must be at least 8 characters</string>
     <string name="username_in_use">Username is taken</string>
     <string name="invalid_email">Email is invalid. Enter a valid email or leave blank</string>
+    <string name="invalid_username">Enter a valid username. This value may contain only English
+        letters, numbers, and @/./+/-/_ characters.</string>
     <string name="network_error">An error occurred when connecting to server. Please try
         again later</string>
     <string name="connection_error">Unable to connect to the server. Check your internet
