@@ -9,6 +9,8 @@
     <string name="password">Password</string>
     <string name="passwords_match">Passwords match</string>
     <string name="passwords_different">Passwords don\'t match</string>
+    <string name="read">Read</string>
+    <string name="sent">Delivered</string>
     <string name="create_user">Create account</string>
     <string name="login">Log in</string>
     <string name="first_name">First name</string>

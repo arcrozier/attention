@@ -370,12 +370,31 @@ class MainActivity : AppCompatActivity() {
                     }
                     onLongPress()
                 })) {
-            Text(text = friend.name,
-                    style = MaterialTheme.typography.subtitle1,
-                    modifier = Modifier
-                            .alpha(if (state == State.NORMAL) 1F else 0.5F)
-                            .blur(if (state ==
-                                    State.NORMAL) 0.dp else 5.dp))
+            Column {
+                Text(text = friend.name,
+                        style = MaterialTheme.typography.subtitle1,
+                        modifier = Modifier
+                                .alpha(if (state == State.NORMAL) 1F else 0.5F)
+                                .blur(if (state ==
+                                        State.NORMAL) 0.dp else 5.dp))
+                when {
+                    friend.last_message_read -> {
+                        Text(text = getString(R.string.read),
+                                color = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium),
+                                style = MaterialTheme.typography.caption)
+                    }
+                    friend.last_message_sent_id != null -> {
+                        Text(text = getString(R.string.sent),
+                                color = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium),
+                                style = MaterialTheme.typography.caption)
+                    }
+                    else -> {
+                        Text(text = "",
+                                color = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium),
+                                style = MaterialTheme.typography.caption)
+                    }
+                }
+            }
             when (state) {
                 State.EDIT -> {
                     Row {

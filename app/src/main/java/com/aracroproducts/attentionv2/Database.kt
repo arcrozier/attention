@@ -6,12 +6,6 @@ import com.aracroproducts.attentionv2.AttentionDB.Companion.DB_V1
 import kotlinx.coroutines.flow.Flow
 import java.security.*
 
-/**
- * Represents the user of the app - Has the ID and the Firebase token
- */
-class User @JvmOverloads constructor(var uid: PublicKey? = null, var pk: PrivateKey? = null, var
-        token: String? = null)
-
 @Database(
         version = DB_V1,
         entities = [Friend::class, Message::class]
@@ -48,7 +42,10 @@ data class Friend (
         @PrimaryKey val id: String,
         val name: String,
         val sent: Int = 0,
-        val received: Int = 0)
+        val received: Int = 0,
+        val last_message_sent_id: String? = null,
+        val last_message_read: Boolean = false
+)
 
 @Entity
 data class Message (
@@ -77,6 +74,13 @@ interface FriendDAO {
 
     @Query("UPDATE Friend SET sent = sent + 1 WHERE id = :id")
     fun incrementSent(id: String)
+
+    @Query("UPDATE Friend SET last_message_sent_id = :message_id WHERE id = :id")
+    fun setMessageAlert(message_id: String, id: String)
+
+    @Query("UPDATE Friend SET last_message_read = :read WHERE id = :id AND last_message_sent_id =" +
+            " :alert_id")
+    fun setMessageRead(read: Boolean, id: String, alert_id: String)
 
     @Query("SELECT * FROM Friend ORDER BY sent DESC")
     fun getFriends(): Flow<List<Friend>>
