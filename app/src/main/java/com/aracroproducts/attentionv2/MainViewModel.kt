@@ -14,6 +14,7 @@ import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.material.SnackbarDuration
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -21,6 +22,10 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.*
 import androidx.preference.PreferenceManager
+import com.android.volley.ClientError
+import com.android.volley.NetworkError
+import com.android.volley.NoConnectionError
+import com.android.volley.ServerError
 import com.google.android.gms.tasks.Task
 import com.google.firebase.messaging.FirebaseMessaging
 import java.security.PublicKey
@@ -54,6 +59,8 @@ class MainViewModel @Inject constructor(
 
     var isSnackBarShowing: Boolean by mutableStateOf(false)
         private set
+
+    var connectionState by mutableStateOf("")
 
     private fun showSnackBar() {
         isSnackBarShowing = true
@@ -220,6 +227,51 @@ class MainViewModel @Inject constructor(
         if (token == null) {
             val loginIntent = Intent(context, LoginActivity::class.java)
             context.startActivity(loginIntent)
+        } else {
+            val singleton = NetworkSingleton.getInstance(context)
+            attentionRepository.getUserInfo(token, singleton, {
+                val defaultPrefsEditor = PreferenceManager
+                        .getDefaultSharedPreferences(context)
+                        .edit()
+                defaultPrefsEditor.putString(
+                        context.getString(R.string.first_name_key),
+                        it.getString("first_name"))
+                defaultPrefsEditor.putString(
+                        context.getString(R.string.last_name_key),
+                        it.getString("last_name"))
+                defaultPrefsEditor.putString(
+                        context.getString(R.string.email_key),
+                        it.getString("email"))
+                defaultPrefsEditor.apply()
+                attentionRepository.updateUserInfo(it.getJSONArray("friends"))
+            }, {
+                when (it) {
+                    is ClientError -> {
+                        val loginIntent = Intent(context, LoginActivity::class.java)
+                        context.startActivity(loginIntent)
+                    }
+                    is NoConnectionError -> {
+                        displaySnackBar(scaffoldState, scope, context.getString(R.string
+                                .connection_error), context.getString(android.R.string.ok), SnackbarDuration.Indefinite)
+                    }
+                    is NetworkError -> {
+                        displaySnackBar(scaffoldState, scope, context.getString(R.string
+                                .network_error), context.getString(android.R.string.ok), SnackbarDuration
+                                .Indefinite)
+                    }
+                    is ServerError -> {
+                        displaySnackBar(scaffoldState, scope, context.getString(R.string
+                                .server_error), context.getString(android.R.string.ok), SnackbarDuration
+                                .Indefinite)
+                    }
+                    else -> {
+                        displaySnackBar(scaffoldState, scope, context.getString(R.string
+                                .unknown_error), context.getString(android.R.string.ok), SnackbarDuration
+                                .Indefinite)
+                        Log.e(LoginViewModel.sTAG, "An unexpected error occurred: ${it.message}")
+                    }
+                }
+            })
         }
         // TODO download user info - on error, show log in screen
 

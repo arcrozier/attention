@@ -131,7 +131,13 @@ class MainActivity : AppCompatActivity() {
                 topBar = {
                     TopAppBar(
                             backgroundColor = MaterialTheme.colors.primary,
-                            title = { Text(getString(R.string.app_name)) },
+                            title = {
+                                Column {
+                                    Text(getString(R.string.app_name))
+                                    Text(friendModel.connectionState, style = MaterialTheme
+                                            .typography.caption)
+                                }
+                            },
                             actions = {
                                 IconButton(onClick = {
                                     val intent = Intent(applicationContext,

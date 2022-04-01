@@ -8,6 +8,7 @@ import com.android.volley.Response
 import com.android.volley.VolleyError
 import com.android.volley.toolbox.JsonObjectRequest
 import kotlinx.coroutines.flow.Flow
+import org.json.JSONArray
 import org.json.JSONObject
 import java.security.*
 import java.security.spec.KeySpec
@@ -151,9 +152,16 @@ class AttentionRepository(private val database: AttentionDB) {
         }
     }
 
-    // TODO getUserInfo function
-
-    // TODO register device function
+    fun registerDevice(token: String, fcmToken: String, singleton: NetworkSingleton,
+                       responseListener: Response.Listener<JSONObject>? = null, errorListener:
+                       Response.ErrorListener? = null) {
+        val params = JSONObject(mapOf(
+                "fcm_token" to fcmToken
+        ))
+        val request = AuthorizedJsonObjectRequest(Request.Method.POST,
+                "$BASE_URL/register_device/", params, responseListener, errorListener, token)
+        singleton.addToRequestQueue(request)
+    }
 
     fun editUser(token: String, singleton: NetworkSingleton, firstName: String? = null, lastName:
     String? = null,
@@ -179,8 +187,10 @@ class AttentionRepository(private val database: AttentionDB) {
         singleton.addToRequestQueue(request)
     }
 
-    fun updateUserInfo(friends: List<JSONObject>) {
-        for (jsonFriend in friends) {
+    fun updateUserInfo(friends: JSONArray?) {
+        if (friends == null) return
+        for (i in 0..friends.length()) {
+            val jsonFriend = friends.getJSONObject(i)
             val friend = Friend(jsonFriend.getString("friend"), jsonFriend.getString("name"),
                     jsonFriend.getInt("sent"),
                     jsonFriend.getInt("received"), jsonFriend.getString("last_message_id_sent"),
