@@ -60,7 +60,7 @@ enum class DIRECTION {Outgoing, Incoming}
 
 @Dao
 interface FriendDAO {
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insert(vararg friend: Friend)
 
     @Delete

@@ -109,6 +109,8 @@ class AttentionRepository(private val database: AttentionDB) {
                 {
                     val alertId = it.getString("id")
                     database.getFriendDAO().setMessageAlert(alertId, message.otherId)
+                    database.getFriendDAO().setMessageRead(false, alert_id = alertId, id =
+                    message.otherId)
                     responseListener?.onResponse(it)
                 }, { error ->
             errorListener?.onErrorResponse(
@@ -149,15 +151,47 @@ class AttentionRepository(private val database: AttentionDB) {
         }
     }
 
-    // TODO editUser function
-
     // TODO getUserInfo function
 
     // TODO register device function
 
-    // TODO alert read function
+    fun editUser(token: String, singleton: NetworkSingleton, firstName: String? = null, lastName:
+    String? = null,
+                 password:
+    String? = null,
+                 email: String? = null, responseListener: Response.Listener<JSONObject>? = null,
+                 errorListener: Response.ErrorListener? = null) {
+        val params = JSONObject(mapOf(
+                "first_name" to firstName,
+                "last_name" to lastName,
+                "password" to password,
+                "email" to email
+        ))
+        val request = AuthorizedJsonObjectRequest(Request.Method.PUT, "$BASE_URL/v2/edit/",
+                params, responseListener, errorListener, token)
+        singleton.addToRequestQueue(request)
+    }
 
-    // TODO have alert-read function which updates the last_message_read field
+    fun getUserInfo(token: String, singleton: NetworkSingleton, responseListener: Response
+    .Listener<JSONObject>? = null, errorListener: Response.ErrorListener? = null) {
+        val request = AuthorizedJsonObjectRequest(Request.Method.GET, "$BASE_URL/v2/get_info/",
+                null, responseListener, errorListener, token)
+        singleton.addToRequestQueue(request)
+    }
+
+    fun updateUserInfo(friends: List<JSONObject>) {
+        for (jsonFriend in friends) {
+            val friend = Friend(jsonFriend.getString("friend"), jsonFriend.getString("name"),
+                    jsonFriend.getInt("sent"),
+                    jsonFriend.getInt("received"), jsonFriend.getString("last_message_id_sent"),
+                    jsonFriend.getBoolean("last_message_read"))
+            database.getFriendDAO().insert(friend)
+        }
+    }
+
+    fun alertRead(username: String, alertId: String) {
+        database.getFriendDAO().setMessageRead(true, alert_id = alertId, id = username)
+    }
 
     fun registerUser(username: String, password: String, firstName: String, lastName: String,
                      email: String, singleton: NetworkSingleton, responseListener: Response
