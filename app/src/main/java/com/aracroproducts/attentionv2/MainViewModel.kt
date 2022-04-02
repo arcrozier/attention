@@ -251,29 +251,14 @@ class MainViewModel @Inject constructor(
                         context.startActivity(loginIntent)
                     }
                     is NoConnectionError -> {
-                        displaySnackBar(scaffoldState, scope, context.getString(R.string
-                                .connection_error), context.getString(android.R.string.ok), SnackbarDuration.Indefinite)
-                    }
-                    is NetworkError -> {
-                        displaySnackBar(scaffoldState, scope, context.getString(R.string
-                                .network_error), context.getString(android.R.string.ok), SnackbarDuration
-                                .Indefinite)
-                    }
-                    is ServerError -> {
-                        displaySnackBar(scaffoldState, scope, context.getString(R.string
-                                .server_error), context.getString(android.R.string.ok), SnackbarDuration
-                                .Indefinite)
+                        connectionState = context.getString(R.string.disconnected)
                     }
                     else -> {
-                        displaySnackBar(scaffoldState, scope, context.getString(R.string
-                                .unknown_error), context.getString(android.R.string.ok), SnackbarDuration
-                                .Indefinite)
-                        Log.e(LoginViewModel.sTAG, "An unexpected error occurred: ${it.message}")
+                        connectionState = context.getString(R.string.connection_error)
                     }
                 }
             })
         }
-        // TODO download user info - on error, show log in screen
 
         if (!Settings.canDrawOverlays(application) && !userInfo.getBoolean(OVERLAY_NO_PROMPT,
                         false)) {

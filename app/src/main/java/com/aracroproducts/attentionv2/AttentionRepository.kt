@@ -199,6 +199,20 @@ class AttentionRepository(private val database: AttentionDB) {
         }
     }
 
+    fun addFriend(username: String, name: String, token: String, singleton: NetworkSingleton,
+                  responseListener:
+    Response.Listener<JSONObject>? = null, errorListener: Response.ErrorListener? = null) {
+        val params = JSONObject(mapOf(
+                "username" to username
+        ))
+        val request = AuthorizedJsonObjectRequest(Request.Method.POST, "$BASE_URL/add_friend/",
+                params, {
+                    insert(Friend(username, name))
+            responseListener?.onResponse(it)
+        }, errorListener, token)
+        singleton.addToRequestQueue(request)
+    }
+
     fun alertRead(username: String, alertId: String) {
         database.getFriendDAO().setMessageRead(true, alert_id = alertId, id = username)
     }
