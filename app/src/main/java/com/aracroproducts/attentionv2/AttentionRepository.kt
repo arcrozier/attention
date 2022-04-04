@@ -33,11 +33,6 @@ class AttentionRepository(private val database: AttentionDB) {
 
     fun edit(friend: Friend) = database.getFriendDAO().updateFriend(friend)
 
-    fun isFromFriend(message: Message): Boolean {
-        assert(message.direction == DIRECTION.Incoming)
-        return database.getFriendDAO().isFriend(message.otherId)
-    }
-
     fun getFriend(id: String): Friend = database.getFriendDAO().getFriend(id)
 
     fun getMessages(friend: Friend): Flow<List<Message>> = database.getMessageDAO()
@@ -60,40 +55,6 @@ class AttentionRepository(private val database: AttentionDB) {
         val privateKeyEntry =
                 keyStore.getEntry(ALIAS, null) as? KeyStore.PrivateKeyEntry ?: return null
         return privateKeyEntry.certificate.publicKey
-    }
-
-    fun retrieveAndSignChallenge(singleton: NetworkSingleton,
-                                 responseListener: Response.Listener<JSONObject>, errorListener:
-                                 Response.ErrorListener? = null) {
-        val keyStore = KeyStore.getInstance(KEY_STORE).apply {
-            load(null)
-        }
-        val uid = Base64.encode(keyStore.getCertificate(ALIAS).publicKey.encoded, Base64.URL_SAFE)
-        val request = JsonObjectRequest(Request.Method.GET, "$BASE_URL/get_challenge/$uid/",
-                null, { response ->
-            responseListener.onResponse(JSONObject(mapOf(
-                    "signature" to signChallenge(response["data"] as String),
-                    "challenge" to response["data"]
-            )))
-        }, errorListener).apply {
-            setShouldCache(false)
-        }
-        singleton.addToRequestQueue(request)
-    }
-
-    fun signChallenge(challenge: String): String {
-        val keyStore = KeyStore.getInstance(KEY_STORE).apply {
-            load(null)
-        }
-        val entry: KeyStore.Entry = keyStore.getEntry(ALIAS, null)
-        if (entry !is KeyStore.PrivateKeyEntry) {
-            throw IllegalStateException("A private key was not found to sign the challenge")
-        }
-        return String(Signature.getInstance(SIGNING_ALGORITHM).run {
-            initSign(entry.privateKey)
-            update(challenge.encodeToByteArray())
-            sign()
-        })
     }
 
     fun sendMessage(message: Message, token: String, singleton: NetworkSingleton,
@@ -119,37 +80,6 @@ class AttentionRepository(private val database: AttentionDB) {
         }, token)
         singleton.addToRequestQueue(request)
 
-    }
-
-    private fun sendToken(params: JSONObject, singleton: NetworkSingleton,
-                          responseListener: Response.Listener<JSONObject>?, errorListener:
-                          Response.ErrorListener?) {
-        val request = JsonObjectRequest(Request.Method.POST, "$BASE_URL/post_id/", params,
-                responseListener, errorListener)
-        singleton.addToRequestQueue(request)
-    }
-
-    fun sendToken(token: String, singleton: NetworkSingleton,
-                  responseListener: Response.Listener<JSONObject>? = null,
-                  errorListener: Response.ErrorListener? = null, authRequired: Boolean =
-                          true) {
-        if (authRequired) {
-            retrieveAndSignChallenge(singleton, { response ->
-                val params = JSONObject(mapOf(
-                        "token" to token,
-                        "id" to getPublicKey(),
-                        "signature" to response["signature"],
-                        "challenge" to response["challenge"]
-                ))
-                sendToken(params, singleton, responseListener, errorListener)
-            }) { error ->
-                errorListener?.onErrorResponse(VolleyError("Failed to get challenge while " +
-                        "sending token: ${error.message}"))
-            }
-        } else {
-            sendToken(JSONObject(mapOf("token" to token, "id" to getPublicKey())), singleton,
-                    responseListener, errorListener)
-        }
     }
 
     fun registerDevice(token: String, fcmToken: String, singleton: NetworkSingleton,
@@ -213,9 +143,8 @@ class AttentionRepository(private val database: AttentionDB) {
         singleton.addToRequestQueue(request)
     }
 
-    fun alertRead(username: String, alertId: String) {
-        database.getFriendDAO().setMessageRead(true, alert_id = alertId, id = username)
-    }
+    fun alertRead(username: String?, alertId: String?)  = database.getFriendDAO()
+            .setMessageRead(true, alert_id = alertId, id = username)
 
     fun registerUser(username: String, password: String, firstName: String, lastName: String,
                      email: String, singleton: NetworkSingleton, responseListener: Response
@@ -246,28 +175,8 @@ class AttentionRepository(private val database: AttentionDB) {
     }
 
     companion object {
-        private const val SIGNING_ALGORITHM = "SHA256withECDSA"
-        private const val KEYGEN_ALGORITHM = KeyProperties.KEY_ALGORITHM_EC
         private const val KEY_STORE = "AndroidKeyStore"
         private const val ALIAS = "USERID"
-        private const val KEY_SIZE = 256
 
-        fun keyToString(key: Key): String {
-            return Base64.encodeToString(key.encoded, Base64.DEFAULT)
-        }
-
-        fun stringToPrivateKey(privateKey: String): PrivateKey {
-            val keyFactory = KeyFactory.getInstance(SIGNING_ALGORITHM)
-            return keyFactory.generatePrivate(stringToKeySpec(privateKey))
-        }
-
-        fun stringToPublicKey(publicKey: String): PublicKey {
-            val keyFactory = KeyFactory.getInstance(SIGNING_ALGORITHM)
-            return keyFactory.generatePublic(stringToKeySpec(publicKey))
-        }
-
-        private fun stringToKeySpec(key: String): KeySpec {
-            return X509EncodedKeySpec(Base64.decode(key, Base64.DEFAULT))
-        }
     }
 }

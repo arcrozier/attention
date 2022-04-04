@@ -33,6 +33,7 @@ class SettingsActivity : AppCompatActivity() {
             // https://developer.android.com/guide/topics/ui/settings/use-saved-values
             // TODO add a preference clicked listener to password
             // https://developer.android.com/guide/topics/ui/settings/customize-your-settings#onpreferenceclicklistener
+            // TODO use the updateUserInfo function in the attention repository
 
             val vibratePreference = findPreference("vibrate_preference") as MultiSelectListPreference?
             if (vibratePreference != null) {

@@ -80,7 +80,7 @@ interface FriendDAO {
 
     @Query("UPDATE Friend SET last_message_read = :read WHERE id = :id AND last_message_sent_id =" +
             " :alert_id")
-    fun setMessageRead(read: Boolean, id: String, alert_id: String)
+    fun setMessageRead(read: Boolean, id: String?, alert_id: String?)
 
     @Query("SELECT * FROM Friend ORDER BY sent DESC")
     fun getFriends(): Flow<List<Friend>>

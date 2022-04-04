@@ -78,9 +78,8 @@ class MainViewModel @Inject constructor(
             .NONE,
             null) {})
 
-    private val dialogQueue = PriorityQueueSet<Triple<DialogStatus, Friend?, (String) -> Unit>> {
-        t,
-                                                                                             t2 ->
+    private val dialogQueue = PriorityQueueSet<Triple<DialogStatus, Friend?, (String) -> Unit>> { t,
+                                                                                                  t2 ->
         val typeCompare = t.first.compareTo(t2.first)
         if (typeCompare != 0) {
             typeCompare
@@ -223,6 +222,7 @@ class MainViewModel @Inject constructor(
         val context = getApplication<Application>()
         val userInfo = application.getSharedPreferences(USER_INFO, Context.MODE_PRIVATE)
 
+        // token is auth token
         val token = userInfo.getString(MY_TOKEN, null)
         if (token == null) {
             val loginIntent = Intent(context, LoginActivity::class.java)
@@ -258,6 +258,25 @@ class MainViewModel @Inject constructor(
                     }
                 }
             })
+        }
+
+        val fcmToken = userInfo.getString(FCM_TOKEN, null)
+
+        // Do we need to upload a token (note we don't want to upload if we don't have a token yet)
+        if (fcmToken != null && !userInfo.getBoolean(TOKEN_UPLOADED, false) && token != null) {
+            attentionRepository.registerDevice(
+                    token, fcmToken,
+                    NetworkSingleton
+                            .getInstance(application),
+                    { Log.d(sTAG, "Successfully uploaded token") },
+                    {
+                        Log
+                                .e(sTAG, "Error uploading token: ${it.message}")
+                        userInfo.getBoolean(KEY_UPLOADED, false)
+                    },
+            )
+        } else if (fcmToken == null) { // We don't have a token, so let's get one
+            getToken(application)
         }
 
         if (!Settings.canDrawOverlays(application) && !userInfo.getBoolean(OVERLAY_NO_PROMPT,
@@ -315,9 +334,9 @@ class MainViewModel @Inject constructor(
                 NetworkSingleton.getInstance(getApplication<Application>()), {
             showSnackBar()
         }, {
-                Log.e(sTAG, "Error sending alert: ${it.message}")
-                notifyUser(ErrorType.BAD_REQUEST, to)
-            })
+            Log.e(sTAG, "Error sending alert: ${it.message}")
+            notifyUser(ErrorType.BAD_REQUEST, to)
+        })
     }
 
     fun getMyID(): PublicKey? {
@@ -327,6 +346,56 @@ class MainViewModel @Inject constructor(
     fun getMyName(): String {
         val context = getApplication<Application>()
         return PreferenceManager.getDefaultSharedPreferences(context).getString(MY_NAME, "") ?: ""
+    }
+
+    /**
+     * Helper method that gets the Firebase token
+     *
+     * Automatically uploads the token and updates the "uploaded" sharedPreference
+     */
+    private fun getToken(context: Context) {
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task: Task<String?> ->
+            if (!task.isSuccessful) {
+                Log.w(sTAG, "getInstanceId failed", task.exception)
+                return@addOnCompleteListener
+            }
+
+            // Get new Instance ID token
+            val token = task.result
+            Log.d(sTAG, "Got token! $token")
+
+
+            val preferences = context.getSharedPreferences(USER_INFO,
+                    AppCompatActivity.MODE_PRIVATE)
+            val authToken = preferences.getString(MY_TOKEN, null)
+            if (token != null && token != preferences.getString(FCM_TOKEN, "")) {
+                val editor = preferences.edit()
+                editor.putString(FCM_TOKEN, token)
+                editor.apply()
+                if (authToken != null) {
+                    attentionRepository.registerDevice(
+                            authToken, token,
+                            NetworkSingleton
+                                    .getInstance(context),
+                            {
+                                editor.putBoolean(TOKEN_UPLOADED, true)
+                                editor.apply()
+                                Toast.makeText(context, context.getString(R.string.user_registered),
+                                        Toast.LENGTH_SHORT).show()
+                            },
+                            { error ->
+                                Log.e(sTAG,
+                                        "An error occurred while uploading token: ${error.message}")
+                                preferences.getBoolean(KEY_UPLOADED, false)
+                            },
+                    )
+                }
+            }
+
+            // Log and toast
+            val msg = context.getString(R.string.msg_token_fmt, token)
+            Log.d(sTAG, msg)
+        }
     }
 
     companion object {
@@ -342,6 +411,7 @@ class MainViewModel @Inject constructor(
         const val MY_ID = "id"
         const val MY_NAME = "name"
         const val MY_TOKEN = "token"
+        const val FCM_TOKEN = "fcm_token"
         const val FAILED_ALERT_CHANNEL_ID = "Failed alert channel"
 
 

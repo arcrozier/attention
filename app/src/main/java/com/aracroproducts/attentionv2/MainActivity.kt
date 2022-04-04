@@ -308,6 +308,7 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
+    // TODO make this an add friend dialog
     @Composable
     fun UserNameDialog() {
         var name by rememberSaveable {
@@ -404,12 +405,7 @@ class MainActivity : AppCompatActivity() {
             when (state) {
                 State.EDIT -> {
                     Row {
-                        Button(onClick = { state = State.NORMAL },
-                                colors = ButtonDefaults.buttonColors(
-                                        backgroundColor = MaterialTheme.colors.background,
-                                        contentColor = MaterialTheme.colors.onBackground
-                                )) {
-
+                        IconButton(onClick = { state = State.NORMAL }) {
                             Icon(Icons.Filled.Close,
                                     contentDescription = getString(R.string.cancel))
                         }
@@ -419,42 +415,30 @@ class MainActivity : AppCompatActivity() {
                                         contentColor = MaterialTheme.colors.onError)) {
                             Text(getString(R.string.delete))
                         }
-                        Button(onClick = { onEditName(friend) }, colors = ButtonDefaults
-                                .buttonColors(backgroundColor = MaterialTheme.colors.secondary,
-                                        contentColor = MaterialTheme.colors.onSecondary)) {
+                        OutlinedButton(onClick = { onEditName(friend) }) {
                             Text(getString(R.string.rename))
                         }
                     }
                 }
                 State.CONFIRM -> {
                     Row {
-                        Button(onClick = { state = State.NORMAL },
-                                colors = ButtonDefaults.buttonColors(
-                                        backgroundColor = MaterialTheme.colors.secondary,
-                                        contentColor = MaterialTheme.colors.onSecondary
-                                )) {
-
+                        IconButton(onClick = { state = State.NORMAL }) {
                             Icon(Icons.Filled.Close,
                                     contentDescription = getString(R.string.cancel))
                         }
                         Button(onClick = {
                             state = State.CANCEL
                             message = null
-                        }, colors =
-                        ButtonDefaults
-                                .buttonColors(backgroundColor = MaterialTheme.colors.error,
-                                        contentColor = MaterialTheme.colors.onError)) {
+                        }) {
                             Text(getString(R.string.confirm_alert))
                         }
-                        Button(onClick = {
+                        OutlinedButton(onClick = {
                             friendModel.appendDialogState(Triple(MainViewModel
                                     .DialogStatus.ADD_MESSAGE_TEXT, friend) {
                                 message = it
                                 state = State.CANCEL
                             })
-                        }, colors = ButtonDefaults
-                                .buttonColors(backgroundColor = MaterialTheme.colors.secondary,
-                                        contentColor = MaterialTheme.colors.onSecondary)) {
+                        }) {
                             Text(getString(R.string.add_message))
                         }
                     }
