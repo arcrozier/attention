@@ -20,8 +20,8 @@ import androidx.lifecycle.ViewModel
 import androidx.preference.PreferenceManager
 import java.util.HashSet
 
-class AlertViewModel(intent: Intent, application:
-Application) :
+class AlertViewModel(intent: Intent, private val attentionRepository: AttentionRepository,
+                     application: Application) :
         AndroidViewModel(application) {
 
     private var silenced: Boolean by mutableStateOf(
@@ -30,6 +30,8 @@ Application) :
     val from = intent.getStringExtra(AlertHandler.REMOTE_FROM) ?: ""
     val message = intent.getStringExtra(AlertHandler.REMOTE_MESSAGE) ?: ""
     val id = intent.getIntExtra(AlertHandler.ASSOCIATED_NOTIFICATION, NO_ID)
+    private val alertId = intent.getStringExtra(AlertHandler.ALERT_ID)
+    private val fromUsername = intent.getStringExtra(AlertHandler.REMOTE_FROM_USERNAME)
 
 
     private val ringtone = RingtoneManager.getRingtone(getApplication(), RingtoneManager
@@ -71,6 +73,12 @@ Application) :
 
         if (ring != null) ring(ring)
         if (vibrate != null) vibrate(vibrate)
+    }
+
+    fun ok() {
+        silence()
+        isFinishing = true
+        attentionRepository.alertRead(username = fromUsername, alertId = alertId)
     }
 
     /**

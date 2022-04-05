@@ -60,8 +60,7 @@ class Alert : AppCompatActivity() {
                 },
                 dismissButton = {
                     Button(onClick = {
-                        alertModel.silence()
-                        alertModel.isFinishing = true
+                        alertModel.ok()
                         finish()
                     }) {
                         Text(text = getString(android.R.string.ok))

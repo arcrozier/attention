@@ -53,8 +53,6 @@ open class AlertHandler : FirebaseMessagingService() {
      * @param remoteMessage - The message from Firebase
      */
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
-        // TODO parse out alert read and alert incoming messages
-        // TODO store received alerts somewhere
         Log.d(TAG, "Message received! $remoteMessage")
         val messageData = remoteMessage.data
         when (messageData["action"]) {
@@ -65,6 +63,12 @@ open class AlertHandler : FirebaseMessagingService() {
                 val userInfo = getSharedPreferences(MainViewModel.USER_INFO, MODE_PRIVATE)
                 if (messageData[REMOTE_TO] != userInfo.getString(MainViewModel.MY_ID,
                                 "")) return  //if message is not addressed to the user, ends
+
+                val alertId = messageData[ALERT_ID]
+                if (alertId == null) {
+                    Log.w(TAG, "Received message without an id: $remoteMessage")
+                    return
+                }
                 val senderName = repository.getFriend(message.otherId).name
 
                 val display = if (message.message == "null") getString(R.string.default_message,
@@ -83,7 +87,7 @@ open class AlertHandler : FirebaseMessagingService() {
                                 && manager.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_UNKNOWN))) { // Also do not disturb is on
                     Log.d(TAG,
                             "App is disabled from showing notifications or interruption filter is set to block notifications")
-                    showNotification(display, senderName, true)
+                    showNotification(display, senderName, alertId, message.otherId, true)
                     return
                 }
                 try {
@@ -98,7 +102,7 @@ open class AlertHandler : FirebaseMessagingService() {
                 val pm = getSystemService(POWER_SERVICE) as PowerManager
 
                 // Stores the id so the notification can be cancelled by the user
-                val id = showNotification(display, senderName, false)
+                val id = showNotification(display, senderName, alertId, message.otherId, false)
 
                 // Device should only show pop up if the device is off or if it has the ability to draw overlays (required to show pop up if screen is on)
                 if (!pm.isInteractive || Settings.canDrawOverlays(this)) {
@@ -107,6 +111,8 @@ open class AlertHandler : FirebaseMessagingService() {
                         putExtra(REMOTE_MESSAGE, display)
                         putExtra(ASSOCIATED_NOTIFICATION, id)
                         putExtra(SHOULD_VIBRATE, true)
+                        putExtra(ALERT_ID, alertId)
+                        putExtra(REMOTE_FROM_USERNAME, message.otherId)
                         addFlags(
                                 Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
                     }
@@ -133,11 +139,15 @@ open class AlertHandler : FirebaseMessagingService() {
      * @param missed        - Whether the alert was missed
      * @return              - Returns the ID of the notification
      */
-    private fun showNotification(message: String, senderName: String?, missed: Boolean): Int {
-        val intent = Intent(this, Alert::class.java)
-        intent.putExtra(REMOTE_MESSAGE, message)
-        intent.putExtra(REMOTE_FROM, senderName)
-        intent.putExtra(SHOULD_VIBRATE, false)
+    private fun showNotification(message: String, senderName: String?, alertId: String, fromUser:
+    String, missed: Boolean): Int {
+        val intent = Intent(this, Alert::class.java).apply {
+            putExtra(REMOTE_MESSAGE, message)
+            putExtra(REMOTE_FROM, senderName)
+            putExtra(SHOULD_VIBRATE, false)
+            putExtra(REMOTE_FROM_USERNAME, fromUser)
+            putExtra(ALERT_ID, alertId)
+        }
         val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
 
         val builder: NotificationCompat.Builder
@@ -193,8 +203,10 @@ open class AlertHandler : FirebaseMessagingService() {
         const val CHANNEL_ID = "Missed Alert Channel"
         const val ALERT_CHANNEL_ID = "Alert Channel"
         const val REMOTE_FROM = "alert_from"
+        const val REMOTE_FROM_USERNAME = "alert_from_username"
         const val REMOTE_TO = "alert_to"
         const val REMOTE_MESSAGE = "alert_message"
+        const val ALERT_ID = "alert_id"
         const val ASSOCIATED_NOTIFICATION = "notification_id"
         const val SHOULD_VIBRATE = "vibrate"
 
