@@ -25,6 +25,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
@@ -309,6 +310,10 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
+    private fun onAddFriend(username: String) {
+
+    }
+
     // TODO make this an add friend dialog
     @Composable
     fun AddFriendDialog() {
@@ -316,28 +321,32 @@ class MainActivity : AppCompatActivity() {
             mutableStateOf("")
         }
         var error by remember { mutableStateOf(false) } // TODO move error to view model
-        AlertDialog(onDismissRequest = {},
+        AlertDialog(onDismissRequest = {
+                                       friendModel.popDialogState()
+        },
                 buttons = {
                     Row(
                             modifier = Modifier.padding(all = 8.dp),
                             horizontalArrangement = Arrangement.Center
                     ) {
+                        OutlinedButton(onClick = {
+                            friendModel.popDialogState()
+                        },
+                        modifier = Modifier.fillMaxWidth()) {
+                            Text(getString(R.string.cancel))
+                        }
                         Button(onClick = {
                             val savingName = username.trim()
-                            if (savingName.isEmpty()) {
-                                error = true
+                            if (savingName.isBlank()) {
+                                friendModel.usernameCaption = getString(R.string.empty_username)
                             } else {
-                                val editor = PreferenceManager
-                                        .getDefaultSharedPreferences(this@MainActivity)
-                                        .edit()
-                                editor.putString(MY_NAME, savingName)
-                                editor.apply()
-                                friendModel.popDialogState()
+                                friendModel.onAddFriend()
                             }
                         },
                                 modifier = Modifier.fillMaxWidth()) {
                             Text(getString(android.R.string.ok))
                         }
+
                     }
                 },
                 title = { Text(text = getString(R.string.add_friend)) },
@@ -349,11 +358,20 @@ class MainActivity : AppCompatActivity() {
                                             friendModel.getFriendName(username)},
                             keyboardOptions = KeyboardOptions(
                                     keyboardType = KeyboardType.Text,
-                                    capitalization = KeyboardCapitalization.Words),
+                                    autoCorrect = false,
+                                    capitalization = KeyboardCapitalization.None,
+                                    imeAction = ImeAction.Done
+                            ),
                             singleLine = true,
                             label = { Text(text = getString(R.string.username)) },
-                            isError = error,
+                            isError = friendModel.usernameCaption.isNotBlank(),
                             placeholder = { Text(text = getString(R.string.placeholder_name)) }
+                    )
+                    Text(
+                            text = friendModel.usernameCaption,
+                            color = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium),
+                            style = MaterialTheme.typography.caption,
+                            modifier = Modifier.padding(start = 16.dp)
                     )
                 })
     }

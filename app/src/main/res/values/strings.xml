@@ -13,6 +13,7 @@
     <string name="sent">Delivered</string>
     <string name="offline">Offline</string>
     <string name="disconnected">Connection error</string>
+    <string name="empty_username">Username cannot be empty</string>
     <string name="create_user">Create account</string>
     <string name="login">Log in</string>
     <string name="first_name">First name</string>

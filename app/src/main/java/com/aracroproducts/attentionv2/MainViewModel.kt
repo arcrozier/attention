@@ -72,6 +72,8 @@ class MainViewModel @Inject constructor(
 
     var newFriendName by mutableStateOf("")
 
+    var usernameCaption by mutableStateOf("")
+
     /**
      * Used to determine which dialog to display (or none). If the dialog requires additional data,
      * like a user ID, this can be placed in the second part of the pair
