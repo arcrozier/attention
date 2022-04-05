@@ -71,7 +71,7 @@ class AttentionRepository(private val database: AttentionDB) {
     }
 
     fun getName(token: String, username: String, singleton: NetworkSingleton, responseListener:
-    Response.Listener<JSONObject>?, errorListener: Response.ErrorListener?) {
+    Response.Listener<JSONObject>? = null, errorListener: Response.ErrorListener? = null) {
         val params = JSONObject(mapOf(
                 "username" to username
         ))

@@ -22,15 +22,14 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.*
 import androidx.preference.PreferenceManager
-import com.android.volley.ClientError
-import com.android.volley.NetworkError
-import com.android.volley.NoConnectionError
-import com.android.volley.ServerError
+import com.android.volley.*
 import com.google.android.gms.tasks.Task
 import com.google.firebase.messaging.FirebaseMessaging
+import org.json.JSONObject
 import java.security.PublicKey
 import java.util.*
 import javax.inject.Inject
+import javax.xml.transform.ErrorListener
 
 class MainViewModel @Inject constructor(
         private val attentionRepository: AttentionRepository,
@@ -105,6 +104,7 @@ class MainViewModel @Inject constructor(
      * should be called only by whatever is responsible for dealing with that state
      */
     fun popDialogState() {
+        // TODO reset all the dialog-specific state
         synchronized(this) {
             if (dialogQueue.isEmpty()) {
                 dialogState.value = Triple(DialogStatus.NONE, null) {}
@@ -125,12 +125,70 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun onAddFriend(friend: Friend) {
-        attentionRepository.insert(friend)
+    fun onAddFriend(friend: Friend, responseListener: Response.Listener<JSONObject>? = null) {
+        val token = getApplication<Application>().getSharedPreferences(USER_INFO, Context
+                .MODE_PRIVATE).getString(MY_TOKEN, null)
+        if (token == null) {
+            launchLogin()
+            return
+        }
+        attentionRepository.addFriend(friend.id, friend.name, token, NetworkSingleton.getInstance
+        (getApplication()), responseListener) {
+            when (it) {
+                is ClientError -> {
+                    when (it.networkResponse.statusCode) {
+                        400 -> {
+                            usernameCaption = getApplication<Application>().getString(
+                                    R.string.add_friend_failed)
+                        }
+                        403 -> {
+                            launchLogin()
+                        }
+                    }
+                }
+                is NoConnectionError -> {
+                    connectionState = getApplication<Application>().getString(R.string.disconnected)
+                }
+                else -> {
+                    connectionState = getApplication<Application>().getString(R.string
+                            .connection_error)
+                }
+            }
+        }
     }
 
-    fun getFriendName(username: String) {
-// TODO finish method body
+    fun getFriendName(username: String, responseListener: Response.Listener<JSONObject>? = null) {
+        val token = getApplication<Application>().getSharedPreferences(USER_INFO, Context
+                .MODE_PRIVATE).getString(MY_TOKEN, null)
+        if (token == null) {
+            launchLogin()
+            return
+        }
+        attentionRepository.getName(token, username, NetworkSingleton
+                .getInstance(getApplication()), responseListener = {
+            newFriendName = it.getString("name")
+            responseListener?.onResponse(it)
+        }, errorListener = {
+            when (it) {
+                is ClientError -> {
+                    when (it.networkResponse.statusCode) {
+                        400 -> {
+                            usernameCaption = getApplication<Application>().getString(R.string.nonexistent_username)
+                        }
+                        403 -> {
+                            launchLogin()
+                        }
+                    }
+                }
+                is NoConnectionError -> {
+                    connectionState = getApplication<Application>().getString(R.string.disconnected)
+                }
+                else -> {
+                    connectionState = getApplication<Application>().getString(R.string
+                            .connection_error)
+                }
+            }
+        })
     }
 
     /**

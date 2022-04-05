@@ -320,9 +320,8 @@ class MainActivity : AppCompatActivity() {
         var username by rememberSaveable {
             mutableStateOf("")
         }
-        var error by remember { mutableStateOf(false) } // TODO move error to view model
         AlertDialog(onDismissRequest = {
-                                       friendModel.popDialogState()
+            friendModel.popDialogState()
         },
                 buttons = {
                     Row(
@@ -332,7 +331,7 @@ class MainActivity : AppCompatActivity() {
                         OutlinedButton(onClick = {
                             friendModel.popDialogState()
                         },
-                        modifier = Modifier.fillMaxWidth()) {
+                                modifier = Modifier.fillMaxWidth()) {
                             Text(getString(R.string.cancel))
                         }
                         Button(onClick = {
@@ -340,7 +339,12 @@ class MainActivity : AppCompatActivity() {
                             if (savingName.isBlank()) {
                                 friendModel.usernameCaption = getString(R.string.empty_username)
                             } else {
-                                friendModel.onAddFriend()
+                                friendModel.getFriendName(username) {
+                                    friendModel.onAddFriend(Friend(username, it.getString("name")
+                                    )) {
+                                        friendModel.popDialogState()
+                                    }
+                                }
                             }
                         },
                                 modifier = Modifier.fillMaxWidth()) {
@@ -351,28 +355,33 @@ class MainActivity : AppCompatActivity() {
                 },
                 title = { Text(text = getString(R.string.add_friend)) },
                 text = {
-                    Text(text = friendModel.newFriendName)
-                    OutlinedTextField(
-                            value = username,
-                            onValueChange = { username = it
-                                            friendModel.getFriendName(username)},
-                            keyboardOptions = KeyboardOptions(
-                                    keyboardType = KeyboardType.Text,
-                                    autoCorrect = false,
-                                    capitalization = KeyboardCapitalization.None,
-                                    imeAction = ImeAction.Done
-                            ),
-                            singleLine = true,
-                            label = { Text(text = getString(R.string.username)) },
-                            isError = friendModel.usernameCaption.isNotBlank(),
-                            placeholder = { Text(text = getString(R.string.placeholder_name)) }
-                    )
-                    Text(
-                            text = friendModel.usernameCaption,
-                            color = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium),
-                            style = MaterialTheme.typography.caption,
-                            modifier = Modifier.padding(start = 16.dp)
-                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Text(text = friendModel.newFriendName)
+                        OutlinedTextField(
+                                value = username,
+                                onValueChange = {
+                                    username = it
+                                    friendModel.getFriendName(username)
+                                },
+                                keyboardOptions = KeyboardOptions(
+                                        keyboardType = KeyboardType.Text,
+                                        autoCorrect = false,
+                                        capitalization = KeyboardCapitalization.None,
+                                        imeAction = ImeAction.Done
+                                ),
+                                singleLine = true,
+                                label = { Text(text = getString(R.string.username)) },
+                                isError = friendModel.usernameCaption.isNotBlank(),
+                                placeholder = { Text(text = getString(R.string.placeholder_name)) }
+                        )
+                        Text(
+                                text = friendModel.usernameCaption,
+                                color = MaterialTheme.colors.onSurface.copy(
+                                        alpha = ContentAlpha.medium),
+                                style = MaterialTheme.typography.caption,
+                                modifier = Modifier.padding(start = 16.dp)
+                        )
+                    }
                 })
     }
 
@@ -408,17 +417,20 @@ class MainActivity : AppCompatActivity() {
                 when {
                     friend.last_message_read -> {
                         Text(text = getString(R.string.read),
-                                color = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium),
+                                color = MaterialTheme.colors.onSurface.copy(
+                                        alpha = ContentAlpha.medium),
                                 style = MaterialTheme.typography.caption)
                     }
                     friend.last_message_sent_id != null -> {
                         Text(text = getString(R.string.sent),
-                                color = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium),
+                                color = MaterialTheme.colors.onSurface.copy(
+                                        alpha = ContentAlpha.medium),
                                 style = MaterialTheme.typography.caption)
                     }
                     else -> {
                         Text(text = "",
-                                color = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium),
+                                color = MaterialTheme.colors.onSurface.copy(
+                                        alpha = ContentAlpha.medium),
                                 style = MaterialTheme.typography.caption)
                     }
                 }
