@@ -111,7 +111,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
         when (dialogState.first) {
-            MainViewModel.DialogStatus.ADD_FRIEND -> UserNameDialog()
+            MainViewModel.DialogStatus.ADD_FRIEND -> AddFriendDialog()
             MainViewModel.DialogStatus.OVERLAY_PERMISSION -> OverlaySettingsDialog()
             MainViewModel.DialogStatus.ADD_MESSAGE_TEXT -> dialogState.second?.let {
                 AddMessageText(friend = it, onSend = dialogState.third)
@@ -153,6 +153,7 @@ class MainActivity : AppCompatActivity() {
                 },
                 floatingActionButton = {
                     FloatingActionButton(onClick = {
+                        // TODO open add friend dialog instead
                         Log.d(this.javaClass.name, "Attempting to add")
                         val intent = Intent(this, Add::class.java)
                         startActivity(intent)
@@ -310,11 +311,11 @@ class MainActivity : AppCompatActivity() {
 
     // TODO make this an add friend dialog
     @Composable
-    fun UserNameDialog() {
-        var name by rememberSaveable {
+    fun AddFriendDialog() {
+        var username by rememberSaveable {
             mutableStateOf("")
         }
-        var error by remember { mutableStateOf(false) }
+        var error by remember { mutableStateOf(false) } // TODO move error to view model
         AlertDialog(onDismissRequest = {},
                 buttons = {
                     Row(
@@ -322,7 +323,7 @@ class MainActivity : AppCompatActivity() {
                             horizontalArrangement = Arrangement.Center
                     ) {
                         Button(onClick = {
-                            val savingName = name.trim()
+                            val savingName = username.trim()
                             if (savingName.isEmpty()) {
                                 error = true
                             } else {
@@ -339,16 +340,18 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
                 },
-                title = { Text(text = getString(R.string.name_dialog_title)) },
+                title = { Text(text = getString(R.string.add_friend)) },
                 text = {
+                    Text(text = friendModel.newFriendName)
                     OutlinedTextField(
-                            value = name,
-                            onValueChange = { name = it },
+                            value = username,
+                            onValueChange = { username = it
+                                            friendModel.getFriendName(username)},
                             keyboardOptions = KeyboardOptions(
                                     keyboardType = KeyboardType.Text,
                                     capitalization = KeyboardCapitalization.Words),
                             singleLine = true,
-                            label = { Text(text = getString(R.string.name)) },
+                            label = { Text(text = getString(R.string.username)) },
                             isError = error,
                             placeholder = { Text(text = getString(R.string.placeholder_name)) }
                     )

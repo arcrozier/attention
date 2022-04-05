@@ -70,6 +70,8 @@ class MainViewModel @Inject constructor(
         isSnackBarShowing = false
     }
 
+    var newFriendName by mutableStateOf("")
+
     /**
      * Used to determine which dialog to display (or none). If the dialog requires additional data,
      * like a user ID, this can be placed in the second part of the pair
@@ -125,6 +127,10 @@ class MainViewModel @Inject constructor(
         attentionRepository.insert(friend)
     }
 
+    fun getFriendName(username: String) {
+// TODO finish method body
+    }
+
     /**
      * Updates `DialogState` to display the dialog to confirm deletion of the specified friend
      */
@@ -153,7 +159,16 @@ class MainViewModel @Inject constructor(
      * @param name  The new name of the friend
      */
     fun confirmEditName(id: String, name: String) {
-        attentionRepository.edit(Friend(id = id, name = name))
+        val token = getApplication<Application>().getSharedPreferences(USER_INFO, Context
+                .MODE_PRIVATE).getString(MY_TOKEN, null)
+        if (token == null) {
+            launchLogin()
+            return
+        }
+        attentionRepository.edit(Friend(id = id, name = name), token, NetworkSingleton
+                .getInstance(getApplication()), errorListener = {
+                    // TODO do something on error
+        })
     }
 
     private fun getFriend(id: String): Friend {

@@ -31,7 +31,20 @@ class AttentionRepository(private val database: AttentionDB) {
 
     fun delete(vararg friend: Friend) = database.getFriendDAO().delete(*friend)
 
-    fun edit(friend: Friend) = database.getFriendDAO().updateFriend(friend)
+    fun edit(friend: Friend, token: String, singleton: NetworkSingleton, responseListener:
+    Response.Listener<JSONObject>? = null, errorListener: Response.ErrorListener? = null) {
+        val params = JSONObject(mapOf(
+                "username" to friend.id,
+                "new_name" to friend.name
+        ))
+
+        val request = AuthorizedJsonObjectRequest(Request.Method.PUT,
+                "$BASE_URL/edit_friend_name", params, {
+            database.getFriendDAO().updateFriend(friend)
+            responseListener?.onResponse(it)
+        }, errorListener, token)
+        singleton.addToRequestQueue(request)
+    }
 
     fun getFriend(id: String): Friend = database.getFriendDAO().getFriend(id)
 
@@ -55,6 +68,18 @@ class AttentionRepository(private val database: AttentionDB) {
         val privateKeyEntry =
                 keyStore.getEntry(ALIAS, null) as? KeyStore.PrivateKeyEntry ?: return null
         return privateKeyEntry.certificate.publicKey
+    }
+
+    fun getName(token: String, username: String, singleton: NetworkSingleton, responseListener:
+    Response.Listener<JSONObject>?, errorListener: Response.ErrorListener?) {
+        val params = JSONObject(mapOf(
+                "username" to username
+        ))
+
+        val request = AuthorizedJsonObjectRequest(Request.Method.GET, "$BASE_URL/get_name/",
+                params, responseListener, errorListener, token)
+
+        singleton.addToRequestQueue(request)
     }
 
     fun sendMessage(message: Message, token: String, singleton: NetworkSingleton,
