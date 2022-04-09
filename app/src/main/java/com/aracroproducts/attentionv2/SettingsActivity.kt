@@ -12,7 +12,6 @@ import com.android.volley.ClientError
 import com.android.volley.NoConnectionError
 import com.android.volley.VolleyError
 import com.google.android.material.snackbar.Snackbar
-import org.json.JSONObject
 
 /**
  * The class for the settings menu in the app
@@ -43,7 +42,7 @@ class SettingsActivity : AppCompatActivity() {
 
         private val defaultPrefs: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
 
-        private fun onResponse(response: JSONObject, newValue: Any?, key: String) {
+        private fun onResponse(newValue: Any?, key: String) {
             defaultPrefs.edit().apply {
                 putString(key, newValue.toString())
                 apply()
@@ -85,7 +84,7 @@ class SettingsActivity : AppCompatActivity() {
                                 singleton = networkSingleton,
                                 firstName = newValue.toString(),
                                 responseListener = {
-                            onResponse(it, newValue, preference.key)
+                            onResponse(newValue, preference.key)
                         },
                                 errorListener = { error ->
                                     onError(error)
@@ -96,7 +95,7 @@ class SettingsActivity : AppCompatActivity() {
                                 singleton = networkSingleton,
                                 lastName = newValue.toString(),
                                 responseListener = {
-                                    onResponse(it, newValue, preference.key)
+                                    onResponse(newValue, preference.key)
                                 },
                                 errorListener = { error ->
                                     onError(error)
@@ -107,7 +106,7 @@ class SettingsActivity : AppCompatActivity() {
                                 singleton = networkSingleton,
                                 email = newValue.toString(),
                                 responseListener = {
-                                    onResponse(it, newValue, preference.key)
+                                    onResponse(newValue, preference.key)
                                 },
                                 errorListener = { error ->
                                     onError(error)
