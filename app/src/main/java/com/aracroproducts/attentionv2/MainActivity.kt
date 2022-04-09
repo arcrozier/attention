@@ -1,5 +1,6 @@
 package com.aracroproducts.attentionv2
 
+import android.app.Application
 import android.content.*
 import android.net.Uri
 import android.os.*
@@ -32,7 +33,11 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.preference.PreferenceManager
+import com.android.volley.ClientError
+import com.android.volley.NoConnectionError
 import com.aracroproducts.attentionv2.MainViewModel.Companion.MY_NAME
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
@@ -44,6 +49,11 @@ class MainActivity : AppCompatActivity() {
 
     enum class State {
         NORMAL, CONFIRM, CANCEL, EDIT
+    }
+
+    private fun launchLogin() {
+        val loginIntent = Intent(this, LoginActivity::class.java)
+        startActivity(loginIntent)
     }
 
     /**
@@ -58,10 +68,40 @@ class MainActivity : AppCompatActivity() {
         // Creates a notification channel for displaying failed-to-send notifications
         MainViewModel.createFailedAlertNotificationChannel(this)
 
-        // TODO carve out exception if app was launched from an add-friend link - allow the
-        //  add-friend dialog to appear, then cache that added friend(s) somewhere, when the
-        //  dialog closes launch the login screen - when we get to onCreate, check the cache and
-        //  upload any waiting friends
+        val userInfo = getSharedPreferences(MainViewModel.USER_INFO, Context.MODE_PRIVATE)
+
+        // token is auth token
+        val token = userInfo.getString(MainViewModel.MY_TOKEN, null)
+        val action: String? = intent?.action
+        val data: Uri? = intent?.data
+
+        friendModel.addFriendException = action == Intent.ACTION_VIEW
+
+        // we want an exception to the login if they opened an add-friend link
+        // if opened from a link, the action is ACTION_VIEW, so we delay logging in
+        if (token == null && friendModel.addFriendException) {
+            launchLogin()
+        } else if (token != null) {
+            friendModel.getUserInfo(token) {
+                if (!friendModel.addFriendException) launchLogin()
+            }
+        }
+
+        if (friendModel.addFriendException) {
+            val tempId = data?.getQueryParameter("username")
+            if (tempId == null) {
+                friendModel.showSnackBar(getString(R.string.bad_add_link))
+            } else {
+                friendModel.addFriendUsername = tempId
+            }
+        }
+
+        if (!Settings.canDrawOverlays(application) && !userInfo.getBoolean(
+                        MainViewModel.OVERLAY_NO_PROMPT,
+                        false)) {
+            friendModel.appendDialogState(Triple(MainViewModel.DialogStatus.OVERLAY_PERMISSION,
+                    null) {})
+        }
 
         // TODO if opened from a share context, save the data shared, add a message to the top
         //  bar letting them know they are sharing content, and if they open an add message
@@ -133,6 +173,9 @@ class MainActivity : AppCompatActivity() {
                 DeleteFriendDialog(
                         friend = it)
             }
+            MainViewModel.DialogStatus.CONFIRM_DELETE_CACHED -> dialogState.second?.let {
+                DeleteFriendDialog(friend = it)
+            }
             MainViewModel.DialogStatus.NONE -> {}
         }
 
@@ -179,6 +222,10 @@ class MainActivity : AppCompatActivity() {
                             onDeletePrompt = onDeletePrompt
                     )
                 }
+                items(friendModel.cachedFriends.value ?: listOf()) { cachedFriend ->
+                    FriendCard(friend = Friend(cachedFriend.username, cachedFriend.username), onLongPress
+                    = {}, onEditName = {}, onDeletePrompt = {})
+                }
             }
         }
     }
@@ -221,12 +268,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     @Composable
-    fun DeleteFriendDialog(friend: Friend) {
+    fun DeleteFriendDialog(friend: Friend, cached: Boolean = false) {
         AlertDialog(onDismissRequest = { friendModel.popDialogState() },
                 confirmButton = {
                     Button(onClick = {
                         friendModel.popDialogState()
-                        friendModel.confirmDeleteFriend(friend = friend)
+                        if (cached) friendModel.confirmDeleteCachedFriend(friend)
+                        else friendModel.confirmDeleteFriend(friend = friend, ::launchLogin)
                     }) {
                         Text(text = getString(R.string.delete))
                     }
@@ -256,7 +304,7 @@ class MainActivity : AppCompatActivity() {
                         if (savingName.isEmpty()) {
                             error = true
                         } else {
-                            friendModel.confirmEditName(friend.id, savingName)
+                            friendModel.confirmEditName(friend.id, savingName, ::launchLogin)
                             friendModel.popDialogState()
                         }
                     }) {
@@ -321,20 +369,17 @@ class MainActivity : AppCompatActivity() {
         if (savingName.isBlank()) {
             friendModel.usernameCaption = getString(R.string.empty_username)
         } else {
-            friendModel.getFriendName(username) {
+            friendModel.getFriendName(username, responseListener = {
                 friendModel.onAddFriend(Friend(username, it.getString("name")
                 )) {
                     friendModel.popDialogState()
                 }
-            }
+            }, launchLogin = ::launchLogin)
         }
     }
 
     @Composable
     fun AddFriendDialog() {
-        var username by rememberSaveable {
-            mutableStateOf("")
-        }
         AlertDialog(onDismissRequest = {
             friendModel.popDialogState()
         },
@@ -350,7 +395,7 @@ class MainActivity : AppCompatActivity() {
                             Text(getString(R.string.cancel))
                         }
                         Button(onClick = {
-                            onAddFriend(username)
+                            onAddFriend(friendModel.addFriendUsername)
                         },
                                 modifier = Modifier.fillMaxWidth()) {
                             Text(getString(android.R.string.ok))
@@ -367,10 +412,11 @@ class MainActivity : AppCompatActivity() {
                                 else Color.Unspecified
                         )
                         OutlinedTextField(
-                                value = username,
+                                value = friendModel.addFriendUsername,
                                 onValueChange = {
-                                    username = it
-                                    friendModel.getFriendName(username)
+                                    friendModel.addFriendUsername = it
+                                    friendModel.getFriendName(friendModel.addFriendUsername, launchLogin =
+                                    ::launchLogin)
                                 },
                                 keyboardOptions = KeyboardOptions(
                                         keyboardType = KeyboardType.Text,
@@ -379,7 +425,7 @@ class MainActivity : AppCompatActivity() {
                                         imeAction = ImeAction.Done
                                 ),
                                 keyboardActions = KeyboardActions(onDone = {
-                                    onAddFriend(username = username)
+                                    onAddFriend(username = friendModel.addFriendUsername)
                                 }),
                                 singleLine = true,
                                 label = { Text(text = getString(R.string.username)) },
@@ -400,7 +446,7 @@ class MainActivity : AppCompatActivity() {
     @ExperimentalFoundationApi
     @Composable
     fun FriendCard(friend: Friend, onLongPress: () -> Unit, onEditName: (friend: Friend) -> Unit,
-                   onDeletePrompt: (friend: Friend) -> Unit) {
+                   onDeletePrompt: (friend: Friend) -> Unit, cached: Boolean = false) {
         var state by remember { mutableStateOf(State.NORMAL) }
         var message: String? by remember { mutableStateOf(null) }
 
@@ -422,6 +468,8 @@ class MainActivity : AppCompatActivity() {
             Column {
                 Text(text = friend.name,
                         style = MaterialTheme.typography.subtitle1,
+                        color = if (cached) MaterialTheme.colors.onSurface.copy(alpha =
+                        ContentAlpha.medium) else Color.Unspecified,
                         modifier = Modifier
                                 .alpha(if (state == State.NORMAL) 1F else 0.5F)
                                 .blur(if (state ==
@@ -501,7 +549,9 @@ class MainActivity : AppCompatActivity() {
                         }
 
                         override fun onFinish() {
-                            friendModel.sendAlert(friend.id, message = message)
+                            friendModel.sendAlert(friend.id,
+                                    message = message,
+                                    launchLogin = ::launchLogin)
                         }
                     }
 

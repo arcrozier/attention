@@ -29,7 +29,23 @@ class AttentionRepository(private val database: AttentionDB) {
     fun insert(vararg friend: Friend) = database.getFriendDAO().insert(*friend)
 
 
-    fun delete(vararg friend: Friend) = database.getFriendDAO().delete(*friend)
+    fun delete(friend: Friend, token: String, singleton: NetworkSingleton,
+               responseListener: Response.Listener<JSONObject>? = null, errorListener: Response
+            .ErrorListener? = null) {
+        val params = JSONObject(mapOf(
+                "friend" to friend.id
+        ))
+        val request = AuthorizedJsonObjectRequest(Request.Method.POST, "$BASE_URL/delete_friend/",
+                params,
+                {
+                    database.getFriendDAO().delete(friend)
+                    responseListener?.onResponse(it)
+                }, { error ->
+            errorListener?.onErrorResponse(
+                    VolleyError("Couldn't send alert: ${error.message}"))
+        }, token)
+        singleton.addToRequestQueue(request)
+    }
 
     fun edit(friend: Friend, token: String, singleton: NetworkSingleton, responseListener:
     Response.Listener<JSONObject>? = null, errorListener: Response.ErrorListener? = null) {
@@ -47,6 +63,16 @@ class AttentionRepository(private val database: AttentionDB) {
     }
 
     fun getFriend(id: String): Friend = database.getFriendDAO().getFriend(id)
+
+    fun cacheFriend(username: String) = database.getCachedFriendDAO().insert(CachedFriend(username))
+
+    fun getCachedFriends(): Flow<List<CachedFriend>> = database.getCachedFriendDAO()
+            .getCachedFriends()
+
+    suspend fun getCachedFriendsSnapshot(): List<CachedFriend> = database.getCachedFriendDAO().getCachedFriendsSnapshot()
+
+    fun deleteCachedFriend(username: String) = database.getCachedFriendDAO().delete(CachedFriend
+    (username))
 
     fun getMessages(friend: Friend): Flow<List<Message>> = database.getMessageDAO()
             .getMessagesFromUser(friend.id)

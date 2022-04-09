@@ -16,6 +16,8 @@ abstract class AttentionDB: RoomDatabase() {
 
     abstract fun getMessageDAO(): MessageDA0
 
+    abstract fun getCachedFriendDAO(): CachedFriendDAO
+
     companion object {
         const val DB_V1 = 1
         private const val DB_NAME = "attention_database"
@@ -36,6 +38,11 @@ abstract class AttentionDB: RoomDatabase() {
         }
     }
 }
+
+@Entity
+data class CachedFriend (
+        @PrimaryKey val username: String
+        )
 
 @Entity
 data class Friend (
@@ -90,6 +97,21 @@ interface FriendDAO {
 
     @Query("SELECT * FROM Friend WHERE id = :id")
     fun getFriend(id: String): Friend
+}
+
+@Dao
+interface CachedFriendDAO {
+    @Insert
+    fun insert(vararg friend: CachedFriend)
+
+    @Delete
+    fun delete(vararg friend: CachedFriend)
+
+    @Query("SELECT * FROM CachedFriend")
+    fun getCachedFriends(): Flow<List<CachedFriend>>
+
+    @Query("SELECT * FROM CachedFriend")
+    suspend fun getCachedFriendsSnapshot(): List<CachedFriend>
 }
 
 @Dao
