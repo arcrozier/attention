@@ -2,35 +2,35 @@ package com.aracroproducts.attentionv2
 
 import android.app.Application
 import android.content.Context
-import android.content.SharedPreferences
 import android.util.Log
 import androidx.compose.material.ScaffoldState
 import androidx.compose.material.SnackbarDuration
-import androidx.compose.material.rememberScaffoldState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModel
 import androidx.preference.PreferenceManager
 import com.android.volley.*
-import com.android.volley.toolbox.JsonObjectRequest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import org.json.JSONObject
 
 class LoginViewModel(
         private val attentionRepository: AttentionRepository,
         application: Application) : AndroidViewModel(application) {
 
-    var login by mutableStateOf(true)
+    enum class State {
+        LOGIN, CREATE_USER, CHANGE_PASSWORD
+    }
+
+    var login by mutableStateOf(State.LOGIN)
 
     var uiEnabled by mutableStateOf(true)
     var username by mutableStateOf("")
     var usernameCaption by mutableStateOf("")
+    var oldPassword by mutableStateOf("")
     var password by mutableStateOf("")
     var passwordCaption by mutableStateOf("")
+    var newPasswordCaption by mutableStateOf("")
     var confirmPassword by mutableStateOf("")
     var confirmPasswordCaption by mutableStateOf("")
     var firstName by mutableStateOf("")
@@ -43,8 +43,8 @@ class LoginViewModel(
         val context = getApplication<Application>()
         attentionRepository.getAuthToken(username = username, password = password,
                 NetworkSingleton.getInstance(context), responseListener = {
-                    val userInfoEditor = context.getSharedPreferences(MainViewModel.USER_INFO,
-                            Context.MODE_PRIVATE).edit()
+            val userInfoEditor = context.getSharedPreferences(MainViewModel.USER_INFO,
+                    Context.MODE_PRIVATE).edit()
             userInfoEditor.putString(MainViewModel.MY_TOKEN, it.getString("token"))
             userInfoEditor.apply()
             val defaultPrefsEditor = PreferenceManager.getDefaultSharedPreferences(context).edit()
@@ -56,25 +56,8 @@ class LoginViewModel(
                 is ClientError -> {
                     passwordCaption = context.getString(R.string.wrong_password)
                 }
-                is NoConnectionError -> {
-                    displaySnackBar(scaffoldState, scope, context.getString(R.string
-                            .connection_error), context.getString(android.R.string.ok), SnackbarDuration.Indefinite)
-                }
-                is NetworkError -> {
-                    displaySnackBar(scaffoldState, scope, context.getString(R.string
-                            .network_error), context.getString(android.R.string.ok), SnackbarDuration
-                            .Indefinite)
-                }
-                is ServerError -> {
-                    displaySnackBar(scaffoldState, scope, context.getString(R.string
-                            .server_error), context.getString(android.R.string.ok), SnackbarDuration
-                            .Indefinite)
-                }
                 else -> {
-                    displaySnackBar(scaffoldState, scope, context.getString(R.string
-                            .unknown_error), context.getString(android.R.string.ok), SnackbarDuration
-                            .Indefinite)
-                    Log.e(sTAG, "An unexpected error occurred: ${it.message}")
+                    genericErrorHandling(it, scaffoldState, scope, context)
                 }
             }
             uiEnabled = true
@@ -129,29 +112,92 @@ class LoginViewModel(
                         }
                     }
                 }
-                is NoConnectionError -> {
-                    displaySnackBar(scaffoldState, scope, context.getString(R.string
-                            .connection_error), context.getString(android.R.string.ok), SnackbarDuration.Indefinite)
-                }
-                is NetworkError -> {
-                    displaySnackBar(scaffoldState, scope, context.getString(R.string
-                            .network_error), context.getString(android.R.string.ok), SnackbarDuration
-                            .Indefinite)
-                }
-                is ServerError -> {
-                    displaySnackBar(scaffoldState, scope, context.getString(R.string
-                            .server_error), context.getString(android.R.string.ok), SnackbarDuration
-                            .Indefinite)
-                }
                 else -> {
-                    displaySnackBar(scaffoldState, scope, context.getString(R.string
-                            .unknown_error), context.getString(android.R.string.ok), SnackbarDuration
-                            .Indefinite)
-                    Log.e(sTAG, "An unexpected error occurred: ${it.message}")
+                    genericErrorHandling(it, scaffoldState, scope, context)
                 }
             }
             uiEnabled = true
         })
+    }
+
+    fun changePassword(scaffoldState: ScaffoldState, scope: CoroutineScope, onPasswordChanged: () ->
+    Unit) {
+        uiEnabled = false
+        val context = getApplication<Application>()
+        var passed = true
+        if (oldPassword.isBlank()) {
+            passwordCaption = context.getString(R.string.wrong_password)
+            passed = false
+        }
+        if (password.length < 8) {
+            newPasswordCaption = context.getString(R.string.password_validation_failed)
+            passed = false
+        }
+        if (password != confirmPassword) {
+            confirmPasswordCaption = context.getString(R.string.passwords_different)
+            passed = false
+        }
+        if (!passed) {
+            uiEnabled = true
+            return
+        }
+
+        val savedUsername = PreferenceManager.getDefaultSharedPreferences(context)
+                .getString(MainViewModel.MY_ID, null)
+        val userInfo = context.getSharedPreferences(MainViewModel.USER_INFO, Context.MODE_PRIVATE)
+        val token = userInfo.getString(MainViewModel.MY_TOKEN, null)
+        if (savedUsername == null || token == null) {
+            login = State.LOGIN
+            usernameCaption = context.getString(R.string.password_verification_failed)
+            uiEnabled = true
+            return
+        }
+        attentionRepository.editUser(
+                token, password = password,
+                oldPassword = oldPassword,
+                singleton = NetworkSingleton.getInstance(context),
+                responseListener = {
+                    attentionRepository.getAuthToken(savedUsername, password, NetworkSingleton
+                            .getInstance(context), responseListener = {
+                        userInfo.edit().apply {
+                            putString(MainViewModel.MY_TOKEN, it.getString("token"))
+                            apply()
+                        }
+                        onPasswordChanged()
+                    },
+                    errorListener = {
+                        if (it is ClientError) {
+                            usernameCaption = context.getString(
+                                    R.string.mysterious_password_change_login_issue)
+                            login = State.LOGIN
+                        } else {
+                            usernameCaption = context.getString(R.string.password_updated)
+                            genericErrorHandling(it, scaffoldState, scope, context)
+                            login = State.LOGIN
+                        }
+                        uiEnabled = true
+                    })
+                }, errorListener = { error ->
+            if (error is ClientError) {
+                when (error.networkResponse.statusCode) {
+                    400 -> {
+                        passwordCaption = context.getString(R.string.password_validation_failed)
+                    }
+                    403 -> {
+                        val responseData = String(error.networkResponse.data)
+                        if (responseData.contains("incorrect old password", true))
+                            passwordCaption = context.getString(R.string.wrong_password)
+                        else {
+                            login = State.LOGIN
+                        }
+                    }
+                }
+            } else {
+                genericErrorHandling(error, scaffoldState, scope, context)
+            }
+            uiEnabled = true
+        })
+
     }
 
     private fun displaySnackBar(scaffoldState: ScaffoldState,
@@ -162,6 +208,33 @@ class LoginViewModel(
         scope.launch {
             scaffoldState.snackbarHostState.showSnackbar(message, actionLabel = actionText,
                     duration = length)
+        }
+    }
+
+    private fun genericErrorHandling(error: VolleyError, scaffoldState: ScaffoldState, scope:
+    CoroutineScope, context: Context) {
+        when (error) {
+            is NoConnectionError -> {
+                displaySnackBar(scaffoldState, scope, context.getString(R.string
+                        .connection_error), context.getString(android.R.string.ok),
+                        SnackbarDuration.Indefinite)
+            }
+            is NetworkError -> {
+                displaySnackBar(scaffoldState, scope, context.getString(R.string
+                        .network_error), context.getString(android.R.string.ok), SnackbarDuration
+                        .Indefinite)
+            }
+            is ServerError -> {
+                displaySnackBar(scaffoldState, scope, context.getString(R.string
+                        .server_error), context.getString(android.R.string.ok), SnackbarDuration
+                        .Indefinite)
+            }
+            else -> {
+                displaySnackBar(scaffoldState, scope, context.getString(R.string
+                        .unknown_error), context.getString(android.R.string.ok), SnackbarDuration
+                        .Indefinite)
+                Log.e(sTAG, "An unexpected error occurred: ${error.message}")
+            }
         }
     }
 

@@ -10,7 +10,6 @@
         app:title="@string/account">
         <EditTextPreference
             android:id="@+id/show_username_preference"
-            android:enabled="false"
             android:key="@string/username_key"
             android:title="@string/username" />
 
@@ -31,7 +30,14 @@
 
         <Preference
             android:persistent="false"
-            android:title="@string/password" />
+            android:key="@string/password_key"
+            android:title="@string/password" >
+
+            <intent
+                android:targetPackage="com.aracroproducts.attentionv2"
+                android:targetClass="com.aracroproducts.attentionv2.LoginActivity"
+                android:action="com.aracroproducts.attention.action.change_password" />
+        </Preference>
     </PreferenceCategory>
 
     <PreferenceCategory

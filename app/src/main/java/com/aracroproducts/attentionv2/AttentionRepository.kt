@@ -71,7 +71,8 @@ class AttentionRepository(private val database: AttentionDB) {
     }
 
     fun getName(token: String, username: String, singleton: NetworkSingleton, responseListener:
-    Response.Listener<JSONObject>? = null, errorListener: Response.ErrorListener? = null) {
+    Response.Listener<JSONObject>? = null, errorListener: Response.ErrorListener? = null):
+            Request<JSONObject> {
         val params = JSONObject(mapOf(
                 "username" to username
         ))
@@ -80,6 +81,8 @@ class AttentionRepository(private val database: AttentionDB) {
                 params, responseListener, errorListener, token)
 
         singleton.addToRequestQueue(request)
+
+        return request
     }
 
     fun sendMessage(message: Message, token: String, singleton: NetworkSingleton,
@@ -119,15 +122,14 @@ class AttentionRepository(private val database: AttentionDB) {
     }
 
     fun editUser(token: String, singleton: NetworkSingleton, firstName: String? = null, lastName:
-    String? = null,
-                 password:
-    String? = null,
+    String? = null, password: String? = null, oldPassword: String? = null,
                  email: String? = null, responseListener: Response.Listener<JSONObject>? = null,
                  errorListener: Response.ErrorListener? = null) {
         val params = JSONObject(mapOf(
                 "first_name" to firstName,
                 "last_name" to lastName,
                 "password" to password,
+                "old_password" to oldPassword,
                 "email" to email
         ))
         val request = AuthorizedJsonObjectRequest(Request.Method.PUT, "$BASE_URL/v2/edit/",

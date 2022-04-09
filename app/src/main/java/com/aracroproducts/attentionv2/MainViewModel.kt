@@ -56,22 +56,25 @@ class MainViewModel @Inject constructor(
 
     val friends = attentionRepository.getFriends().asLiveData()
 
-    var isSnackBarShowing: Boolean by mutableStateOf(false)
+    var isSnackBarShowing by mutableStateOf("")
         private set
 
     var connectionState by mutableStateOf("")
 
-    private fun showSnackBar() {
-        isSnackBarShowing = true
+    private fun showSnackBar(message: String) {
+        isSnackBarShowing = message
     }
 
     fun dismissSnackBar() {
-        isSnackBarShowing = false
+        isSnackBarShowing = ""
     }
 
     var newFriendName by mutableStateOf("")
+    var friendNameLoading by mutableStateOf(false)
 
     var usernameCaption by mutableStateOf("")
+
+    private var lastNameRequest: Request<JSONObject>? = null
 
     /**
      * Used to determine which dialog to display (or none). If the dialog requires additional data,
@@ -104,7 +107,8 @@ class MainViewModel @Inject constructor(
      * should be called only by whatever is responsible for dealing with that state
      */
     fun popDialogState() {
-        // TODO reset all the dialog-specific state
+        newFriendName = ""
+        usernameCaption = ""
         synchronized(this) {
             if (dialogQueue.isEmpty()) {
                 dialogState.value = Triple(DialogStatus.NONE, null) {}
@@ -134,6 +138,7 @@ class MainViewModel @Inject constructor(
         }
         attentionRepository.addFriend(friend.id, friend.name, token, NetworkSingleton.getInstance
         (getApplication()), responseListener) {
+            Log.e(sTAG, "An error occurred when adding friend: ${it.message} ${it.networkResponse}")
             when (it) {
                 is ClientError -> {
                     when (it.networkResponse.statusCode) {
@@ -164,11 +169,20 @@ class MainViewModel @Inject constructor(
             launchLogin()
             return
         }
-        attentionRepository.getName(token, username, NetworkSingleton
+
+        lastNameRequest?.cancel()
+        friendNameLoading = true
+        lastNameRequest = attentionRepository.getName(token, username, NetworkSingleton
                 .getInstance(getApplication()), responseListener = {
+            lastNameRequest = null
             newFriendName = it.getString("name")
+            friendNameLoading = false
             responseListener?.onResponse(it)
         }, errorListener = {
+            lastNameRequest = null
+            friendNameLoading = false
+            Log.e(sTAG, "An error occurred when getting friend name: ${it.message} ${it
+                    .networkResponse}")
             when (it) {
                 is ClientError -> {
                     when (it.networkResponse.statusCode) {
@@ -227,7 +241,28 @@ class MainViewModel @Inject constructor(
         }
         attentionRepository.edit(Friend(id = id, name = name), token, NetworkSingleton
                 .getInstance(getApplication()), errorListener = {
-                    // TODO do something on error
+            val context = getApplication<Application>()
+            Log.e(sTAG, "An error occurred when editing name: ${it.message} ${it
+                    .networkResponse}")
+            when (it) {
+                is ClientError -> {
+                    when (it.networkResponse.statusCode) {
+                        403 -> {
+                            val loginIntent = Intent(context, LoginActivity::class.java)
+                            context.startActivity(loginIntent)
+                        }
+                        400 -> {
+                            showSnackBar(context.getString(R.string.edit_friend_name_failed))
+                        }
+                    }
+                }
+                is NoConnectionError -> {
+                    connectionState = context.getString(R.string.disconnected)
+                }
+                else -> {
+                    connectionState = context.getString(R.string.connection_error)
+                }
+            }
         })
     }
 
@@ -320,10 +355,11 @@ class MainViewModel @Inject constructor(
                 defaultPrefsEditor.apply()
                 attentionRepository.updateUserInfo(it.getJSONArray("friends"))
             }, {
+                Log.e(sTAG, "An error occurred when initializing: ${it.message} ${it
+                        .networkResponse}")
                 when (it) {
                     is ClientError -> {
-                        val loginIntent = Intent(context, LoginActivity::class.java)
-                        context.startActivity(loginIntent)
+                        launchLogin()
                     }
                     is NoConnectionError -> {
                         connectionState = context.getString(R.string.disconnected)
@@ -392,8 +428,7 @@ class MainViewModel @Inject constructor(
     }
 
     private fun launchLogin() {
-        val loginIntent = Intent(getApplication(), LoginActivity::class.java)
-        getApplication<Application>().startActivity(loginIntent)
+        launchLogin(getApplication())
     }
 
     fun sendAlert(to: String, message: String?) {
@@ -407,9 +442,9 @@ class MainViewModel @Inject constructor(
                 otherId = to, message
         = message, direction = DIRECTION.Outgoing), token = token,
                 NetworkSingleton.getInstance(getApplication<Application>()), {
-            showSnackBar()
+            showSnackBar(getApplication<Application>().getString(R.string.alert_sent))
         }, {
-            Log.e(sTAG, "Error sending alert: ${it.message}")
+            Log.e(sTAG, "Error sending alert: ${it.message} ${it.networkResponse}")
             notifyUser(ErrorType.BAD_REQUEST, to)
         })
     }
@@ -460,7 +495,8 @@ class MainViewModel @Inject constructor(
                             },
                             { error ->
                                 Log.e(sTAG,
-                                        "An error occurred while uploading token: ${error.message}")
+                                        "An error occurred while uploading token: ${error
+                                                .message} ${error.networkResponse}")
                                 preferences.getBoolean(KEY_UPLOADED, false)
                             },
                     )
@@ -513,6 +549,11 @@ class MainViewModel @Inject constructor(
                 val notificationManager = context.getSystemService(NotificationManager::class.java)
                 notificationManager.createNotificationChannel(channel)
             }
+        }
+
+        fun launchLogin(context: Context) {
+            val loginIntent = Intent(context, LoginActivity::class.java)
+            context.startActivity(loginIntent)
         }
     }
 

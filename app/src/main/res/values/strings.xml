@@ -17,14 +17,28 @@
     <string name="nonexistent_username">No user with that username exists</string>
     <string name="add_friend_failed">Could not add friend - username may not exist or you
         may already be friends with them</string>
+    <string name="edit_friend_name_failed">An error occurred when editing your friend\'s
+        name</string>
     <string name="create_user">Create account</string>
     <string name="login">Log in</string>
     <string name="first_name">First name</string>
     <string name="last_name">Last name</string>
     <string name="email">Email</string>
     <string name="confirm_password">Confirm password</string>
+    <string name="change_password">Change password</string>
     <string name="wrong_password">Invalid username or password</string>
     <string name="password_validation_failed">Password must be at least 8 characters</string>
+    <string name="new_password">New password…</string>
+    <string name="password_verification_failed">Couldn\'t verify old password. Please login
+    again and then try changing your password</string>
+    <string name="mysterious_password_change_login_issue">An unusual error occurred when
+        attempting to change your password. This could be a server-side error or a result of
+        on-device data being corrupted and, unfortunately, we aren\'t sure what your password is
+        now. Try logging in with your new password and if that doesn\'t work, your old password.
+        You can also contact Aracro Products at support@aracroproducts.com for help with getting
+        back into your account. We apologize for the inconvenience.
+    </string>
+    <string name="password_updated">Password was updated successfully</string>
     <string name="username_in_use">Username is taken</string>
     <string name="invalid_email">Email is invalid. Enter a valid email or leave blank</string>
     <string name="invalid_username">Enter a valid username. This value may contain only English
@@ -37,6 +51,8 @@
     <string name="unknown_error">An unknown error occurred</string>
     <string name="server_error">The server encountered an error. Please be patient as we
         work to fix it</string>
+    <string name="saving">Saving…</string>
+    <string name="saved">Saved</string>
     <string name="name_dialog_title">Please enter your name</string>
     <string name="name">Full name</string>
     <string name="placeholder_name">Name…</string>
@@ -129,5 +145,9 @@
         .first_name</string>
     <string name="last_name_key" translatable="false">com.aracroproducts.attention.key
         .last_name</string>
+    <string name="password_key" translatable="false">com.aracroproducts.attention.key
+        .password</string>
     <string name="alert_title">Attention!</string>
+    <string name="change_password_action" translatable="false">com.aracroproducts.attention.action
+        .change_password</string>
 </resources>

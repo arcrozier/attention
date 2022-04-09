@@ -114,7 +114,8 @@ open class AlertHandler : FirebaseMessagingService() {
                         putExtra(ALERT_ID, alertId)
                         putExtra(REMOTE_FROM_USERNAME, message.otherId)
                         addFlags(
-                                Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                                Intent.FLAG_ACTIVITY_NEW_TASK /*or Intent
+                                .FLAG_ACTIVITY_CLEAR_TASK*/)
                     }
                     Log.d(TAG, "Sender: $senderName, ${message.otherId} Message: ${message.message}")
                     startActivity(intent)

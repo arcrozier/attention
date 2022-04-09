@@ -14,6 +14,7 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
@@ -25,6 +26,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -55,6 +57,15 @@ class MainActivity : AppCompatActivity() {
 
         // Creates a notification channel for displaying failed-to-send notifications
         MainViewModel.createFailedAlertNotificationChannel(this)
+
+        // TODO carve out exception if app was launched from an add-friend link - allow the
+        //  add-friend dialog to appear, then cache that added friend(s) somewhere, when the
+        //  dialog closes launch the login screen - when we get to onCreate, check the cache and
+        //  upload any waiting friends
+
+        // TODO if opened from a share context, save the data shared, add a message to the top
+        //  bar letting them know they are sharing content, and if they open an add message
+        //  thing, pre-populate it with the saved data (after sending, reset the data?)
 
         if (!checkPlayServices()) return
 
@@ -89,20 +100,17 @@ class MainActivity : AppCompatActivity() {
     fun Home(friends: List<Friend>, onLongPress: () -> Unit, onEditName: (friend: Friend) -> Unit,
              onDeletePrompt: (friend: Friend) -> Unit,
              dialogState: Triple<MainViewModel.DialogStatus, Friend?, (String) -> Unit>,
-             showSnackbar:
-             Boolean) {
+             showSnackbar: String) {
 
 
         val scaffoldState = rememberScaffoldState()
         val scope = rememberCoroutineScope()
-        if (showSnackbar) {
+        if (showSnackbar.isNotBlank()) {
             LaunchedEffect(scaffoldState.snackbarHostState) {
                 scope.launch {
-                    val result = scaffoldState.snackbarHostState.showSnackbar(message = getString(R
-                            .string
-                            .alert_sent))  // cancels by default after a short amount of time
+                    // cancels by default after a short amount of time
 
-                    when (result) {
+                    when (scaffoldState.snackbarHostState.showSnackbar(message = showSnackbar)) {
                         SnackbarResult.Dismissed -> {
                             friendModel.dismissSnackBar()
                         }
@@ -154,10 +162,8 @@ class MainActivity : AppCompatActivity() {
                 },
                 floatingActionButton = {
                     FloatingActionButton(onClick = {
-                        // TODO open add friend dialog instead
-                        Log.d(this.javaClass.name, "Attempting to add")
-                        val intent = Intent(this, Add::class.java)
-                        startActivity(intent)
+                        friendModel.appendDialogState(Triple(MainViewModel.DialogStatus.ADD_FRIEND,
+                                null) {})
                     },
                             backgroundColor = MaterialTheme.colors.secondary) {
                         Icon(Icons.Filled.Add, contentDescription = getString(R.string.add_friend))
@@ -311,10 +317,19 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onAddFriend(username: String) {
-
+        val savingName = username.trim()
+        if (savingName.isBlank()) {
+            friendModel.usernameCaption = getString(R.string.empty_username)
+        } else {
+            friendModel.getFriendName(username) {
+                friendModel.onAddFriend(Friend(username, it.getString("name")
+                )) {
+                    friendModel.popDialogState()
+                }
+            }
+        }
     }
 
-    // TODO make this an add friend dialog
     @Composable
     fun AddFriendDialog() {
         var username by rememberSaveable {
@@ -335,17 +350,7 @@ class MainActivity : AppCompatActivity() {
                             Text(getString(R.string.cancel))
                         }
                         Button(onClick = {
-                            val savingName = username.trim()
-                            if (savingName.isBlank()) {
-                                friendModel.usernameCaption = getString(R.string.empty_username)
-                            } else {
-                                friendModel.getFriendName(username) {
-                                    friendModel.onAddFriend(Friend(username, it.getString("name")
-                                    )) {
-                                        friendModel.popDialogState()
-                                    }
-                                }
-                            }
+                            onAddFriend(username)
                         },
                                 modifier = Modifier.fillMaxWidth()) {
                             Text(getString(android.R.string.ok))
@@ -356,7 +361,11 @@ class MainActivity : AppCompatActivity() {
                 title = { Text(text = getString(R.string.add_friend)) },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Text(text = friendModel.newFriendName)
+                        Text(text = friendModel.newFriendName,
+                                color = if (friendModel.friendNameLoading)
+                                    MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium)
+                                else Color.Unspecified
+                        )
                         OutlinedTextField(
                                 value = username,
                                 onValueChange = {
@@ -369,6 +378,9 @@ class MainActivity : AppCompatActivity() {
                                         capitalization = KeyboardCapitalization.None,
                                         imeAction = ImeAction.Done
                                 ),
+                                keyboardActions = KeyboardActions(onDone = {
+                                    onAddFriend(username = username)
+                                }),
                                 singleLine = true,
                                 label = { Text(text = getString(R.string.username)) },
                                 isError = friendModel.usernameCaption.isNotBlank(),
@@ -514,7 +526,7 @@ class MainActivity : AppCompatActivity() {
     fun PreviewHome() {
         MaterialTheme(colors = if (isSystemInDarkTheme()) darkColors else lightColors) {
             Home(listOf(Friend("1", "Grace"), Friend("2", "Anita")), {}, {}, {},
-                    Triple(MainViewModel.DialogStatus.NONE, null) {}, false)
+                    Triple(MainViewModel.DialogStatus.NONE, null) {}, "")
         }
     }
 
