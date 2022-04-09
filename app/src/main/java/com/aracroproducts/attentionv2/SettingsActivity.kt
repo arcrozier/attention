@@ -7,8 +7,6 @@ import android.os.Bundle
 import android.view.View
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.animation.defaultDecayAnimationSpec
-import androidx.compose.material3.Snackbar
 import androidx.preference.*
 import com.android.volley.ClientError
 import com.android.volley.NoConnectionError
@@ -151,17 +149,26 @@ class SettingsActivity : AppCompatActivity() {
                 email.onPreferenceChangeListener = userInfoChangeListener
             }
 
-            // TODO add onPreferenceClickedListener to the username - have it pop up the share
-            //  screen
-
-            /*
-            val sharingIntent = Intent(Intent.ACTION_SEND).apply {
-                    type = "text/plain"
-                    val shareBody = "Add me on Attention! https://attention.aracroproducts" +
-                            ".com/app/add?public-key=$id&name=$name$"
-                    putExtra(Intent.EXTRA_TEXT, shareBody)
+            val usernamePreference: Preference? = findPreference(getString(R.string.username_key))
+            if (usernamePreference != null) {
+                usernamePreference.onPreferenceClickListener = Preference.OnPreferenceClickListener {
+                    val username = PreferenceManager.getDefaultSharedPreferences(localContext)
+                            .getString(MainViewModel.MY_ID, null)
+                    if (username != null) {
+                        val sharingIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            val shareBody =
+                                    "Add me on Attention! https://attention.aracroproducts" +
+                                            ".com/app/add?username=$username$"
+                            putExtra(Intent.EXTRA_TEXT, shareBody)
+                        }
+                        startActivity(Intent.createChooser(sharingIntent, null))
+                    }
+                    false
                 }
-                startActivity(Intent.createChooser(sharingIntent, null))
+            }
+            /*
+
              */
 
             val vibratePreference = findPreference("vibrate_preference") as MultiSelectListPreference?

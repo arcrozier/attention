@@ -10,21 +10,30 @@
         app:title="@string/account">
         <EditTextPreference
             android:id="@+id/show_username_preference"
+            app:useSimpleSummaryProvider="true"
+            app:iconSpaceReserved="true"
+            app:icon="@drawable/baseline_share_24"
             android:key="@string/username_key"
             android:title="@string/username" />
 
         <EditTextPreference
             android:id="@+id/email_preference"
+            app:useSimpleSummaryProvider="true"
+            app:iconSpaceReserved="true"
             android:key="@string/email_key"
             android:title="@string/email" />
 
         <EditTextPreference
             android:id="@+id/first_name_preference"
+            app:useSimpleSummaryProvider="true"
+            app:iconSpaceReserved="true"
             android:key="@string/first_name_key"
             android:title="@string/first_name" />
 
         <EditTextPreference
             android:id="@+id/last_name_preference"
+            app:useSimpleSummaryProvider="true"
+            app:iconSpaceReserved="true"
             android:key="@string/last_name_key"
             android:title="@string/last_name" />
 
@@ -49,19 +58,19 @@
             android:entryValues="@array/notification_values"
             android:key="@string/vibrate_preference_key"
             android:title="@string/vibrate_preference"
-            app:iconSpaceReserved="false" />
+            app:iconSpaceReserved="true" />
         <MultiSelectListPreference
             android:id="@+id/ring_preference"
             android:entries="@array/notification_entries"
             android:entryValues="@array/notification_values"
             android:key="@string/ring_preference_key"
             android:title="@string/ring_preference"
-            app:iconSpaceReserved="false" />
+            app:iconSpaceReserved="true" />
         <SwitchPreference
             android:defaultValue="false"
             android:key="@string/override_dnd_key"
             android:title="@string/override_dnd"
-            app:iconSpaceReserved="false"
+            app:iconSpaceReserved="true"
             app:summaryOff="@string/override_summary_off"
             app:summaryOn="@string/override_summary_on" />
     </PreferenceCategory>
@@ -74,7 +83,7 @@
             android:selectAllOnFocus="true"
             android:singleLine="true"
             android:title="@string/display_name"
-            app:iconSpaceReserved="false"
+            app:iconSpaceReserved="true"
             app:useSimpleSummaryProvider="true" />
     </PreferenceCategory>
 
