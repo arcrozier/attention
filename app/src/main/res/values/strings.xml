@@ -51,6 +51,7 @@
     <string name="unknown_error">An unknown error occurred</string>
     <string name="server_error">The server encountered an error. Please be patient as we
         work to fix it</string>
+    <string name="sharing">Sharing data; tap "add message" on a friend to edit and send</string>
     <string name="saving">Saving…</string>
     <string name="saved">Saved</string>
     <string name="name_dialog_title">Please enter your name</string>

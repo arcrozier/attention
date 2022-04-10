@@ -103,9 +103,21 @@ class MainActivity : AppCompatActivity() {
                     null) {})
         }
 
-        // TODO if opened from a share context, save the data shared, add a message to the top
-        //  bar letting them know they are sharing content, and if they open an add message
-        //  thing, pre-populate it with the saved data (after sending, reset the data?)
+        // this condition is met if the app was launched by someone tapping it on a share sheet
+        if (action == Intent.ACTION_SEND && intent.type == "text/plain") {
+            friendModel.connectionState = getString(R.string.sharing)
+            friendModel.message = intent.getStringExtra(Intent.EXTRA_TEXT) ?: ""
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
+                    intent.hasExtra(Intent.EXTRA_SHORTCUT_ID)) {
+                val username = intent.getStringExtra(Intent.EXTRA_SHORTCUT_ID) ?: ""
+                friendModel.appendDialogState(
+                        Triple(MainViewModel.DialogStatus.ADD_MESSAGE_TEXT,
+                                Friend(username,
+                                        friendModel.getLocalFriendName(username).name ?: ""))
+                        {})
+            }
+        }
 
         if (!checkPlayServices()) return
 
@@ -223,8 +235,9 @@ class MainActivity : AppCompatActivity() {
                     )
                 }
                 items(friendModel.cachedFriends.value ?: listOf()) { cachedFriend ->
-                    FriendCard(friend = Friend(cachedFriend.username, cachedFriend.username), onLongPress
-                    = {}, onEditName = {}, onDeletePrompt = {})
+                    FriendCard(friend = Friend(cachedFriend.username, cachedFriend.username),
+                            onLongPress
+                            = {}, onEditName = {}, onDeletePrompt = {})
                 }
             }
         }
@@ -232,12 +245,15 @@ class MainActivity : AppCompatActivity() {
 
     @Composable
     fun AddMessageText(friend: Friend, onSend: (message: String) -> Unit) {
-        var message by rememberSaveable {
-            mutableStateOf("")
-        }
+
         AlertDialog(onDismissRequest = { friendModel.popDialogState() },
                 confirmButton = {
                     Button(onClick = {
+                        val message = friendModel.message
+                        friendModel.message = ""
+                        if (friendModel.connectionState == getString(R.string.sharing)) {
+                            friendModel.connectionState = ""
+                        }
                         friendModel.popDialogState()
                         onSend(message)
                     }) {
@@ -254,8 +270,8 @@ class MainActivity : AppCompatActivity() {
                 title = { Text(text = getString(R.string.rename)) },
                 text = {
                     OutlinedTextField(
-                            value = message,
-                            onValueChange = { message = it },
+                            value = friendModel.message,
+                            onValueChange = { friendModel.message = it },
                             keyboardOptions = KeyboardOptions(
                                     keyboardType = KeyboardType.Text,
                                     capitalization = KeyboardCapitalization.Words),
@@ -415,8 +431,9 @@ class MainActivity : AppCompatActivity() {
                                 value = friendModel.addFriendUsername,
                                 onValueChange = {
                                     friendModel.addFriendUsername = it
-                                    friendModel.getFriendName(friendModel.addFriendUsername, launchLogin =
-                                    ::launchLogin)
+                                    friendModel.getFriendName(friendModel.addFriendUsername,
+                                            launchLogin =
+                                            ::launchLogin)
                                 },
                                 keyboardOptions = KeyboardOptions(
                                         keyboardType = KeyboardType.Text,

@@ -17,13 +17,13 @@
     <application
         android:name=".AttentionApplication"
         android:allowBackup="true"
-        android:icon="@mipmap/add"
+        android:icon="@mipmap/app_icon"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/add_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         android:fullBackupContent="@xml/backup_descriptor"
-        android:dataExtractionRules="@xml/data_extraction_rules">
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        tools:targetApi="s">
         <activity
             android:name=".SettingsActivity"
             android:exported="false"
@@ -49,13 +49,6 @@
         </service>
 
         <activity
-            android:name=".Add"
-            android:exported="true"
-            android:screenOrientation="fullSensor"
-            android:windowSoftInputMode="stateAlwaysHidden">
-
-        </activity>
-        <activity
             android:name=".MainActivity"
             android:exported="true"
             android:theme="@style/AppTheme.NoActionBar">
@@ -76,6 +69,14 @@
                     android:host="attention.aracroproducts.com"
                     android:pathPrefix="/app/add?" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+            <meta-data
+            android:name="android.service.chooser.chooser_target_service"
+            android:value="androidx.sharetarget.ChooserTargetServiceCompat" />
         </activity>
     </application>
 

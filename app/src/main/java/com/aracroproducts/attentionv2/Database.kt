@@ -54,6 +54,10 @@ data class Friend (
         val last_message_read: Boolean = false
 )
 
+data class Name (
+        @ColumnInfo(name = "name") val name: String?
+        )
+
 @Entity
 data class Message (
         @PrimaryKey(autoGenerate = true) val messageId: Int? = null,
@@ -76,6 +80,9 @@ interface FriendDAO {
     @Update
     fun updateFriend(friend: Friend)
 
+    @Query("SELECT name FROM Friend WHERE id = :id")
+    fun getFriendName(id: String): Name
+
     @Query("UPDATE Friend SET received = received + 1 WHERE id = :id")
     fun incrementReceived(id: String)
 
@@ -91,6 +98,9 @@ interface FriendDAO {
 
     @Query("SELECT * FROM Friend ORDER BY sent DESC")
     fun getFriends(): Flow<List<Friend>>
+
+    @Query("SELECT * FROM Friend ORDER BY sent DESC")
+    suspend fun getFriendsSnapshot(): List<Friend>
 
     @Query("SELECT EXISTS (SELECT 1 FROM Friend WHERE id = :id)")
     fun isFriend(id: String): Boolean

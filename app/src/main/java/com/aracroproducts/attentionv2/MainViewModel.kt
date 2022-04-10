@@ -20,6 +20,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.app.Person
+import androidx.core.content.pm.ShortcutInfoCompat
+import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.lifecycle.*
 import androidx.preference.PreferenceManager
 import com.android.volley.*
@@ -31,6 +34,7 @@ import java.security.PublicKey
 import java.util.*
 import javax.inject.Inject
 import javax.xml.transform.ErrorListener
+import kotlin.collections.ArrayList
 
 class MainViewModel @Inject constructor(
         private val attentionRepository: AttentionRepository,
@@ -83,6 +87,8 @@ class MainViewModel @Inject constructor(
     var friendNameLoading by mutableStateOf(false)
 
     var usernameCaption by mutableStateOf("")
+
+    var message by mutableStateOf("")
 
     private var lastNameRequest: Request<JSONObject>? = null
 
@@ -166,6 +172,34 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    fun populateShareTargets() {
+        backgroundScope.launch {
+            val context = getApplication<Application>()
+            val shortcuts = ArrayList<ShortcutInfoCompat>()
+            val contactCategories = setOf(SHARE_CATEGORY)
+
+            val friends = attentionRepository.getFriendsSnapshot()
+            val staticShortcutIntent = Intent(Intent.ACTION_DEFAULT)
+
+            for (x in 0 until MAX_SHORTCUTS) {
+                shortcuts.add(
+                        ShortcutInfoCompat.Builder(context, friends[x].id)
+                                .setShortLabel(friends[x].name)
+                                .setIntent(staticShortcutIntent)
+                                .setLongLived(true)
+                                .setCategories(contactCategories)
+                                .setPerson(
+                                        Person.Builder()
+                                                .setName(friends[x].name)
+                                                .build()
+                                )
+                                .build()
+                )
+            }
+            ShortcutManagerCompat.addDynamicShortcuts(context, shortcuts)
+        }
+    }
+
     fun onAddFriend(friend: Friend, responseListener: Response.Listener<JSONObject>? = null,
                     launchLogin: () -> Unit) {
         val token = getApplication<Application>().getSharedPreferences(USER_INFO, Context
@@ -208,6 +242,8 @@ class MainViewModel @Inject constructor(
         super.onCleared()
         backgroundScope.cancel()
     }
+
+    fun getLocalFriendName(username: String) = attentionRepository.getLocalFriendName(username)
 
     fun getFriendName(username: String, responseListener: Response.Listener<JSONObject>? = null,
                       launchLogin: () -> Unit) {
@@ -409,6 +445,7 @@ class MainViewModel @Inject constructor(
             defaultPrefsEditor.apply()
             attentionRepository.updateUserInfo(it.getJSONArray("friends"))
             uploadCachedFriends()
+            populateShareTargets()
         }, {
             Log.e(sTAG, "An error occurred when initializing: ${it.message} ${it
                     .networkResponse}")
@@ -430,20 +467,26 @@ class MainViewModel @Inject constructor(
         val context = getApplication<Application>()
         val userInfo = context.getSharedPreferences(USER_INFO, Context.MODE_PRIVATE)
 
+        val fcmTokenPrefs = context.getSharedPreferences(FCM_TOKEN, Context.MODE_PRIVATE)
+
         // token is auth token
         val token = userInfo.getString(MY_TOKEN, null)
 
-        val fcmToken = userInfo.getString(FCM_TOKEN, null)
+        val fcmToken = fcmTokenPrefs.getString(FCM_TOKEN, null)
         // Do we need to upload a token (note we don't want to upload if we don't have a token yet)
-        if (fcmToken != null && !userInfo.getBoolean(TOKEN_UPLOADED, false) && token != null) {
+        if (fcmToken != null && !fcmTokenPrefs.getBoolean(TOKEN_UPLOADED, false) && token != null) {
             attentionRepository.registerDevice(
                     token, fcmToken,
                     NetworkSingleton
                             .getInstance(application),
-                    { Log.d(sTAG, "Successfully uploaded token") },
+                    { Log.d(sTAG, "Successfully uploaded token")
+                    fcmTokenPrefs.edit().apply {
+                        putBoolean(TOKEN_UPLOADED, true)
+                        apply()
+                    }
+                    },
                     {
                         Log.e(sTAG, "Error uploading token: ${it.message}")
-                        userInfo.getBoolean(KEY_UPLOADED, false)
                     },
             )
         } else if (fcmToken == null) { // We don't have a token, so let's get one
@@ -527,11 +570,13 @@ class MainViewModel @Inject constructor(
 
 
             val preferences = context.getSharedPreferences(USER_INFO,
-                    AppCompatActivity.MODE_PRIVATE)
+                    Context.MODE_PRIVATE)
+            val fcmTokenPrefs = context.getSharedPreferences(FCM_TOKEN, Context.MODE_PRIVATE)
             val authToken = preferences.getString(MY_TOKEN, null)
-            if (token != null && token != preferences.getString(FCM_TOKEN, "")) {
-                val editor = preferences.edit()
+            if (token != null && token != fcmTokenPrefs.getString(FCM_TOKEN, null)) {
+                val editor = fcmTokenPrefs.edit()
                 editor.putString(FCM_TOKEN, token)
+                editor.putBoolean(TOKEN_UPLOADED, false)
                 editor.apply()
                 if (authToken != null) {
                     attentionRepository.registerDevice(
@@ -548,7 +593,6 @@ class MainViewModel @Inject constructor(
                                 Log.e(sTAG,
                                         "An error occurred while uploading token: ${error
                                                 .message} ${error.networkResponse}")
-                                preferences.getBoolean(KEY_UPLOADED, false)
                             },
                     )
                 }
@@ -581,6 +625,9 @@ class MainViewModel @Inject constructor(
         const val CODE_SERVER_ERROR = 1
         const val CODE_BAD_REQUEST = 2
         const val CODE_CONNECTION_FAILED = -1
+
+        private const val MAX_SHORTCUTS = 4
+        private const val SHARE_CATEGORY = "com.aracroproducts.attentionv2.sharingshortcuts.category.TEXT_SHARE_TARGET"
 
         /**
          * Helper function to create the notification channel for the failed alert
