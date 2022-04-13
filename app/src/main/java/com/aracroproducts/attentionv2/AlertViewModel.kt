@@ -147,7 +147,7 @@ class AlertViewModel(intent: Intent, private val attentionRepository: AttentionR
 
         AlertHandler.createMissedNotificationChannel(context)
         val builder = NotificationCompat.Builder(context, AlertHandler.CHANNEL_ID).apply{
-            setSmallIcon(R.drawable.ic_launcher_foreground)
+            setSmallIcon(R.mipmap.app_icon)
             setContentTitle(context.getString(R.string.notification_title, from))
             setContentText(message)
             setStyle(NotificationCompat.BigTextStyle().bigText(message))

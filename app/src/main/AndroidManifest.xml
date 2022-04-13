@@ -29,6 +29,10 @@
             android:exported="false"
             android:label="@string/title_activity_settings"
             android:parentActivityName=".MainActivity" />
+        <activity android:name=".LoginActivity"
+            android:exported="false"
+            android:label="@string/login"
+            android:parentActivityName=".MainActivity" />
         <!-- android:showOnLockScreen="true" -->
         <activity
             android:name=".Alert"

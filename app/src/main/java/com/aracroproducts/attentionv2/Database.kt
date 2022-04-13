@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Database(
         version = DB_V1,
-        entities = [Friend::class, Message::class]
+        entities = [Friend::class, Message::class, CachedFriend::class]
 )
 abstract class AttentionDB: RoomDatabase() {
 

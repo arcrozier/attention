@@ -2,6 +2,7 @@ package com.aracroproducts.attentionv2
 
 import android.os.Bundle
 import android.os.PersistableBundle
+import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -43,10 +44,15 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
+    override fun onBackPressed() {
+        moveTaskToBack(true)
+    }
+
     @Composable
     fun Screen(model: LoginViewModel) {
         val scaffoldState = rememberScaffoldState()
         val coroutineScope = rememberCoroutineScope()
+
 
         Scaffold(
                 topBar = {
@@ -220,6 +226,7 @@ class LoginActivity : AppCompatActivity() {
 
     @Composable
     fun Login(model: LoginViewModel, scaffoldState: ScaffoldState, coroutineScope: CoroutineScope) {
+        Log.d(javaClass.name, "In Login")
         var passwordHidden by remember {
             mutableStateOf(true)
         }

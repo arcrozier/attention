@@ -24,26 +24,19 @@ import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.asLiveData
 import androidx.preference.PreferenceManager
-import com.android.volley.ClientError
-import com.android.volley.NoConnectionError
-import com.android.volley.Request
-import com.android.volley.Response
+import com.android.volley.*
 import com.google.android.gms.tasks.Task
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import org.json.JSONObject
-import java.security.PublicKey
 import javax.inject.Inject
 
-class MainViewModel @Inject constructor(
+class MainViewModel @Inject internal constructor(
         private val attentionRepository: AttentionRepository,
         application: Application
 ) : AndroidViewModel(application) {
-    // private val _friends: MutableLiveData<MutableMap<String, Friend>> = MutableLiveData
-    // (HashMap())
-    // val friends: LiveData<MutableMap<String, Friend>> = _friends
 
     enum class DialogStatus {
         ADD_FRIEND, OVERLAY_PERMISSION, ADD_MESSAGE_TEXT, FRIEND_NAME, CONFIRM_DELETE,
@@ -53,12 +46,10 @@ class MainViewModel @Inject constructor(
     /**
      * Used to store the different return types from the connect function
      */
-    enum class ErrorType(val code: Int) {
-        OK(CODE_SUCCESS),  // Request was successful
-        BAD_REQUEST(CODE_BAD_REQUEST),  // Something was wrong with the request (don't retry)
-        SERVER_ERROR(CODE_SERVER_ERROR),  // The server isn't working (don't retry)
-        CONNECTION_FAILED(
-                CODE_CONNECTION_FAILED)  // There was an issue with the connection (should retry)
+    enum class ErrorType {
+        BAD_REQUEST,  // Something was wrong with the request (don't retry)
+        SERVER_ERROR,  // The server isn't working (don't retry)
+        CONNECTION_FAILED  // There was an issue with the connection (should retry)
     }
 
     val friends = attentionRepository.getFriends().asLiveData()
@@ -147,7 +138,7 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun uploadCachedFriends() {
+    private fun uploadCachedFriends() {
         backgroundScope.launch {
             val token = getApplication<Application>().getSharedPreferences(USER_INFO, Context
                     .MODE_PRIVATE).getString(MY_TOKEN, null) ?: return@launch
@@ -173,7 +164,7 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun populateShareTargets() {
+    private fun populateShareTargets() {
         backgroundScope.launch {
             val context = getApplication<Application>()
             val shortcuts = ArrayList<ShortcutInfoCompat>()
@@ -373,16 +364,19 @@ class MainViewModel @Inject constructor(
      * Vibrates the phone to signal to the user that they have long-pressed
      */
     fun onLongPress() {
+        @Suppress("DEPRECATION")
         val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val vibratorManager =
                     getApplication<Application>().getSystemService(AppCompatActivity
                             .VIBRATOR_MANAGER_SERVICE) as
                             VibratorManager
             vibratorManager.defaultVibrator
-        } else {
+        }
+        else {
             getApplication<Application>().getSystemService(AppCompatActivity.VIBRATOR_SERVICE) as
                     Vibrator
         }
+        @Suppress("DEPRECATION")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val effect: VibrationEffect =
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) VibrationEffect.createPredefined(
@@ -540,7 +534,17 @@ class MainViewModel @Inject constructor(
             showSnackBar(getApplication<Application>().getString(R.string.alert_sent))
         }, {
             Log.e(sTAG, "Error sending alert: ${it.message} ${it.networkResponse}")
-            notifyUser(ErrorType.BAD_REQUEST, to)
+            when (it) {
+                is ClientError -> {
+                    notifyUser(ErrorType.BAD_REQUEST, to)
+                }
+                is NoConnectionError -> {
+                    notifyUser(ErrorType.CONNECTION_FAILED, to)
+                }
+                else -> {
+                    notifyUser(ErrorType.SERVER_ERROR, to)
+                }
+            }
         })
     }
 
@@ -606,16 +610,9 @@ class MainViewModel @Inject constructor(
         const val TOKEN_UPLOADED = "token_needs_upload"
         const val USER_INFO = "user"
         const val MY_ID = "id"
-        const val MY_NAME = "name"
         const val MY_TOKEN = "token"
         const val FCM_TOKEN = "fcm_token"
         const val FAILED_ALERT_CHANNEL_ID = "Failed alert channel"
-
-
-        const val CODE_SUCCESS = 0
-        const val CODE_SERVER_ERROR = 1
-        const val CODE_BAD_REQUEST = 2
-        const val CODE_CONNECTION_FAILED = -1
 
         private const val MAX_SHORTCUTS = 4
         private const val SHARE_CATEGORY = "com.aracroproducts.attentionv2.sharingshortcuts.category.TEXT_SHARE_TARGET"

@@ -1,5 +1,6 @@
 package com.aracroproducts.attentionv2
 
+import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -34,13 +35,29 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import kotlinx.coroutines.launch
+import java.lang.IllegalArgumentException
 
 class MainActivity : AppCompatActivity() {
-    private val sTAG = javaClass.name
-    private val friendModel: MainViewModel by viewModels()
+    private val friendModel: MainViewModel by viewModels(factoryProducer = {
+        MainViewModelFactory(AttentionRepository(AttentionDB.getDB(this)), application)
+    })
+
+    class MainViewModelFactory(private val attentionRepository: AttentionRepository, private val
+    application: Application
+    ) : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            if (modelClass.isAssignableFrom(MainViewModel::class.java)) {
+                return MainViewModel(attentionRepository, application) as T
+            }
+            throw IllegalArgumentException("Unknown ViewModel class")
+        }
+    }
 
     enum class State {
         NORMAL, CONFIRM, CANCEL, EDIT
@@ -74,7 +91,7 @@ class MainActivity : AppCompatActivity() {
 
         // we want an exception to the login if they opened an add-friend link
         // if opened from a link, the action is ACTION_VIEW, so we delay logging in
-        if (token == null && friendModel.addFriendException) {
+        if (token == null && !friendModel.addFriendException) {
             launchLogin()
         } else if (token != null) {
             friendModel.getUserInfo(token) {
@@ -514,7 +531,10 @@ class MainActivity : AppCompatActivity() {
                             Icon(Icons.Filled.Close,
                                     contentDescription = getString(R.string.cancel))
                         }
-                        Button(onClick = { onDeletePrompt(friend) }, colors =
+                        Button(onClick = {
+                            if (cached) friendModel.onDeleteCachedFriend(friend)
+                            else onDeletePrompt(friend)
+                        }, colors =
                         ButtonDefaults
                                 .buttonColors(backgroundColor = MaterialTheme.colors.error,
                                         contentColor = MaterialTheme.colors.onError)) {
