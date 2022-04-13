@@ -14,11 +14,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.core.content.ContextCompat.getSystemService
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModel
 import androidx.preference.PreferenceManager
-import java.util.HashSet
 
 class AlertViewModel(intent: Intent, private val attentionRepository: AttentionRepository,
                      application: Application) :

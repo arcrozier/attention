@@ -10,11 +10,9 @@ import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
-import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.material.SnackbarDuration
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -23,18 +21,21 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.Person
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
-import androidx.lifecycle.*
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.asLiveData
 import androidx.preference.PreferenceManager
-import com.android.volley.*
+import com.android.volley.ClientError
+import com.android.volley.NoConnectionError
+import com.android.volley.Request
+import com.android.volley.Response
 import com.google.android.gms.tasks.Task
 import com.google.firebase.messaging.FirebaseMessaging
-import kotlinx.coroutines.*
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.security.PublicKey
-import java.util.*
 import javax.inject.Inject
-import javax.xml.transform.ErrorListener
-import kotlin.collections.ArrayList
 
 class MainViewModel @Inject constructor(
         private val attentionRepository: AttentionRepository,
@@ -73,7 +74,7 @@ class MainViewModel @Inject constructor(
 
     var addFriendUsername by mutableStateOf("")
 
-    val backgroundScope = MainScope()
+    private val backgroundScope = MainScope()
 
     fun showSnackBar(message: String) {
         isSnackBarShowing = message
@@ -415,7 +416,7 @@ class MainViewModel @Inject constructor(
         val builder: NotificationCompat.Builder =
                 NotificationCompat.Builder(context, FAILED_ALERT_CHANNEL_ID)
         builder
-                .setSmallIcon(R.mipmap.add_foreground)
+                .setSmallIcon(R.mipmap.app_icon)
                 .setContentTitle(context.getString(R.string.alert_failed))
                 .setContentText(text)
                 .setPriority(NotificationCompat.PRIORITY_MAX)
@@ -543,15 +544,6 @@ class MainViewModel @Inject constructor(
         })
     }
 
-    fun getMyID(): PublicKey? {
-        return attentionRepository.getPublicKey()
-    }
-
-    fun getMyName(): String {
-        val context = getApplication<Application>()
-        return PreferenceManager.getDefaultSharedPreferences(context).getString(MY_NAME, "") ?: ""
-    }
-
     /**
      * Helper method that gets the Firebase token
      *
@@ -613,7 +605,6 @@ class MainViewModel @Inject constructor(
         const val KEY_UPLOADED = "public_key_requires_auth"
         const val TOKEN_UPLOADED = "token_needs_upload"
         const val USER_INFO = "user"
-        const val FRIENDS = "listen"
         const val MY_ID = "id"
         const val MY_NAME = "name"
         const val MY_TOKEN = "token"

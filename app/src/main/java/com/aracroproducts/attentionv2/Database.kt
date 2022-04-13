@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.room.*
 import com.aracroproducts.attentionv2.AttentionDB.Companion.DB_V1
 import kotlinx.coroutines.flow.Flow
-import java.security.*
 
 @Database(
         version = DB_V1,
@@ -101,9 +100,6 @@ interface FriendDAO {
 
     @Query("SELECT * FROM Friend ORDER BY sent DESC")
     suspend fun getFriendsSnapshot(): List<Friend>
-
-    @Query("SELECT EXISTS (SELECT 1 FROM Friend WHERE id = :id)")
-    fun isFriend(id: String): Boolean
 
     @Query("SELECT * FROM Friend WHERE id = :id")
     fun getFriend(id: String): Friend

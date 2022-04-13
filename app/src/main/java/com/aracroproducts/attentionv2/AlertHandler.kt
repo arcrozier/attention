@@ -156,7 +156,7 @@ open class AlertHandler : FirebaseMessagingService() {
             createMissedNotificationChannel(this)
             builder = NotificationCompat.Builder(this, CHANNEL_ID)
             builder
-                    .setSmallIcon(R.mipmap.add_foreground)
+                    .setSmallIcon(R.mipmap.app_icon)
                     .setContentTitle(getString(R.string.notification_title, senderName))
                     .setContentText(message)
                     .setStyle(NotificationCompat.BigTextStyle().bigText(message))
@@ -166,7 +166,7 @@ open class AlertHandler : FirebaseMessagingService() {
             createNotificationChannel()
             builder = NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
             builder
-                    .setSmallIcon(R.mipmap.add_foreground)
+                    .setSmallIcon(R.mipmap.app_icon)
                     .setContentTitle(getString(R.string.alert_notification_title, senderName))
                     .setContentText(message)
                     .setStyle(NotificationCompat.BigTextStyle().bigText(message))

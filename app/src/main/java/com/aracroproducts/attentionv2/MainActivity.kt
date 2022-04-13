@@ -1,11 +1,12 @@
 package com.aracroproducts.attentionv2
 
-import android.app.Application
-import android.content.*
+import android.content.Context
+import android.content.Intent
 import android.net.Uri
-import android.os.*
+import android.os.Build
+import android.os.Bundle
+import android.os.CountDownTimer
 import android.provider.Settings
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -33,12 +34,6 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import androidx.preference.PreferenceManager
-import com.android.volley.ClientError
-import com.android.volley.NoConnectionError
-import com.aracroproducts.attentionv2.MainViewModel.Companion.MY_NAME
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import kotlinx.coroutines.launch

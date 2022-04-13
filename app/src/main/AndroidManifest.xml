@@ -76,7 +76,7 @@
             </intent-filter>
             <meta-data
             android:name="android.service.chooser.chooser_target_service"
-            android:value="androidx.sharetarget.ChooserTargetServiceCompat" />
+            android:value="androidx.sharetarget.ChooserTargetServiceCompat"/>
         </activity>
     </application>
 

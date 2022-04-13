@@ -34,6 +34,35 @@
           ]
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:357995852275:android:81433d8dcdd982cf5f2286",
+        "android_client_info": {
+          "package_name": "com.aracroproducts.attentionv2"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "357995852275-0udn3v1auklkvh573710h22a7upm2cbi.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA5ljTAlRg0h45nWMSGeMwibmIp-NW1M3Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "357995852275-0udn3v1auklkvh573710h22a7upm2cbi.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
     }
   ],
   "configuration_version": "1"
