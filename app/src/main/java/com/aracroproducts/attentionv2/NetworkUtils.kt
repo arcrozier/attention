@@ -34,13 +34,24 @@ class NetworkSingleton constructor(context: Context) {
     }
 }
 
+open class JsonObjectRequestFormParameters(method: Int,
+                                      URL: String,
+                                      @get:JvmName("getRawParams") val params: Map<String, String>?,
+                                      responseListener: Response.Listener<JSONObject>? = null,
+                                      errorListener: Response.ErrorListener? = null) : JsonObjectRequest(method, URL, null,
+    responseListener, errorListener) {
+    override fun getParams(): MutableMap<String, String> {
+        return if (params != null) HashMap(params) else HashMap()
+    }
+}
+
 class AuthorizedJsonObjectRequest(method: Int,
                            URL: String,
-                           params: JSONObject? = null,
+                           params: Map<String, String>? = null,
                            responseListener: Response.Listener<JSONObject>? = null,
                            errorListener: Response.ErrorListener? = null,
                            private val token: String
-) : JsonObjectRequest(method, URL, params, responseListener, errorListener) {
+) : JsonObjectRequestFormParameters(method, URL, params, responseListener, errorListener) {
 
     override fun getHeaders(): MutableMap<String, String> {
         return mutableMapOf(

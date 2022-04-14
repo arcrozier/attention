@@ -151,13 +151,13 @@ class AttentionRepository(private val database: AttentionDB) {
     String? = null, password: String? = null, oldPassword: String? = null,
                  email: String? = null, responseListener: Response.Listener<JSONObject>? = null,
                  errorListener: Response.ErrorListener? = null) {
-        val params = JSONObject(mapOf(
+        val params = mapOf(
                 "first_name" to firstName,
                 "last_name" to lastName,
                 "password" to password,
                 "old_password" to oldPassword,
                 "email" to email
-        ))
+        )
         val request = AuthorizedJsonObjectRequest(Request.Method.PUT, "$BASE_URL/v2/edit/",
                 params, responseListener, errorListener, token)
         singleton.addToRequestQueue(request)
@@ -185,9 +185,9 @@ class AttentionRepository(private val database: AttentionDB) {
     fun addFriend(username: String, name: String, token: String, singleton: NetworkSingleton,
                   responseListener:
     Response.Listener<JSONObject>? = null, errorListener: Response.ErrorListener? = null) {
-        val params = JSONObject(mapOf(
+        val params = mapOf(
                 "username" to username
-        ))
+        )
         val request = AuthorizedJsonObjectRequest(Request.Method.POST, "$BASE_URL/add_friend/",
                 params, {
                     insert(Friend(username, name))
@@ -205,8 +205,8 @@ class AttentionRepository(private val database: AttentionDB) {
         val params = JSONObject(buildMap {
             "username" to username
             "password" to password
-            "firstName" to firstName
-            "lastName" to lastName
+            "first_name" to firstName
+            "last_name" to lastName
             if (email.isNotBlank()) { put("email", email) }
         })
         val request = JsonObjectRequest(Request.Method.POST, "$BASE_URL/register_user/", params,

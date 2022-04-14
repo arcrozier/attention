@@ -16,8 +16,9 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 class LoginViewModel @Inject constructor(
-        private val attentionRepository: AttentionRepository,
-        application: Application) : AndroidViewModel(application) {
+    private val attentionRepository: AttentionRepository,
+    application: Application
+) : AndroidViewModel(application) {
 
     enum class State {
         LOGIN, CREATE_USER, CHANGE_PASSWORD
@@ -43,26 +44,30 @@ class LoginViewModel @Inject constructor(
         uiEnabled = false
         val context = getApplication<Application>()
         attentionRepository.getAuthToken(username = username, password = password,
-                NetworkSingleton.getInstance(context), responseListener = {
-            val userInfoEditor = context.getSharedPreferences(MainViewModel.USER_INFO,
-                    Context.MODE_PRIVATE).edit()
-            userInfoEditor.putString(MainViewModel.MY_TOKEN, it.getString("token"))
-            userInfoEditor.apply()
-            val defaultPrefsEditor = PreferenceManager.getDefaultSharedPreferences(context).edit()
-            defaultPrefsEditor.putString(MainViewModel.MY_ID, username)
-            defaultPrefsEditor.apply()
-            onLoggedIn()
-        }, errorListener = {
-            when (it) {
-                is ClientError -> {
-                    passwordCaption = context.getString(R.string.wrong_password)
+            NetworkSingleton.getInstance(context), responseListener = {
+                val userInfoEditor = context.getSharedPreferences(
+                    MainViewModel.USER_INFO,
+                    Context.MODE_PRIVATE
+                ).edit()
+                userInfoEditor.putString(MainViewModel.MY_TOKEN, it.getString("token"))
+                userInfoEditor.apply()
+                val defaultPrefsEditor =
+                    PreferenceManager.getDefaultSharedPreferences(context).edit()
+                defaultPrefsEditor.putString(MainViewModel.MY_ID, username)
+                defaultPrefsEditor.apply()
+                onLoggedIn()
+            }, errorListener = {
+                when (it) {
+                    is ClientError -> {
+                        Log.e(sTAG, String(it.networkResponse.data))
+                        passwordCaption = context.getString(R.string.wrong_password)
+                    }
+                    else -> {
+                        genericErrorHandling(it, scaffoldState, scope, context)
+                    }
                 }
-                else -> {
-                    genericErrorHandling(it, scaffoldState, scope, context)
-                }
-            }
-            uiEnabled = true
-        })
+                uiEnabled = true
+            })
     }
 
     fun createUser(scaffoldState: ScaffoldState, scope: CoroutineScope, onLoggedIn: () -> Unit) {
@@ -81,7 +86,7 @@ class LoginViewModel @Inject constructor(
             confirmPasswordCaption = context.getString(R.string.passwords_different)
             passed = false
         }
-        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+        if (!(email.isEmpty() || android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches())) {
             emailCaption = context.getString(R.string.invalid_email)
             passed = false
         }
@@ -92,37 +97,42 @@ class LoginViewModel @Inject constructor(
 
         attentionRepository.registerUser(username = username, password = password, firstName =
         firstName, lastName = lastName, email = email, NetworkSingleton.getInstance(context),
-                responseListener = {
-                    login(scaffoldState, scope, onLoggedIn)
-                }, errorListener = {
-            when (it) {
-                is ClientError -> {
-                    val strResponse = String(it.networkResponse.data)
-                    when {
-                        strResponse.contains("username taken", true) -> {
-                            usernameCaption = context.getString(R.string.username_in_use)
-                        }
-                        strResponse.contains("enter a valid username", true) -> {
-                            usernameCaption = context.getString(R.string.invalid_username)
-                        }
-                        strResponse.contains("email address", true) -> {
-                            emailCaption = context.getString(R.string.invalid_email)
-                        }
-                        strResponse.contains("password", true) -> {
-                            passwordCaption = context.getString(R.string.password_validation_failed)
+            responseListener = {
+                login(scaffoldState, scope, onLoggedIn)
+            }, errorListener = {
+                Log.e(sTAG, it.networkResponse.toString())
+                when (it) {
+                    is ClientError -> {
+                        val strResponse = String(it.networkResponse.data)
+                        Log.e(sTAG, strResponse)
+                        when {
+                            strResponse.contains("username taken", true) -> {
+                                usernameCaption = context.getString(R.string.username_in_use)
+                            }
+                            strResponse.contains("enter a valid username", true) -> {
+                                usernameCaption = context.getString(R.string.invalid_username)
+                            }
+                            strResponse.contains("email address", true) -> {
+                                emailCaption = context.getString(R.string.invalid_email)
+                            }
+                            strResponse.contains("password", true) -> {
+                                passwordCaption =
+                                    context.getString(R.string.password_validation_failed)
+                            }
                         }
                     }
+                    else -> {
+                        genericErrorHandling(it, scaffoldState, scope, context)
+                    }
                 }
-                else -> {
-                    genericErrorHandling(it, scaffoldState, scope, context)
-                }
-            }
-            uiEnabled = true
-        })
+                uiEnabled = true
+            })
     }
 
-    fun changePassword(scaffoldState: ScaffoldState, scope: CoroutineScope, onPasswordChanged: () ->
-    Unit) {
+    fun changePassword(
+        scaffoldState: ScaffoldState, scope: CoroutineScope, onPasswordChanged: () ->
+        Unit
+    ) {
         uiEnabled = false
         val context = getApplication<Application>()
         var passed = true
@@ -144,7 +154,7 @@ class LoginViewModel @Inject constructor(
         }
 
         val savedUsername = PreferenceManager.getDefaultSharedPreferences(context)
-                .getString(MainViewModel.MY_ID, null)
+            .getString(MainViewModel.MY_ID, null)
         val userInfo = context.getSharedPreferences(MainViewModel.USER_INFO, Context.MODE_PRIVATE)
         val token = userInfo.getString(MainViewModel.MY_TOKEN, null)
         if (savedUsername == null || token == null) {
@@ -154,22 +164,23 @@ class LoginViewModel @Inject constructor(
             return
         }
         attentionRepository.editUser(
-                token, password = password,
-                oldPassword = oldPassword,
-                singleton = NetworkSingleton.getInstance(context),
-                responseListener = {
-                    attentionRepository.getAuthToken(savedUsername, password, NetworkSingleton
-                            .getInstance(context), responseListener = {
-                        userInfo.edit().apply {
-                            putString(MainViewModel.MY_TOKEN, it.getString("token"))
-                            apply()
-                        }
-                        onPasswordChanged()
-                    },
+            token, password = password,
+            oldPassword = oldPassword,
+            singleton = NetworkSingleton.getInstance(context),
+            responseListener = {
+                attentionRepository.getAuthToken(savedUsername, password, NetworkSingleton
+                    .getInstance(context), responseListener = {
+                    userInfo.edit().apply {
+                        putString(MainViewModel.MY_TOKEN, it.getString("token"))
+                        apply()
+                    }
+                    onPasswordChanged()
+                },
                     errorListener = {
                         if (it is ClientError) {
                             usernameCaption = context.getString(
-                                    R.string.mysterious_password_change_login_issue)
+                                R.string.mysterious_password_change_login_issue
+                            )
                             login = State.LOGIN
                         } else {
                             usernameCaption = context.getString(R.string.password_updated)
@@ -178,62 +189,84 @@ class LoginViewModel @Inject constructor(
                         }
                         uiEnabled = true
                     })
-                }, errorListener = { error ->
-            if (error is ClientError) {
-                when (error.networkResponse.statusCode) {
-                    400 -> {
-                        passwordCaption = context.getString(R.string.password_validation_failed)
-                    }
-                    403 -> {
-                        val responseData = String(error.networkResponse.data)
-                        if (responseData.contains("incorrect old password", true))
-                            passwordCaption = context.getString(R.string.wrong_password)
-                        else {
-                            login = State.LOGIN
+            }, errorListener = { error ->
+                if (error is ClientError) {
+                    when (error.networkResponse.statusCode) {
+                        400 -> {
+                            passwordCaption = context.getString(R.string.password_validation_failed)
+                        }
+                        403 -> {
+                            val responseData = String(error.networkResponse.data)
+                            if (responseData.contains("incorrect old password", true))
+                                passwordCaption = context.getString(R.string.wrong_password)
+                            else {
+                                login = State.LOGIN
+                            }
                         }
                     }
+                } else {
+                    genericErrorHandling(error, scaffoldState, scope, context)
                 }
-            } else {
-                genericErrorHandling(error, scaffoldState, scope, context)
-            }
-            uiEnabled = true
-        })
+                uiEnabled = true
+            })
 
     }
 
-    private fun displaySnackBar(scaffoldState: ScaffoldState,
-                                scope: CoroutineScope,
-                                message: String,
-                                actionText: String,
-                                length: SnackbarDuration) {
+    private fun displaySnackBar(
+        scaffoldState: ScaffoldState,
+        scope: CoroutineScope,
+        message: String,
+        actionText: String,
+        length: SnackbarDuration
+    ) {
         scope.launch {
-            scaffoldState.snackbarHostState.showSnackbar(message, actionLabel = actionText,
-                    duration = length)
+            scaffoldState.snackbarHostState.showSnackbar(
+                message, actionLabel = actionText,
+                duration = length
+            )
         }
     }
 
-    private fun genericErrorHandling(error: VolleyError, scaffoldState: ScaffoldState, scope:
-    CoroutineScope, context: Context) {
+    private fun genericErrorHandling(
+        error: VolleyError, scaffoldState: ScaffoldState, scope:
+        CoroutineScope, context: Context
+    ) {
         when (error) {
             is NoConnectionError -> {
-                displaySnackBar(scaffoldState, scope, context.getString(R.string
-                        .connection_error), context.getString(android.R.string.ok),
-                        SnackbarDuration.Indefinite)
+                displaySnackBar(
+                    scaffoldState, scope, context.getString(
+                        R.string
+                            .connection_error
+                    ), context.getString(android.R.string.ok),
+                    SnackbarDuration.Indefinite
+                )
             }
             is NetworkError -> {
-                displaySnackBar(scaffoldState, scope, context.getString(R.string
-                        .network_error), context.getString(android.R.string.ok), SnackbarDuration
-                        .Indefinite)
+                displaySnackBar(
+                    scaffoldState, scope, context.getString(
+                        R.string
+                            .network_error
+                    ), context.getString(android.R.string.ok), SnackbarDuration
+                        .Indefinite
+                )
             }
             is ServerError -> {
-                displaySnackBar(scaffoldState, scope, context.getString(R.string
-                        .server_error), context.getString(android.R.string.ok), SnackbarDuration
-                        .Indefinite)
+                displaySnackBar(
+                    scaffoldState, scope, context.getString(
+                        R.string
+                            .server_error
+                    ), context.getString(android.R.string.ok), SnackbarDuration
+                        .Indefinite
+                )
             }
             else -> {
-                displaySnackBar(scaffoldState, scope, context.getString(R.string
-                        .unknown_error), context.getString(android.R.string.ok), SnackbarDuration
-                        .Indefinite)
+                displaySnackBar(
+                    scaffoldState, scope, context.getString(
+                        R.string
+                            .unknown_error
+                    ), context.getString(android.R.string.ok), SnackbarDuration
+                        .Indefinite
+                )
                 Log.e(sTAG, "An unexpected error occurred: ${error.message}")
             }
         }
