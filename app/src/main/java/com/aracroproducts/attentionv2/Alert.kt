@@ -11,6 +11,8 @@ import androidx.compose.material.*
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.aracroproducts.attentionv2.ui.theme.AppTheme
+import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
 
 /**
  * An Activity that displays the pop up dialog for an alert
@@ -40,8 +42,14 @@ class Alert : AppCompatActivity() {
         setFinishOnTouchOutside(false)
 
         setContent {
-            MaterialTheme(colors = if (isSystemInDarkTheme()) darkColors else lightColors) {
-                Dialog(message = alertModel.message)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                HarmonizedTheme() {
+                    Dialog(message = alertModel.message)
+                }
+            } else {
+                AppTheme {
+                    Dialog(message = alertModel.message)
+                }
             }
         }
 

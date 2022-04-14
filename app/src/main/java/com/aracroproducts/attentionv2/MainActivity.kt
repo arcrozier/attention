@@ -37,6 +37,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.aracroproducts.attentionv2.ui.theme.AppTheme
+import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import kotlinx.coroutines.launch
@@ -93,6 +95,7 @@ class MainActivity : AppCompatActivity() {
         // if opened from a link, the action is ACTION_VIEW, so we delay logging in
         if (token == null && !friendModel.addFriendException) {
             launchLogin()
+            return
         } else if (token != null) {
             friendModel.getUserInfo(token) {
                 if (!friendModel.addFriendException) launchLogin()
@@ -136,8 +139,14 @@ class MainActivity : AppCompatActivity() {
         friendModel.loadUserPrefs()
 
         setContent {
-            MaterialTheme(colors = if (isSystemInDarkTheme()) darkColors else lightColors) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            HarmonizedTheme() {
                 HomeWrapper(model = friendModel)
+            }
+            } else {
+                AppTheme {
+                    HomeWrapper(model = friendModel)
+                }
             }
         }
     }
@@ -206,7 +215,6 @@ class MainActivity : AppCompatActivity() {
         Scaffold(scaffoldState = scaffoldState,
                 topBar = {
                     TopAppBar(
-                            backgroundColor = MaterialTheme.colors.primary,
                             title = {
                                 Column {
                                     Text(getString(R.string.app_name))
@@ -599,16 +607,6 @@ class MainActivity : AppCompatActivity() {
                 else -> {}
             }
 
-        }
-    }
-
-    @ExperimentalFoundationApi
-    @Preview
-    @Composable
-    fun PreviewHome() {
-        MaterialTheme(colors = if (isSystemInDarkTheme()) darkColors else lightColors) {
-            Home(listOf(Friend("1", "Grace"), Friend("2", "Anita")), {}, {}, {},
-                    Triple(MainViewModel.DialogStatus.NONE, null) {}, "")
         }
     }
 

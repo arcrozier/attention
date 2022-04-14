@@ -8,7 +8,7 @@ class AttentionApplication: Application() {
     val repository by lazy {AttentionRepository(database)}
 
     override fun onCreate() {
-        super.onCreate()
         DynamicColors.applyToActivitiesIfAvailable(this)
+        super.onCreate()
     }
 }

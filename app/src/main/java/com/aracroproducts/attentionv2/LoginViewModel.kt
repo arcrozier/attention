@@ -13,8 +13,9 @@ import androidx.preference.PreferenceManager
 import com.android.volley.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class LoginViewModel(
+class LoginViewModel @Inject constructor(
         private val attentionRepository: AttentionRepository,
         application: Application) : AndroidViewModel(application) {
 

@@ -1,18 +1,18 @@
 package com.aracroproducts.attentionv2
 
+import android.app.Application
+import android.os.Build
 import android.os.Bundle
-import android.os.PersistableBundle
 import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -20,26 +20,57 @@ import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.*
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import com.aracroproducts.attentionv2.ui.theme.AppTheme
+import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
 import kotlinx.coroutines.CoroutineScope
+import java.lang.IllegalArgumentException
+import kotlin.math.roundToInt
 
 class LoginActivity : AppCompatActivity() {
 
-    private val loginViewModel: LoginViewModel by viewModels()
+    private val loginViewModel: LoginViewModel by viewModels(factoryProducer = {
+        LoginViewModelFactory(AttentionRepository(AttentionDB.getDB(this)), application)
+    })
 
-    override fun onCreate(savedInstanceState: Bundle?, persistentState: PersistableBundle?) {
-        super.onCreate(savedInstanceState, persistentState)
+    class LoginViewModelFactory(private val attentionRepository: AttentionRepository, private val
+    application: Application
+    ) : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            if (modelClass.isAssignableFrom(LoginViewModel::class.java)) {
+                return LoginViewModel(attentionRepository, application) as T
+            }
+            throw IllegalArgumentException("Unknown ViewModel class")
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
 
         if (intent.action == getString(R.string.change_password_action)) {
             loginViewModel.login = LoginViewModel.State.CHANGE_PASSWORD
         }
 
         setContent {
-            MaterialTheme(colors = if (isSystemInDarkTheme()) darkColors else lightColors) {
-                Screen(model = loginViewModel)
+            window.statusBarColor = MaterialTheme.colors.primaryVariant.toArgb()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                HarmonizedTheme {
+                    Screen(model = loginViewModel)
+                }
+            } else {
+                AppTheme {
+                    Screen(model = loginViewModel)
+                }
             }
         }
     }
@@ -57,10 +88,11 @@ class LoginActivity : AppCompatActivity() {
         Scaffold(
                 topBar = {
                     TopAppBar(
-                            backgroundColor = MaterialTheme.colors.primary,
+                        backgroundColor = MaterialTheme.colors.primarySurface,
                             title = { Text(getString(R.string.app_name)) },
                     )
                 },
+                scaffoldState = scaffoldState
         ) {
             when (model.login) {
                 LoginViewModel.State.LOGIN -> {
@@ -84,7 +116,9 @@ class LoginActivity : AppCompatActivity() {
         var passwordHidden by remember {
             mutableStateOf(true)
         }
-        Column(verticalArrangement = Arrangement.Center) {
+        Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
+        Column(verticalArrangement = Arrangement.Center, modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally) {
 
             TextField(
                     value = model.oldPassword,
@@ -125,6 +159,7 @@ class LoginActivity : AppCompatActivity() {
                         modifier = Modifier.padding(start = 16.dp)
                 )
             }
+            Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             TextField(
                     value = model.password,
                     onValueChange = {
@@ -156,6 +191,7 @@ class LoginActivity : AppCompatActivity() {
                     ),
                     enabled = model.uiEnabled
             )
+            Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             TextField(
                     value = model.confirmPassword,
                     onValueChange = {
@@ -230,83 +266,94 @@ class LoginActivity : AppCompatActivity() {
         var passwordHidden by remember {
             mutableStateOf(true)
         }
-        Column(verticalArrangement = Arrangement.Center) {
-            TextField(
-                    value = model.username,
-                    onValueChange = {
-                        model.username = it
-                        model.passwordCaption = ""
-                    },
-                    label = { Text(text = getString(R.string.username)) },
-                    keyboardOptions = KeyboardOptions(autoCorrect = false, imeAction = ImeAction
-                            .Next),
-                    enabled = model.uiEnabled,
-                    isError = model.passwordCaption.isNotBlank(),
-            )
-            if (model.usernameCaption.isNotBlank()) {
-                Text(
-                        text = model.usernameCaption,
-                        color = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium),
-                        style = MaterialTheme.typography.caption,
-                        modifier = Modifier.padding(start = 16.dp)
+            Column(verticalArrangement = centerWithBottomElement, horizontalAlignment = Alignment
+                    .CenterHorizontally, modifier =
+            Modifier
+                    .fillMaxSize()) {
+                Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
+                TextField(
+                        value = model.username,
+                        onValueChange = {
+                            model.username = it
+                            model.passwordCaption = ""
+                        },
+                        label = { Text(text = getString(R.string.username)) },
+                        keyboardOptions = KeyboardOptions(autoCorrect = false, imeAction = ImeAction
+                                .Next),
+                        enabled = model.uiEnabled,
+                        isError = model.passwordCaption.isNotBlank(),
                 )
-            }
-            TextField(
-                    value = model.password,
-                    onValueChange = {
-                        model.password = it
-                        model.passwordCaption = ""
-                    },
-                    visualTransformation = if (passwordHidden)
-                        PasswordVisualTransformation() else
-                        VisualTransformation.None,
-                    trailingIcon = {
-                        IconButton(onClick = { passwordHidden = !passwordHidden }) {
-                            val visibilityIcon =
-                                    if (passwordHidden) Icons.Filled.Visibility else Icons
-                                            .Filled.VisibilityOff
-                            val description = if (passwordHidden)
-                                getString(R.string.show_password) else
-                                getString(R.string.hide_password)
-                            Icon(imageVector = visibilityIcon, contentDescription = description)
-                        }
-                    },
-                    label = {
-                        Text(text = getString(R.string.password))
-                    },
-                    keyboardOptions = KeyboardOptions(
-                            autoCorrect = false,
-                            imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(
-                            onDone = {
-                                model.login(scaffoldState = scaffoldState,
-                                        scope = coroutineScope) { finish() }
+                if (model.usernameCaption.isNotBlank()) {
+                    Text(
+                            text = model.usernameCaption,
+                            color = MaterialTheme.colors.onSurface.copy(
+                                    alpha = ContentAlpha.medium),
+                            style = MaterialTheme.typography.caption,
+                            modifier = Modifier.padding(start = 16.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
+                TextField(
+                        value = model.password,
+                        onValueChange = {
+                            model.password = it
+                            model.passwordCaption = ""
+                        },
+                        visualTransformation = if (passwordHidden)
+                            PasswordVisualTransformation() else
+                            VisualTransformation.None,
+                        trailingIcon = {
+                            IconButton(onClick = { passwordHidden = !passwordHidden }) {
+                                val visibilityIcon =
+                                        if (passwordHidden) Icons.Filled.Visibility else Icons
+                                                .Filled.VisibilityOff
+                                val description = if (passwordHidden)
+                                    getString(R.string.show_password) else
+                                    getString(R.string.hide_password)
+                                Icon(imageVector = visibilityIcon, contentDescription = description)
                             }
-                    ),
-                    enabled = model.uiEnabled,
-                    isError = model.passwordCaption.isNotBlank()
-            )
-            if (model.passwordCaption.isNotBlank()) {
-                Text(
-                        text = model.passwordCaption,
-                        color = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium),
-                        style = MaterialTheme.typography.caption,
-                        modifier = Modifier.padding(start = 16.dp)
+                        },
+                        label = {
+                            Text(text = getString(R.string.password))
+                        },
+                        keyboardOptions = KeyboardOptions(
+                                autoCorrect = false,
+                                imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(
+                                onDone = {
+                                    model.login(scaffoldState = scaffoldState,
+                                            scope = coroutineScope) { finish() }
+                                }
+                        ),
+                        enabled = model.uiEnabled,
+                        isError = model.passwordCaption.isNotBlank()
                 )
-            }
-            Button(
-                    onClick = {
-                        model.login(scaffoldState = scaffoldState,
-                                scope = coroutineScope) { finish() }
-                    },
-                    enabled = model.uiEnabled,
-            ) {
-                Text(text = getString(R.string.login))
-                if (!model.uiEnabled) {
-                    CircularProgressIndicator(modifier = Modifier.fillMaxSize())
+                if (model.passwordCaption.isNotBlank()) {
+                    Text(
+                            text = model.passwordCaption,
+                            color = MaterialTheme.colors.onSurface.copy(
+                                    alpha = ContentAlpha.medium),
+                            style = MaterialTheme.typography.caption,
+                            modifier = Modifier.padding(start = 16.dp)
+                    )
+                }
+                Button(
+                        onClick = {
+                            model.login(scaffoldState = scaffoldState,
+                                    scope = coroutineScope) { finish() }
+                        },
+                        enabled = model.uiEnabled,
+                ) {
+                    Text(text = getString(R.string.login))
+                    if (!model.uiEnabled) {
+                        CircularProgressIndicator(modifier = Modifier.fillMaxSize())
+                    }
+                }
+                TextButton(onClick = { model.login = LoginViewModel.State.CREATE_USER }) {
+                    Text(text = getString(R.string.create_user))
                 }
             }
-        }
+
     }
 
     @Composable
@@ -315,7 +362,11 @@ class LoginActivity : AppCompatActivity() {
         var passwordHidden by remember {
             mutableStateOf(true)
         }
-        Column(verticalArrangement = Arrangement.Center) {
+        Column(verticalArrangement = centerWithBottomElement, modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally) {
+            Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             TextField(
                     // use model is error - reset on change
                     value = model.username,
@@ -336,11 +387,13 @@ class LoginActivity : AppCompatActivity() {
             if (model.usernameCaption.isNotBlank()) {
                 Text(
                         text = model.usernameCaption,
-                        color = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium),
+                        color = MaterialTheme.colors.onSurface.copy(
+                                alpha = ContentAlpha.medium),
                         style = MaterialTheme.typography.caption,
                         modifier = Modifier.padding(start = 16.dp)
                 )
             }
+            Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             TextField(
                     value = model.firstName,
                     onValueChange = { model.firstName = it },
@@ -352,6 +405,7 @@ class LoginActivity : AppCompatActivity() {
                             capitalization = KeyboardCapitalization.Words),
                     enabled = model.uiEnabled
             )
+            Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             TextField(
                     value = model.lastName,
                     onValueChange = { model.lastName = it },
@@ -363,27 +417,33 @@ class LoginActivity : AppCompatActivity() {
                             capitalization = KeyboardCapitalization.Words),
                     enabled = model.uiEnabled
             )
+            Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             TextField(
                     value = model.email,
                     onValueChange = {
                         model.email = it
                         model.emailCaption = ""
                     },
-                    isError = !android.util.Patterns.EMAIL_ADDRESS.matcher(model.email).matches(),
+                    isError = !(model.email.isEmpty() || android.util.Patterns.EMAIL_ADDRESS
+                            .matcher(model.email)
+                            .matches()),
                     singleLine = true,
                     label = { Text(text = getString(R.string.email)) },
                     keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Email
+                            keyboardType = KeyboardType.Email,
+                            imeAction = ImeAction.Next,
                     )
             )
             if (model.emailCaption.isNotBlank()) {
                 Text(
                         text = model.emailCaption,
-                        color = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium),
+                        color = MaterialTheme.colors.onSurface.copy(
+                                alpha = ContentAlpha.medium),
                         style = MaterialTheme.typography.caption,
                         modifier = Modifier.padding(start = 16.dp)
                 )
             }
+            Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             TextField(
                     value = model.password,
                     onValueChange = {
@@ -418,11 +478,13 @@ class LoginActivity : AppCompatActivity() {
             if (model.passwordCaption.isNotBlank()) {
                 Text(
                         text = model.passwordCaption,
-                        color = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium),
+                        color = MaterialTheme.colors.onSurface.copy(
+                                alpha = ContentAlpha.medium),
                         style = MaterialTheme.typography.caption,
                         modifier = Modifier.padding(start = 16.dp)
                 )
             }
+            Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             TextField(
                     value = model.confirmPassword,
                     onValueChange = {
@@ -468,7 +530,8 @@ class LoginActivity : AppCompatActivity() {
             if (model.confirmPasswordCaption.isNotBlank()) {
                 Text(
                         text = model.confirmPasswordCaption,
-                        color = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium),
+                        color = MaterialTheme.colors.onSurface.copy(
+                                alpha = ContentAlpha.medium),
                         style = MaterialTheme.typography.caption,
                         modifier = Modifier.padding(start = 16.dp)
                 )
@@ -486,6 +549,38 @@ class LoginActivity : AppCompatActivity() {
                     CircularProgressIndicator(modifier = Modifier.fillMaxSize())
                 }
             }
+            TextButton(onClick = { model.login = LoginViewModel.State.LOGIN }) {
+                Text(text = getString(R.string.login))
+            }
         }
+
+    }
+
+    private val centerWithBottomElement = object : Arrangement.HorizontalOrVertical {
+        override fun Density.arrange(totalSize: Int, sizes: IntArray,
+                                     layoutDirection: LayoutDirection, outPositions: IntArray) {
+            val consumedSize = sizes.fold(0) { a, b -> a + b }
+            var current = (totalSize - consumedSize).toFloat() / 2
+            sizes.forEachIndexed { index, size ->
+                if (index == sizes.lastIndex) {
+                    outPositions[index] =
+                            if (layoutDirection == LayoutDirection.Ltr) totalSize - size
+                            else size
+                } else {
+                    outPositions[index] =
+                            if (layoutDirection == LayoutDirection.Ltr) current.roundToInt()
+                            else totalSize - current.roundToInt()
+                    current += size.toFloat()
+                }
+            }
+        }
+
+        override fun Density.arrange(totalSize: Int, sizes: IntArray, outPositions: IntArray) {
+            arrange(totalSize, sizes, LayoutDirection.Ltr, outPositions)
+        }
+    }
+
+    companion object {
+        val LIST_ELEMENT_PADDING = 10.dp
     }
 }

@@ -38,7 +38,6 @@
             android:name=".Alert"
             android:excludeFromRecents="true"
             android:showWhenLocked="true"
-            android:theme="@style/AppTheme.Dialog"
             android:turnScreenOn="true"
             android:exported="false"
             tools:targetApi="o_mr1" />
@@ -54,8 +53,7 @@
 
         <activity
             android:name=".MainActivity"
-            android:exported="true"
-            android:theme="@style/AppTheme.NoActionBar">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
