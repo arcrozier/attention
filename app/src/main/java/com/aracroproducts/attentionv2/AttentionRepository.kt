@@ -32,9 +32,9 @@ class AttentionRepository(private val database: AttentionDB) {
     fun delete(friend: Friend, token: String, singleton: NetworkSingleton,
                responseListener: Response.Listener<JSONObject>? = null, errorListener: Response
             .ErrorListener? = null) {
-        val params = JSONObject(mapOf(
+        val params = mapOf(
                 "friend" to friend.id
-        ))
+        )
         val request = AuthorizedJsonObjectRequest(Request.Method.POST, "$BASE_URL/delete_friend/",
                 params,
                 {
@@ -49,10 +49,10 @@ class AttentionRepository(private val database: AttentionDB) {
 
     fun edit(friend: Friend, token: String, singleton: NetworkSingleton, responseListener:
     Response.Listener<JSONObject>? = null, errorListener: Response.ErrorListener? = null) {
-        val params = JSONObject(mapOf(
+        val params = mapOf(
                 "username" to friend.id,
                 "new_name" to friend.name
-        ))
+        )
 
         val request = AuthorizedJsonObjectRequest(Request.Method.PUT,
                 "$BASE_URL/edit_friend_name", params, {
@@ -99,9 +99,9 @@ class AttentionRepository(private val database: AttentionDB) {
     fun getName(token: String, username: String, singleton: NetworkSingleton, responseListener:
     Response.Listener<JSONObject>? = null, errorListener: Response.ErrorListener? = null):
             Request<JSONObject> {
-        val params = JSONObject(mapOf(
+        val params = mapOf(
                 "username" to username
-        ))
+        )
 
         val request = AuthorizedJsonObjectRequest(Request.Method.GET, "$BASE_URL/get_name/",
                 params, responseListener, errorListener, token)
@@ -116,10 +116,10 @@ class AttentionRepository(private val database: AttentionDB) {
             .ErrorListener? = null) {
         assert(message.direction == DIRECTION.Outgoing)
         appendMessage(message)
-        val params = JSONObject(mapOf(
-                "to" to message.otherId,
-                "message" to message
-        ))
+        val params = buildMap<String, String> {
+            "to" to message.otherId
+            "message" to message.message
+        }
         val request = AuthorizedJsonObjectRequest(Request.Method.POST, "$BASE_URL/send_alert/",
                 params,
                 {
@@ -139,9 +139,9 @@ class AttentionRepository(private val database: AttentionDB) {
     fun registerDevice(token: String, fcmToken: String, singleton: NetworkSingleton,
                        responseListener: Response.Listener<JSONObject>? = null, errorListener:
                        Response.ErrorListener? = null) {
-        val params = JSONObject(mapOf(
+        val params = mapOf(
                 "fcm_token" to fcmToken
-        ))
+        )
         val request = AuthorizedJsonObjectRequest(Request.Method.POST,
                 "$BASE_URL/register_device/", params, responseListener, errorListener, token)
         singleton.addToRequestQueue(request)
@@ -151,13 +151,13 @@ class AttentionRepository(private val database: AttentionDB) {
     String? = null, password: String? = null, oldPassword: String? = null,
                  email: String? = null, responseListener: Response.Listener<JSONObject>? = null,
                  errorListener: Response.ErrorListener? = null) {
-        val params = mapOf(
-                "first_name" to firstName,
-                "last_name" to lastName,
-                "password" to password,
-                "old_password" to oldPassword,
-                "email" to email
-        )
+        val params = buildMap<String, String> {
+            "first_name" to firstName
+            "last_name" to lastName
+            "password" to password
+            "old_password" to oldPassword
+            "email" to email
+        }
         val request = AuthorizedJsonObjectRequest(Request.Method.PUT, "$BASE_URL/v2/edit/",
                 params, responseListener, errorListener, token)
         singleton.addToRequestQueue(request)
@@ -202,14 +202,14 @@ class AttentionRepository(private val database: AttentionDB) {
     fun registerUser(username: String, password: String, firstName: String, lastName: String,
                      email: String, singleton: NetworkSingleton, responseListener: Response
             .Listener<JSONObject>? = null, errorListener: Response.ErrorListener? = null) {
-        val params = JSONObject(buildMap {
+        val params = buildMap {
             "username" to username
             "password" to password
             "first_name" to firstName
             "last_name" to lastName
             if (email.isNotBlank()) { put("email", email) }
-        })
-        val request = JsonObjectRequest(Request.Method.POST, "$BASE_URL/register_user/", params,
+        }
+        val request = JsonObjectRequestFormParameters(Request.Method.POST, "$BASE_URL/register_user/", params,
                 responseListener, errorListener)
         singleton.addToRequestQueue(request)
     }
