@@ -117,8 +117,8 @@ class AttentionRepository(private val database: AttentionDB) {
         assert(message.direction == DIRECTION.Outgoing)
         appendMessage(message)
         val params = buildMap<String, String> {
-            "to" to message.otherId
-            "message" to message.message
+            put("to", message.otherId)
+            put("message", message.message ?: "null")
         }
         val request = AuthorizedJsonObjectRequest(Request.Method.POST, "$BASE_URL/send_alert/",
                 params,
@@ -152,11 +152,11 @@ class AttentionRepository(private val database: AttentionDB) {
                  email: String? = null, responseListener: Response.Listener<JSONObject>? = null,
                  errorListener: Response.ErrorListener? = null) {
         val params = buildMap<String, String> {
-            "first_name" to firstName
-            "last_name" to lastName
-            "password" to password
-            "old_password" to oldPassword
-            "email" to email
+            if (firstName != null) put("first_name", firstName)
+            if (lastName != null) put("last_name", lastName)
+            if (password != null) put("password", password)
+            if (oldPassword != null) put("old_password", oldPassword)
+            if (email != null) put("email", email)
         }
         val request = AuthorizedJsonObjectRequest(Request.Method.PUT, "$BASE_URL/v2/edit/",
                 params, responseListener, errorListener, token)
@@ -203,10 +203,10 @@ class AttentionRepository(private val database: AttentionDB) {
                      email: String, singleton: NetworkSingleton, responseListener: Response
             .Listener<JSONObject>? = null, errorListener: Response.ErrorListener? = null) {
         val params = buildMap {
-            "username" to username
-            "password" to password
-            "first_name" to firstName
-            "last_name" to lastName
+            put("username", username)
+            put("password", password)
+            put("first_name", firstName)
+            put("last_name", lastName)
             if (email.isNotBlank()) { put("email", email) }
         }
         val request = JsonObjectRequestFormParameters(Request.Method.POST, "$BASE_URL/register_user/", params,
