@@ -406,7 +406,7 @@ class MainActivity : AppCompatActivity() {
             friendModel.usernameCaption = getString(R.string.empty_username)
         } else {
             friendModel.getFriendName(username, responseListener = {
-                friendModel.onAddFriend(Friend(username, it.getString("name")
+                friendModel.onAddFriend(Friend(username, it.getJSONObject("data").getString("name")
                 )) {
                     friendModel.popDialogState()
                 }
@@ -421,19 +421,17 @@ class MainActivity : AppCompatActivity() {
         },
                 buttons = {
                     Row(
-                            modifier = Modifier.padding(all = 8.dp),
+                            modifier = Modifier.padding(all = 8.dp).fillMaxWidth(),
                             horizontalArrangement = Arrangement.Center
                     ) {
                         OutlinedButton(onClick = {
                             friendModel.popDialogState()
-                        },
-                                modifier = Modifier.fillMaxWidth()) {
+                        }) {
                             Text(getString(R.string.cancel))
                         }
                         Button(onClick = {
                             onAddFriend(friendModel.addFriendUsername)
-                        },
-                                modifier = Modifier.fillMaxWidth()) {
+                        }) {
                             Text(getString(android.R.string.ok))
                         }
 

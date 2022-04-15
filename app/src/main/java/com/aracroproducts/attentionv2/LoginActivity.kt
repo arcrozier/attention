@@ -4,11 +4,9 @@ import android.app.Application
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
-import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
@@ -23,6 +21,8 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.*
@@ -126,6 +126,8 @@ class LoginActivity : AppCompatActivity() {
         var passwordHidden by remember {
             mutableStateOf(true)
         }
+        val passwordFocusRequester = FocusRequester()
+        val confirmPasswordFocusRequester = FocusRequester()
         Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
         Column(
             verticalArrangement = Arrangement.Center, modifier = Modifier.fillMaxSize(),
@@ -164,6 +166,9 @@ class LoginActivity : AppCompatActivity() {
                     imeAction = ImeAction.Next,
                     keyboardType = KeyboardType.Password
                 ),
+                keyboardActions = KeyboardActions(onNext = {
+                    passwordFocusRequester.requestFocus()
+                }),
                 enabled = model.uiEnabled
             )
             if (model.passwordCaption.isNotBlank()) {
@@ -200,6 +205,7 @@ class LoginActivity : AppCompatActivity() {
                 label = {
                     Text(text = getString(R.string.new_password))
                 },
+                modifier = Modifier.focusRequester(passwordFocusRequester),
                 isError = model.newPasswordCaption.isNotBlank(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
@@ -207,6 +213,9 @@ class LoginActivity : AppCompatActivity() {
                     imeAction = ImeAction.Next,
                     keyboardType = KeyboardType.Password
                 ),
+                keyboardActions = KeyboardActions(onNext = {
+                    confirmPasswordFocusRequester.requestFocus()
+                }),
                 enabled = model.uiEnabled
             )
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
@@ -239,6 +248,7 @@ class LoginActivity : AppCompatActivity() {
                 },
                 isError = model.confirmPasswordCaption.isNotBlank(),
                 singleLine = true,
+                modifier = Modifier.focusRequester(confirmPasswordFocusRequester),
                 keyboardOptions = KeyboardOptions(
                     autoCorrect = false,
                     imeAction = ImeAction.Done,
@@ -403,6 +413,7 @@ class LoginActivity : AppCompatActivity() {
         var passwordHidden by remember {
             mutableStateOf(true)
         }
+        val confirmPasswordFocusRequester = FocusRequester()
         Column(
             verticalArrangement = centerWithBottomElement, modifier = Modifier
                 .fillMaxSize()
@@ -535,6 +546,9 @@ class LoginActivity : AppCompatActivity() {
                     imeAction = ImeAction.Next,
                     keyboardType = KeyboardType.Password
                 ),
+                keyboardActions = KeyboardActions(onNext = {
+                    confirmPasswordFocusRequester.requestFocus()
+                }),
                 enabled = model.uiEnabled
             )
             if (model.passwordCaption.isNotBlank()) {
@@ -575,6 +589,7 @@ class LoginActivity : AppCompatActivity() {
                 label = {
                     Text(text = getString(R.string.confirm_password))
                 },
+                modifier = Modifier.focusRequester(confirmPasswordFocusRequester),
                 isError = model.confirmPasswordCaption.isNotBlank(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
@@ -588,6 +603,7 @@ class LoginActivity : AppCompatActivity() {
                             scaffoldState = scaffoldState,
                             scope = coroutineScope
                         ) {
+                            Log.d(javaClass.name, "Logged in!")
                             finish()
                         }
                     }
@@ -609,7 +625,9 @@ class LoginActivity : AppCompatActivity() {
                     model.createUser(
                         scaffoldState = scaffoldState,
                         scope = coroutineScope
-                    ) { finish() }
+                    ) {
+                        Log.d(javaClass.name, "Logged in!")
+                        finish() }
                 },
                 enabled = model.uiEnabled,
 

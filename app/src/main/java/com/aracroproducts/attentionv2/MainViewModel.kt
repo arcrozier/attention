@@ -31,6 +31,7 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import java.lang.Integer.min
 import javax.inject.Inject
 
 class MainViewModel @Inject internal constructor(
@@ -173,7 +174,7 @@ class MainViewModel @Inject internal constructor(
             val friends = attentionRepository.getFriendsSnapshot()
             val staticShortcutIntent = Intent(Intent.ACTION_DEFAULT)
 
-            for (x in 0 until MAX_SHORTCUTS) {
+            for (x in 0 until min(friends.size, MAX_SHORTCUTS)) {
                 shortcuts.add(
                         ShortcutInfoCompat.Builder(context, friends[x].id)
                                 .setShortLabel(friends[x].name)
@@ -251,7 +252,7 @@ class MainViewModel @Inject internal constructor(
         lastNameRequest = attentionRepository.getName(token, username, NetworkSingleton
                 .getInstance(getApplication()), responseListener = {
             lastNameRequest = null
-            newFriendName = it.getString("name")
+            newFriendName = it.getJSONObject("data").getString("name")
             friendNameLoading = false
             responseListener?.onResponse(it)
         }, errorListener = {
@@ -425,20 +426,21 @@ class MainViewModel @Inject internal constructor(
         val context = getApplication<Application>()
         val singleton = NetworkSingleton.getInstance(context)
         attentionRepository.getUserInfo(token, singleton, {
+            Log.d(sTAG, it.toString())
             val defaultPrefsEditor = PreferenceManager
                     .getDefaultSharedPreferences(context)
                     .edit()
             defaultPrefsEditor.putString(
                     context.getString(R.string.first_name_key),
-                    it.getString("first_name"))
+                    it.getJSONObject("data").getString("first_name"))
             defaultPrefsEditor.putString(
                     context.getString(R.string.last_name_key),
-                    it.getString("last_name"))
+                    it.getJSONObject("data").getString("last_name"))
             defaultPrefsEditor.putString(
                     context.getString(R.string.email_key),
-                    it.getString("email"))
+                    it.getJSONObject("data").getString("email"))
             defaultPrefsEditor.apply()
-            attentionRepository.updateUserInfo(it.getJSONArray("friends"))
+            attentionRepository.updateUserInfo(it.getJSONObject("data").getJSONArray("friends"))
             uploadCachedFriends()
             populateShareTargets()
         }, {
