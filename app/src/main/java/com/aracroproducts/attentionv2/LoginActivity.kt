@@ -18,12 +18,19 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.unit.Density
@@ -34,7 +41,6 @@ import androidx.lifecycle.ViewModelProvider
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
 import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
 import kotlinx.coroutines.CoroutineScope
-import java.lang.IllegalArgumentException
 import kotlin.math.min
 import kotlin.math.roundToInt
 
@@ -65,7 +71,6 @@ class LoginActivity : AppCompatActivity() {
         }
 
         setContent {
-            window.statusBarColor = MaterialTheme.colors.primaryVariant.toArgb()
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 HarmonizedTheme {
@@ -92,8 +97,9 @@ class LoginActivity : AppCompatActivity() {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    backgroundColor = MaterialTheme.colors.primarySurface,
-                    title = { Text(getString(R.string.app_name)) },
+                    backgroundColor = MaterialTheme.colorScheme.primary,
+                    title = { Text(getString(R.string.app_name), color = MaterialTheme
+                        .colorScheme.onPrimary) },
                 )
             },
             scaffoldState = scaffoldState
@@ -174,8 +180,8 @@ class LoginActivity : AppCompatActivity() {
             if (model.passwordCaption.isNotBlank()) {
                 Text(
                     text = model.passwordCaption,
-                    color = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium),
-                    style = MaterialTheme.typography.caption,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = ContentAlpha.medium),
+                    style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.padding(start = 16.dp)
                 )
             }
@@ -269,8 +275,8 @@ class LoginActivity : AppCompatActivity() {
             if (model.confirmPasswordCaption.isNotBlank()) {
                 Text(
                     text = model.confirmPasswordCaption,
-                    color = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium),
-                    style = MaterialTheme.typography.caption,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = ContentAlpha.medium),
+                    style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.padding(start = 16.dp)
                 )
             }
@@ -326,10 +332,10 @@ class LoginActivity : AppCompatActivity() {
             if (model.usernameCaption.isNotBlank()) {
                 Text(
                     text = model.usernameCaption,
-                    color = MaterialTheme.colors.onSurface.copy(
+                    color = MaterialTheme.colorScheme.onSurface.copy(
                         alpha = ContentAlpha.medium
                     ),
-                    style = MaterialTheme.typography.caption,
+                    style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.padding(start = 16.dp)
                 )
             }
@@ -377,10 +383,10 @@ class LoginActivity : AppCompatActivity() {
             if (model.passwordCaption.isNotBlank()) {
                 Text(
                     text = model.passwordCaption,
-                    color = MaterialTheme.colors.onSurface.copy(
+                    color = MaterialTheme.colorScheme.onSurface.copy(
                         alpha = ContentAlpha.medium
                     ),
-                    style = MaterialTheme.typography.caption,
+                    style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.padding(start = 16.dp)
                 )
             }
@@ -443,10 +449,10 @@ class LoginActivity : AppCompatActivity() {
             if (model.usernameCaption.isNotBlank()) {
                 Text(
                     text = model.usernameCaption,
-                    color = MaterialTheme.colors.onSurface.copy(
+                    color = MaterialTheme.colorScheme.onSurface.copy(
                         alpha = ContentAlpha.medium
                     ),
-                    style = MaterialTheme.typography.caption,
+                    style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.padding(start = 16.dp)
                 )
             }
@@ -506,10 +512,10 @@ class LoginActivity : AppCompatActivity() {
             if (model.emailCaption.isNotBlank()) {
                 Text(
                     text = model.emailCaption,
-                    color = MaterialTheme.colors.onSurface.copy(
+                    color = MaterialTheme.colorScheme.onSurface.copy(
                         alpha = ContentAlpha.medium
                     ),
-                    style = MaterialTheme.typography.caption,
+                    style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.padding(start = 16.dp)
                 )
             }
@@ -554,10 +560,10 @@ class LoginActivity : AppCompatActivity() {
             if (model.passwordCaption.isNotBlank()) {
                 Text(
                     text = model.passwordCaption,
-                    color = MaterialTheme.colors.onSurface.copy(
+                    color = MaterialTheme.colorScheme.onSurface.copy(
                         alpha = ContentAlpha.medium
                     ),
-                    style = MaterialTheme.typography.caption,
+                    style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.padding(start = 16.dp)
                 )
             }
@@ -613,10 +619,10 @@ class LoginActivity : AppCompatActivity() {
             if (model.confirmPasswordCaption.isNotBlank()) {
                 Text(
                     text = model.confirmPasswordCaption,
-                    color = MaterialTheme.colors.onSurface.copy(
+                    color = MaterialTheme.colorScheme.onSurface.copy(
                         alpha = ContentAlpha.medium
                     ),
-                    style = MaterialTheme.typography.caption,
+                    style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.padding(start = 16.dp)
                 )
             }

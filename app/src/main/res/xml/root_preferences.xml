@@ -8,9 +8,8 @@
     <PreferenceCategory
         app:iconSpaceReserved="false"
         app:title="@string/account">
-        <EditTextPreference
+        <Preference
             android:id="@+id/show_username_preference"
-            app:useSimpleSummaryProvider="true"
             app:iconSpaceReserved="true"
             app:icon="@drawable/baseline_share_24"
             android:key="@string/username_key"
@@ -73,18 +72,6 @@
             app:iconSpaceReserved="true"
             app:summaryOff="@string/override_summary_off"
             app:summaryOn="@string/override_summary_on" />
-    </PreferenceCategory>
-
-    <PreferenceCategory
-        app:iconSpaceReserved="false"
-        app:title="@string/user_title">
-        <EditTextPreference
-            android:key="@string/name_key"
-            android:selectAllOnFocus="true"
-            android:singleLine="true"
-            android:title="@string/display_name"
-            app:iconSpaceReserved="true"
-            app:useSimpleSummaryProvider="true" />
     </PreferenceCategory>
 
 </PreferenceScreen>

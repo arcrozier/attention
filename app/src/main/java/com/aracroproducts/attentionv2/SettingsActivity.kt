@@ -18,7 +18,7 @@ import com.google.android.material.snackbar.Snackbar
  */
 class SettingsActivity : AppCompatActivity() {
 
-    val viewModel: SettingsViewModel by viewModels()
+    private val viewModel: SettingsViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -26,13 +26,14 @@ class SettingsActivity : AppCompatActivity() {
         //if (savedInstanceState == null) {
             supportFragmentManager
                     .beginTransaction()
-                    .replace(R.id.settings, SettingsFragment())
+                    .replace(R.id.settings, SettingsFragment(viewModel = viewModel))
                     .commit()
         //}
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
     }
 
-    inner class UserInfoChangeListener(private val context: Context, private val view: View?) :
+    class UserInfoChangeListener(private val context: Context, private val view: View?, private
+    val model: SettingsViewModel) :
             Preference.OnPreferenceChangeListener {
         private val attentionRepository = AttentionRepository(AttentionDB.getDB(context))
         private val networkSingleton = NetworkSingleton.getInstance(context)
@@ -47,7 +48,7 @@ class SettingsActivity : AppCompatActivity() {
                 putString(key, newValue.toString())
                 apply()
             }
-            if (--viewModel.outstandingRequests == 0) {
+            if (--model.outstandingRequests == 0) {
                 view?.let {
                     Snackbar.make(it, R.string.saved, Snackbar
                             .LENGTH_LONG).show()
@@ -56,7 +57,7 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         private fun onError(error: VolleyError) {
-            viewModel.outstandingRequests--
+            model.outstandingRequests--
             when (error) {
                 is ClientError -> {
                     MainViewModel.launchLogin(context)
@@ -79,7 +80,7 @@ class SettingsActivity : AppCompatActivity() {
         override fun onPreferenceChange(preference: Preference, newValue: Any?): Boolean {
             if (token != null) {
                 when (preference.key) {
-                    getString(R.string.first_name_key) -> {
+                    context.getString(R.string.first_name_key) -> {
                         attentionRepository.editUser(token = token,
                                 singleton = networkSingleton,
                                 firstName = newValue.toString(),
@@ -90,7 +91,7 @@ class SettingsActivity : AppCompatActivity() {
                                     onError(error)
                                 })
                     }
-                    getString(R.string.last_name_key) -> {
+                    context.getString(R.string.last_name_key) -> {
                         attentionRepository.editUser(token = token,
                                 singleton = networkSingleton,
                                 lastName = newValue.toString(),
@@ -101,7 +102,7 @@ class SettingsActivity : AppCompatActivity() {
                                     onError(error)
                                 })
                     }
-                    getString(R.string.email_key) -> {
+                    context.getString(R.string.email_key) -> {
                         attentionRepository.editUser(token = token,
                                 singleton = networkSingleton,
                                 email = newValue.toString(),
@@ -128,11 +129,11 @@ class SettingsActivity : AppCompatActivity() {
     /**
      * A fragment for individual settings panels
      */
-    inner class SettingsFragment : PreferenceFragmentCompat() {
+    class SettingsFragment(private val viewModel: SettingsViewModel) : PreferenceFragmentCompat() {
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
             setPreferencesFromResource(R.xml.root_preferences, rootKey)
             val localContext = context ?: return
-            val userInfoChangeListener = UserInfoChangeListener(localContext, view)
+            val userInfoChangeListener = UserInfoChangeListener(localContext, view, viewModel)
             val firstName: EditTextPreference? = findPreference(getString(R.string.first_name_key))
             if (firstName != null) {
                 firstName.onPreferenceChangeListener = userInfoChangeListener
@@ -163,14 +164,17 @@ class SettingsActivity : AppCompatActivity() {
                         }
                         startActivity(Intent.createChooser(sharingIntent, null))
                     }
-                    false
+                    true
                 }
+                usernamePreference.summary = PreferenceManager.getDefaultSharedPreferences(localContext)
+                    .getString(getString(R.string.username_key), getString(R.string.no_username))
             }
             /*
 
              */
 
-            val vibratePreference = findPreference("vibrate_preference") as MultiSelectListPreference?
+            val vibratePreference = findPreference(getString(R.string.vibrate_preference_key)) as
+                    MultiSelectListPreference?
             if (vibratePreference != null) {
                 vibratePreference.onPreferenceChangeListener =
                         Preference.OnPreferenceChangeListener { _, newValue ->
@@ -181,7 +185,8 @@ class SettingsActivity : AppCompatActivity() {
                 vibratePreference.setSummaryFromValues(vibratePreference.values)
             }
 
-            val ringPreference = findPreference("ring_preference") as MultiSelectListPreference?
+            val ringPreference = findPreference(getString(R.string.ring_preference_key)) as
+                    MultiSelectListPreference?
             if (ringPreference != null) {
                 ringPreference.onPreferenceChangeListener =
                         Preference.OnPreferenceChangeListener { _, newValue ->

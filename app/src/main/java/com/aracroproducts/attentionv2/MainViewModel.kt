@@ -430,15 +430,18 @@ class MainViewModel @Inject internal constructor(
             val defaultPrefsEditor = PreferenceManager
                     .getDefaultSharedPreferences(context)
                     .edit()
+            val data = it.getJSONObject("data")
+            defaultPrefsEditor.putString(context.getString(R.string.username_key), data.getString
+                ("username"))
             defaultPrefsEditor.putString(
                     context.getString(R.string.first_name_key),
-                    it.getJSONObject("data").getString("first_name"))
+                    data.getString("first_name"))
             defaultPrefsEditor.putString(
                     context.getString(R.string.last_name_key),
-                    it.getJSONObject("data").getString("last_name"))
+                    data.getString("last_name"))
             defaultPrefsEditor.putString(
                     context.getString(R.string.email_key),
-                    it.getJSONObject("data").getString("email"))
+                    data.getString("email"))
             defaultPrefsEditor.apply()
             attentionRepository.updateUserInfo(it.getJSONObject("data").getJSONArray("friends"))
             uploadCachedFriends()

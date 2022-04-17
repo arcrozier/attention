@@ -98,6 +98,13 @@ class LoginViewModel @Inject constructor(
         attentionRepository.registerUser(username = username, password = password, firstName =
         firstName, lastName = lastName, email = email, NetworkSingleton.getInstance(context),
             responseListener = {
+                PreferenceManager.getDefaultSharedPreferences(context).edit().apply {
+                        putString(context.getString(R.string.username_key), username)
+                        putString(context.getString(R.string.first_name_key), firstName)
+                        putString(context.getString(R.string.last_name_key), lastName)
+                        putString(context.getString(R.string.email_key), email)
+                        apply()
+                    }
                 login(scaffoldState, scope, onLoggedIn)
             }, errorListener = {
                 Log.e(sTAG, it.networkResponse.toString())
