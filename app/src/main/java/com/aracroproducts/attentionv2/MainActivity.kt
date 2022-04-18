@@ -115,6 +115,8 @@ class MainActivity : AppCompatActivity() {
                 friendModel.showSnackBar(getString(R.string.bad_add_link))
             } else {
                 friendModel.addFriendUsername = tempId
+                friendModel.appendDialogState(Triple(MainViewModel.DialogStatus.ADD_FRIEND, null,
+                    ) {})
             }
         }
 
@@ -450,10 +452,10 @@ class MainActivity : AppCompatActivity() {
                 friendModel.onAddFriend(
                     Friend(
                         username, it.getJSONObject("data").getString("name")
-                    )
-                ) {
-                    friendModel.popDialogState()
-                }
+                    ), responseListener = {
+                        friendModel.popDialogState()
+                    }, launchLogin = this::launchLogin
+                )
             }, launchLogin = ::launchLogin)
         }
     }

@@ -199,6 +199,11 @@ class MainViewModel @Inject internal constructor(
                 .MODE_PRIVATE).getString(MY_TOKEN, null)
         if (token == null) {
             if (!addFriendException) launchLogin()
+            else {
+                attentionRepository.cacheFriend(friend.id)
+                addFriendException = false
+                popDialogState()
+            }
             return
         }
         addFriendException = false
