@@ -85,7 +85,11 @@ class LoginActivity : AppCompatActivity() {
     }
 
     override fun onBackPressed() {
-        moveTaskToBack(true)
+        if (loginViewModel.login != LoginViewModel.State.CHANGE_PASSWORD)
+            moveTaskToBack(true)
+        else {
+            super.onBackPressed()
+        }
     }
 
     @Composable

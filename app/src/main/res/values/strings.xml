@@ -152,7 +152,7 @@
     <string name="password_key" translatable="false">com.aracroproducts.attention.key
         .password</string>
     <string name="alert_title">Attention!</string>
-    <string name="change_password_action" translatable="false">com.aracroproducts.attention.action
-        .change_password</string>
+    <string name="change_password_action"
+        translatable="false">com.aracroproducts.attention.action.change_password</string>
     <string name="logout_key" translatable="false">com.aracroproducts.attention.key.logout</string>
 </resources>

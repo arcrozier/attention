@@ -637,6 +637,15 @@ class MainActivity : AppCompatActivity() {
                             style = MaterialTheme.typography.labelSmall
                         )
                     }
+                    else -> {
+                        Text(
+                            text = "",
+                            color = MaterialTheme.colorScheme.onSurface.copy(
+                                alpha = ContentAlpha.medium
+                            ),
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
                 }
             }
             AnimatedVisibility(visible = state == State.EDIT, enter = expandHorizontally() +
