@@ -1,6 +1,7 @@
 package com.aracroproducts.attentionv2
 
 import android.content.Context
+import androidx.lifecycle.LiveData
 import androidx.room.*
 import com.aracroproducts.attentionv2.AttentionDB.Companion.DB_V1
 import kotlinx.coroutines.flow.Flow
@@ -74,29 +75,32 @@ interface FriendDAO {
     suspend fun insert(vararg friend: Friend)
 
     @Delete
-    fun delete(vararg friend: Friend)
+    suspend fun delete(vararg friend: Friend)
 
     @Update
-    fun updateFriend(friend: Friend)
+    suspend fun updateFriend(friend: Friend)
 
     @Query("SELECT name FROM Friend WHERE id = :id")
-    fun getFriendName(id: String): Name
+    suspend fun getFriendName(id: String): Name
 
     @Query("UPDATE Friend SET received = received + 1 WHERE id = :id")
-    fun incrementReceived(id: String)
+    suspend fun incrementReceived(id: String)
 
     @Query("UPDATE Friend SET sent = sent + 1 WHERE id = :id")
-    fun incrementSent(id: String)
+    suspend fun incrementSent(id: String)
 
     @Query("UPDATE Friend SET last_message_sent_id = :message_id WHERE id = :id")
-    fun setMessageAlert(message_id: String, id: String)
+    suspend fun setMessageAlert(message_id: String, id: String)
 
     @Query("UPDATE Friend SET last_message_read = :read WHERE id = :id AND last_message_sent_id =" +
             " :alert_id")
-    fun setMessageRead(read: Boolean, id: String?, alert_id: String?)
+    suspend fun setMessageRead(read: Boolean, id: String?, alert_id: String?)
 
     @Query("SELECT * FROM Friend ORDER BY sent DESC")
-    fun getFriends(): Flow<List<Friend>>
+    fun getFriends(): LiveData<List<Friend>>
+
+    @Query("DELETE FROM Friend WHERE id NOT IN (:idList)")
+    suspend fun keepOnly(vararg idList: String)
 
     @Query("SELECT * FROM Friend ORDER BY sent DESC")
     suspend fun getFriendsSnapshot(): List<Friend>

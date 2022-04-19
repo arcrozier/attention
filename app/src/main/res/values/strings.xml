@@ -82,6 +82,8 @@
 
     <string name="bad_add_link">Invalid link</string>
 
+    <string name="confirm_logout_title">Logout</string>
+    <string name="confirm_logout_message">Are you sure you want to log out?</string>
     <string name="confirm_delete_title">Delete friend</string>
     <string name="confirm_delete_message">Are you sure you want to remove %s from your friends?</string>
     <string name="yes">Yes</string>
@@ -152,4 +154,5 @@
     <string name="alert_title">Attention!</string>
     <string name="change_password_action" translatable="false">com.aracroproducts.attention.action
         .change_password</string>
+    <string name="logout_key" translatable="false">com.aracroproducts.attention.key.logout</string>
 </resources>

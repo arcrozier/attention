@@ -12,7 +12,8 @@ import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -32,7 +33,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -41,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -49,6 +53,7 @@ import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import kotlinx.coroutines.launch
+import java.lang.IllegalStateException
 
 class MainActivity : AppCompatActivity() {
     private val friendModel: MainViewModel by viewModels(factoryProducer = {
@@ -114,9 +119,16 @@ class MainActivity : AppCompatActivity() {
             if (tempId == null) {
                 friendModel.showSnackBar(getString(R.string.bad_add_link))
             } else {
-                friendModel.addFriendUsername = tempId
-                friendModel.appendDialogState(Triple(MainViewModel.DialogStatus.ADD_FRIEND, null,
+                synchronized(this) {
+                    friendModel.addFriendUsername = tempId
+                    friendModel.getFriendName(tempId) {
+                        throw IllegalStateException("Should not attempt to log in while " +
+                                "addFriendException is true")
+                    }
+                    friendModel.swapDialogState(Triple(
+                        MainViewModel.DialogStatus.ADD_FRIEND, null,
                     ) {})
+                }
             }
         }
 
@@ -144,8 +156,7 @@ class MainActivity : AppCompatActivity() {
                     Triple(
                         MainViewModel.DialogStatus.ADD_MESSAGE_TEXT,
                         Friend(
-                            username,
-                            friendModel.getLocalFriendName(username).name ?: ""
+                            username, ""
                         )
                     )
                     {})
@@ -176,8 +187,9 @@ class MainActivity : AppCompatActivity() {
             .dialogState
         val showSnackbar = model.isSnackBarShowing
 
+        val friends by model.friends.observeAsState(listOf())
         Home(
-            friends = model.friends.value ?: listOf(),
+            friends = friends,
             onLongPress = { model.onLongPress() },
             onEditName = { model.onEditName(it) },
             onDeletePrompt = { model.onDeleteFriend(it) },
@@ -240,7 +252,10 @@ class MainActivity : AppCompatActivity() {
                     backgroundColor = MaterialTheme.colorScheme.primary,
                     title = {
                         Column {
-                            Text(getString(R.string.app_name), color = MaterialTheme.colorScheme.onPrimary)
+                            Text(
+                                getString(R.string.app_name),
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
                             if (friendModel.connectionState.isNotBlank()) Text(
                                 friendModel.connectionState, style = MaterialTheme.typography
                                     .labelSmall,
@@ -277,8 +292,10 @@ class MainActivity : AppCompatActivity() {
                     },
                     backgroundColor = MaterialTheme.colorScheme.secondary
                 ) {
-                    Icon(Icons.Filled.Add, contentDescription = getString(R.string.add_friend),
-                        tint = MaterialTheme.colorScheme.onSecondary)
+                    Icon(
+                        Icons.Filled.Add, contentDescription = getString(R.string.add_friend),
+                        tint = MaterialTheme.colorScheme.onSecondary
+                    )
                 }
             }
         ) {
@@ -290,11 +307,23 @@ class MainActivity : AppCompatActivity() {
                         onEditName = onEditName,
                         onDeletePrompt = onDeletePrompt
                     )
+                    Divider(
+                        color = MaterialTheme.colorScheme.outline.copy(
+                            alpha = ContentAlpha
+                                .disabled
+                        ), modifier = Modifier.padding(start = 16.dp, end = 16.dp)
+                    )
                 }
                 items(friendModel.cachedFriends.value ?: listOf()) { cachedFriend ->
                     FriendCard(friend = Friend(cachedFriend.username, cachedFriend.username),
                         onLongPress
                         = {}, onEditName = {}, onDeletePrompt = {})
+                    Divider(
+                        color = MaterialTheme.colorScheme.outline.copy(
+                            alpha = ContentAlpha
+                                .disabled
+                        ), modifier = Modifier.padding(start = 16.dp, end = 16.dp)
+                    )
                 }
             }
         }
@@ -487,12 +516,17 @@ class MainActivity : AppCompatActivity() {
             },
             title = { Text(text = getString(R.string.add_friend)) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Text(
+                        modifier = Modifier.fillMaxWidth(),
                         text = friendModel.newFriendName,
                         color = if (friendModel.friendNameLoading)
                             MaterialTheme.colorScheme.onSurface.copy(alpha = ContentAlpha.medium)
-                        else Color.Unspecified
+                        else Color.Unspecified,
+                        textAlign = TextAlign.Center
                     )
                     OutlinedTextField(
                         value = friendModel.addFriendUsername,
@@ -530,6 +564,7 @@ class MainActivity : AppCompatActivity() {
             })
     }
 
+    @OptIn(ExperimentalAnimationApi::class)
     @ExperimentalFoundationApi
     @Composable
     fun FriendCard(
@@ -538,22 +573,36 @@ class MainActivity : AppCompatActivity() {
     ) {
         var state by remember { mutableStateOf(State.NORMAL) }
         var message: String? by remember { mutableStateOf(null) }
+        val transition = updateTransition(state, label = "friend state transition")
 
-        Box(modifier = Modifier
-            .fillMaxWidth(1F)
-            .padding(10.dp)
-            .combinedClickable(onClick = {
-                state = when (state) {
-                    State.NORMAL -> State.CONFIRM
-                    State.CONFIRM, State.CANCEL, State.EDIT -> State.NORMAL
-                }
-            }, onLongClick = {
-                state = when (state) {
-                    State.NORMAL -> State.EDIT
-                    else -> state
-                }
-                onLongPress()
-            })
+        val alpha by transition.animateFloat(label = "friend alpha transition") {
+            when (it) {
+                State.NORMAL -> 1F
+                else -> 0.5F
+            }
+        }
+        val blur by transition.animateDp(label = "friend blur transition") {
+            when (it) {
+                State.NORMAL -> 0.dp
+                else -> 3.dp
+            }
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(1F)
+                .padding(10.dp)
+                .combinedClickable(onClick = {
+                    state = when (state) {
+                        State.NORMAL -> State.CONFIRM
+                        State.CONFIRM, State.CANCEL, State.EDIT -> State.NORMAL
+                    }
+                }, onLongClick = {
+                    state = when (state) {
+                        State.NORMAL -> State.EDIT
+                        else -> state
+                    }
+                    onLongPress()
+                })
         ) {
             Column {
                 Text(
@@ -564,12 +613,8 @@ class MainActivity : AppCompatActivity() {
                         ContentAlpha.medium
                     ) else Color.Unspecified,
                     modifier = Modifier
-                        .alpha(if (state == State.NORMAL) 1F else 0.5F)
-                        .blur(
-                            if (state ==
-                                State.NORMAL
-                            ) 0.dp else 5.dp
-                        )
+                        .alpha(alpha)
+                        .blur(blur)
                 )
                 when {
                     friend.last_message_read -> {
@@ -581,7 +626,8 @@ class MainActivity : AppCompatActivity() {
                             style = MaterialTheme.typography.labelSmall
                         )
                     }
-                    friend.last_message_sent_id != null -> {
+                    friend.last_message_sent_id != null && friend.last_message_sent_id != "null"
+                    -> {
                         Text(
                             text = getString(R.string.sent),
                             color = MaterialTheme.colorScheme.onSurface.copy(
@@ -590,104 +636,104 @@ class MainActivity : AppCompatActivity() {
                             style = MaterialTheme.typography.labelSmall
                         )
                     }
-                    else -> {
-                        Text(
-                            text = "",
-                            color = MaterialTheme.colorScheme.onSurface.copy(
-                                alpha = ContentAlpha.medium
-                            ),
-                            style = MaterialTheme.typography.labelSmall
+                }
+            }
+            AnimatedVisibility(visible = state == State.EDIT, enter = expandHorizontally() +
+                    fadeIn(), exit = shrinkHorizontally() + fadeOut()) {
+                Row(
+                    horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier
+                        .fillMaxWidth()
+                ) {
+                    IconButton(onClick = { state = State.NORMAL }) {
+                        Icon(
+                            Icons.Filled.Close,
+                            contentDescription = getString(R.string.cancel)
+                        )
+                    }
+                    Button(
+                        onClick = {
+                            if (cached) friendModel.onDeleteCachedFriend(friend)
+                            else onDeletePrompt(friend)
+                            state = State.NORMAL
+                        }, colors =
+                        ButtonDefaults
+                            .buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error,
+                                contentColor = MaterialTheme.colorScheme.onError
+                            )
+                    ) {
+                        Text(getString(R.string.delete))
+                    }
+                    OutlinedButton(onClick = {
+                        onEditName(friend)
+                        state = State.NORMAL
+                    }) {
+                        Text(getString(R.string.rename))
+                    }
+                }
+            }
+            AnimatedVisibility(visible = state == State.CONFIRM, enter = scaleIn() + fadeIn(),
+                exit = scaleOut() + fadeOut()) {
+                Row(
+                    horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier
+                        .fillMaxWidth()
+                ) {
+                    IconButton(onClick = { state = State.NORMAL }) {
+                        Icon(
+                            Icons.Filled.Close,
+                            contentDescription = getString(R.string.cancel)
+                        )
+                    }
+                    Button(onClick = {
+                        state = State.CANCEL
+                        message = null
+                    }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme
+                        .colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)) {
+                        Text(getString(R.string.confirm_alert))
+                    }
+                    OutlinedButton(onClick = {
+                        friendModel.appendDialogState(Triple(
+                            MainViewModel
+                                .DialogStatus.ADD_MESSAGE_TEXT, friend
+                        ) {
+                            message = it
+                            state = State.CANCEL
+                        })
+                    }) {
+                        Text(getString(R.string.add_message))
+                    }
+                }
+            }
+            AnimatedVisibility(visible = state == State.CANCEL) {
+                var progress by remember { mutableStateOf(0f) }
+                val animatedProgress by animateFloatAsState(
+                    targetValue = progress,
+                    animationSpec = ProgressIndicatorDefaults.ProgressAnimationSpec
+                )
+
+                val delay = object : CountDownTimer(UNDO_TIME, UNDO_TIME / UNDO_INTERVALS) {
+                    override fun onTick(p0: Long) {
+                        progress = (UNDO_TIME - p0).toFloat() / UNDO_TIME
+                    }
+
+                    override fun onFinish() {
+                        friendModel.sendAlert(
+                            friend.id,
+                            message = message,
+                            launchLogin = ::launchLogin
                         )
                     }
                 }
+
+                LinearProgressIndicator(progress = animatedProgress,
+                    modifier = Modifier.clickable {
+                        delay.cancel()
+                        state = State.NORMAL
+                    })
+
+
+                delay.start()
             }
-            when (state) {
-                State.EDIT -> {
-                    Row {
-                        IconButton(onClick = { state = State.NORMAL }) {
-                            Icon(
-                                Icons.Filled.Close,
-                                contentDescription = getString(R.string.cancel)
-                            )
-                        }
-                        Button(
-                            onClick = {
-                                if (cached) friendModel.onDeleteCachedFriend(friend)
-                                else onDeletePrompt(friend)
-                            }, colors =
-                            ButtonDefaults
-                                .buttonColors(
-                                    backgroundColor = MaterialTheme.colorScheme.error,
-                                    contentColor = MaterialTheme.colorScheme.onError
-                                )
-                        ) {
-                            Text(getString(R.string.delete))
-                        }
-                        OutlinedButton(onClick = { onEditName(friend) }) {
-                            Text(getString(R.string.rename))
-                        }
-                    }
-                }
-                State.CONFIRM -> {
-                    Row {
-                        IconButton(onClick = { state = State.NORMAL }) {
-                            Icon(
-                                Icons.Filled.Close,
-                                contentDescription = getString(R.string.cancel)
-                            )
-                        }
-                        Button(onClick = {
-                            state = State.CANCEL
-                            message = null
-                        }) {
-                            Text(getString(R.string.confirm_alert))
-                        }
-                        OutlinedButton(onClick = {
-                            friendModel.appendDialogState(Triple(
-                                MainViewModel
-                                    .DialogStatus.ADD_MESSAGE_TEXT, friend
-                            ) {
-                                message = it
-                                state = State.CANCEL
-                            })
-                        }) {
-                            Text(getString(R.string.add_message))
-                        }
-                    }
-                }
-                State.CANCEL -> {
-                    var progress by remember { mutableStateOf(0f) }
-                    val animatedProgress by animateFloatAsState(
-                        targetValue = progress,
-                        animationSpec = ProgressIndicatorDefaults.ProgressAnimationSpec
-                    )
-
-                    val delay = object : CountDownTimer(UNDO_TIME, UNDO_TIME / UNDO_INTERVALS) {
-                        override fun onTick(p0: Long) {
-                            progress = (UNDO_TIME - p0).toFloat() / UNDO_TIME
-                        }
-
-                        override fun onFinish() {
-                            friendModel.sendAlert(
-                                friend.id,
-                                message = message,
-                                launchLogin = ::launchLogin
-                            )
-                        }
-                    }
-
-                    LinearProgressIndicator(progress = animatedProgress,
-                        modifier = Modifier.clickable {
-                            delay.cancel()
-                            state = State.NORMAL
-                        })
-
-
-                    delay.start()
-                }
-                else -> {}
-            }
-
         }
     }
 

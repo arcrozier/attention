@@ -6,6 +6,7 @@ import com.android.volley.Response
 import com.android.volley.VolleyError
 import com.android.volley.toolbox.JsonObjectRequest
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import org.json.JSONArray
@@ -24,7 +25,8 @@ class AttentionRepository(private val database: AttentionDB) {
 
     suspend fun getFriendsSnapshot() = database.getFriendDAO().getFriendsSnapshot()
 
-    fun getLocalFriendName(username: String) = database.getFriendDAO().getFriendName(username)
+    suspend fun getLocalFriendName(username: String) =
+        database.getFriendDAO().getFriendName(username)
 
     // By default Room runs suspend queries off the main thread, therefore, we don't need to
     // implement anything else to ensure we're not doing long running database work
@@ -33,6 +35,10 @@ class AttentionRepository(private val database: AttentionDB) {
         MainScope().launch {
             database.getFriendDAO().insert(*friend)
         }
+    }
+
+    fun clearTables() {
+        database.clearAllTables()
     }
 
 
@@ -50,7 +56,9 @@ class AttentionRepository(private val database: AttentionDB) {
         val request = AuthorizedJsonObjectRequest(Request.Method.POST, url,
             params,
             {
-                database.getFriendDAO().delete(friend)
+                MainScope().launch {
+                    database.getFriendDAO().delete(friend)
+                }
                 responseListener?.onResponse(it)
             }, { error ->
                 printNetworkError(error, url)
@@ -64,7 +72,7 @@ class AttentionRepository(private val database: AttentionDB) {
         friend: Friend, token: String, singleton: NetworkSingleton, responseListener:
         Response.Listener<JSONObject>? = null, errorListener: Response.ErrorListener? = null
     ) {
-        val url = "$BASE_URL/edit_friend_name"
+        val url = "$BASE_URL/edit_friend_name/"
         val params = JSONObject(
             mapOf(
                 "username" to friend.id,
@@ -74,7 +82,9 @@ class AttentionRepository(private val database: AttentionDB) {
 
         val request = AuthorizedJsonObjectRequest(Request.Method.PUT,
             url, params, {
-                database.getFriendDAO().updateFriend(friend)
+                MainScope().launch {
+                    database.getFriendDAO().updateFriend(friend)
+                }
                 responseListener?.onResponse(it)
             }, errorListener = {
                 printNetworkError(it, url)
@@ -110,9 +120,11 @@ class AttentionRepository(private val database: AttentionDB) {
             )
             database.getMessageDAO().insertMessage(mMessage)
         }
-        when (message.direction) {
-            DIRECTION.Incoming -> database.getFriendDAO().incrementReceived(message.otherId)
-            DIRECTION.Outgoing -> database.getFriendDAO().incrementSent(message.otherId)
+        MainScope().launch {
+            when (message.direction) {
+                DIRECTION.Incoming -> database.getFriendDAO().incrementReceived(message.otherId)
+                DIRECTION.Outgoing -> database.getFriendDAO().incrementSent(message.otherId)
+            }
         }
     }
 
@@ -123,7 +135,8 @@ class AttentionRepository(private val database: AttentionDB) {
             Request<JSONObject> {
         val url = "$BASE_URL/get_name/?username=$username"
 
-        val request = AuthorizedJsonObjectRequest(Request.Method.GET, url,
+        val request = AuthorizedJsonObjectRequest(
+            Request.Method.GET, url,
             null, responseListener, errorListener = {
                 printNetworkError(it, url)
                 errorListener?.onErrorResponse(it)
@@ -153,11 +166,13 @@ class AttentionRepository(private val database: AttentionDB) {
             params,
             {
                 val alertId = it.getString("id")
-                database.getFriendDAO().setMessageAlert(alertId, message.otherId)
-                database.getFriendDAO().setMessageRead(
-                    false, alert_id = alertId, id =
-                    message.otherId
-                )
+                MainScope().launch {
+                    database.getFriendDAO().setMessageAlert(alertId, message.otherId)
+                    database.getFriendDAO().setMessageRead(
+                        false, alert_id = alertId, id =
+                        message.otherId
+                    )
+                }
                 responseListener?.onResponse(it)
             }, { error ->
                 printNetworkError(error, url)
@@ -181,7 +196,8 @@ class AttentionRepository(private val database: AttentionDB) {
                 "fcm_token" to fcmToken
             )
         )
-        val request = AuthorizedJsonObjectRequest(Request.Method.POST,
+        val request = AuthorizedJsonObjectRequest(
+            Request.Method.POST,
             url, params, responseListener, errorListener = {
                 printNetworkError(it, url)
                 errorListener?.onErrorResponse(it)
@@ -204,7 +220,8 @@ class AttentionRepository(private val database: AttentionDB) {
             if (oldPassword != null) put("old_password", oldPassword)
             if (email != null) put("email", email)
         })
-        val request = AuthorizedJsonObjectRequest(Request.Method.PUT, url,
+        val request = AuthorizedJsonObjectRequest(
+            Request.Method.PUT, url,
             params, responseListener, errorListener = {
                 printNetworkError(it, url)
                 errorListener?.onErrorResponse(it)
@@ -218,7 +235,8 @@ class AttentionRepository(private val database: AttentionDB) {
         .Listener<JSONObject>? = null, errorListener: Response.ErrorListener? = null
     ) {
         val url = "$BASE_URL/get_info/"
-        val request = AuthorizedJsonObjectRequest(Request.Method.GET, url,
+        val request = AuthorizedJsonObjectRequest(
+            Request.Method.GET, url,
             null, responseListener, errorListener = {
                 printNetworkError(it, url)
                 errorListener?.onErrorResponse(it)
@@ -229,10 +247,13 @@ class AttentionRepository(private val database: AttentionDB) {
 
     fun updateUserInfo(friends: JSONArray?) {
         if (friends == null) return
+        val keepIDs: Array<String> = Array(friends.length()) { "" }
         for (i in 0 until friends.length()) {
             val jsonFriend = friends.getJSONObject(i)
+            val id = jsonFriend.getString("friend")
+            keepIDs[i] = id
             val friend = Friend(
-                jsonFriend.getString("friend"), jsonFriend.getString("name"),
+                id, jsonFriend.getString("name"),
                 jsonFriend.getInt("sent"),
                 jsonFriend.getInt("received"), jsonFriend.getString("last_message_id_sent"),
                 jsonFriend.getBoolean("last_message_read")
@@ -240,6 +261,9 @@ class AttentionRepository(private val database: AttentionDB) {
             MainScope().launch {
                 database.getFriendDAO().insert(friend)
             }
+        }
+        MainScope().launch {
+            database.getFriendDAO().keepOnly(*keepIDs)
         }
     }
 
@@ -266,8 +290,12 @@ class AttentionRepository(private val database: AttentionDB) {
         singleton.addToRequestQueue(request)
     }
 
-    fun alertRead(username: String?, alertId: String?) = database.getFriendDAO()
-        .setMessageRead(true, alert_id = alertId, id = username)
+    fun alertRead(username: String?, alertId: String?) {
+        MainScope().launch {
+            database.getFriendDAO()
+                .setMessageRead(true, alert_id = alertId, id = username)
+        }
+    }
 
     fun registerUser(
         username: String, password: String, firstName: String, lastName: String,
@@ -333,11 +361,5 @@ class AttentionRepository(private val database: AttentionDB) {
             } ms"
         )
         Log.e(javaClass.name, "Headers: ${error.networkResponse.allHeaders}")
-    }
-
-    companion object {
-        private const val KEY_STORE = "AndroidKeyStore"
-        private const val ALIAS = "USERID"
-
     }
 }

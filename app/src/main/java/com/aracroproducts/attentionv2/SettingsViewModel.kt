@@ -6,7 +6,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 
-class SettingsViewModel(application: Application) : AndroidViewModel(application) {
+class SettingsViewModel(private val repository: AttentionRepository, application: Application) :
+    AndroidViewModel(application) {
 
     var outstandingRequests by mutableStateOf(0)
+
+    fun clearAllDatabaseTables() = repository.clearTables()
 }
