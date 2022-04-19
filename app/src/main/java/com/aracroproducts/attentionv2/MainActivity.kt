@@ -37,6 +37,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
@@ -588,6 +589,7 @@ class MainActivity : AppCompatActivity() {
                 else -> 3.dp
             }
         }
+        // TODO this shouldn't change size
         Box(
             modifier = Modifier
                 .fillMaxWidth(1F)
@@ -648,8 +650,10 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
-            AnimatedVisibility(visible = state == State.EDIT, enter = expandHorizontally() +
-                    fadeIn(), exit = shrinkHorizontally() + fadeOut()) {
+            // TODO change to edit by swiping
+            AnimatedVisibility(visible = state == State.EDIT,
+                enter = expandHorizontally(expandFrom = Alignment.End) + fadeIn(),
+                exit = shrinkHorizontally(shrinkTowards = Alignment.End) + fadeOut()) {
                 Row(
                     horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier
                         .fillMaxWidth()

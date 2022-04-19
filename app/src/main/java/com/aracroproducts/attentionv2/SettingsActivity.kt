@@ -9,6 +9,7 @@ import android.view.View
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Snackbar
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.preference.*
@@ -42,17 +43,15 @@ class SettingsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.settings_activity)
-        //if (savedInstanceState == null) {
         supportFragmentManager
             .beginTransaction()
             .replace(R.id.settings, SettingsFragment(viewModel = viewModel))
             .commit()
-        //}
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
     }
 
     class UserInfoChangeListener(
-        private val context: Context, private val view: View?, private
+        private val context: Context, private val settingsFragment: SettingsFragment, private
         val model: SettingsViewModel, val findPreference: (String) -> EditTextPreference?
     ) :
         Preference.OnPreferenceChangeListener {
@@ -67,11 +66,14 @@ class SettingsActivity : AppCompatActivity() {
         private fun onResponse(newValue: Any?, key: String) {
             findPreference(key)?.text = newValue.toString()
             if (--model.outstandingRequests == 0) {
-                view?.let {
-                    Snackbar.make(
+                settingsFragment.view?.let {
+                    val snackBar = Snackbar.make(
                         it, R.string.saved, Snackbar
                             .LENGTH_LONG
-                    ).show()
+                    )
+                    snackBar.setAction(android.R.string.ok) {
+                        snackBar.dismiss()
+                    }.show()
                 }
             }
         }
@@ -80,11 +82,23 @@ class SettingsActivity : AppCompatActivity() {
             model.outstandingRequests--
             when (error) {
                 is ClientError -> {
-                    if (error.networkResponse.statusCode == 403)
+                    if (error.networkResponse.statusCode == 403) {
+                        settingsFragment.view?.let {
+                            Snackbar.make(
+                                it, R.string.confirm_logout_title, Snackbar
+                                    .LENGTH_SHORT
+                            ).show()
+                        }
                         MainViewModel.launchLogin(context)
+                    }
+                    else {
+                        settingsFragment.view?.let {
+                            Snackbar.make(it, R.string.invalid_email, Snackbar.LENGTH_LONG).show()
+                        }
+                    }
                 }
                 is NoConnectionError -> {
-                    view?.let {
+                    settingsFragment.view?.let {
                         Snackbar.make(
                             it, R.string.disconnected, Snackbar
                                 .LENGTH_LONG
@@ -92,7 +106,7 @@ class SettingsActivity : AppCompatActivity() {
                     }
                 }
                 else -> {
-                    view?.let {
+                    settingsFragment.view?.let {
                         Snackbar.make(
                             it, R.string.connection_error, Snackbar
                                 .LENGTH_LONG
@@ -140,7 +154,7 @@ class SettingsActivity : AppCompatActivity() {
                             })
                     }
                 }
-                view?.let {
+                settingsFragment.view?.let {
                     Snackbar.make(it, R.string.saving, Snackbar.LENGTH_INDEFINITE)
                         .show()
                 }
@@ -159,7 +173,7 @@ class SettingsActivity : AppCompatActivity() {
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
             setPreferencesFromResource(R.xml.root_preferences, rootKey)
             val localContext = context ?: return
-            val userInfoChangeListener = UserInfoChangeListener(localContext, view, viewModel,
+            val userInfoChangeListener = UserInfoChangeListener(localContext, this, viewModel,
                     findPreference = this::findPreference)
             val firstName: EditTextPreference? = findPreference(getString(R.string.first_name_key))
             if (firstName != null) {

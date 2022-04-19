@@ -284,6 +284,7 @@ class LoginActivity : AppCompatActivity() {
                     modifier = Modifier.padding(start = 16.dp)
                 )
             }
+            Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             Button(
                 onClick = {
                     model.changePassword(
@@ -298,6 +299,7 @@ class LoginActivity : AppCompatActivity() {
                 ) {
                 Text(text = getString(R.string.change_password))
                 if (!model.uiEnabled) {
+                    // TODO make this not change the size of the button
                     CircularProgressIndicator()
                 }
             }
@@ -394,6 +396,7 @@ class LoginActivity : AppCompatActivity() {
                     modifier = Modifier.padding(start = 16.dp)
                 )
             }
+            Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             Button(
                 onClick = {
                     model.login(
@@ -405,6 +408,7 @@ class LoginActivity : AppCompatActivity() {
             ) {
                 Text(text = getString(R.string.login))
                 if (!model.uiEnabled) {
+                    // TODO make this not change the size of the button
                     CircularProgressIndicator()
                 }
             }
@@ -630,6 +634,7 @@ class LoginActivity : AppCompatActivity() {
                     modifier = Modifier.padding(start = 16.dp)
                 )
             }
+            Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             Button(
                 onClick = {
                     model.createUser(
@@ -644,6 +649,7 @@ class LoginActivity : AppCompatActivity() {
                 ) {
                 Text(text = getString(R.string.create_user))
                 if (!model.uiEnabled) {
+                    // TODO make this not change the size of the button
                     CircularProgressIndicator()
                 }
             }

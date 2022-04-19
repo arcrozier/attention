@@ -125,6 +125,7 @@ open class AlertHandler : FirebaseMessagingService() {
                 val attentionRepository = AttentionRepository(AttentionDB.getDB(this))
                 attentionRepository.alertRead(username = messageData["username_to"], alertId =
                 messageData["alert_id"])
+                // TODO is there a way to close an active dialog if the id matches?
             }
             else -> {
                 Log.w(TAG, "Unrecognized action: $remoteMessage")
