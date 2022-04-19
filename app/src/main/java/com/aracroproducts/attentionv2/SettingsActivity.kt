@@ -53,7 +53,7 @@ class SettingsActivity : AppCompatActivity() {
 
     class UserInfoChangeListener(
         private val context: Context, private val view: View?, private
-        val model: SettingsViewModel
+        val model: SettingsViewModel, val findPreference: (String) -> EditTextPreference?
     ) :
         Preference.OnPreferenceChangeListener {
         private val attentionRepository = AttentionRepository(AttentionDB.getDB(context))
@@ -64,14 +64,8 @@ class SettingsActivity : AppCompatActivity() {
         ).getString(MainViewModel.MY_TOKEN, null)
 
 
-        private val defaultPrefs: SharedPreferences =
-            PreferenceManager.getDefaultSharedPreferences(context)
-
         private fun onResponse(newValue: Any?, key: String) {
-            defaultPrefs.edit().apply {
-                putString(key, newValue.toString())
-                apply()
-            }
+            findPreference(key)?.text = newValue.toString()
             if (--model.outstandingRequests == 0) {
                 view?.let {
                     Snackbar.make(
@@ -86,7 +80,8 @@ class SettingsActivity : AppCompatActivity() {
             model.outstandingRequests--
             when (error) {
                 is ClientError -> {
-                    MainViewModel.launchLogin(context)
+                    if (error.networkResponse.statusCode == 403)
+                        MainViewModel.launchLogin(context)
                 }
                 is NoConnectionError -> {
                     view?.let {
@@ -109,6 +104,7 @@ class SettingsActivity : AppCompatActivity() {
 
         override fun onPreferenceChange(preference: Preference, newValue: Any?): Boolean {
             if (token != null) {
+                model.outstandingRequests++
                 when (preference.key) {
                     context.getString(R.string.first_name_key) -> {
                         attentionRepository.editUser(token = token,
@@ -163,7 +159,8 @@ class SettingsActivity : AppCompatActivity() {
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
             setPreferencesFromResource(R.xml.root_preferences, rootKey)
             val localContext = context ?: return
-            val userInfoChangeListener = UserInfoChangeListener(localContext, view, viewModel)
+            val userInfoChangeListener = UserInfoChangeListener(localContext, view, viewModel,
+                    findPreference = this::findPreference)
             val firstName: EditTextPreference? = findPreference(getString(R.string.first_name_key))
             if (firstName != null) {
                 firstName.onPreferenceChangeListener = userInfoChangeListener

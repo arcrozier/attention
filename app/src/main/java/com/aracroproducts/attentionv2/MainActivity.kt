@@ -52,6 +52,7 @@ import com.aracroproducts.attentionv2.ui.theme.AppTheme
 import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import java.lang.IllegalStateException
 
@@ -90,6 +91,18 @@ class MainActivity : AppCompatActivity() {
     @OptIn(ExperimentalFoundationApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        setContent {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                HarmonizedTheme {
+                    HomeWrapper(model = friendModel)
+                }
+            } else {
+                AppTheme {
+                    HomeWrapper(model = friendModel)
+                }
+            }
+        }
 
         // Creates a notification channel for displaying failed-to-send notifications
         MainViewModel.createFailedAlertNotificationChannel(this)
@@ -166,18 +179,6 @@ class MainActivity : AppCompatActivity() {
         if (!checkPlayServices()) return
 
         friendModel.loadUserPrefs()
-
-        setContent {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                HarmonizedTheme {
-                    HomeWrapper(model = friendModel)
-                }
-            } else {
-                AppTheme {
-                    HomeWrapper(model = friendModel)
-                }
-            }
-        }
     }
 
     @ExperimentalFoundationApi
@@ -739,6 +740,19 @@ class MainActivity : AppCompatActivity() {
 
     public override fun onResume() {
         super.onResume()
+
+        MainScope().launch {
+
+            // token is auth token
+            val token = getSharedPreferences(MainViewModel.USER_INFO, Context.MODE_PRIVATE)
+                    .getString(MainViewModel.MY_TOKEN, null)
+            if (token != null) {
+                friendModel.getUserInfo(token) {
+                    if (!friendModel.addFriendException) launchLogin()
+                }
+            }
+        }
+
         // if Google API isn't available, do this - it's from the docs, should be correct
         if (!checkPlayServices()) return
     }

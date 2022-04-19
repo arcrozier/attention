@@ -80,9 +80,6 @@ interface FriendDAO {
     @Update
     suspend fun updateFriend(friend: Friend)
 
-    @Query("SELECT name FROM Friend WHERE id = :id")
-    suspend fun getFriendName(id: String): Name
-
     @Query("UPDATE Friend SET received = received + 1 WHERE id = :id")
     suspend fun incrementReceived(id: String)
 

@@ -8,6 +8,14 @@
     <PreferenceCategory
         app:iconSpaceReserved="false"
         app:title="@string/account">
+
+        <Preference
+            android:id="@+id/show_username_preference"
+            android:key="@string/username_key"
+            android:title="@string/username"
+            app:icon="@drawable/baseline_share_24"
+            app:iconSpaceReserved="true" />
+
         <EditTextPreference
             android:id="@+id/email_preference"
             android:key="@string/email_key"
@@ -28,13 +36,6 @@
             android:title="@string/last_name"
             app:iconSpaceReserved="true"
             app:useSimpleSummaryProvider="true" />
-
-        <Preference
-            android:id="@+id/show_username_preference"
-            android:key="@string/username_key"
-            android:title="@string/username"
-            app:icon="@drawable/baseline_share_24"
-            app:iconSpaceReserved="true" />
 
         <Preference
             android:key="@string/password_key"

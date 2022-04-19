@@ -6,13 +6,10 @@ import com.android.volley.Response
 import com.android.volley.VolleyError
 import com.android.volley.toolbox.JsonObjectRequest
 import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
-import java.security.KeyStore
-import java.security.PublicKey
 import java.util.*
 
 // Declares the DAO as a private property in the constructor. Pass in the DAO
@@ -24,9 +21,6 @@ class AttentionRepository(private val database: AttentionDB) {
     fun getFriends() = database.getFriendDAO().getFriends()
 
     suspend fun getFriendsSnapshot() = database.getFriendDAO().getFriendsSnapshot()
-
-    suspend fun getLocalFriendName(username: String) =
-        database.getFriendDAO().getFriendName(username)
 
     // By default Room runs suspend queries off the main thread, therefore, we don't need to
     // implement anything else to ensure we're not doing long running database work
@@ -212,7 +206,7 @@ class AttentionRepository(private val database: AttentionDB) {
         email: String? = null, responseListener: Response.Listener<JSONObject>? = null,
         errorListener: Response.ErrorListener? = null
     ) {
-        val url = "$BASE_URL/v2/edit/"
+        val url = "$BASE_URL/edit/"
         val params = JSONObject(buildMap {
             if (firstName != null) put("first_name", firstName)
             if (lastName != null) put("last_name", lastName)
