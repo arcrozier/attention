@@ -323,7 +323,8 @@ class MainActivity : AppCompatActivity() {
         ) {
             SwipeRefresh(
                     state = rememberSwipeRefreshState(friendModel.isRefreshing),
-                    onRefresh = { reload() })
+                    onRefresh = { reload() },
+                    modifier = Modifier.padding(it).fillMaxSize())
             {
                 LazyColumn(Modifier.background(MaterialTheme.colorScheme.background)) {
                     items(friends) { friend ->
