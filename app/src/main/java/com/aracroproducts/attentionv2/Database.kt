@@ -103,7 +103,7 @@ interface FriendDAO {
     suspend fun getFriendsSnapshot(): List<Friend>
 
     @Query("SELECT * FROM Friend WHERE id = :id")
-    fun getFriend(id: String): Friend
+    suspend fun getFriend(id: String): Friend
 }
 
 @Dao
@@ -115,7 +115,7 @@ interface CachedFriendDAO {
     fun delete(vararg friend: CachedFriend)
 
     @Query("SELECT * FROM CachedFriend")
-    fun getCachedFriends(): Flow<List<CachedFriend>>
+    fun getCachedFriends(): LiveData<List<CachedFriend>>
 
     @Query("SELECT * FROM CachedFriend")
     suspend fun getCachedFriendsSnapshot(): List<CachedFriend>

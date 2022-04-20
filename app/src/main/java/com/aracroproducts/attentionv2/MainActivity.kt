@@ -93,6 +93,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // TODO why doesn't dark theme work
         setContent {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 HarmonizedTheme {
@@ -208,8 +209,8 @@ class MainActivity : AppCompatActivity() {
         dialogState: Triple<MainViewModel.DialogStatus, Friend?, (String) -> Unit>,
         showSnackbar: String
     ) {
-
-
+        // TODO pull down to refresh
+        val cachedFriends by friendModel.cachedFriends.observeAsState(listOf())
         val scaffoldState = rememberScaffoldState()
         val scope = rememberCoroutineScope()
         if (showSnackbar.isNotBlank()) {
@@ -316,7 +317,7 @@ class MainActivity : AppCompatActivity() {
                         ), modifier = Modifier.padding(start = 16.dp, end = 16.dp)
                     )
                 }
-                items(friendModel.cachedFriends.value ?: listOf()) { cachedFriend ->
+                items(cachedFriends) { cachedFriend ->
                     FriendCard(friend = Friend(cachedFriend.username, cachedFriend.username),
                         onLongPress
                         = {}, onEditName = {}, onDeletePrompt = {})

@@ -67,13 +67,10 @@ class SettingsActivity : AppCompatActivity() {
             findPreference(key)?.text = newValue.toString()
             if (--model.outstandingRequests == 0) {
                 settingsFragment.view?.let {
-                    val snackBar = Snackbar.make(
+                    Snackbar.make(
                         it, R.string.saved, Snackbar
                             .LENGTH_LONG
-                    )
-                    snackBar.setAction(android.R.string.ok) {
-                        snackBar.dismiss()
-                    }.show()
+                    ).show()
                 }
             }
         }
@@ -118,6 +115,12 @@ class SettingsActivity : AppCompatActivity() {
 
         override fun onPreferenceChange(preference: Preference, newValue: Any?): Boolean {
             if (token != null) {
+                settingsFragment.view?.let {
+                    val snackBar = Snackbar.make(it, R.string.saving, Snackbar.LENGTH_INDEFINITE)
+                    snackBar.setAction(android.R.string.ok) {
+                        snackBar.dismiss()
+                    }.show()
+                }
                 model.outstandingRequests++
                 when (preference.key) {
                     context.getString(R.string.first_name_key) -> {
@@ -153,10 +156,6 @@ class SettingsActivity : AppCompatActivity() {
                                 onError(error)
                             })
                     }
-                }
-                settingsFragment.view?.let {
-                    Snackbar.make(it, R.string.saving, Snackbar.LENGTH_INDEFINITE)
-                        .show()
                 }
             } else {
                 MainViewModel.launchLogin(context)

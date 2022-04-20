@@ -88,11 +88,11 @@ class AttentionRepository(private val database: AttentionDB) {
         singleton.addToRequestQueue(request)
     }
 
-    fun getFriend(id: String): Friend = database.getFriendDAO().getFriend(id)
+    suspend fun getFriend(id: String): Friend = database.getFriendDAO().getFriend(id)
 
     fun cacheFriend(username: String) = database.getCachedFriendDAO().insert(CachedFriend(username))
 
-    fun getCachedFriends(): Flow<List<CachedFriend>> = database.getCachedFriendDAO()
+    fun getCachedFriends() = database.getCachedFriendDAO()
         .getCachedFriends()
 
     suspend fun getCachedFriendsSnapshot(): List<CachedFriend> =
@@ -344,16 +344,15 @@ class AttentionRepository(private val database: AttentionDB) {
         Log.e(javaClass.name, error.stackTraceToString())
         Log.e(javaClass.name, "Response from $url")
         Log.e(
-            javaClass.name, "Status ${error.networkResponse.statusCode} Data: ${
-                String(
-                    error
-                        .networkResponse.data
-                )
+            javaClass.name, "Status: ${error.networkResponse?.statusCode} Data: ${
+                error.networkResponse?.let {String(
+                    error.networkResponse.data
+                )} ?: "null"
             } in ${
                 error
                     .networkTimeMs
             } ms"
         )
-        Log.e(javaClass.name, "Headers: ${error.networkResponse.allHeaders}")
+        Log.e(javaClass.name, "Headers: ${error.networkResponse?.allHeaders}")
     }
 }

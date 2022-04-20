@@ -58,7 +58,7 @@ class MainViewModel @Inject internal constructor(
 
     val friends = attentionRepository.getFriends()
 
-    val cachedFriends = attentionRepository.getCachedFriends().asLiveData()
+    val cachedFriends = attentionRepository.getCachedFriends()
 
     var isSnackBarShowing by mutableStateOf("")
         private set
@@ -411,7 +411,7 @@ class MainViewModel @Inject internal constructor(
         })
     }
 
-    private fun getFriend(id: String): Friend {
+    private suspend fun getFriend(id: String): Friend {
         return attentionRepository.getFriend(id)
     }
 
@@ -454,29 +454,31 @@ class MainViewModel @Inject internal constructor(
      * @requires    - Code is one of ErrorType.SERVER_ERROR or ErrorType.BAD_REQUEST
      */
     private fun notifyUser(code: ErrorType, id: String) {
-        val context = getApplication<Application>()
-        val name = getFriend(id)
-        val text = if (code == ErrorType.SERVER_ERROR)
-            context.getString(R.string.alert_failed_server_error, name)
-        else context.getString(R.string.alert_failed_bad_request, name)
+        MainScope().launch {
+            val context = getApplication<Application>()
+            val name = getFriend(id)
+            val text = if (code == ErrorType.SERVER_ERROR)
+                context.getString(R.string.alert_failed_server_error, name)
+            else context.getString(R.string.alert_failed_bad_request, name)
 
-        val intent = Intent(context, MainActivity::class.java)
-        val pendingIntent =
-            PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+            val intent = Intent(context, MainActivity::class.java)
+            val pendingIntent =
+                PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
 
-        createFailedAlertNotificationChannel(context)
-        val builder: NotificationCompat.Builder =
-            NotificationCompat.Builder(context, FAILED_ALERT_CHANNEL_ID)
-        builder
-            .setSmallIcon(R.mipmap.app_icon)
-            .setContentTitle(context.getString(R.string.alert_failed))
-            .setContentText(text)
-            .setPriority(NotificationCompat.PRIORITY_MAX)
-            .setContentIntent(pendingIntent).setAutoCancel(true)
+            createFailedAlertNotificationChannel(context)
+            val builder: NotificationCompat.Builder =
+                NotificationCompat.Builder(context, FAILED_ALERT_CHANNEL_ID)
+            builder
+                .setSmallIcon(R.mipmap.app_icon)
+                .setContentTitle(context.getString(R.string.alert_failed))
+                .setContentText(text)
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setContentIntent(pendingIntent).setAutoCancel(true)
 
-        val notificationID = (System.currentTimeMillis() % 1000000000L).toInt() + 1
-        val notificationManagerCompat = NotificationManagerCompat.from(context)
-        notificationManagerCompat.notify(notificationID, builder.build())
+            val notificationID = (System.currentTimeMillis() % 1000000000L).toInt() + 1
+            val notificationManagerCompat = NotificationManagerCompat.from(context)
+            notificationManagerCompat.notify(notificationID, builder.build())
+        }
     }
 
     fun getUserInfo(token: String, onAuthError: () -> Unit) {

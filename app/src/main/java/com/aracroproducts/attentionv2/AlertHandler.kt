@@ -15,6 +15,8 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.preference.PreferenceManager
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
 
 /**
  * Handles Firebase alerts
@@ -53,48 +55,66 @@ open class AlertHandler : FirebaseMessagingService() {
      * @param remoteMessage - The message from Firebase
      */
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
+        MainScope().launch {
         Log.d(TAG, "Message received! $remoteMessage")
         val messageData = remoteMessage.data
         when (messageData["action"]) {
             "alert" -> {
-                val message = Message(timestamp = System.currentTimeMillis(), otherId = messageData[REMOTE_FROM] ?: return,
-                        direction = DIRECTION.Incoming, message = messageData[REMOTE_MESSAGE])
+                val message = Message(
+                    timestamp = System.currentTimeMillis(),
+                    otherId = messageData[REMOTE_FROM] ?: return@launch,
+                    direction = DIRECTION.Incoming,
+                    message = messageData[REMOTE_MESSAGE]
+                )
                 val repository = AttentionRepository(AttentionDB.getDB(applicationContext))
                 val userInfo = getSharedPreferences(MainViewModel.USER_INFO, MODE_PRIVATE)
-                if (messageData[REMOTE_TO] != userInfo.getString(MainViewModel.MY_ID,
-                                "")) return  //if message is not addressed to the user, ends
+                if (messageData[REMOTE_TO] != userInfo.getString(
+                        MainViewModel.MY_ID,
+                        ""
+                    )
+                ) return@launch  //if message is not addressed to the user, ends
 
                 val alertId = messageData[ALERT_ID]
                 if (alertId == null) {
                     Log.w(TAG, "Received message without an id: $remoteMessage")
-                    return
+                    return@launch
                 }
                 val senderName = repository.getFriend(message.otherId).name
 
-                val display = if (message.message == "null") getString(R.string.default_message,
-                        senderName) else getString(R.string.message_prefix, senderName, message.message)
+                val display = if (message.message == "null") getString(
+                    R.string.default_message,
+                    senderName
+                ) else getString(R.string.message_prefix, senderName, message.message)
 
                 repository.appendMessage(message = message)
-                val preferences = PreferenceManager.getDefaultSharedPreferences(this)
+                val preferences = PreferenceManager.getDefaultSharedPreferences(this@AlertHandler)
                 val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-                NotificationManagerCompat.from(this)
+                NotificationManagerCompat.from(this@AlertHandler)
                 // Check if SDK >= Android 7.0, uses the new notification manager, else uses the compat manager (SDK 19+)
                 // Checks if the app should avoid notifying because it has notifications disabled or:
                 if ((!manager.areNotificationsEnabled())
-                        || (!preferences.getBoolean(getString(R.string.override_dnd_key),
-                                false) // Checks whether it should not be overriding Do Not Disturb
-                                && (manager.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL // Do not disturb is on
-                                && manager.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_UNKNOWN))) { // Also do not disturb is on
-                    Log.d(TAG,
-                            "App is disabled from showing notifications or interruption filter is set to block notifications")
+                    || (!preferences.getBoolean(
+                        getString(R.string.override_dnd_key),
+                        false
+                    ) // Checks whether it should not be overriding Do Not Disturb
+                            && (manager.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL // Do not disturb is on
+                            && manager.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_UNKNOWN))
+                ) { // Also do not disturb is on
+                    Log.d(
+                        TAG,
+                        "App is disabled from showing notifications or interruption filter is set to block notifications"
+                    )
                     showNotification(display, senderName, alertId, message.otherId, true)
-                    return
+                    return@launch
                 }
                 try {
-                    if (Settings.Global.getInt(contentResolver,
-                                    "zen_mode") > 1) { // a variant of do not disturb
+                    if (Settings.Global.getInt(
+                            contentResolver,
+                            "zen_mode"
+                        ) > 1
+                    ) { // a variant of do not disturb
                         Log.d(TAG, "Device's zen mode is enabled")
-                        return
+                        return@launch
                     }
                 } catch (e: SettingNotFoundException) {
                     e.printStackTrace()
@@ -105,8 +125,8 @@ open class AlertHandler : FirebaseMessagingService() {
                 val id = showNotification(display, senderName, alertId, message.otherId, false)
 
                 // Device should only show pop up if the device is off or if it has the ability to draw overlays (required to show pop up if screen is on)
-                if (!pm.isInteractive || Settings.canDrawOverlays(this)) {
-                    val intent = Intent(this, Alert::class.java).apply {
+                if (!pm.isInteractive || Settings.canDrawOverlays(this@AlertHandler)) {
+                    val intent = Intent(this@AlertHandler, Alert::class.java).apply {
                         putExtra(REMOTE_FROM, senderName)
                         putExtra(REMOTE_MESSAGE, display)
                         putExtra(ASSOCIATED_NOTIFICATION, id)
@@ -114,23 +134,30 @@ open class AlertHandler : FirebaseMessagingService() {
                         putExtra(ALERT_ID, alertId)
                         putExtra(REMOTE_FROM_USERNAME, message.otherId)
                         addFlags(
-                                Intent.FLAG_ACTIVITY_NEW_TASK /*or Intent
-                                .FLAG_ACTIVITY_CLEAR_TASK*/)
+                            Intent.FLAG_ACTIVITY_NEW_TASK /*or Intent
+                                .FLAG_ACTIVITY_CLEAR_TASK*/
+                        )
                     }
-                    Log.d(TAG, "Sender: $senderName, ${message.otherId} Message: ${message.message}")
+                    Log.d(
+                        TAG,
+                        "Sender: $senderName, ${message.otherId} Message: ${message.message}"
+                    )
                     startActivity(intent)
                 }
             }
             "read" -> {
-                val attentionRepository = AttentionRepository(AttentionDB.getDB(this))
-                attentionRepository.alertRead(username = messageData["username_to"], alertId =
-                messageData["alert_id"])
+                val attentionRepository = AttentionRepository(AttentionDB.getDB(this@AlertHandler))
+                attentionRepository.alertRead(
+                    username = messageData["username_to"], alertId =
+                    messageData["alert_id"]
+                )
                 // TODO is there a way to close an active dialog if the id matches?
             }
             else -> {
                 Log.w(TAG, "Unrecognized action: $remoteMessage")
-                return
+                return@launch
             }
+        }
         }
     }
 
