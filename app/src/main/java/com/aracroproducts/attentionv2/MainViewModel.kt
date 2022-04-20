@@ -27,6 +27,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.asLiveData
 import androidx.preference.PreferenceManager
 import com.android.volley.*
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.google.android.gms.tasks.Task
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.MainScope
@@ -59,6 +60,8 @@ class MainViewModel @Inject internal constructor(
     val friends = attentionRepository.getFriends()
 
     val cachedFriends = attentionRepository.getCachedFriends()
+
+    var isRefreshing by mutableStateOf(false)
 
     var isSnackBarShowing by mutableStateOf("")
         private set
@@ -510,7 +513,9 @@ class MainViewModel @Inject internal constructor(
             attentionRepository.updateUserInfo(it.getJSONObject("data").getJSONArray("friends"))
             uploadCachedFriends()
             populateShareTargets()
+            isRefreshing = false
         }, {
+            isRefreshing = false
             Log.e(
                 sTAG, "An error occurred when initializing: ${it.message} ${
                     it
