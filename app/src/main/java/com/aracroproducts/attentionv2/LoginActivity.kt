@@ -14,10 +14,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -104,24 +101,33 @@ class LoginActivity : AppCompatActivity() {
                     backgroundColor = MaterialTheme.colorScheme.primary,
                     title = { Text(getString(R.string.app_name), color = MaterialTheme
                         .colorScheme.onPrimary) },
+                        navigationIcon = {
+                            if (model.login == LoginViewModel.State.CHANGE_PASSWORD) {
+                                IconButton(onClick = this::onBackPressed) {
+                                    Icon(Icons.Default.ArrowBack, getString(R.string
+                                            .back))
+                                }
+                            }
+                        }
                 )
             },
-            scaffoldState = scaffoldState
+            scaffoldState = scaffoldState,
+                backgroundColor = MaterialTheme.colorScheme.background
         ) {
             when (model.login) {
                 LoginViewModel.State.LOGIN -> {
-                    Login(model, scaffoldState = scaffoldState, coroutineScope = coroutineScope)
+                    Login(model, scaffoldState = scaffoldState, coroutineScope = coroutineScope, it)
                 }
                 LoginViewModel.State.CREATE_USER -> {
                     CreateUser(
                         model, scaffoldState = scaffoldState,
-                        coroutineScope = coroutineScope
+                        coroutineScope = coroutineScope, it
                     )
                 }
                 LoginViewModel.State.CHANGE_PASSWORD -> {
                     ChangePassword(
                         model = model, scaffoldState = scaffoldState,
-                        coroutineScope = coroutineScope
+                        coroutineScope = coroutineScope, it
                     )
                 }
             }
@@ -131,7 +137,7 @@ class LoginActivity : AppCompatActivity() {
     @Composable
     fun ChangePassword(
         model: LoginViewModel, scaffoldState: ScaffoldState, coroutineScope:
-        CoroutineScope
+        CoroutineScope, paddingValues: PaddingValues
     ) {
         var passwordHidden by remember {
             mutableStateOf(true)
@@ -140,7 +146,9 @@ class LoginActivity : AppCompatActivity() {
         val confirmPasswordFocusRequester = FocusRequester()
         Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
         Column(
-            verticalArrangement = Arrangement.Center, modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center, modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
@@ -307,15 +315,16 @@ class LoginActivity : AppCompatActivity() {
     }
 
     @Composable
-    fun Login(model: LoginViewModel, scaffoldState: ScaffoldState, coroutineScope: CoroutineScope) {
-        Log.d(javaClass.name, "In Login")
+    fun Login(model: LoginViewModel, scaffoldState: ScaffoldState, coroutineScope:
+    CoroutineScope, paddingValues: PaddingValues) {
         var passwordHidden by remember {
             mutableStateOf(true)
         }
         Column(
             verticalArrangement = centerWithBottomElement, horizontalAlignment = Alignment
                 .CenterHorizontally, modifier =
-            Modifier
+        Modifier
+                .padding(paddingValues)
                 .fillMaxSize()
         ) {
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
@@ -422,7 +431,7 @@ class LoginActivity : AppCompatActivity() {
     @Composable
     fun CreateUser(
         model: LoginViewModel, scaffoldState: ScaffoldState,
-        coroutineScope: CoroutineScope
+        coroutineScope: CoroutineScope, paddingValues: PaddingValues
     ) {
         var passwordHidden by remember {
             mutableStateOf(true)
@@ -430,6 +439,7 @@ class LoginActivity : AppCompatActivity() {
         val confirmPasswordFocusRequester = FocusRequester()
         Column(
             verticalArrangement = centerWithBottomElement, modifier = Modifier
+                .padding(paddingValues)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
