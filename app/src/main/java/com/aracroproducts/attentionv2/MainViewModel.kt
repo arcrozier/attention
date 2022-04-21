@@ -452,17 +452,14 @@ class MainViewModel @Inject internal constructor(
     /**
      * Notifies the user that an alert was not successfully sent
      *
-     * @param code  - The error type; used to display an appropriate message
+     * @param message  - The message to display in the body of the notification
      * @param id    - The ID of the user that the alert was supposed to be sent to
      * @requires    - Code is one of ErrorType.SERVER_ERROR or ErrorType.BAD_REQUEST
      */
-    private fun notifyUser(code: ErrorType, id: String) {
+    private fun notifyUser(message: String, id: String) {
         MainScope().launch {
             val context = getApplication<Application>()
-            val name = getFriend(id)
-            val text = if (code == ErrorType.SERVER_ERROR)
-                context.getString(R.string.alert_failed_server_error, name)
-            else context.getString(R.string.alert_failed_bad_request, name)
+            val text = message
 
             val intent = Intent(context, MainActivity::class.java)
             val pendingIntent =
@@ -604,7 +601,8 @@ class MainViewModel @Inject internal constructor(
     }
 
     fun sendAlert(to: String, message: String?, launchLogin: () -> Unit) {
-        val token = getApplication<Application>().getSharedPreferences(
+        val context = getApplication<Application>()
+        val token = context.getSharedPreferences(
             USER_INFO, Context
                 .MODE_PRIVATE
         ).getString(MY_TOKEN, null)
@@ -612,27 +610,40 @@ class MainViewModel @Inject internal constructor(
             launchLogin()
             return
         }
-        attentionRepository.sendMessage(Message(
-            timestamp = System.currentTimeMillis(),
-            otherId = to, message
-            = message, direction = DIRECTION.Outgoing
-        ), token = token,
-            NetworkSingleton.getInstance(getApplication<Application>()), {
-                showSnackBar(getApplication<Application>().getString(R.string.alert_sent))
-            }, {
-                Log.e(sTAG, "Error sending alert: ${it.message} ${it.networkResponse}")
-                when (it) {
-                    is ClientError -> {
-                        notifyUser(ErrorType.BAD_REQUEST, to)
+        MainScope().launch {
+            val name = getFriend(to)
+            attentionRepository.sendMessage(Message(
+                timestamp = System.currentTimeMillis(),
+                otherId = to, message
+                = message, direction = DIRECTION.Outgoing
+            ), token = token,
+                NetworkSingleton.getInstance(getApplication<Application>()), {
+                    showSnackBar(getApplication<Application>().getString(R.string.alert_sent))
+                }, {
+                    Log.e(sTAG, "Error sending alert: ${it.message} ${it.networkResponse}")
+                    when (it) {
+                        is ClientError -> {
+                            // TODO doesn't fail cleanly
+                            when (it.networkResponse.statusCode) {
+                                400 -> notifyUser(
+                                    context.getString(R.string.alert_failed_bad_request, name),
+                                    to
+                                )
+                            }
+                        }
+                        is NoConnectionError -> {
+                            notifyUser(
+                                context.getString(R.string.alert_failed_no_connection, name),
+                                to
+                            )
+                        }
+                        else -> {
+                            notifyUser(context.getString(R.string.alert_failed_server_error, name),
+                                to)
+                        }
                     }
-                    is NoConnectionError -> {
-                        notifyUser(ErrorType.CONNECTION_FAILED, to)
-                    }
-                    else -> {
-                        notifyUser(ErrorType.SERVER_ERROR, to)
-                    }
-                }
-            })
+                })
+        }
     }
 
     /**

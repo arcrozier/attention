@@ -74,6 +74,8 @@
     <string name="alert_failed">Failed to send</string>
     <string name="alert_failed_bad_request">An error occurred while sending an alert to %s</string>
     <string name="alert_failed_server_error">The server encountered an error while sending an alert to %s</string>
+    <string name="alert_failed_no_connection">Could not send alert %s. Check you network
+        connection and try again</string>
     <string name="general_error">Error: Could not send alert</string>
     <string name="user_registered">Your account has been registered!</string>
     <string name="default_message">%s wants your attention!</string>
