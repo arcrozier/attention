@@ -569,8 +569,9 @@ class MainActivity : AppCompatActivity() {
                         value = friendModel.addFriendUsername,
                         onValueChange = {
                             friendModel.addFriendUsername = it
+                            // TODO doesn't seem to update correctly?
                             friendModel.getFriendName(
-                                friendModel.addFriendUsername,
+                                it,
                                 launchLogin =
                                 ::launchLogin
                             )
@@ -622,6 +623,27 @@ class MainActivity : AppCompatActivity() {
             when (it) {
                 State.NORMAL -> 0.dp
                 else -> 3.dp
+            }
+        }
+
+        var progress by remember { mutableStateOf(0f) }
+        val animatedProgress by animateFloatAsState(
+                targetValue = progress,
+                animationSpec = ProgressIndicatorDefaults.ProgressAnimationSpec
+        )
+
+        val delay = object : CountDownTimer(UNDO_TIME, UNDO_TIME / UNDO_INTERVALS) {
+            override fun onTick(p0: Long) {
+                progress = (UNDO_TIME - p0).toFloat() / UNDO_TIME
+            }
+
+            override fun onFinish() {
+                friendModel.sendAlert(
+                        friend.id,
+                        message = message,
+                        launchLogin = ::launchLogin
+                )
+                state = State.NORMAL
             }
         }
         // TODO this shouldn't change size
@@ -742,6 +764,7 @@ class MainActivity : AppCompatActivity() {
                         onClick = {
                             state = State.CANCEL
                             message = null
+                            delay.start()
                         }, colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme
                                 .colorScheme.primary,
@@ -757,6 +780,7 @@ class MainActivity : AppCompatActivity() {
                         ) {
                             message = it
                             state = State.CANCEL
+                            delay.start()
                         })
                     }) {
                         Text(getString(R.string.add_message))
@@ -764,25 +788,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             AnimatedVisibility(visible = state == State.CANCEL) {
-                var progress by remember { mutableStateOf(0f) }
-                val animatedProgress by animateFloatAsState(
-                    targetValue = progress,
-                    animationSpec = ProgressIndicatorDefaults.ProgressAnimationSpec
-                )
 
-                val delay = object : CountDownTimer(UNDO_TIME, UNDO_TIME / UNDO_INTERVALS) {
-                    override fun onTick(p0: Long) {
-                        progress = (UNDO_TIME - p0).toFloat() / UNDO_TIME
-                    }
-
-                    override fun onFinish() {
-                        friendModel.sendAlert(
-                            friend.id,
-                            message = message,
-                            launchLogin = ::launchLogin
-                        )
-                    }
-                }
 
                 LinearProgressIndicator(progress = animatedProgress,
                     // TODO looks like shit
@@ -790,9 +796,6 @@ class MainActivity : AppCompatActivity() {
                         delay.cancel()
                         state = State.NORMAL
                     }.fillMaxSize())
-
-
-                delay.start()
             }
         }
     }

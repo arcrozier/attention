@@ -22,17 +22,12 @@ import androidx.core.app.Person
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.asLiveData
 import androidx.preference.PreferenceManager
 import com.android.volley.*
-import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.google.android.gms.tasks.Task
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.lang.Integer.min
@@ -456,7 +451,7 @@ class MainViewModel @Inject internal constructor(
      * @param id    - The ID of the user that the alert was supposed to be sent to
      * @requires    - Code is one of ErrorType.SERVER_ERROR or ErrorType.BAD_REQUEST
      */
-    private fun notifyUser(message: String, id: String) {
+    private fun notifyUser(message: String) {
         MainScope().launch {
             val context = getApplication<Application>()
             val text = message
@@ -611,7 +606,7 @@ class MainViewModel @Inject internal constructor(
             return
         }
         MainScope().launch {
-            val name = getFriend(to)
+            val name = getFriend(to).name
             attentionRepository.sendMessage(Message(
                 timestamp = System.currentTimeMillis(),
                 otherId = to, message
@@ -623,23 +618,40 @@ class MainViewModel @Inject internal constructor(
                     Log.e(sTAG, "Error sending alert: ${it.message} ${it.networkResponse}")
                     when (it) {
                         is ClientError -> {
-                            // TODO doesn't fail cleanly
+                            val data = String(it.networkResponse.data)
                             when (it.networkResponse.statusCode) {
-                                400 -> notifyUser(
-                                    context.getString(R.string.alert_failed_bad_request, name),
-                                    to
-                                )
+                                400 -> {
+                                    when {
+                                        data.contains("Could not find user", true) -> {
+                                            notifyUser(context.getString(R.string
+                                                    .alert_failed_no_user, name))
+                                        }
+                                        else -> {
+                                            notifyUser(
+                                                    context.getString(R.string.alert_failed_bad_request, name)
+                                            )
+                                        }
+                                    }
+                                }
+                                403 -> {
+                                    when {
+                                        data.contains("does not have you as a friend", true) -> {
+                                            notifyUser(context.getString(R.string
+                                                    .alert_failed_not_friend, name))
+                                        }
+                                        else ->
+                                            launchLogin(context)
+                                    }
+                                }
                             }
                         }
                         is NoConnectionError -> {
                             notifyUser(
-                                context.getString(R.string.alert_failed_no_connection, name),
-                                to
+                                    context.getString(R.string.alert_failed_no_connection, name)
                             )
                         }
                         else -> {
-                            notifyUser(context.getString(R.string.alert_failed_server_error, name),
-                                to)
+                            notifyUser(context.getString(R.string.alert_failed_server_error, name))
                         }
                     }
                 })
