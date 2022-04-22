@@ -14,10 +14,7 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -330,9 +327,9 @@ class MainActivity : AppCompatActivity() {
             )
             {
                 LazyColumn(
-                        Modifier
-                                .background(MaterialTheme.colorScheme.background)
-                                .fillMaxSize()
+                    Modifier
+                        .background(MaterialTheme.colorScheme.background)
+                        .fillMaxSize()
                 ) {
                     items(friends) { friend ->
                         FriendCard(
@@ -532,8 +529,8 @@ class MainActivity : AppCompatActivity() {
                 buttons = {
                     Row(
                             modifier = Modifier
-                                    .padding(all = 8.dp)
-                                    .fillMaxWidth(),
+                                .padding(all = 8.dp)
+                                .fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         OutlinedButton(onClick = {
@@ -646,25 +643,25 @@ class MainActivity : AppCompatActivity() {
                 state = State.NORMAL
             }
         }
-        // TODO this shouldn't change size
         Box(
                 modifier = Modifier
-                        .fillMaxWidth(1F)
-                        .padding(10.dp)
-                        .combinedClickable(onClick = {
-                            state = when (state) {
-                                State.NORMAL -> State.CONFIRM
-                                State.CONFIRM, State.CANCEL, State.EDIT -> State.NORMAL
-                            }
-                        }, onLongClick = {
-                            state = when (state) {
-                                State.NORMAL -> State.EDIT
-                                else -> state
-                            }
-                            onLongPress()
-                        })
+                    .fillMaxWidth(1F)
+                    .padding(10.dp)
+                    .requiredHeight(48.dp)
+                    .combinedClickable(onClick = {
+                        state = when (state) {
+                            State.NORMAL -> State.CONFIRM
+                            State.CONFIRM, State.CANCEL, State.EDIT -> State.NORMAL
+                        }
+                    }, onLongClick = {
+                        state = when (state) {
+                            State.NORMAL -> State.EDIT
+                            else -> state
+                        }
+                        onLongPress()
+                    })
         ) {
-            Column {
+            Column(modifier = Modifier.align(Alignment.CenterStart)) {
                 Text(
                         text = friend.name,
                         style = MaterialTheme.typography.titleMedium,
@@ -713,7 +710,7 @@ class MainActivity : AppCompatActivity() {
                     exit = shrinkHorizontally(shrinkTowards = Alignment.End) + fadeOut()
             ) {
                 Row(
-                        horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier
+                        horizontalArrangement = Arrangement.End, modifier = Modifier
                         .fillMaxWidth()
                 ) {
                     IconButton(onClick = { state = State.NORMAL }) {
@@ -737,6 +734,7 @@ class MainActivity : AppCompatActivity() {
                     ) {
                         Text(getString(R.string.delete))
                     }
+                    Spacer(modifier = Modifier.width(LoginActivity.LIST_ELEMENT_PADDING))
                     OutlinedButton(onClick = {
                         onEditName(friend)
                         state = State.NORMAL
@@ -787,11 +785,9 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
-            AnimatedVisibility(visible = state == State.CANCEL) {
-
-
-                LinearProgressIndicator(progress = animatedProgress,
-                        // TODO looks like shit
+            AnimatedVisibility(visible = state == State.CANCEL, enter = fadeIn(), exit = fadeOut()) {
+                CancelBar(progress = animatedProgress,
+                        // TODO seems like the delay object is recreated each time the screen recomposes. May need to hoist this?
                         modifier = Modifier
                                 .clickable {
                                     delay.cancel()
@@ -799,6 +795,27 @@ class MainActivity : AppCompatActivity() {
                                 }
                                 .fillMaxSize())
             }
+        }
+    }
+
+    @Composable
+    fun CancelBar(
+        progress: Float,
+        modifier: Modifier = Modifier
+    ) {
+        Box(
+            modifier = modifier
+                .background(color = MaterialTheme.colorScheme.inversePrimary)
+        ) {
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(progress)
+                    .fillMaxHeight()
+                    .background(color = MaterialTheme.colorScheme.primary)
+            ) {
+            }
+            Text(text = getString(R.string.cancel), modifier = Modifier.align(Alignment.Center))
         }
     }
 

@@ -631,6 +631,7 @@ class MainViewModel @Inject internal constructor(
                     is AuthFailureError -> {
                         val data = String(it.networkResponse.data)
                         when {
+                            // TODO this catch is not happening
                             data.contains("does not have you as a friend", true) -> {
                                 notifyUser(context.getString(R.string
                                         .alert_failed_not_friend, name))
