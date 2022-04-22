@@ -43,15 +43,6 @@ class MainViewModel @Inject internal constructor(
         CONFIRM_DELETE_CACHED, NONE
     }
 
-    /**
-     * Used to store the different return types from the connect function
-     */
-    enum class ErrorType {
-        BAD_REQUEST,  // Something was wrong with the request (don't retry)
-        SERVER_ERROR,  // The server isn't working (don't retry)
-        CONNECTION_FAILED  // There was an issue with the connection (should retry)
-    }
-
     val friends = attentionRepository.getFriends()
 
     val cachedFriends = attentionRepository.getCachedFriends()
@@ -102,11 +93,7 @@ class MainViewModel @Inject internal constructor(
         if (typeCompare != 0) {
             typeCompare
         } else {
-            if (t.second != null) {
-                t.second!!.name.compareTo(t.first.name)
-            } else {
-                1
-            }
+            t.second?.name?.compareTo(t.first.name) ?: 0
         }
     }
 
@@ -127,9 +114,6 @@ class MainViewModel @Inject internal constructor(
                 dialogState.value = Triple(DialogStatus.NONE, null) {}
             } else {
                 dialogState.value = dialogQueue.remove()
-                if (dialogState.value.first == DialogStatus.ADD_FRIEND) {
-
-                }
             }
         }
     }
@@ -439,7 +423,6 @@ class MainViewModel @Inject internal constructor(
      * Notifies the user that an alert was not successfully sent
      *
      * @param message  - The message to display in the body of the notification
-     * @param id    - The ID of the user that the alert was supposed to be sent to
      * @requires    - Code is one of ErrorType.SERVER_ERROR or ErrorType.BAD_REQUEST
      */
     private fun notifyUser(message: String) {

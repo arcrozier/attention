@@ -54,6 +54,7 @@ import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.lang.IllegalStateException
 
@@ -628,21 +629,8 @@ class MainActivity : AppCompatActivity() {
                 targetValue = progress,
                 animationSpec = ProgressIndicatorDefaults.ProgressAnimationSpec
         )
+        var progressEnabled by remember { mutableStateOf(false) }
 
-        val delay = object : CountDownTimer(UNDO_TIME, UNDO_TIME / UNDO_INTERVALS) {
-            override fun onTick(p0: Long) {
-                progress = (UNDO_TIME - p0).toFloat() / UNDO_TIME
-            }
-
-            override fun onFinish() {
-                friendModel.sendAlert(
-                        friend.id,
-                        message = message,
-                        launchLogin = ::launchLogin
-                )
-                state = State.NORMAL
-            }
-        }
         Box(
                 modifier = Modifier
                     .fillMaxWidth(1F)
@@ -762,7 +750,7 @@ class MainActivity : AppCompatActivity() {
                             onClick = {
                                 state = State.CANCEL
                                 message = null
-                                delay.start()
+                                progressEnabled = true
                             }, colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme
                                     .colorScheme.primary,
@@ -778,7 +766,7 @@ class MainActivity : AppCompatActivity() {
                         ) {
                             message = it
                             state = State.CANCEL
-                            delay.start()
+                            progressEnabled = true
                         })
                     }) {
                         Text(getString(R.string.add_message))
@@ -786,11 +774,28 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             AnimatedVisibility(visible = state == State.CANCEL, enter = fadeIn(), exit = fadeOut()) {
+                LaunchedEffect(progressEnabled) {
+                    while (progress < 1 && progressEnabled) {
+                        progress += 1f / UNDO_INTERVALS
+                        delay(UNDO_TIME / UNDO_INTERVALS)
+                    }
+                }
+
+                if (progress >= 1f) {
+                    friendModel.sendAlert(
+                            friend.id,
+                            message = message,
+                            launchLogin = ::launchLogin
+                    )
+                    state = State.NORMAL
+                    progress = 0f
+                    progressEnabled = false
+                }
                 CancelBar(progress = animatedProgress,
-                        // TODO seems like the delay object is recreated each time the screen recomposes. May need to hoist this?
                         modifier = Modifier
                                 .clickable {
-                                    delay.cancel()
+                                    progressEnabled = false
+                                    progress = 0f
                                     state = State.NORMAL
                                 }
                                 .fillMaxSize())
