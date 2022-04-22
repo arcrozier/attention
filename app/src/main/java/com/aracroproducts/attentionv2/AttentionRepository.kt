@@ -171,7 +171,7 @@ class AttentionRepository(private val database: AttentionDB) {
             }, { error ->
                 printNetworkError(error, url)
                 errorListener?.onErrorResponse(
-                    VolleyError("Couldn't send alert: ${error.message}")
+                    error
                 )
             }, token
         )

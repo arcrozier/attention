@@ -753,6 +753,7 @@ class MainActivity : AppCompatActivity() {
                                 state = State.CANCEL
                                 message = null
                                 progressEnabled = true
+                                progress = 0f
                             }, colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme
                                     .colorScheme.primary,
@@ -769,6 +770,7 @@ class MainActivity : AppCompatActivity() {
                             message = it
                             state = State.CANCEL
                             progressEnabled = true
+                            progress = 0f
                         })
                     }) {
                         Text(getString(R.string.add_message))
@@ -791,14 +793,13 @@ class MainActivity : AppCompatActivity() {
                             launchLogin = ::launchLogin
                     )
                     state = State.NORMAL
-                    progress = 0f
+                    progress = 0f // TODO looks weird but need to set it back to 0
                     progressEnabled = false
                 }
                 CancelBar(progress = animatedProgress,
                         modifier = Modifier
                                 .clickable {
                                     progressEnabled = false
-                                    progress = 0f
                                     state = State.NORMAL
                                 }
                                 .fillMaxSize())
