@@ -18,6 +18,7 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.OutlinedTextField
@@ -39,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -811,6 +813,7 @@ class MainActivity : AppCompatActivity() {
         Box(
             modifier = modifier
                 .background(color = MaterialTheme.colorScheme.inversePrimary)
+                    .clip(shape = RoundedCornerShape(5.dp))
         ) {
 
             Box(
@@ -818,6 +821,7 @@ class MainActivity : AppCompatActivity() {
                     .fillMaxWidth(progress)
                     .fillMaxHeight()
                     .background(color = MaterialTheme.colorScheme.primary)
+                        .clip(shape = RoundedCornerShape(5.dp))
             ) {
             }
             Text(text = getString(R.string.cancel), modifier = Modifier.align(Alignment.Center))
