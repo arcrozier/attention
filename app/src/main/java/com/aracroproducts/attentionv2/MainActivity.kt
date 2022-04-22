@@ -330,9 +330,9 @@ class MainActivity : AppCompatActivity() {
             )
             {
                 LazyColumn(
-                    Modifier
-                        .background(MaterialTheme.colorScheme.background)
-                        .fillMaxSize()
+                        Modifier
+                                .background(MaterialTheme.colorScheme.background)
+                                .fillMaxSize()
                 ) {
                     items(friends) { friend ->
                         FriendCard(
@@ -532,8 +532,8 @@ class MainActivity : AppCompatActivity() {
                 buttons = {
                     Row(
                             modifier = Modifier
-                                .padding(all = 8.dp)
-                                .fillMaxWidth(),
+                                    .padding(all = 8.dp)
+                                    .fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         OutlinedButton(onClick = {
@@ -635,21 +635,21 @@ class MainActivity : AppCompatActivity() {
 
         Box(
                 modifier = Modifier
-                    .fillMaxWidth(1F)
-                    .padding(10.dp)
-                    .requiredHeight(48.dp)
-                    .combinedClickable(onClick = {
-                        state = when (state) {
-                            State.NORMAL -> State.CONFIRM
-                            State.CONFIRM, State.CANCEL, State.EDIT -> State.NORMAL
-                        }
-                    }, onLongClick = {
-                        state = when (state) {
-                            State.NORMAL -> State.EDIT
-                            else -> state
-                        }
-                        onLongPress()
-                    })
+                        .fillMaxWidth(1F)
+                        .padding(10.dp)
+                        .requiredHeight(48.dp)
+                        .combinedClickable(onClick = {
+                            state = when (state) {
+                                State.NORMAL -> State.CONFIRM
+                                State.CONFIRM, State.CANCEL, State.EDIT -> State.NORMAL
+                            }
+                        }, onLongClick = {
+                            state = when (state) {
+                                State.NORMAL -> State.EDIT
+                                else -> state
+                            }
+                            onLongPress()
+                        })
         ) {
             Column(modifier = Modifier.align(Alignment.CenterStart)) {
                 Text(
@@ -775,7 +775,8 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
-            AnimatedVisibility(visible = state == State.CANCEL, enter = fadeIn(), exit = fadeOut()) {
+            AnimatedVisibility(visible = state == State.CANCEL, enter = fadeIn(),
+                    exit = fadeOut()) {
                 LaunchedEffect(progressEnabled) {
                     while (progress < 1 && progressEnabled) {
                         progress += 1f / UNDO_INTERVALS
@@ -807,21 +808,21 @@ class MainActivity : AppCompatActivity() {
 
     @Composable
     fun CancelBar(
-        progress: Float,
-        modifier: Modifier = Modifier
+            progress: Float,
+            modifier: Modifier = Modifier
     ) {
         Box(
-            modifier = modifier
-                .background(color = MaterialTheme.colorScheme.inversePrimary)
-                    .clip(shape = RoundedCornerShape(5.dp))
+                modifier = modifier
+                        .clip(shape = RoundedCornerShape(5.dp))
+                        .background(color = MaterialTheme.colorScheme.inversePrimary)
         ) {
 
             Box(
-                modifier = Modifier
-                    .fillMaxWidth(progress)
-                    .fillMaxHeight()
-                    .background(color = MaterialTheme.colorScheme.primary)
-                        .clip(shape = RoundedCornerShape(5.dp))
+                    modifier = Modifier
+                            .fillMaxWidth(progress)
+                            .fillMaxHeight()
+                            .clip(shape = RoundedCornerShape(5.dp))
+                            .background(color = MaterialTheme.colorScheme.primary)
             ) {
             }
             Text(text = getString(R.string.cancel), modifier = Modifier.align(Alignment.Center))
