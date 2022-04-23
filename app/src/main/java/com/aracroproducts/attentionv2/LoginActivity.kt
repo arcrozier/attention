@@ -303,12 +303,14 @@ class LoginActivity : AppCompatActivity() {
                     }
                 },
                 enabled = model.uiEnabled,
-
+                modifier = Modifier.requiredHeight(56.dp)
                 ) {
-                Text(text = getString(R.string.change_password))
-                if (!model.uiEnabled) {
-                    // TODO make this not change the size of the button
-                    CircularProgressIndicator()
+                Box {
+                    Text(text = getString(R.string.change_password), modifier = Modifier.align
+                        (Alignment.Center))
+                    if (!model.uiEnabled) {
+                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    }
                 }
             }
         }
@@ -415,10 +417,12 @@ class LoginActivity : AppCompatActivity() {
                 },
                 enabled = model.uiEnabled,
             ) {
-                Text(text = getString(R.string.login))
-                if (!model.uiEnabled) {
-                    // TODO make this not change the size of the button
-                    CircularProgressIndicator()
+                Box {
+                    Text(text = getString(R.string.login), modifier = Modifier.align
+                        (Alignment.Center))
+                    if (!model.uiEnabled) {
+                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    }
                 }
             }
             TextButton(onClick = { model.login = LoginViewModel.State.CREATE_USER }) {
@@ -657,10 +661,12 @@ class LoginActivity : AppCompatActivity() {
                 enabled = model.uiEnabled,
 
                 ) {
-                Text(text = getString(R.string.create_user))
-                if (!model.uiEnabled) {
-                    // TODO make this not change the size of the button
-                    CircularProgressIndicator()
+                Box {
+                    Text(text = getString(R.string.create_user), modifier = Modifier.align
+                        (Alignment.Center))
+                    if (!model.uiEnabled) {
+                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    }
                 }
             }
             TextButton(onClick = { model.login = LoginViewModel.State.LOGIN }) {
