@@ -844,6 +844,8 @@ class MainActivity : AppCompatActivity() {
                     if (!friendModel.addFriendException) launchLogin()
                 }
             }
+
+            friendModel.registerDevice()
         }
 
         // if Google API isn't available, do this - it's from the docs, should be correct

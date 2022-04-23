@@ -496,7 +496,7 @@ class MainViewModel @Inject internal constructor(
         })
     }
 
-    init {
+    fun registerDevice() {
         val context = getApplication<Application>()
         val userInfo = context.getSharedPreferences(USER_INFO, Context.MODE_PRIVATE)
 
@@ -511,7 +511,7 @@ class MainViewModel @Inject internal constructor(
             attentionRepository.registerDevice(
                     token, fcmToken,
                     NetworkSingleton
-                            .getInstance(application),
+                            .getInstance(context),
                     {
                         Log.d(sTAG, "Successfully uploaded token")
                         fcmTokenPrefs.edit().apply {
@@ -524,7 +524,7 @@ class MainViewModel @Inject internal constructor(
                     },
             )
         } else if (fcmToken == null) { // We don't have a token, so let's get one
-            getToken(application)
+            getToken(context)
         }
     }
 
@@ -608,7 +608,6 @@ class MainViewModel @Inject internal constructor(
                     is AuthFailureError -> {
                         val data = String(it.networkResponse.data)
                         when {
-                            // TODO this catch is not happening
                             data.contains("does not have you as a friend", true) -> {
                                 notifyUser(context.getString(R.string
                                         .alert_failed_not_friend, name))

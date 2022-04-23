@@ -159,7 +159,7 @@ class AttentionRepository(private val database: AttentionDB) {
         val request = AuthorizedJsonObjectRequest(Request.Method.POST, url,
             params,
             {
-                val alertId = it.getString("id")
+                val alertId = it.getJSONObject("data").getString("id")
                 MainScope().launch {
                     database.getFriendDAO().setMessageAlert(alertId, message.otherId)
                     database.getFriendDAO().setMessageRead(
