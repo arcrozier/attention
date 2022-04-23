@@ -271,22 +271,16 @@ class MainViewModel @Inject internal constructor(
             lastNameRequest = null
             newFriendName = it.getJSONObject("data").getString("name")
             friendNameLoading = false
+            usernameCaption = ""
             responseListener?.onResponse(it)
         }, errorListener = {
             lastNameRequest = null
             friendNameLoading = false
-            Log.e(
-                    sTAG, "An error occurred when getting friend name: ${it.message} ${
-                it
-                        .networkResponse
-            }"
-            )
+            newFriendName = ""
             when (it) {
                 is ClientError -> {
                     usernameCaption =
                             getApplication<Application>().getString(R.string.nonexistent_username)
-
-
                 }
                 is AuthFailureError -> {
                     if (!addFriendException) launchLogin()
@@ -438,7 +432,7 @@ class MainViewModel @Inject internal constructor(
             val builder: NotificationCompat.Builder =
                     NotificationCompat.Builder(context, FAILED_ALERT_CHANNEL_ID)
             builder
-                    .setSmallIcon(R.mipmap.app_icon)
+                    .setSmallIcon(R.drawable.app_icon_foreground)
                     .setContentTitle(context.getString(R.string.alert_failed))
                     .setContentText(text)
                     .setPriority(NotificationCompat.PRIORITY_MAX)

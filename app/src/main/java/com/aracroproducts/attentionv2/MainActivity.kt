@@ -6,33 +6,38 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.CountDownTimer
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.*
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.*
+import androidx.compose.animation.core.animateDp
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.updateTransition
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Text
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -58,7 +63,7 @@ import com.google.android.gms.common.GoogleApiAvailability
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.lang.IllegalStateException
+import kotlin.math.min
 
 class MainActivity : AppCompatActivity() {
     private val friendModel: MainViewModel by viewModels(factoryProducer = {
@@ -569,11 +574,8 @@ class MainActivity : AppCompatActivity() {
                                 value = friendModel.addFriendUsername,
                                 onValueChange = {
                                     friendModel.addFriendUsername = it
-                                    // TODO doesn't seem to update correctly?
                                     friendModel.getFriendName(
-                                            it,
-                                            launchLogin =
-                                            ::launchLogin
+                                            it, launchLogin = ::launchLogin
                                     )
                                 },
                                 keyboardOptions = KeyboardOptions(
@@ -625,13 +627,6 @@ class MainActivity : AppCompatActivity() {
                 else -> 3.dp
             }
         }
-
-        var progress by remember { mutableStateOf(0f) }
-        val animatedProgress by animateFloatAsState(
-                targetValue = progress,
-                animationSpec = ProgressIndicatorDefaults.ProgressAnimationSpec
-        )
-        var progressEnabled by remember { mutableStateOf(false) }
 
         Box(
                 modifier = Modifier
@@ -752,8 +747,6 @@ class MainActivity : AppCompatActivity() {
                             onClick = {
                                 state = State.CANCEL
                                 message = null
-                                progressEnabled = true
-                                progress = 0f
                             }, colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme
                                     .colorScheme.primary,
@@ -769,8 +762,6 @@ class MainActivity : AppCompatActivity() {
                         ) {
                             message = it
                             state = State.CANCEL
-                            progressEnabled = true
-                            progress = 0f
                         })
                     }) {
                         Text(getString(R.string.add_message))
@@ -779,21 +770,30 @@ class MainActivity : AppCompatActivity() {
             }
             AnimatedVisibility(visible = state == State.CANCEL, enter = fadeIn(),
                     exit = fadeOut()) {
+
+                var progress by remember { mutableStateOf(0) }
+                val animatedProgress by animateFloatAsState(
+                    targetValue = progress.toFloat() / UNDO_INTERVALS,
+                    animationSpec = ProgressIndicatorDefaults.ProgressAnimationSpec
+                )
+                var progressEnabled by remember { mutableStateOf(true) }
+                var triggered by remember { mutableStateOf(false) }
+
                 LaunchedEffect(progressEnabled) {
-                    while (progress < 1 && progressEnabled) {
-                        progress += 1f / UNDO_INTERVALS
+                    while (progress < UNDO_INTERVALS && progressEnabled) {
+                        progress = min(progress + 1, UNDO_INTERVALS.toInt())
                         delay(UNDO_TIME / UNDO_INTERVALS)
                     }
                 }
 
-                if (progress >= 1f) {
+                if (progress >= UNDO_INTERVALS && !triggered) {
+                    triggered = true
                     friendModel.sendAlert(
                             friend.id,
                             message = message,
                             launchLogin = ::launchLogin
                     )
                     state = State.NORMAL
-                    progress = 0f // TODO looks weird but need to set it back to 0
                     progressEnabled = false
                 }
                 CancelBar(progress = animatedProgress,
@@ -801,6 +801,7 @@ class MainActivity : AppCompatActivity() {
                                 .clickable {
                                     progressEnabled = false
                                     state = State.NORMAL
+                                    progress = 0
                                 }
                                 .fillMaxSize())
             }
