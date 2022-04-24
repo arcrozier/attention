@@ -3,13 +3,9 @@ package com.aracroproducts.attentionv2
 import android.app.Application
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.os.Bundle
-import android.view.View
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Snackbar
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.preference.*
@@ -200,7 +196,7 @@ class SettingsActivity : AppCompatActivity() {
                                 type = "text/plain"
                                 val shareBody =
                                     "Add me on Attention! https://attention.aracroproducts" +
-                                            ".com/app/add?username=$username$"
+                                            ".com/app/add?username=$username"
                                 putExtra(Intent.EXTRA_TEXT, shareBody)
                             }
                             startActivity(Intent.createChooser(sharingIntent, null))
