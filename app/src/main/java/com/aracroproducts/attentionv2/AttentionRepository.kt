@@ -163,9 +163,9 @@ class AttentionRepository(private val database: AttentionDB) {
                 MainScope().launch {
                     database.getFriendDAO().setMessageAlert(alertId, message.otherId)
                     database.getFriendDAO().setMessageRead(
-                        false, alert_id = alertId, id =
-                        message.otherId
+                        false, alert_id = alertId, id = message.otherId
                     )
+                    database.getFriendDAO().incrementSent(message.otherId)
                 }
                 responseListener?.onResponse(it)
             }, { error ->
@@ -289,6 +289,26 @@ class AttentionRepository(private val database: AttentionDB) {
             database.getFriendDAO()
                 .setMessageRead(true, alert_id = alertId, id = username)
         }
+    }
+
+    fun sendReadReceipt(alertId: String, from: String, fcmToken: String, authToken: String,
+                        singleton: NetworkSingleton, responseListener: Response
+            .Listener<JSONObject>? = null, errorListener: Response.ErrorListener? = null) {
+        val url = "$BASE_URL/alert_read/"
+        val params = JSONObject(
+                mapOf(
+                        "alert_id" to alertId,
+                        "from" to from,
+                        "fcm_token" to fcmToken
+                )
+        )
+        val request = AuthorizedJsonObjectRequest(Request.Method.POST, url,
+                params, responseListener, errorListener = {
+            printNetworkError(it, url)
+            errorListener?.onErrorResponse(it)
+        }, token = authToken
+        )
+        singleton.addToRequestQueue(request)
     }
 
     fun registerUser(

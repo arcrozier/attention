@@ -33,6 +33,7 @@
         <!-- android:showOnLockScreen="true" -->
         <activity
             android:name=".Alert"
+            android:theme="@style/AppTheme.Dialog"
             android:excludeFromRecents="true"
             android:showWhenLocked="true"
             android:turnScreenOn="true"

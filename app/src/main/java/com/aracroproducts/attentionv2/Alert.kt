@@ -1,5 +1,6 @@
 package com.aracroproducts.attentionv2
 
+import android.app.Application
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -23,13 +24,19 @@ import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
 class Alert : AppCompatActivity() {
     private val sTAG = javaClass.name
 
-    private val alertModel: AlertViewModel by viewModels(factoryProducer = {
-        AlertViewModelFactory(intent)
+    val alertModel: AlertViewModel by viewModels(factoryProducer = {
+        AlertViewModelFactory(intent, AttentionRepository(AttentionDB.getDB(this)), application)
     })
 
-    inner class AlertViewModelFactory(private val intent: Intent) : ViewModelProvider.Factory {
+    inner class AlertViewModelFactory(private val intent: Intent,
+                                      private val attentionRepository: AttentionRepository,
+                                      private val application: Application) : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return modelClass.getConstructor(Intent::class.java).newInstance(intent)
+            if (modelClass.isAssignableFrom(AlertViewModel::class.java)) {
+                return AlertViewModel(intent, attentionRepository, application) as T
+            }
+            throw IllegalArgumentException("Unknown ViewModel class")
         }
     }
 
@@ -46,7 +53,7 @@ class Alert : AppCompatActivity() {
 
         setContent {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                HarmonizedTheme() {
+                HarmonizedTheme {
                     Dialog(message = alertModel.message)
                 }
             } else {

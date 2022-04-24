@@ -383,7 +383,7 @@ class MainActivity : AppCompatActivity() {
                         friendModel.popDialogState()
                         onSend(message)
                     }) {
-                        Text(text = getString(R.string.save))
+                        Text(text = getString(R.string.send))
                     }
                 },
                 dismissButton = {
@@ -393,7 +393,7 @@ class MainActivity : AppCompatActivity() {
                         Text(text = getString(R.string.cancel))
                     }
                 },
-                title = { Text(text = getString(R.string.rename)) },
+                title = { Text(text = getString(R.string.add_message)) },
                 text = {
                     OutlinedTextField(
                             value = friendModel.message,
@@ -658,36 +658,24 @@ class MainActivity : AppCompatActivity() {
                                 .alpha(alpha)
                                 .blur(blur)
                 )
-                when {
-                    friend.last_message_read -> {
-                        Text(
-                                text = getString(R.string.read),
-                                color = MaterialTheme.colorScheme.onBackground.copy(
-                                        alpha = ContentAlpha.medium
-                                ),
-                                style = MaterialTheme.typography.labelSmall
-                        )
-                    }
+                val receipt = when {
+                    friend.last_message_read ->
+                        getString(R.string.read)
+
                     friend.last_message_sent_id != null && friend.last_message_sent_id != "null"
-                    -> {
-                        Text(
-                                text = getString(R.string.sent),
-                                color = MaterialTheme.colorScheme.onBackground.copy(
-                                        alpha = ContentAlpha.medium
-                                ),
-                                style = MaterialTheme.typography.labelSmall
-                        )
-                    }
-                    else -> {
-                        Text(
-                                text = "",
-                                color = MaterialTheme.colorScheme.onBackground.copy(
-                                        alpha = ContentAlpha.medium
-                                ),
-                                style = MaterialTheme.typography.labelSmall
-                        )
-                    }
+                    -> getString(R.string.sent)
+                    else -> ""
                 }
+                Text(
+                        text = receipt,
+                        color = MaterialTheme.colorScheme.onBackground.copy(
+                                alpha = ContentAlpha.medium
+                        ),
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier
+                                .alpha(alpha)
+                                .blur(blur)
+                )
             }
             AnimatedVisibility(
                     visible = state == State.EDIT,
@@ -773,8 +761,8 @@ class MainActivity : AppCompatActivity() {
 
                 var progress by remember { mutableStateOf(0) }
                 val animatedProgress by animateFloatAsState(
-                    targetValue = progress.toFloat() / UNDO_INTERVALS,
-                    animationSpec = ProgressIndicatorDefaults.ProgressAnimationSpec
+                        targetValue = progress.toFloat() / UNDO_INTERVALS,
+                        animationSpec = ProgressIndicatorDefaults.ProgressAnimationSpec
                 )
                 var progressEnabled by remember { mutableStateOf(true) }
                 var triggered by remember { mutableStateOf(false) }

@@ -56,108 +56,121 @@ open class AlertHandler : FirebaseMessagingService() {
      */
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         MainScope().launch {
-        Log.d(TAG, "Message received! $remoteMessage")
-        val messageData = remoteMessage.data
-        when (messageData["action"]) {
-            "alert" -> {
-                val message = Message(
-                    timestamp = System.currentTimeMillis(),
-                    otherId = messageData[REMOTE_FROM] ?: return@launch,
-                    direction = DIRECTION.Incoming,
-                    message = messageData[REMOTE_MESSAGE]
-                )
-                val repository = AttentionRepository(AttentionDB.getDB(applicationContext))
-                val userInfo = getSharedPreferences(MainViewModel.USER_INFO, MODE_PRIVATE)
-                if (messageData[REMOTE_TO] != userInfo.getString(
-                        MainViewModel.MY_ID,
-                        ""
+            Log.d(TAG, "Message received! $remoteMessage")
+            val messageData = remoteMessage.data
+            when (messageData["action"]) {
+                "alert" -> {
+                    val message = Message(
+                            timestamp = System.currentTimeMillis(),
+                            otherId = messageData[REMOTE_FROM] ?: return@launch,
+                            direction = DIRECTION.Incoming,
+                            message = messageData[REMOTE_MESSAGE]
                     )
-                ) return@launch  //if message is not addressed to the user, ends
+                    val repository = AttentionRepository(AttentionDB.getDB(applicationContext))
+                    val userInfo = PreferenceManager.getDefaultSharedPreferences(this@AlertHandler)
+                    if (messageData[REMOTE_TO] != userInfo.getString(
+                                    getString(R.string.username_key),
+                                    ""
+                            ) || messageData[REMOTE_TO] == ""
+                    ) return@launch  //if message is not addressed to the user, ends
 
-                val alertId = messageData[ALERT_ID]
-                if (alertId == null) {
-                    Log.w(TAG, "Received message without an id: $remoteMessage")
-                    return@launch
-                }
-                val senderName = repository.getFriend(message.otherId).name
-
-                val display = if (message.message == "null") getString(
-                    R.string.default_message,
-                    senderName
-                ) else getString(R.string.message_prefix, senderName, message.message)
-
-                repository.appendMessage(message = message)
-                val preferences = PreferenceManager.getDefaultSharedPreferences(this@AlertHandler)
-                val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-                NotificationManagerCompat.from(this@AlertHandler)
-                // Check if SDK >= Android 7.0, uses the new notification manager, else uses the compat manager (SDK 19+)
-                // Checks if the app should avoid notifying because it has notifications disabled or:
-                if ((!manager.areNotificationsEnabled())
-                    || (!preferences.getBoolean(
-                        getString(R.string.override_dnd_key),
-                        false
-                    ) // Checks whether it should not be overriding Do Not Disturb
-                            && (manager.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL // Do not disturb is on
-                            && manager.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_UNKNOWN))
-                ) { // Also do not disturb is on
-                    Log.d(
-                        TAG,
-                        "App is disabled from showing notifications or interruption filter is set to block notifications"
-                    )
-                    showNotification(display, senderName, alertId, message.otherId, true)
-                    return@launch
-                }
-                try {
-                    if (Settings.Global.getInt(
-                            contentResolver,
-                            "zen_mode"
-                        ) > 1
-                    ) { // a variant of do not disturb
-                        Log.d(TAG, "Device's zen mode is enabled")
+                    val alertId = messageData[ALERT_ID]
+                    if (alertId == null) {
+                        Log.w(TAG, "Received message without an id: $remoteMessage")
                         return@launch
                     }
-                } catch (e: SettingNotFoundException) {
-                    e.printStackTrace()
-                }
-                val pm = getSystemService(POWER_SERVICE) as PowerManager
+                    val senderName = repository.getFriend(message.otherId).name
 
-                // Stores the id so the notification can be cancelled by the user
-                val id = showNotification(display, senderName, alertId, message.otherId, false)
+                    val display = if (message.message == "None") getString(
+                            R.string.default_message,
+                            senderName
+                    ) else getString(R.string.message_prefix, senderName, message.message)
 
-                // Device should only show pop up if the device is off or if it has the ability to draw overlays (required to show pop up if screen is on)
-                if (!pm.isInteractive || Settings.canDrawOverlays(this@AlertHandler)) {
-                    val intent = Intent(this@AlertHandler, Alert::class.java).apply {
-                        putExtra(REMOTE_FROM, senderName)
-                        putExtra(REMOTE_MESSAGE, display)
-                        putExtra(ASSOCIATED_NOTIFICATION, id)
-                        putExtra(SHOULD_VIBRATE, true)
-                        putExtra(ALERT_ID, alertId)
-                        putExtra(REMOTE_FROM_USERNAME, message.otherId)
-                        addFlags(
-                            Intent.FLAG_ACTIVITY_NEW_TASK /*or Intent
-                                .FLAG_ACTIVITY_CLEAR_TASK*/
+                    repository.appendMessage(message = message)
+                    val preferences =
+                            PreferenceManager.getDefaultSharedPreferences(this@AlertHandler)
+                    val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+                    NotificationManagerCompat.from(this@AlertHandler)
+                    // Check if SDK >= Android 7.0, uses the new notification manager, else uses the compat manager (SDK 19+)
+                    // Checks if the app should avoid notifying because it has notifications disabled or:
+                    if ((!manager.areNotificationsEnabled())
+                            || (!preferences.getBoolean(
+                                    getString(R.string.override_dnd_key),
+                                    false
+                            ) // Checks whether it should not be overriding Do Not Disturb
+                                    && (manager.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL // Do not disturb is on
+                                    && manager.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_UNKNOWN))
+                    ) { // Also do not disturb is on
+                        Log.d(
+                                TAG,
+                                "App is disabled from showing notifications or interruption filter is set to block notifications"
                         )
+                        showNotification(display, senderName, alertId, message.otherId, true)
+                        return@launch
                     }
-                    Log.d(
-                        TAG,
-                        "Sender: $senderName, ${message.otherId} Message: ${message.message}"
+                    try {
+                        if (Settings.Global.getInt(
+                                        contentResolver,
+                                        "zen_mode"
+                                ) > 1
+                        ) { // a variant of do not disturb
+                            Log.d(TAG, "Device's zen mode is enabled")
+                            return@launch
+                        }
+                    } catch (e: SettingNotFoundException) {
+                        e.printStackTrace()
+                    }
+                    val pm = getSystemService(POWER_SERVICE) as PowerManager
+
+                    // Stores the id so the notification can be cancelled by the user
+                    val id = showNotification(display, senderName, alertId, message.otherId, false)
+
+                    AttentionDB.getDB(applicationContext).getFriendDAO().incrementReceived(message.otherId)
+
+                    // Device should only show pop up if the device is off or if it has the ability to draw overlays (required to show pop up if screen is on)
+                    if (!pm.isInteractive || Settings.canDrawOverlays(this@AlertHandler)) {
+                        val intent = Intent(this@AlertHandler, Alert::class.java).apply {
+                            putExtra(REMOTE_FROM, senderName)
+                            putExtra(REMOTE_MESSAGE, display)
+                            putExtra(ASSOCIATED_NOTIFICATION, id)
+                            putExtra(SHOULD_VIBRATE, true)
+                            putExtra(ALERT_ID, alertId)
+                            putExtra(REMOTE_FROM_USERNAME, message.otherId)
+                            if (AttentionApplication.isActivityVisible())
+                                addFlags(
+                                        Intent.FLAG_ACTIVITY_NEW_TASK
+                                )
+                            else
+                                addFlags(
+                                        Intent.FLAG_ACTIVITY_NEW_TASK or Intent
+                                                .FLAG_ACTIVITY_CLEAR_TASK
+                                )
+                        }
+                        Log.d(
+                                TAG,
+                                "Sender: $senderName, ${message.otherId} Message: ${message.message}"
+                        )
+                        startActivity(intent)
+                    }
+                }
+                "read" -> {
+                    val attentionRepository =
+                            AttentionRepository(AttentionDB.getDB(this@AlertHandler))
+                    attentionRepository.alertRead(
+                            username = messageData["username_to"], alertId =
+                    messageData["alert_id"]
                     )
-                    startActivity(intent)
+
+                    if (AttentionApplication.shownAlertID == messageData["alert_id"]) {
+                        (application as? AttentionApplication)?.activity?.finish() ?: Log.e(TAG,
+                                "Couldn't finish application")
+                    }
+                }
+                else -> {
+                    Log.w(TAG, "Unrecognized action: $remoteMessage")
+                    return@launch
                 }
             }
-            "read" -> {
-                val attentionRepository = AttentionRepository(AttentionDB.getDB(this@AlertHandler))
-                attentionRepository.alertRead(
-                    username = messageData["username_to"], alertId =
-                    messageData["alert_id"]
-                )
-                // TODO is there a way to close an active dialog if the id matches?
-            }
-            else -> {
-                Log.w(TAG, "Unrecognized action: $remoteMessage")
-                return@launch
-            }
-        }
         }
     }
 
@@ -184,7 +197,7 @@ open class AlertHandler : FirebaseMessagingService() {
             createMissedNotificationChannel(this)
             builder = NotificationCompat.Builder(this, CHANNEL_ID)
             builder
-                    .setSmallIcon(R.mipmap.app_icon)
+                    .setSmallIcon(R.drawable.app_icon_foreground)
                     .setContentTitle(getString(R.string.notification_title, senderName))
                     .setContentText(message)
                     .setStyle(NotificationCompat.BigTextStyle().bigText(message))
@@ -194,7 +207,7 @@ open class AlertHandler : FirebaseMessagingService() {
             createNotificationChannel()
             builder = NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
             builder
-                    .setSmallIcon(R.mipmap.app_icon)
+                    .setSmallIcon(R.drawable.app_icon_foreground)
                     .setContentTitle(getString(R.string.alert_notification_title, senderName))
                     .setContentText(message)
                     .setStyle(NotificationCompat.BigTextStyle().bigText(message))

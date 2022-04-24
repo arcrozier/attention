@@ -3,6 +3,7 @@ package com.aracroproducts.attentionv2
 import android.app.Application
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
 import android.media.AudioManager
 import android.media.RingtoneManager
@@ -23,12 +24,12 @@ class AlertViewModel(intent: Intent, private val attentionRepository: AttentionR
 
     private var silenced: Boolean by mutableStateOf(
             !intent.getBooleanExtra(AlertHandler.SHOULD_VIBRATE, true))
-    var isFinishing: Boolean by mutableStateOf(false)
+    private var isFinishing: Boolean by mutableStateOf(false)
     val from = intent.getStringExtra(AlertHandler.REMOTE_FROM) ?: ""
     val message = intent.getStringExtra(AlertHandler.REMOTE_MESSAGE) ?: ""
     val id = intent.getIntExtra(AlertHandler.ASSOCIATED_NOTIFICATION, NO_ID)
-    private val alertId = intent.getStringExtra(AlertHandler.ALERT_ID)
-    private val fromUsername = intent.getStringExtra(AlertHandler.REMOTE_FROM_USERNAME)
+    val alertId = intent.getStringExtra(AlertHandler.ALERT_ID) ?: ""
+    private val fromUsername = intent.getStringExtra(AlertHandler.REMOTE_FROM_USERNAME) ?: ""
 
 
     private val ringtone = RingtoneManager.getRingtone(getApplication(), RingtoneManager
@@ -37,6 +38,7 @@ class AlertViewModel(intent: Intent, private val attentionRepository: AttentionR
     }
 
     private val timer = object : CountDownTimer(5000, 500) {
+        @Suppress("DEPRECATION")
         override fun onTick(l: Long) {
             val context = getApplication<Application>()
             Log.d(sTAG, "Vibrating device")
@@ -75,7 +77,29 @@ class AlertViewModel(intent: Intent, private val attentionRepository: AttentionR
     fun ok() {
         silence()
         isFinishing = true
-        attentionRepository.alertRead(username = fromUsername, alertId = alertId)
+
+        val context = getApplication<Application>()
+        val userInfo = context.getSharedPreferences(MainViewModel.USER_INFO, Context.MODE_PRIVATE)
+
+        val fcmTokenPrefs =
+                context.getSharedPreferences(MainViewModel.FCM_TOKEN, Context.MODE_PRIVATE)
+
+        // token is auth token
+        val token = userInfo.getString(MainViewModel.MY_TOKEN, null)
+
+        val fcmToken = fcmTokenPrefs.getString(MainViewModel.FCM_TOKEN, null)
+
+        if (token == null || fcmToken == null) {
+            Log.e(javaClass.name, "Token is null when sending read receipt!")
+            return
+        }
+
+        attentionRepository.sendReadReceipt(
+                from = fromUsername,
+                alertId = alertId,
+                fcmToken = fcmToken,
+                authToken = token,
+                singleton = NetworkSingleton.getInstance(context))
     }
 
     /**
@@ -146,7 +170,7 @@ class AlertViewModel(intent: Intent, private val attentionRepository: AttentionR
                 .FLAG_IMMUTABLE)
 
         AlertHandler.createMissedNotificationChannel(context)
-        val builder = NotificationCompat.Builder(context, AlertHandler.CHANNEL_ID).apply{
+        val builder = NotificationCompat.Builder(context, AlertHandler.CHANNEL_ID).apply {
             setSmallIcon(R.mipmap.app_icon)
             setContentTitle(context.getString(R.string.notification_title, from))
             setContentText(message)

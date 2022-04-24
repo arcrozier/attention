@@ -61,7 +61,7 @@
     <string name="no_name">Please enter a name</string>
     <string name="manual_input">Enter code manually</string>
     <string name="share_user_id">Share user ID</string>
-    <string name="confirm_alert">Send notification?</string>
+    <string name="confirm_alert">Send notification</string>
     <string name="add_message">Add message</string>
     <string name="message_hint">Enter message…</string>
     <string name="message_label">Custom message to %s</string>
@@ -100,6 +100,7 @@
     <string name="rename">Change name</string>
     <string name="new_name">Enter new name</string>
     <string name="save">Save</string>
+    <string name="send">Send</string>
     <string name="back">Back</string>
 
 
