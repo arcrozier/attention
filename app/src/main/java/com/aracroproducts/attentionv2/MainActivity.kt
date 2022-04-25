@@ -116,14 +116,22 @@ class MainActivity : AppCompatActivity() {
         // Creates a notification channel for displaying failed-to-send notifications
         MainViewModel.createFailedAlertNotificationChannel(this)
 
-        val userInfo = getSharedPreferences(MainViewModel.USER_INFO, Context.MODE_PRIVATE)
+        handleIntent(intent, savedInstanceState)
+
+        if (!checkPlayServices()) return
+
+        friendModel.loadUserPrefs()
+
+        checkOverlayDisplay()
 
         reload()
+    }
 
+    private fun handleIntent(intent: Intent?, savedInstanceState: Bundle? = null) {
         val action: String? = intent?.action
         val data: Uri? = intent?.data
 
-        friendModel.addFriendException = action == Intent.ACTION_VIEW
+        friendModel.addFriendException = action == Intent.ACTION_VIEW && savedInstanceState == null
 
 
         if (friendModel.addFriendException) {
@@ -146,17 +154,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        if (!Settings.canDrawOverlays(application) && !userInfo.getBoolean(
-                        MainViewModel.OVERLAY_NO_PROMPT,
-                        false
-                )
-        ) {
-            friendModel.appendDialogState(Triple(
-                    MainViewModel.DialogStatus.OVERLAY_PERMISSION,
-                    null
-            ) {})
-        }
-
         // this condition is met if the app was launched by someone tapping it on a share sheet
         if (action == Intent.ACTION_SEND && intent.type == "text/plain") {
             friendModel.connectionState = getString(R.string.sharing)
@@ -169,42 +166,50 @@ class MainActivity : AppCompatActivity() {
                 friendModel.appendDialogState(
                         Triple(
                                 MainViewModel.DialogStatus.ADD_MESSAGE_TEXT,
-                                Friend(
-                                        username, ""
-                                )
-                        )
-                        {})
+                                Friend(username, "")
+                        ) {})
             }
         }
+    }
 
-        if (!checkPlayServices()) return
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        handleIntent(intent)
+    }
 
-        friendModel.loadUserPrefs()
+    private fun checkOverlayDisplay() {
+        val userInfo = getSharedPreferences(MainViewModel.USER_INFO, Context.MODE_PRIVATE)
+
+        if (!Settings.canDrawOverlays(application) && !userInfo.getBoolean(
+                        MainViewModel.OVERLAY_NO_PROMPT,
+                        false
+                )
+        ) {
+            friendModel.appendDialogState(Triple(
+                    MainViewModel.DialogStatus.OVERLAY_PERMISSION,
+                    null
+            ) {})
+        }
     }
 
     private fun reload() {
-
         friendModel.isRefreshing = true
 
-        MainScope().launch {
+        val userInfo = getSharedPreferences(MainViewModel.USER_INFO, Context.MODE_PRIVATE)
 
-            val userInfo = getSharedPreferences(MainViewModel.USER_INFO, Context.MODE_PRIVATE)
+        // token is auth token
+        val token = userInfo.getString(MainViewModel.MY_TOKEN, null)
 
-            // token is auth token
-            val token = userInfo.getString(MainViewModel.MY_TOKEN, null)
-
-            // we want an exception to the login if they opened an add-friend link
-            // if opened from a link, the action is ACTION_VIEW, so we delay logging in
-            if (token == null && !friendModel.addFriendException) {
-                launchLogin()
-                return@launch
-            } else if (token != null) {
-                friendModel.getUserInfo(token) {
-                    if (!friendModel.addFriendException) launchLogin()
-                }
+        // we want an exception to the login if they opened an add-friend link
+        // if opened from a link, the action is ACTION_VIEW, so we delay logging in
+        if (token == null && !friendModel.addFriendException) {
+            launchLogin()
+            return
+        } else if (token != null) {
+            friendModel.getUserInfo(token) {
+                if (!friendModel.addFriendException) launchLogin()
             }
         }
-
     }
 
     @ExperimentalFoundationApi
@@ -822,8 +827,6 @@ class MainActivity : AppCompatActivity() {
     public override fun onResume() {
         super.onResume()
 
-        MainScope().launch {
-
             // token is auth token
             val token = getSharedPreferences(MainViewModel.USER_INFO, Context.MODE_PRIVATE)
                     .getString(MainViewModel.MY_TOKEN, null)
@@ -834,7 +837,6 @@ class MainActivity : AppCompatActivity() {
             }
 
             friendModel.registerDevice()
-        }
 
         // if Google API isn't available, do this - it's from the docs, should be correct
         if (!checkPlayServices()) return

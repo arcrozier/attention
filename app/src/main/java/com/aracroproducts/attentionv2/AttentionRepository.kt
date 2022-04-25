@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.*
+import kotlin.concurrent.thread
 
 // Declares the DAO as a private property in the constructor. Pass in the DAO
 // instead of the whole database, because you only need access to the DAO
@@ -32,7 +33,9 @@ class AttentionRepository(private val database: AttentionDB) {
     }
 
     fun clearTables() {
-        database.clearAllTables()
+        thread {
+            database.clearAllTables()
+        }
     }
 
 

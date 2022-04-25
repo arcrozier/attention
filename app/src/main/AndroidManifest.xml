@@ -6,7 +6,8 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
-    <uses-feature android:name="android.hardware.touchscreen"
+    <uses-feature
+        android:name="android.hardware.touchscreen"
         android:required="false" />
 
     <application
@@ -25,7 +26,8 @@
             android:label="@string/title_activity_settings"
             android:theme="@style/AppTheme.ActionBar"
             android:parentActivityName=".MainActivity" />
-        <activity android:name=".LoginActivity"
+        <activity
+            android:name=".LoginActivity"
             android:exported="false"
             android:label="@string/login"
             android:windowSoftInputMode="adjustResize"
@@ -52,10 +54,34 @@
         <activity
             android:name=".MainActivity"
             android:exported="true">
+            <tools:validation testUrl="http://attention.aracroproducts.com/app/add?username=arcrozier" />
+            <tools:validation testUrl="https://attention.aracroproducts.com/app/add?username=arcrozier" />
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.service.chooser.chooser_target_service"
+                android:value="androidx.sharetarget.ChooserTargetServiceCompat" />
+
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:scheme="http"
+                    android:host="attention.aracroproducts.com"
+                    android:pathPrefix="/app/add" />
             </intent-filter>
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
@@ -63,20 +89,11 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
-                <data android:scheme="http"/>
-                <data android:scheme="https"/>
                 <data
+                    android:scheme="https"
                     android:host="attention.aracroproducts.com"
-                    android:pathPrefix="/app/add?" />
+                    android:pathPrefix="/app/add" />
             </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.SEND" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="text/plain" />
-            </intent-filter>
-            <meta-data
-            android:name="android.service.chooser.chooser_target_service"
-            android:value="androidx.sharetarget.ChooserTargetServiceCompat"/>
         </activity>
     </application>
 

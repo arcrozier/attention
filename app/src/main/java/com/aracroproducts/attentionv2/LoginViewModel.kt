@@ -58,7 +58,7 @@ class LoginViewModel @Inject constructor(
             onLoggedIn()
         }, errorListener = {
             when (it) {
-                is AuthFailureError -> {
+                is ClientError -> {
                     Log.e(sTAG, String(it.networkResponse.data))
                     passwordCaption = context.getString(R.string.wrong_password)
                 }
