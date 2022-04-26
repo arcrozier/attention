@@ -81,7 +81,7 @@
     <string name="alert_failed_no_connection">Could not send alert %s. Check you network
         connection and try again</string>
     <string name="general_error">Error: Could not send alert</string>
-    <string name="user_registered">Your account has been registered!</string>
+    <string name="user_registered">Your device has been registered!</string>
     <string name="default_message">%s wants your attention!</string>
     <string name="message_prefix">%1$s says: %2$s</string>
     <string name="silence">Silence</string>

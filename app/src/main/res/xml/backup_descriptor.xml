@@ -3,7 +3,8 @@
     <!-- Back up everything except FCM_TOKEN (since it has the FCM token) -->
     <include
         domain="sharedpref"
-        path="." />
+        path="."
+        requireFlags="clientSideEncryption | deviceToDeviceTransfer"/>
     <include
         domain="database"
         path="." />

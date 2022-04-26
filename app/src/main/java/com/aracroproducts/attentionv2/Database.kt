@@ -4,13 +4,12 @@ import android.content.Context
 import androidx.lifecycle.LiveData
 import androidx.room.*
 import com.aracroproducts.attentionv2.AttentionDB.Companion.DB_V1
-import kotlinx.coroutines.flow.Flow
 
 @Database(
-        version = DB_V1,
-        entities = [Friend::class, Message::class, CachedFriend::class]
+    version = DB_V1,
+    entities = [Friend::class, Message::class, CachedFriend::class]
 )
-abstract class AttentionDB: RoomDatabase() {
+abstract class AttentionDB : RoomDatabase() {
 
     abstract fun getFriendDAO(): FriendDAO
 
@@ -21,15 +20,16 @@ abstract class AttentionDB: RoomDatabase() {
     companion object {
         const val DB_V1 = 1
         private const val DB_NAME = "attention_database"
+
         @Volatile
         private var INSTANCE: AttentionDB? = null
 
         fun getDB(context: Context): AttentionDB {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
-                        context.applicationContext,
-                        AttentionDB::class.java,
-                        DB_NAME
+                    context.applicationContext,
+                    AttentionDB::class.java,
+                    DB_NAME
                 ).build()
                 INSTANCE = instance
                 // return instance
@@ -40,34 +40,34 @@ abstract class AttentionDB: RoomDatabase() {
 }
 
 @Entity
-data class CachedFriend (
-        @PrimaryKey val username: String
-        )
-
-@Entity
-data class Friend (
-        @PrimaryKey val id: String,
-        val name: String,
-        val sent: Int = 0,
-        val received: Int = 0,
-        val last_message_sent_id: String? = null,
-        val last_message_read: Boolean = false
+data class CachedFriend(
+    @PrimaryKey val username: String
 )
 
-data class Name (
-        @ColumnInfo(name = "name") val name: String?
-        )
-
 @Entity
-data class Message (
-        @PrimaryKey(autoGenerate = true) val messageId: Int? = null,
-        val timestamp: Long,
-        val otherId: String,
-        val direction: DIRECTION,
-        val message: String?
+data class Friend(
+    @PrimaryKey val id: String,
+    val name: String,
+    val sent: Int = 0,
+    val received: Int = 0,
+    val last_message_sent_id: String? = null,
+    val last_message_read: Boolean = false
 )
 
-enum class DIRECTION {Outgoing, Incoming}
+data class Name(
+    @ColumnInfo(name = "name") val name: String?
+)
+
+@Entity
+data class Message(
+    @PrimaryKey(autoGenerate = true) val messageId: Int? = null,
+    val timestamp: Long,
+    val otherId: String,
+    val direction: DIRECTION,
+    val message: String?
+)
+
+enum class DIRECTION { Outgoing, Incoming }
 
 @Dao
 interface FriendDAO {
@@ -89,8 +89,10 @@ interface FriendDAO {
     @Query("UPDATE Friend SET last_message_sent_id = :message_id WHERE id = :id")
     suspend fun setMessageAlert(message_id: String, id: String)
 
-    @Query("UPDATE Friend SET last_message_read = :read WHERE id = :id AND last_message_sent_id =" +
-            " :alert_id")
+    @Query(
+        "UPDATE Friend SET last_message_read = :read WHERE id = :id AND last_message_sent_id =" +
+                " :alert_id"
+    )
     suspend fun setMessageRead(read: Boolean, id: String?, alert_id: String?)
 
     @Query("SELECT * FROM Friend ORDER BY sent DESC")
@@ -108,11 +110,11 @@ interface FriendDAO {
 
 @Dao
 interface CachedFriendDAO {
-    @Insert
-    fun insert(vararg friend: CachedFriend)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insert(vararg friend: CachedFriend)
 
     @Delete
-    fun delete(vararg friend: CachedFriend)
+    suspend fun delete(vararg friend: CachedFriend)
 
     @Query("SELECT * FROM CachedFriend")
     fun getCachedFriends(): LiveData<List<CachedFriend>>
@@ -124,8 +126,8 @@ interface CachedFriendDAO {
 @Dao
 interface MessageDA0 {
     @Query("SELECT * FROM Message WHERE otherId = :userId ORDER BY timestamp DESC")
-    fun getMessagesFromUser(userId: String): Flow<List<Message>>
+    fun getMessagesFromUser(userId: String): LiveData<List<Message>>
 
     @Insert
-    fun insertMessage(message: Message)
+    suspend fun insertMessage(message: Message)
 }

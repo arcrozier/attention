@@ -6,7 +6,6 @@ import com.android.volley.Response
 import com.android.volley.VolleyError
 import com.android.volley.toolbox.JsonObjectRequest
 import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
@@ -93,7 +92,14 @@ class AttentionRepository(private val database: AttentionDB) {
 
     suspend fun getFriend(id: String): Friend = database.getFriendDAO().getFriend(id)
 
-    fun cacheFriend(username: String) = database.getCachedFriendDAO().insert(CachedFriend(username))
+    fun cacheFriend(username: String) {
+        MainScope().launch {
+            database.getCachedFriendDAO().insert(
+                CachedFriend
+                    (username)
+            )
+        }
+    }
 
     fun getCachedFriends() = database.getCachedFriendDAO()
         .getCachedFriends()
@@ -101,12 +107,13 @@ class AttentionRepository(private val database: AttentionDB) {
     suspend fun getCachedFriendsSnapshot(): List<CachedFriend> =
         database.getCachedFriendDAO().getCachedFriendsSnapshot()
 
-    fun deleteCachedFriend(username: String) = database.getCachedFriendDAO().delete(
-        CachedFriend
-            (username)
-    )
+    fun deleteCachedFriend(username: String) {
+        MainScope().launch {
+            database.getCachedFriendDAO().delete(CachedFriend(username))
+        }
+    }
 
-    fun getMessages(friend: Friend): Flow<List<Message>> = database.getMessageDAO()
+    fun getMessages(friend: Friend) = database.getMessageDAO()
         .getMessagesFromUser(friend.id)
 
     fun appendMessage(message: Message, save: Boolean = false) {
@@ -115,7 +122,9 @@ class AttentionRepository(private val database: AttentionDB) {
                 timestamp = Calendar.getInstance().timeInMillis, direction =
                 message.direction, otherId = message.otherId, message = message.message
             )
-            database.getMessageDAO().insertMessage(mMessage)
+            MainScope().launch {
+                database.getMessageDAO().insertMessage(mMessage)
+            }
         }
         MainScope().launch {
             when (message.direction) {
@@ -294,22 +303,25 @@ class AttentionRepository(private val database: AttentionDB) {
         }
     }
 
-    fun sendReadReceipt(alertId: String, from: String, fcmToken: String, authToken: String,
-                        singleton: NetworkSingleton, responseListener: Response
-            .Listener<JSONObject>? = null, errorListener: Response.ErrorListener? = null) {
+    fun sendReadReceipt(
+        alertId: String, from: String, fcmToken: String, authToken: String,
+        singleton: NetworkSingleton, responseListener: Response
+        .Listener<JSONObject>? = null, errorListener: Response.ErrorListener? = null
+    ) {
         val url = "$BASE_URL/alert_read/"
         val params = JSONObject(
-                mapOf(
-                        "alert_id" to alertId,
-                        "from" to from,
-                        "fcm_token" to fcmToken
-                )
+            mapOf(
+                "alert_id" to alertId,
+                "from" to from,
+                "fcm_token" to fcmToken
+            )
         )
-        val request = AuthorizedJsonObjectRequest(Request.Method.POST, url,
-                params, responseListener, errorListener = {
-            printNetworkError(it, url)
-            errorListener?.onErrorResponse(it)
-        }, token = authToken
+        val request = AuthorizedJsonObjectRequest(
+            Request.Method.POST, url,
+            params, responseListener, errorListener = {
+                printNetworkError(it, url)
+                errorListener?.onErrorResponse(it)
+            }, token = authToken
         )
         singleton.addToRequestQueue(request)
     }
@@ -368,9 +380,11 @@ class AttentionRepository(private val database: AttentionDB) {
         Log.e(javaClass.name, "Response from $url")
         Log.e(
             javaClass.name, "Status: ${error.networkResponse?.statusCode} Data: ${
-                error.networkResponse?.let {String(
-                    error.networkResponse.data
-                )} ?: "null"
+                error.networkResponse?.let {
+                    String(
+                        error.networkResponse.data
+                    )
+                } ?: "null"
             } in ${
                 error
                     .networkTimeMs
