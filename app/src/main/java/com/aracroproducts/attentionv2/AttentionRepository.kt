@@ -49,7 +49,7 @@ class AttentionRepository(private val database: AttentionDB) {
                 "friend" to friend.id
             )
         )
-        val request = AuthorizedJsonObjectRequest(Request.Method.POST, url,
+        val request = AuthorizedJsonObjectRequest(Request.Method.DELETE, url,
             params,
             {
                 MainScope().launch {

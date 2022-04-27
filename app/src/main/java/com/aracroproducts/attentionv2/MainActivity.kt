@@ -433,18 +433,18 @@ class MainActivity : AppCompatActivity() {
                 OutlinedButton(onClick = {
                     friendModel.popDialogState()
                 }) {
-                    Text(text = getString(R.string.do_not_ask_again))
+                    Text(text = getString(R.string.cancel))
                 }
             },
             title = { Text(text = getString(R.string.confirm_delete_title)) },
-            text = { Text(text = getString(R.string.confirm_delete_message)) }
+            text = { Text(text = getString(R.string.confirm_delete_message, friend.name)) }
         )
     }
 
     @Composable
     fun EditFriendNameDialog(friend: Friend) {
         var name by rememberSaveable {
-            mutableStateOf("")
+            mutableStateOf(friend.name)
         }
         var error by remember { mutableStateOf(false) }
         AlertDialog(onDismissRequest = { friendModel.popDialogState() },
