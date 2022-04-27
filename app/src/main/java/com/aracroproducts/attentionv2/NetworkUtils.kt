@@ -4,6 +4,7 @@ import android.content.Context
 import com.android.volley.Request
 import com.android.volley.RequestQueue
 import com.android.volley.Response
+import com.android.volley.toolbox.HttpClientStack
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import org.json.JSONObject
@@ -35,6 +36,14 @@ class NetworkSingleton constructor(context: Context) {
         requestQueue.add(req)
     }
 }
+
+class NameResult
+
+class TokenResult
+
+class RegisterDeviceResult
+
+class RegisterUserResult
 
 class AuthorizedJsonObjectRequest(method: Int,
                            URL: String,
