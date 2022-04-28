@@ -1,62 +1,71 @@
 package com.aracroproducts.attentionv2
 
-import android.content.Context
-import com.android.volley.Request
-import com.android.volley.RequestQueue
-import com.android.volley.Response
-import com.android.volley.toolbox.HttpClientStack
-import com.android.volley.toolbox.JsonObjectRequest
-import com.android.volley.toolbox.Volley
-import org.json.JSONObject
-import java.io.UnsupportedEncodingException
-import java.net.URLEncoder
+import com.google.gson.annotations.SerializedName
+import retrofit2.Call
+import retrofit2.http.*
 
 const val BASE_URL = "https://attention.aracroproducts.com/api/v2"
 
 
-class NetworkSingleton constructor(context: Context) {
-    companion object {
-        @Volatile
-        private var INSTANCE: NetworkSingleton? = null
-        fun getInstance(context: Context) =
-                INSTANCE ?: synchronized(this) {
-                    INSTANCE ?: NetworkSingleton(context).also {
-                        INSTANCE = it
-                    }
-                }
-    }
+class NameResult(@SerializedName("name") val name: String)
 
-    private val requestQueue: RequestQueue by lazy {
-        // applicationContext is key, it keeps you from leaking the
-        // Activity or BroadcastReceiver if someone passes one in.
-        Volley.newRequestQueue(context.applicationContext)
-    }
+class TokenResult(@SerializedName("token") val token: String)
 
-    fun <T> addToRequestQueue(req: Request<T>) {
-        requestQueue.add(req)
-    }
-}
+class GenericResult(@SerializedName("success") val success: Boolean,
+                    @SerializedName("message") val message: String)
 
-class NameResult
+class UserDataResult(@SerializedName("username") val username: String,
+                     @SerializedName("first_name") val firstName: String,
+                     @SerializedName("last_name") val lastName: String,
+                     @SerializedName("email") val email: String,
+                     @SerializedName("friends") val friends: List<Friend>)
 
-class TokenResult
+interface APIV2 {
+    @POST("api_token_auth/")
+    fun getToken(@Field("username") username: String, @Field("password") password: String):
+            Call<TokenResult>
 
-class RegisterDeviceResult
+    @POST("send_alert/")
+    fun sendAlert(@Field("to") to: String, @Field("message") message: String, @Header
+    ("Authorization") token: String): Call<GenericResult>
 
-class RegisterUserResult
+    @POST("register_device/")
+    fun registerDevice(@Field("fcm_token") fcmToken: String, @Header("Authorization") token:
+    String): Call<GenericResult>
 
-class AuthorizedJsonObjectRequest(method: Int,
-                           URL: String,
-                           params: JSONObject? = null,
-                           responseListener: Response.Listener<JSONObject>? = null,
-                           errorListener: Response.ErrorListener? = null,
-                           private val token: String
-) : JsonObjectRequest(method, URL, params, responseListener, errorListener) {
+    @POST("register_user/")
+    fun registerUser(@Field("first_name") firstName: String, @Field("last_name") lastName:
+    String, @Field("username") username: String, @Field("password") password: String, @Field
+                     ("email") email: String?): Call<GenericResult>
 
-    override fun getHeaders(): MutableMap<String, String> {
-        return mutableMapOf(
-                "AUTHORIZATION" to "Token $token",
-                "Content-Type" to "application/json; charset=UTF-8"
-        )
-    }
+    @POST("add_friend/")
+    fun addFriend(@Field("username") username: String, @Header("Authorization") token: String):
+            Call<GenericResult>
+
+    @PUT("edit_friend_name/")
+    fun editFriendName(@Field("username") username: String, @Field("new_name") newName: String,
+                       @Header("Authorization") token: String): Call<GenericResult>
+
+    @GET("get_name/")
+    fun getName(@Query("username") username: String, @Header("Authorization") token: String):
+            Call<NameResult>
+
+    @DELETE("delete_friend/")
+    fun deleteFriend(@Field("friend") friend: String, @Header("Authorization") token: String):
+            Call<GenericResult>
+
+    @PUT("edit/")
+    fun editUser(@Field("first_name") firstName: String?, @Field("last_name") lastName: String?,
+                 @Field("email") email: String?, @Field("password") password: String?, @Field
+                 ("old_password") oldPassword: String?, @Header("Authorization") token: String):
+            Call<GenericResult>
+
+    @GET("get_info/")
+    fun getUserInfo(@Header("Authorization") token: String): Call<UserDataResult>
+
+    @POST("alert_read/")
+    fun alertRead(@Field("alert_id") alertId: String, @Field("from") from: String, @Field
+    ("fcm_token") fcmToken: String, @Header("Authorization") token: String): Call<GenericResult>
+
+
 }
