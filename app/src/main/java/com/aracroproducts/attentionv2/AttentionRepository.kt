@@ -1,20 +1,19 @@
 package com.aracroproducts.attentionv2
 
 import android.util.Log
-import com.android.volley.Request
-import com.android.volley.Response
-import com.android.volley.VolleyError
-import com.android.volley.toolbox.JsonObjectRequest
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
-import org.json.JSONArray
-import org.json.JSONObject
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 import java.util.*
 import kotlin.concurrent.thread
 
 // Declares the DAO as a private property in the constructor. Pass in the DAO
 // instead of the whole database, because you only need access to the DAO
 class AttentionRepository(private val database: AttentionDB) {
+
+    private val apiInterface = APIClient.getClient().create(APIV2::class.java)
 
     // Room executes all queries on a separate thread.
     // Observed Flow will notify the observer when the data has changed.
@@ -39,55 +38,73 @@ class AttentionRepository(private val database: AttentionDB) {
 
 
     fun delete(
-        friend: Friend, token: String, singleton: NetworkSingleton,
-        responseListener: Response.Listener<JSONObject>? = null, errorListener: Response
-        .ErrorListener? = null
+            friend: Friend, token: String,
+            responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>) -> Unit)
+            ? =
+                    null,
+            errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
     ) {
-        val url = "$BASE_URL/delete_friend/"
-        val params = JSONObject(
-            mapOf(
-                "friend" to friend.id
-            )
-        )
-        val request = AuthorizedJsonObjectRequest(Request.Method.DELETE, url,
-            params,
-            {
-                MainScope().launch {
-                    database.getFriendDAO().delete(friend)
+        val call = apiInterface.deleteFriend(friend.id, authHeader(token))
+        call.enqueue(object: Callback<GenericResult<Void>> {
+            override fun onFailure(call: Call<GenericResult<Void>>, t: Throwable) {
+                Log.e(javaClass.name, t.stackTraceToString())
+                errorListener?.invoke(call, t)
+            }
+
+            /**
+             * Invoked for a received HTTP response.
+             *
+             *
+             * Note: An HTTP response may still indicate an application-level failure such as a 404 or 500.
+             * Call [Response.isSuccessful] to determine if the response indicates success.
+             */
+            override fun onResponse(call: Call<GenericResult<Void>>, response:
+            Response<GenericResult<Void>>) {
+                if (!response.isSuccessful) printNetworkError(response, call)
+                else {
+                    MainScope().launch {
+                        database.getFriendDAO().delete(friend)
+                    }
                 }
-                responseListener?.onResponse(it)
-            }, { error ->
-                printNetworkError(error, url)
-                errorListener?.onErrorResponse(error)
-            }, token
-        )
-        singleton.addToRequestQueue(request)
+                responseListener?.invoke(call, response)
+            }
+        })
     }
 
     fun edit(
-        friend: Friend, token: String, singleton: NetworkSingleton, responseListener:
-        Response.Listener<JSONObject>? = null, errorListener: Response.ErrorListener? = null
+        friend: Friend, token: String,
+        responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>) -> Unit)? = null,
+        errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
     ) {
-        val url = "$BASE_URL/edit_friend_name/"
-        val params = JSONObject(
-            mapOf(
-                "username" to friend.id,
-                "new_name" to friend.name
-            )
-        )
-
-        val request = AuthorizedJsonObjectRequest(Request.Method.PUT,
-            url, params, {
-                MainScope().launch {
-                    database.getFriendDAO().updateFriend(friend)
+        val call = apiInterface.editFriendName(friend.id, friend.name, authHeader(token))
+        call.enqueue(object: Callback<GenericResult<Void>> {
+            /**
+             * Invoked for a received HTTP response.
+             *
+             *
+             * Note: An HTTP response may still indicate an application-level failure such as a 404 or 500.
+             * Call [Response.isSuccessful] to determine if the response indicates success.
+             */
+            override fun onResponse(call: Call<GenericResult<Void>>, response:
+            Response<GenericResult<Void>>) {
+                if (!response.isSuccessful) printNetworkError(response, call)
+                else {
+                    MainScope().launch {
+                        database.getFriendDAO().updateFriend(friend)
+                    }
                 }
-                responseListener?.onResponse(it)
-            }, errorListener = {
-                printNetworkError(it, url)
-                errorListener?.onErrorResponse(it)
-            }, token
-        )
-        singleton.addToRequestQueue(request)
+                responseListener?.invoke(call, response)
+            }
+
+            /**
+             * Invoked when a network exception occurred talking to the server or when an unexpected
+             * exception occurred creating the request or processing the response.
+             */
+            override fun onFailure(call: Call<GenericResult<Void>>, t: Throwable) {
+                Log.e(javaClass.name, t.stackTraceToString())
+                errorListener?.invoke(call, t)
+            }
+        })
     }
 
     suspend fun getFriend(id: String): Friend = database.getFriendDAO().getFriend(id)
@@ -135,165 +152,233 @@ class AttentionRepository(private val database: AttentionDB) {
     }
 
     fun getName(
-        token: String, username: String, singleton: NetworkSingleton, responseListener:
-        Response.Listener<JSONObject>? = null, errorListener: Response.ErrorListener? = null
-    ):
-            Request<JSONObject> {
-        val url = "$BASE_URL/get_name/?username=$username"
+        token: String,
+        username: String,
+        responseListener: ((Call<GenericResult<NameResult>>, Response<GenericResult<NameResult>>)
+        -> Unit)
+        ? = null,
+        errorListener: ((Call<GenericResult<NameResult>>, Throwable) -> Unit)? = null
+    ): Call<GenericResult<NameResult>> {
+        val call = apiInterface.getName(username, authHeader(token))
+        call.enqueue(object: Callback<GenericResult<NameResult>> {
+            /**
+             * Invoked for a received HTTP response.
+             *
+             *
+             * Note: An HTTP response may still indicate an application-level failure such as a 404 or 500.
+             * Call [Response.isSuccessful] to determine if the response indicates success.
+             */
+            override fun onResponse(call: Call<GenericResult<NameResult>>, response:
+            Response<GenericResult<NameResult>>) {
+                if (!response.isSuccessful) printNetworkError(response, call)
+                responseListener?.invoke(call, response)
+            }
 
-        val request = AuthorizedJsonObjectRequest(
-            Request.Method.GET, url,
-            null, responseListener, errorListener = {
-                printNetworkError(it, url)
-                errorListener?.onErrorResponse(it)
-            }, token
-        )
-
-        singleton.addToRequestQueue(request)
-
-        return request
+            /**
+             * Invoked when a network exception occurred talking to the server or when an unexpected
+             * exception occurred creating the request or processing the response.
+             */
+            override fun onFailure(call: Call<GenericResult<NameResult>>, t: Throwable) {
+                Log.e(javaClass.name, t.stackTraceToString())
+                errorListener?.invoke(call, t)
+            }
+        })
+        return call
     }
 
     fun sendMessage(
-        message: Message, token: String, singleton: NetworkSingleton,
-        responseListener: Response.Listener<JSONObject>? = null, errorListener: Response
-        .ErrorListener? = null
+        message: Message,
+        token: String,
+        responseListener: ((Call<GenericResult<AlertResult>>, Response<GenericResult<AlertResult>>) ->
+        Unit)?
+        = null,
+        errorListener: ((Call<GenericResult<AlertResult>>, Throwable) -> Unit)? = null
     ) {
         assert(message.direction == DIRECTION.Outgoing)
         appendMessage(message)
-        val url = "$BASE_URL/send_alert/"
-        val params = JSONObject(
-            mapOf(
-                "to" to message.otherId,
-                "message" to message.message
-            )
-        )
-        val request = AuthorizedJsonObjectRequest(Request.Method.POST, url,
-            params,
-            {
-                val alertId = it.getJSONObject("data").getString("id")
-                MainScope().launch {
-                    database.getFriendDAO().setMessageAlert(alertId, message.otherId)
-                    database.getFriendDAO().setMessageRead(
-                        false, alert_id = alertId, id = message.otherId
-                    )
-                    database.getFriendDAO().incrementSent(message.otherId)
+        val call = apiInterface.sendAlert(message.otherId, message.message, authHeader(token))
+        call.enqueue(object: Callback<GenericResult<AlertResult>> {
+            /**
+             * Invoked for a received HTTP response.
+             *
+             *
+             * Note: An HTTP response may still indicate an application-level failure such as a 404 or 500.
+             * Call [Response.isSuccessful] to determine if the response indicates success.
+             */
+            override fun onResponse(call: Call<GenericResult<AlertResult>>, response:
+            Response<GenericResult<AlertResult>>) {
+                if (!response.isSuccessful) printNetworkError(response, call)
+                else {
+                    val alertId = response.body()?.data?.id
+                    MainScope().launch {
+                        database.getFriendDAO().setMessageAlert(alertId,
+                                message.otherId)
+                        alertId?.let {
+                            database.getFriendDAO().setMessageRead(
+                                    false, alert_id = alertId, id = message.otherId
+                            )
+                        }
+                        database.getFriendDAO().incrementSent(message.otherId)
+                    }
                 }
-                responseListener?.onResponse(it)
-            }, { error ->
-                printNetworkError(error, url)
-                errorListener?.onErrorResponse(
-                    error
-                )
-            }, token
-        )
-        singleton.addToRequestQueue(request)
+                responseListener?.invoke(call, response)
+            }
 
+            /**
+             * Invoked when a network exception occurred talking to the server or when an unexpected
+             * exception occurred creating the request or processing the response.
+             */
+            override fun onFailure(call: Call<GenericResult<AlertResult>>, t: Throwable) {
+                Log.e(javaClass.name, t.stackTraceToString())
+                errorListener?.invoke(call, t)
+            }
+        })
     }
 
     fun registerDevice(
-        token: String, fcmToken: String, singleton: NetworkSingleton,
-        responseListener: Response.Listener<JSONObject>? = null, errorListener:
-        Response.ErrorListener? = null
+        token: String, fcmToken: String,
+        responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>) ->
+        Unit)?
+        = null,
+        errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
     ) {
-        val url = "$BASE_URL/register_device/"
-        val params = JSONObject(
-            mapOf(
-                "fcm_token" to fcmToken
-            )
-        )
-        val request = AuthorizedJsonObjectRequest(
-            Request.Method.POST,
-            url, params, responseListener, errorListener = {
-                printNetworkError(it, url)
-                errorListener?.onErrorResponse(it)
-            }, token
-        )
-        singleton.addToRequestQueue(request)
+        val call = apiInterface.registerDevice(fcmToken, authHeader(token))
+        call.enqueue(object: Callback<GenericResult<Void>> {
+            /**
+             * Invoked for a received HTTP response.
+             *
+             *
+             * Note: An HTTP response may still indicate an application-level failure such as a 404 or 500.
+             * Call [Response.isSuccessful] to determine if the response indicates success.
+             */
+            override fun onResponse(call: Call<GenericResult<Void>>,
+                                    response: Response<GenericResult<Void>>) {
+                if (!response.isSuccessful) printNetworkError(response, call)
+                responseListener?.invoke(call, response)
+            }
+
+            /**
+             * Invoked when a network exception occurred talking to the server or when an unexpected
+             * exception occurred creating the request or processing the response.
+             */
+            override fun onFailure(call: Call<GenericResult<Void>>, t: Throwable) {
+                Log.e(javaClass.name, t.stackTraceToString())
+                errorListener?.invoke(call, t)
+            }
+
+        })
     }
 
     fun editUser(
-        token: String, singleton: NetworkSingleton, firstName: String? = null, lastName:
+        token: String, firstName: String? = null, lastName:
         String? = null, password: String? = null, oldPassword: String? = null,
-        email: String? = null, responseListener: Response.Listener<JSONObject>? = null,
-        errorListener: Response.ErrorListener? = null
+        email: String? = null,
+        responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>) ->
+            Unit)? = null,
+        errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
     ) {
-        val url = "$BASE_URL/edit/"
-        val params = JSONObject(buildMap {
-            if (firstName != null) put("first_name", firstName)
-            if (lastName != null) put("last_name", lastName)
-            if (password != null) put("password", password)
-            if (oldPassword != null) put("old_password", oldPassword)
-            if (email != null) put("email", email)
+        val call = apiInterface.editUser(firstName, lastName, email, password, oldPassword,
+                authHeader(token))
+        call.enqueue(object : Callback<GenericResult<Void>> {
+            /**
+             * Invoked for a received HTTP response.
+             *
+             *
+             * Note: An HTTP response may still indicate an application-level failure such as a 404 or 500.
+             * Call [Response.isSuccessful] to determine if the response indicates success.
+             */
+            override fun onResponse(call: Call<GenericResult<Void>>,
+                                    response: Response<GenericResult<Void>>) {
+                if (!response.isSuccessful) printNetworkError(response, call)
+                responseListener?.invoke(call, response)
+            }
+
+            /**
+             * Invoked when a network exception occurred talking to the server or when an unexpected
+             * exception occurred creating the request or processing the response.
+             */
+            override fun onFailure(call: Call<GenericResult<Void>>, t: Throwable) {
+                Log.e(javaClass.name, t.stackTraceToString())
+                errorListener?.invoke(call, t)
+            }
+
         })
-        val request = AuthorizedJsonObjectRequest(
-            Request.Method.PUT, url,
-            params, responseListener, errorListener = {
-                printNetworkError(it, url)
-                errorListener?.onErrorResponse(it)
-            }, token
-        )
-        singleton.addToRequestQueue(request)
     }
 
     fun getUserInfo(
-        token: String, singleton: NetworkSingleton, responseListener: Response
-        .Listener<JSONObject>? = null, errorListener: Response.ErrorListener? = null
+        token: String,
+        responseListener: ((Call<GenericResult<UserDataResult>>, Response<GenericResult<UserDataResult>>) ->
+            Unit)? = null,
+        errorListener: ((Call<GenericResult<UserDataResult>>, Throwable) -> Unit)? = null
     ) {
-        val url = "$BASE_URL/get_info/"
-        val request = AuthorizedJsonObjectRequest(
-            Request.Method.GET, url,
-            null, responseListener, errorListener = {
-                printNetworkError(it, url)
-                errorListener?.onErrorResponse(it)
-            }, token
-        )
-        singleton.addToRequestQueue(request)
+        val call = apiInterface.getUserInfo(authHeader(token))
+        call.enqueue(object : Callback<GenericResult<UserDataResult>> {
+            /**
+             * Invoked for a received HTTP response.
+             *
+             *
+             * Note: An HTTP response may still indicate an application-level failure such as a 404 or 500.
+             * Call [Response.isSuccessful] to determine if the response indicates success.
+             */
+            override fun onResponse(call: Call<GenericResult<UserDataResult>>,
+                                    response: Response<GenericResult<UserDataResult>>) {
+                if (!response.isSuccessful) printNetworkError(response, call)
+                responseListener?.invoke(call, response)
+            }
+
+            /**
+             * Invoked when a network exception occurred talking to the server or when an unexpected
+             * exception occurred creating the request or processing the response.
+             */
+            override fun onFailure(call: Call<GenericResult<UserDataResult>>, t: Throwable) {
+                Log.e(javaClass.name, t.stackTraceToString())
+                errorListener?.invoke(call, t)
+            }
+        })
     }
 
-    fun updateUserInfo(friends: JSONArray?) {
-        if (friends == null) return
-        val keepIDs: Array<String> = Array(friends.length()) { "" }
-        for (i in 0 until friends.length()) {
-            val jsonFriend = friends.getJSONObject(i)
-            val id = jsonFriend.getString("friend")
-            keepIDs[i] = id
-            val friend = Friend(
-                id, jsonFriend.getString("name"),
-                jsonFriend.getInt("sent"),
-                jsonFriend.getInt("received"), jsonFriend.getString("last_message_id_sent"),
-                jsonFriend.getBoolean("last_message_read")
-            )
-            MainScope().launch {
-                database.getFriendDAO().insert(friend)
-            }
-        }
+    fun updateUserInfo(friends: List<Friend>) {
+        val keepIDs: Array<String> = Array(friends.size) { "" }
         MainScope().launch {
+            database.getFriendDAO().insert(*friends.toTypedArray())
             database.getFriendDAO().keepOnly(*keepIDs)
         }
     }
 
     fun addFriend(
-        username: String, name: String, token: String, singleton: NetworkSingleton,
-        responseListener:
-        Response.Listener<JSONObject>? = null, errorListener: Response.ErrorListener? = null
+        username: String, name: String, token: String,
+        responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>) ->
+        Unit)?
+        = null,
+        errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
     ) {
-        val url = "$BASE_URL/add_friend/"
-        val params = JSONObject(
-            mapOf(
-                "username" to username
-            )
-        )
-        val request = AuthorizedJsonObjectRequest(Request.Method.POST, url,
-            params, {
-                insert(Friend(username, name))
-                responseListener?.onResponse(it)
-            }, errorListener = {
-                printNetworkError(it, url)
-                errorListener?.onErrorResponse(it)
-            }, token
-        )
-        singleton.addToRequestQueue(request)
+        val call = apiInterface.addFriend(username, authHeader(token))
+        call.enqueue(object : Callback<GenericResult<Void>> {
+            /**
+             * Invoked for a received HTTP response.
+             *
+             *
+             * Note: An HTTP response may still indicate an application-level failure such as a 404 or 500.
+             * Call [Response.isSuccessful] to determine if the response indicates success.
+             */
+            override fun onResponse(call: Call<GenericResult<Void>>,
+                                    response: Response<GenericResult<Void>>) {
+                if (!response.isSuccessful) printNetworkError(response, call)
+                else {
+                    insert(Friend(username, name))
+                }
+                responseListener?.invoke(call, response)
+            }
+
+            /**
+             * Invoked when a network exception occurred talking to the server or when an unexpected
+             * exception occurred creating the request or processing the response.
+             */
+            override fun onFailure(call: Call<GenericResult<Void>>, t: Throwable) {
+                Log.e(javaClass.name, t.stackTraceToString())
+                errorListener?.invoke(call, t)
+            }
+        })
     }
 
     fun alertRead(username: String?, alertId: String?) {
@@ -305,91 +390,117 @@ class AttentionRepository(private val database: AttentionDB) {
 
     fun sendReadReceipt(
         alertId: String, from: String, fcmToken: String, authToken: String,
-        singleton: NetworkSingleton, responseListener: Response
-        .Listener<JSONObject>? = null, errorListener: Response.ErrorListener? = null
+        responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>) ->
+        Unit)?
+        = null,
+        errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
     ) {
-        val url = "$BASE_URL/alert_read/"
-        val params = JSONObject(
-            mapOf(
-                "alert_id" to alertId,
-                "from" to from,
-                "fcm_token" to fcmToken
-            )
-        )
-        val request = AuthorizedJsonObjectRequest(
-            Request.Method.POST, url,
-            params, responseListener, errorListener = {
-                printNetworkError(it, url)
-                errorListener?.onErrorResponse(it)
-            }, token = authToken
-        )
-        singleton.addToRequestQueue(request)
+        val call = apiInterface.alertRead(alertId, from, fcmToken, authHeader(authToken))
+        call.enqueue(object : Callback<GenericResult<Void>> {
+            /**
+             * Invoked for a received HTTP response.
+             *
+             *
+             * Note: An HTTP response may still indicate an application-level failure such as a 404 or 500.
+             * Call [Response.isSuccessful] to determine if the response indicates success.
+             */
+            override fun onResponse(call: Call<GenericResult<Void>>,
+                                    response: Response<GenericResult<Void>>) {
+                if (!response.isSuccessful) printNetworkError(response, call)
+                responseListener?.invoke(call, response)
+            }
+
+            /**
+             * Invoked when a network exception occurred talking to the server or when an unexpected
+             * exception occurred creating the request or processing the response.
+             */
+            override fun onFailure(call: Call<GenericResult<Void>>, t: Throwable) {
+                Log.e(javaClass.name, t.stackTraceToString())
+                errorListener?.invoke(call, t)
+            }
+
+        })
     }
 
     fun registerUser(
         username: String, password: String, firstName: String, lastName: String,
-        email: String, singleton: NetworkSingleton, responseListener: Response
-        .Listener<JSONObject>? = null, errorListener: Response.ErrorListener? = null
+        email: String,
+        responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>) ->
+        Unit)?
+        = null,
+        errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
     ) {
-        val url = "$BASE_URL/register_user/"
-        val params = JSONObject(buildMap {
-            put("username", username)
-            put("password", password)
-            put("first_name", firstName)
-            put("last_name", lastName)
-            if (email.isNotBlank()) {
-                put("email", email)
+        val call = apiInterface.registerUser(firstName, lastName, username, password, email)
+        call.enqueue(object : Callback<GenericResult<Void>> {
+            /**
+             * Invoked for a received HTTP response.
+             *
+             *
+             * Note: An HTTP response may still indicate an application-level failure such as a 404 or 500.
+             * Call [Response.isSuccessful] to determine if the response indicates success.
+             */
+            override fun onResponse(call: Call<GenericResult<Void>>,
+                                    response: Response<GenericResult<Void>>) {
+                if (!response.isSuccessful) printNetworkError(response, call)
+                responseListener?.invoke(call, response)
             }
-        }
-        )
-        val request = JsonObjectRequest(
-            Request.Method.POST, url, params,
-            responseListener
-        ) {
-            printNetworkError(it, url)
-            errorListener?.onErrorResponse(it)
-        }
-        singleton.addToRequestQueue(request)
+
+            /**
+             * Invoked when a network exception occurred talking to the server or when an unexpected
+             * exception occurred creating the request or processing the response.
+             */
+            override fun onFailure(call: Call<GenericResult<Void>>, t: Throwable) {
+                Log.e(javaClass.name, t.stackTraceToString())
+                errorListener?.invoke(call, t)
+            }
+
+        })
     }
 
     fun getAuthToken(
-        username: String, password: String, singleton: NetworkSingleton,
-        responseListener: Response.Listener<JSONObject>? = null, errorListener:
-        Response
-        .ErrorListener? = null
+        username: String, password: String,
+        responseListener: ((Call<TokenResult>, Response<TokenResult>) ->
+        Unit)?
+        = null,
+        errorListener: ((Call<TokenResult>, Throwable) -> Unit)? = null
     ) {
-        val url = "$BASE_URL/api_token_auth/"
-        val params = JSONObject(
-            mapOf(
-                "username" to username,
-                "password" to password
-            )
-        )
-        val request = JsonObjectRequest(
-            Request.Method.POST, url, params,
-            responseListener
-        ) {
-            printNetworkError(it, url)
-            errorListener?.onErrorResponse(it)
-        }
-        singleton.addToRequestQueue(request)
+        val call = apiInterface.getToken(username, password)
+        call.enqueue(object : Callback<TokenResult> {
+            /**
+             * Invoked for a received HTTP response.
+             *
+             *
+             * Note: An HTTP response may still indicate an application-level failure such as a 404 or 500.
+             * Call [Response.isSuccessful] to determine if the response indicates success.
+             */
+            override fun onResponse(call: Call<TokenResult>, response: Response<TokenResult>) {
+                if (!response.isSuccessful) printNetworkError(response, call)
+                responseListener?.invoke(call, response)
+            }
+
+            /**
+             * Invoked when a network exception occurred talking to the server or when an unexpected
+             * exception occurred creating the request or processing the response.
+             */
+            override fun onFailure(call: Call<TokenResult>, t: Throwable) {
+                Log.e(javaClass.name, t.stackTraceToString())
+                errorListener?.invoke(call, t)
+            }
+
+        })
     }
 
-    private fun printNetworkError(error: VolleyError, url: String) {
-        Log.e(javaClass.name, error.stackTraceToString())
-        Log.e(javaClass.name, "Response from $url")
+    private fun printNetworkError(error: Response<*>, request: Call<*>) {
+        Log.e(javaClass.name, "Response from ${request.request().url}")
         Log.e(
-            javaClass.name, "Status: ${error.networkResponse?.statusCode} Data: ${
-                error.networkResponse?.let {
-                    String(
-                        error.networkResponse.data
-                    )
-                } ?: "null"
-            } in ${
-                error
-                    .networkTimeMs
-            } ms"
+            javaClass.name, "Status: ${error.code()} Data: ${
+                error.body() ?: "null"
+            }"
         )
-        Log.e(javaClass.name, "Headers: ${error.networkResponse?.allHeaders}")
+        Log.e(javaClass.name, "Headers: ${error.headers()}")
+    }
+
+    private fun authHeader(token: String): String {
+        return "Token $token"
     }
 }
