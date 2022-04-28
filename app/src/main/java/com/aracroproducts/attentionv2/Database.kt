@@ -94,7 +94,7 @@ interface FriendDAO {
     suspend fun incrementSent(id: String)
 
     @Query("UPDATE Friend SET last_message_sent_id = :message_id WHERE id = :id")
-    suspend fun setMessageAlert(message_id: String, id: String)
+    suspend fun setMessageAlert(message_id: String?, id: String)
 
     @Query(
             "UPDATE Friend SET last_message_read = :read WHERE id = :id AND last_message_sent_id =" +
