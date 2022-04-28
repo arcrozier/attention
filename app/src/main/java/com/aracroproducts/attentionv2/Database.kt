@@ -4,10 +4,11 @@ import android.content.Context
 import androidx.lifecycle.LiveData
 import androidx.room.*
 import com.aracroproducts.attentionv2.AttentionDB.Companion.DB_V1
+import com.google.gson.annotations.SerializedName
 
 @Database(
-    version = DB_V1,
-    entities = [Friend::class, Message::class, CachedFriend::class]
+        version = DB_V1,
+        entities = [Friend::class, Message::class, CachedFriend::class]
 )
 abstract class AttentionDB : RoomDatabase() {
 
@@ -27,9 +28,9 @@ abstract class AttentionDB : RoomDatabase() {
         fun getDB(context: Context): AttentionDB {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
-                    context.applicationContext,
-                    AttentionDB::class.java,
-                    DB_NAME
+                        context.applicationContext,
+                        AttentionDB::class.java,
+                        DB_NAME
                 ).build()
                 INSTANCE = instance
                 // return instance
@@ -41,30 +42,36 @@ abstract class AttentionDB : RoomDatabase() {
 
 @Entity
 data class CachedFriend(
-    @PrimaryKey val username: String
+        @PrimaryKey val username: String
 )
 
 @Entity
 data class Friend(
-    @PrimaryKey val id: String,
-    val name: String,
-    val sent: Int = 0,
-    val received: Int = 0,
-    val last_message_sent_id: String? = null,
-    val last_message_read: Boolean = false
+        @SerializedName("friend")
+        @PrimaryKey val id: String,
+        @SerializedName("name")
+        val name: String,
+        @SerializedName("sent")
+        val sent: Int = 0,
+        @SerializedName("received")
+        val received: Int = 0,
+        @SerializedName("last_message_id_sent")
+        val last_message_sent_id: String? = null,
+        @SerializedName("last_message_read")
+        val last_message_read: Boolean = false
 )
 
 data class Name(
-    @ColumnInfo(name = "name") val name: String?
+        @ColumnInfo(name = "name") val name: String?
 )
 
 @Entity
 data class Message(
-    @PrimaryKey(autoGenerate = true) val messageId: Int? = null,
-    val timestamp: Long,
-    val otherId: String,
-    val direction: DIRECTION,
-    val message: String?
+        @PrimaryKey(autoGenerate = true) val messageId: Int? = null,
+        val timestamp: Long,
+        val otherId: String,
+        val direction: DIRECTION,
+        val message: String?
 )
 
 enum class DIRECTION { Outgoing, Incoming }
@@ -90,8 +97,8 @@ interface FriendDAO {
     suspend fun setMessageAlert(message_id: String, id: String)
 
     @Query(
-        "UPDATE Friend SET last_message_read = :read WHERE id = :id AND last_message_sent_id =" +
-                " :alert_id"
+            "UPDATE Friend SET last_message_read = :read WHERE id = :id AND last_message_sent_id =" +
+                    " :alert_id"
     )
     suspend fun setMessageRead(read: Boolean, id: String?, alert_id: String?)
 
