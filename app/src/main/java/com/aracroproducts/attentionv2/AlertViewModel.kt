@@ -98,8 +98,7 @@ class AlertViewModel(intent: Intent, private val attentionRepository: AttentionR
                 from = fromUsername,
                 alertId = alertId,
                 fcmToken = fcmToken,
-                authToken = token,
-                singleton = NetworkSingleton.getInstance(context))
+                authToken = token)
     }
 
     /**

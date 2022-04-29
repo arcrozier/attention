@@ -38,14 +38,16 @@ open class AlertHandler : FirebaseMessagingService() {
             editor.putString(MainViewModel.FCM_TOKEN, token)
             editor.apply()
             val repository = AttentionRepository(AttentionDB.getDB(applicationContext))
-            repository.registerDevice(authToken, token, NetworkSingleton.getInstance
-            (applicationContext), {
-                Log.d(TAG, "Successfully uploaded token")
-                editor.putBoolean(MainViewModel.TOKEN_UPLOADED, true)
-                editor.putBoolean(MainViewModel.KEY_UPLOADED, true)
-                editor.apply()
-            }, {
-                Log.e(TAG, "An error occurred when uploading token: ${it.message}")
+            repository.registerDevice(authToken, token, { _, response ->
+                if (response.isSuccessful) {
+                    Log.d(TAG, "Successfully uploaded token")
+                    editor.putBoolean(MainViewModel.TOKEN_UPLOADED, true)
+                    editor.apply()
+                } else {
+                    Log.e(TAG, "An error occurred when uploading token: ${response.body()}")
+                }
+            }, { _, t ->
+                Log.e(TAG, "An error occurred when uploading token: ${t.message}")
             })
         }
     }

@@ -13,7 +13,7 @@ class AttentionApplication: Application(), LifecycleEventObserver, Application.A
 
     override fun onCreate() {
         DynamicColors.applyToActivitiesIfAvailable(this)
-        ProcessLifecycleOwner.get().lifecycle.addObserver(this);
+        ProcessLifecycleOwner.get().lifecycle.addObserver(this)
         super.onCreate()
     }
 

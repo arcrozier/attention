@@ -527,9 +527,9 @@ class MainActivity : AppCompatActivity() {
             friendModel.getFriendName(username, responseListener = {
                 friendModel.onAddFriend(
                     Friend(
-                        username, it.getJSONObject("data").getString("name")
-                    ), responseListener = {
-                        friendModel.popDialogState()
+                        username, it
+                    ), responseListener = { _, response ->
+                        if (response.isSuccessful) friendModel.popDialogState()
                     }, launchLogin = this::launchLogin
                 )
             }, launchLogin = ::launchLogin)

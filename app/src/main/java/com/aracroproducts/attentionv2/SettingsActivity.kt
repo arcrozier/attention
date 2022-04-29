@@ -9,9 +9,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.preference.*
-import com.android.volley.ClientError
-import com.android.volley.NoConnectionError
-import com.android.volley.VolleyError
 import com.google.android.material.snackbar.Snackbar
 
 /**
@@ -52,60 +49,52 @@ class SettingsActivity : AppCompatActivity() {
     ) :
         Preference.OnPreferenceChangeListener {
         private val attentionRepository = AttentionRepository(AttentionDB.getDB(context))
-        private val networkSingleton = NetworkSingleton.getInstance(context)
         private val token = context.getSharedPreferences(
             MainViewModel.USER_INFO, Context
                 .MODE_PRIVATE
         ).getString(MainViewModel.MY_TOKEN, null)
 
 
-        private fun onResponse(newValue: Any?, key: String) {
-            findPreference(key)?.text = newValue.toString()
-            if (--model.outstandingRequests == 0) {
-                settingsFragment.view?.let {
-                    Snackbar.make(
-                        it, R.string.saved, Snackbar
-                            .LENGTH_LONG
-                    ).show()
+        private fun onResponse(code: Int, newValue: Any?, key: String) {
+            model.outstandingRequests--
+            when (code) {
+                200 -> {
+                    findPreference(key)?.text = newValue.toString()
+                    if (model.outstandingRequests == 0) {
+                        settingsFragment.view?.let {
+                            Snackbar.make(
+                                it, R.string.saved, Snackbar
+                                    .LENGTH_LONG
+                            ).show()
+                        }
+                    }
+                }
+                400 -> {
+                    settingsFragment.view?.let {
+                        Snackbar.make(it, R.string.invalid_email, Snackbar.LENGTH_LONG).show()
+                    }
+                }
+                403 -> {
+                    settingsFragment.view?.let {
+                        Snackbar.make(
+                            it, R.string.confirm_logout_title, Snackbar
+                                .LENGTH_SHORT
+                        ).show()
+                    }
+                    MainViewModel.launchLogin(context)
                 }
             }
         }
 
-        private fun onError(error: VolleyError) {
+        private fun onError() {
             model.outstandingRequests--
-            when (error) {
-                is ClientError -> {
-                    if (error.networkResponse.statusCode == 403) {
-                        settingsFragment.view?.let {
-                            Snackbar.make(
-                                it, R.string.confirm_logout_title, Snackbar
-                                    .LENGTH_SHORT
-                            ).show()
-                        }
-                        MainViewModel.launchLogin(context)
-                    }
-                    else {
-                        settingsFragment.view?.let {
-                            Snackbar.make(it, R.string.invalid_email, Snackbar.LENGTH_LONG).show()
-                        }
-                    }
-                }
-                is NoConnectionError -> {
-                    settingsFragment.view?.let {
-                        Snackbar.make(
-                            it, R.string.disconnected, Snackbar
-                                .LENGTH_LONG
-                        ).show()
-                    }
-                }
-                else -> {
-                    settingsFragment.view?.let {
-                        Snackbar.make(
-                            it, R.string.connection_error, Snackbar
-                                .LENGTH_LONG
-                        ).show()
-                    }
-                }
+
+            settingsFragment.view?.let {
+                Snackbar.make(
+                    it, R.string.disconnected, Snackbar
+                        .LENGTH_LONG
+                ).show()
+
             }
         }
 
@@ -121,35 +110,32 @@ class SettingsActivity : AppCompatActivity() {
                 when (preference.key) {
                     context.getString(R.string.first_name_key) -> {
                         attentionRepository.editUser(token = token,
-                            singleton = networkSingleton,
                             firstName = newValue.toString(),
-                            responseListener = {
-                                onResponse(newValue, preference.key)
+                            responseListener = { _, response ->
+                                onResponse(response.code(), newValue, preference.key)
                             },
-                            errorListener = { error ->
-                                onError(error)
+                            errorListener = { _, _ ->
+                                onError()
                             })
                     }
                     context.getString(R.string.last_name_key) -> {
                         attentionRepository.editUser(token = token,
-                            singleton = networkSingleton,
                             lastName = newValue.toString(),
-                            responseListener = {
-                                onResponse(newValue, preference.key)
+                            responseListener = { _, response ->
+                                onResponse(response.code(), newValue, preference.key)
                             },
-                            errorListener = { error ->
-                                onError(error)
+                            errorListener = { _, _ ->
+                                onError()
                             })
                     }
                     context.getString(R.string.email_key) -> {
                         attentionRepository.editUser(token = token,
-                            singleton = networkSingleton,
                             email = newValue.toString(),
-                            responseListener = {
-                                onResponse(newValue, preference.key)
+                            responseListener = { _, response ->
+                                onResponse(response.code(), newValue, preference.key)
                             },
-                            errorListener = { error ->
-                                onError(error)
+                            errorListener = { _, _ ->
+                                onError()
                             })
                     }
                 }
@@ -168,8 +154,10 @@ class SettingsActivity : AppCompatActivity() {
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
             setPreferencesFromResource(R.xml.root_preferences, rootKey)
             val localContext = context ?: return
-            val userInfoChangeListener = UserInfoChangeListener(localContext, this, viewModel,
-                    findPreference = this::findPreference)
+            val userInfoChangeListener = UserInfoChangeListener(
+                localContext, this, viewModel,
+                findPreference = this::findPreference
+            )
             val firstName: EditTextPreference? = findPreference(getString(R.string.first_name_key))
             if (firstName != null) {
                 firstName.onPreferenceChangeListener = userInfoChangeListener

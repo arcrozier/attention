@@ -161,5 +161,4 @@ fun HarmonizedTheme(
     }
 }
 
-object Extended {
-}
+object Extended

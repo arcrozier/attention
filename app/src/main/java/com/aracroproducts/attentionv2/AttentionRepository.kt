@@ -305,7 +305,7 @@ class AttentionRepository(private val database: AttentionDB) {
         })
     }
 
-    fun getUserInfo(
+    fun downloadUserInfo(
         token: String,
         responseListener: ((Call<GenericResult<UserDataResult>>, Response<GenericResult<UserDataResult>>) ->
             Unit)? = null,

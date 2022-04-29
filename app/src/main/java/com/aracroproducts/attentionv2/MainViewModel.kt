@@ -23,13 +23,13 @@ import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.preference.PreferenceManager
-import com.android.volley.*
 import com.google.android.gms.tasks.Task
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import org.json.JSONObject
+import retrofit2.Call
+import retrofit2.Response
 import java.lang.Integer.min
 import javax.inject.Inject
 
@@ -75,7 +75,7 @@ class MainViewModel @Inject internal constructor(
 
     var message by mutableStateOf("")
 
-    private var lastNameRequest: Request<JSONObject>? = null
+    private var lastNameRequest: Call<GenericResult<NameResult>>? = null
 
     /**
      * Used to determine which dialog to display (or none). If the dialog requires additional data,
@@ -149,20 +149,18 @@ class MainViewModel @Inject internal constructor(
             ).getString(MY_TOKEN, null) ?: return@launch
             val friends: List<CachedFriend> = attentionRepository.getCachedFriendsSnapshot()
             for (friend in friends) {
-                attentionRepository.getName(token, friend.username, NetworkSingleton.getInstance
-                    (getApplication()), responseListener = {
-                    attentionRepository.addFriend(friend.username, it.getJSONObject("data")
-                        .getString("name"), token,
-                        NetworkSingleton.getInstance(getApplication()), responseListener = {
-                            attentionRepository.deleteCachedFriend(friend.username)
-                        }, errorListener = { error ->
-                            if (error is ClientError && error.networkResponse.statusCode == 400) {
-                                attentionRepository.deleteCachedFriend(friend.username)
-                            }
-                        })
-                }, errorListener = {
-                    // Username was invalid - otherwise we leave it cached
-                    if (it is ClientError && it.networkResponse.statusCode == 400) {
+                attentionRepository.getName(token, friend.username,
+                    responseListener = { _, response ->
+                    if (response.isSuccessful) {
+                        response.body()?.data?.name?.let {
+                            attentionRepository.addFriend(friend.username,
+                                it,
+                                token, responseListener = { _, response ->
+                                    if (response.isSuccessful || response.code() == 400)
+                                        attentionRepository.deleteCachedFriend(friend.username)
+                                })
+                        }
+                    } else if (response.code() == 400) {
                         attentionRepository.deleteCachedFriend(friend.username)
                     }
                 })
@@ -199,7 +197,8 @@ class MainViewModel @Inject internal constructor(
     }
 
     fun onAddFriend(
-        friend: Friend, responseListener: Response.Listener<JSONObject>? = null,
+        friend: Friend, responseListener: ((Call<GenericResult<Void>>,
+                                           Response<GenericResult<Void>>) -> Unit)? = null,
         launchLogin: () -> Unit
     ) {
         val token = getApplication<Application>().getSharedPreferences(
@@ -215,33 +214,25 @@ class MainViewModel @Inject internal constructor(
         }
         addFriendException = false
         attentionRepository.addFriend(
-            friend.id, friend.name, token, NetworkSingleton.getInstance
-                (getApplication()), responseListener
-        ) {
-            Log.e(sTAG, "An error occurred when adding friend: ${it.message} ${it.networkResponse}")
-            when (it) {
-                is ClientError -> {
-                    usernameCaption = getApplication<Application>().getString(
-                        R.string.add_friend_failed
-                    )
-
-                }
-                is AuthFailureError -> {
-                    attentionRepository.cacheFriend(friend.id)
-                    launchLogin()
-                }
-                is NoConnectionError -> {
-                    attentionRepository.cacheFriend(friend.id)
-                    connectionState = getApplication<Application>().getString(R.string.disconnected)
-                }
-                else -> {
-                    attentionRepository.cacheFriend(friend.id)
-                    connectionState = getApplication<Application>().getString(
-                        R.string
-                            .connection_error
-                    )
-                }
+            friend.id, friend.name, token, responseListener = {call, response ->
+                    when (response.code()) {
+                        200 -> {
+                            responseListener?.invoke(call, response)
+                        }
+                        400 -> {
+                            usernameCaption = getApplication<Application>().getString(
+                                R.string.add_friend_failed
+                            )
+                        }
+                        403 -> {
+                            attentionRepository.cacheFriend(friend.id)
+                            launchLogin()
+                        }
+                    }
             }
+        ) { _, _ ->
+           attentionRepository.cacheFriend(friend.id)
+           connectionState = getApplication<Application>().getString(R.string.disconnected)
         }
     }
 
@@ -251,7 +242,7 @@ class MainViewModel @Inject internal constructor(
     }
 
     fun getFriendName(
-        username: String, responseListener: Response.Listener<JSONObject>? = null,
+        username: String, responseListener: ((name: String) -> Unit)? = null,
         launchLogin: () -> Unit
     ) {
         val token = getApplication<Application>().getSharedPreferences(
@@ -261,17 +252,7 @@ class MainViewModel @Inject internal constructor(
         if (token == null) {
             if (!addFriendException) launchLogin()
             else {
-                responseListener?.onResponse(
-                    JSONObject(
-                        mapOf(
-                            "data" to JSONObject(
-                                mapOf(
-                                    "name" to username
-                                )
-                            )
-                        )
-                    )
-                )
+                responseListener?.invoke(username)
                 newFriendName = username
             }
             return
@@ -279,46 +260,29 @@ class MainViewModel @Inject internal constructor(
 
         lastNameRequest?.cancel()
         friendNameLoading = true
-        lastNameRequest = attentionRepository.getName(token, username, NetworkSingleton
-            .getInstance(getApplication()), responseListener = {
-            lastNameRequest = null
-            newFriendName = it.getJSONObject("data").getString("name")
-            friendNameLoading = false
-            usernameCaption = ""
-            responseListener?.onResponse(it)
-        }, errorListener = {
-            lastNameRequest = null
-            friendNameLoading = false
-            newFriendName = ""
-            when (it) {
-                is ClientError -> {
-                    usernameCaption =
-                        getApplication<Application>().getString(R.string.nonexistent_username)
-                }
-                is AuthFailureError -> {
+        lastNameRequest = attentionRepository.getName(token, username, responseListener = { _,
+            response ->
+            when (response.code()) {
+                200 -> {
+                    lastNameRequest = null
+                    newFriendName = response.body()?.data?.name ?: ""
+                    friendNameLoading = false
+                    usernameCaption = ""
+                    responseListener?.invoke(newFriendName)}
+                400 -> {}
+                403 -> {
                     if (!addFriendException) launchLogin()
-                    else responseListener?.onResponse(
-                        JSONObject(
-                            mapOf(
-                                "data" to JSONObject(
-                                    mapOf(
-                                        "name" to username
-                                    )
-                                )
-                            )
-                        )
-                    )
-                }
-                is NoConnectionError -> {
-                    connectionState = getApplication<Application>().getString(R.string.disconnected)
-                }
-                else -> {
-                    connectionState = getApplication<Application>().getString(
-                        R.string
-                            .connection_error
+                    else responseListener?.invoke(
+                        username
                     )
                 }
             }
+        }, errorListener = { _, _ ->
+            lastNameRequest = null
+            friendNameLoading = false
+            newFriendName = ""
+
+                    connectionState = getApplication<Application>().getString(R.string.disconnected)
         })
     }
 
@@ -345,7 +309,7 @@ class MainViewModel @Inject internal constructor(
             launchLogin()
             return
         }
-        attentionRepository.delete(friend, token, NetworkSingleton.getInstance(getApplication()))
+        attentionRepository.delete(friend, token)
     }
 
     fun confirmDeleteCachedFriend(friend: Friend) {
@@ -357,6 +321,10 @@ class MainViewModel @Inject internal constructor(
      */
     fun onEditName(friend: Friend) {
         appendDialogState(Triple(DialogStatus.FRIEND_NAME, friend) {})
+    }
+
+    private fun errorListener() {
+        connectionState = getApplication<Application>().getString(R.string.disconnected)
     }
 
     /**
@@ -374,32 +342,26 @@ class MainViewModel @Inject internal constructor(
             launchLogin()
             return
         }
-        attentionRepository.edit(Friend(id = id, name = name), token, NetworkSingleton
-            .getInstance(getApplication()), errorListener = {
+        attentionRepository.edit(Friend(id = id, name = name), token, responseListener = { _,
+                                                                                           response ->
             val context = getApplication<Application>()
-            Log.e(
-                sTAG, "An error occurred when editing name: ${it.message} ${
-                    it
-                        .networkResponse
-                }"
-            )
-            when (it) {
-                is ClientError -> {
-
+            when (response.code()) {
+                400 -> {
                     showSnackBar(context.getString(R.string.edit_friend_name_failed))
                 }
-                is AuthFailureError -> {
+                403 -> {
                     val loginIntent = Intent(context, LoginActivity::class.java)
                     context.startActivity(loginIntent)
-                }
-                is NoConnectionError -> {
-                    connectionState = context.getString(R.string.disconnected)
                 }
                 else -> {
                     connectionState = context.getString(R.string.connection_error)
                 }
             }
-        })
+
+        },
+            errorListener = { _, _ ->
+                errorListener()
+            })
     }
 
     private suspend fun getFriend(id: String): Friend {
@@ -470,53 +432,51 @@ class MainViewModel @Inject internal constructor(
 
     fun getUserInfo(token: String, onAuthError: () -> Unit) {
         val context = getApplication<Application>()
-        val singleton = NetworkSingleton.getInstance(context)
-        attentionRepository.getUserInfo(token, singleton, {
-            Log.d(sTAG, it.toString())
-            val defaultPrefsEditor = PreferenceManager
-                .getDefaultSharedPreferences(context)
-                .edit()
-            val data = it.getJSONObject("data")
-            defaultPrefsEditor.putString(
-                context.getString(R.string.username_key), data.getString
-                    ("username")
-            )
-            defaultPrefsEditor.putString(
-                context.getString(R.string.first_name_key),
-                data.getString("first_name")
-            )
-            defaultPrefsEditor.putString(
-                context.getString(R.string.last_name_key),
-                data.getString("last_name")
-            )
-            defaultPrefsEditor.putString(
-                context.getString(R.string.email_key),
-                data.getString("email")
-            )
-            defaultPrefsEditor.apply()
-            attentionRepository.updateUserInfo(it.getJSONObject("data").getJSONArray("friends"))
-            uploadCachedFriends()
-            populateShareTargets()
-            isRefreshing = false
-        }, {
-            isRefreshing = false
-            Log.e(
-                sTAG, "An error occurred when initializing: ${it.message} ${
-                    it
-                        .networkResponse
-                }"
-            )
-            when (it) {
-                is AuthFailureError -> {
+        attentionRepository.downloadUserInfo(token, { _, response ->
+            when (response.code()) {
+                200 -> {
+                    Log.d(sTAG, response.body().toString())
+                    val defaultPrefsEditor = PreferenceManager
+                        .getDefaultSharedPreferences(context)
+                        .edit()
+                    val data = response.body()?.data
+                    if (data == null) {
+                        Log.e(sTAG, "Got user info but body was null!")
+                        return@downloadUserInfo
+                    }
+                    defaultPrefsEditor.putString(
+                        context.getString(R.string.username_key), data.username
+                    )
+                    defaultPrefsEditor.putString(
+                        context.getString(R.string.first_name_key),
+                        data.firstName
+                    )
+                    defaultPrefsEditor.putString(
+                        context.getString(R.string.last_name_key),
+                        data.lastName
+                    )
+                    defaultPrefsEditor.putString(
+                        context.getString(R.string.email_key),
+                        data.email
+                    )
+                    defaultPrefsEditor.apply()
+                    attentionRepository.updateUserInfo(
+                        data.friends
+                    )
+                    uploadCachedFriends()
+                    populateShareTargets()
+                    isRefreshing = false
+                }
+                403 -> {
                     onAuthError()
                 }
-                is NoConnectionError -> {
-                    connectionState = context.getString(R.string.disconnected)
-                }
                 else -> {
-                    connectionState = context.getString(R.string.connection_error)
+                    connectionState = context.getString(R.string.server_error)
                 }
             }
+        }, { _, _ ->
+            isRefreshing = false
+            errorListener()
         })
     }
 
@@ -534,17 +494,19 @@ class MainViewModel @Inject internal constructor(
         if (fcmToken != null && !fcmTokenPrefs.getBoolean(TOKEN_UPLOADED, false) && token != null) {
             attentionRepository.registerDevice(
                 token, fcmToken,
-                NetworkSingleton
-                    .getInstance(context),
-                {
-                    Log.d(sTAG, "Successfully uploaded token")
-                    fcmTokenPrefs.edit().apply {
-                        putBoolean(TOKEN_UPLOADED, true)
-                        apply()
+                { _, response ->
+                    when (response.code()) {
+                        200 -> {
+                            Log.d(sTAG, "Successfully uploaded token")
+                            fcmTokenPrefs.edit().apply {
+                                putBoolean(TOKEN_UPLOADED, true)
+                                apply()
+                            }
+                        }
+                        else -> {
+                            Log.e(sTAG, "Error uploading token: ${response.body()?.message}")
+                        }
                     }
-                },
-                {
-                    Log.e(sTAG, "Error uploading token: ${it.message}")
                 },
             )
         } else if (fcmToken == null) { // We don't have a token, so let's get one
@@ -604,22 +566,22 @@ class MainViewModel @Inject internal constructor(
                 otherId = to, message
                 = message, direction = DIRECTION.Outgoing
             ), token = token,
-                NetworkSingleton.getInstance(getApplication<Application>()), {
-                    showSnackBar(getApplication<Application>().getString(R.string.alert_sent))
-                }, {
-                    Log.e(sTAG, "Error sending alert: ${it.message} ${it.networkResponse}")
-                    when (it) {
-                        is ClientError -> {
-                            val data = String(it.networkResponse.data)
-
+                { _, response ->
+                    val body = response.body()
+                    if (body == null) {
+                        Log.e(sTAG, "Got response but body was null")
+                        return@sendMessage
+                    }
+                    when (response.code()) {
+                        200 -> {
+                            showSnackBar(getApplication<Application>().getString(R.string
+                                .alert_sent))
+                        }
+                        400 -> {
                             when {
-                                data.contains("Could not find user", true) -> {
-                                    notifyUser(
-                                        context.getString(
-                                            R.string
-                                                .alert_failed_no_user, name
-                                        )
-                                    )
+                                body.message.contains("Could not find user", true) -> {
+                                    notifyUser(context.getString(
+                                        R.string.alert_failed_no_user, name))
                                 }
                                 else -> {
                                     notifyUser(
@@ -628,15 +590,9 @@ class MainViewModel @Inject internal constructor(
                                 }
                             }
                         }
-                        is NoConnectionError -> {
-                            notifyUser(
-                                context.getString(R.string.alert_failed_no_connection, name)
-                            )
-                        }
-                        is AuthFailureError -> {
-                            val data = String(it.networkResponse.data)
+                        403 -> {
                             when {
-                                data.contains("does not have you as a friend", true) -> {
+                                body.message.contains("does not have you as a friend", true) -> {
                                     notifyUser(
                                         context.getString(
                                             R.string
@@ -652,6 +608,10 @@ class MainViewModel @Inject internal constructor(
                             notifyUser(context.getString(R.string.alert_failed_server_error, name))
                         }
                     }
+                }, { _, _ ->
+                    notifyUser(
+                                context.getString(R.string.alert_failed_no_connection, name)
+                            )
                 })
         }
     }
@@ -687,15 +647,17 @@ class MainViewModel @Inject internal constructor(
                 if (authToken != null) {
                     attentionRepository.registerDevice(
                         authToken, token,
-                        NetworkSingleton
-                            .getInstance(context),
-                        {
-                            editor.putBoolean(TOKEN_UPLOADED, true)
-                            editor.apply()
-                            Toast.makeText(
-                                context, context.getString(R.string.user_registered),
-                                Toast.LENGTH_SHORT
-                            ).show()
+                        { _, response ->
+                            when (response.code()) {
+                                200 -> {
+                                    editor.putBoolean(TOKEN_UPLOADED, true)
+                                    editor.apply()
+                                    Toast.makeText(
+                                        context, context.getString(R.string.user_registered),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            }
                         }
                     )
                 }
@@ -713,7 +675,6 @@ class MainViewModel @Inject internal constructor(
         private const val COMPAT_HEAVY_CLICK = 5
 
         const val OVERLAY_NO_PROMPT = "OverlayDoNotAsk"
-        const val KEY_UPLOADED = "public_key_requires_auth"
         const val TOKEN_UPLOADED = "token_needs_upload"
         const val USER_INFO = "user"
         const val MY_ID = "id"
