@@ -45,7 +45,7 @@ class AttentionRepository(private val database: AttentionDB) {
             errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
     ) {
         val call = apiInterface.deleteFriend(friend.id, authHeader(token))
-        call.enqueue(object: Callback<GenericResult<Void>> {
+        call.enqueue(object : Callback<GenericResult<Void>> {
             override fun onFailure(call: Call<GenericResult<Void>>, t: Throwable) {
                 Log.e(javaClass.name, t.stackTraceToString())
                 errorListener?.invoke(call, t)
@@ -72,12 +72,12 @@ class AttentionRepository(private val database: AttentionDB) {
     }
 
     fun edit(
-        friend: Friend, token: String,
-        responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>) -> Unit)? = null,
-        errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
+            friend: Friend, token: String,
+            responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>) -> Unit)? = null,
+            errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
     ) {
         val call = apiInterface.editFriendName(friend.id, friend.name, authHeader(token))
-        call.enqueue(object: Callback<GenericResult<Void>> {
+        call.enqueue(object : Callback<GenericResult<Void>> {
             /**
              * Invoked for a received HTTP response.
              *
@@ -112,17 +112,17 @@ class AttentionRepository(private val database: AttentionDB) {
     fun cacheFriend(username: String) {
         MainScope().launch {
             database.getCachedFriendDAO().insert(
-                CachedFriend
+                    CachedFriend
                     (username)
             )
         }
     }
 
     fun getCachedFriends() = database.getCachedFriendDAO()
-        .getCachedFriends()
+            .getCachedFriends()
 
     suspend fun getCachedFriendsSnapshot(): List<CachedFriend> =
-        database.getCachedFriendDAO().getCachedFriendsSnapshot()
+            database.getCachedFriendDAO().getCachedFriendsSnapshot()
 
     fun deleteCachedFriend(username: String) {
         MainScope().launch {
@@ -131,13 +131,13 @@ class AttentionRepository(private val database: AttentionDB) {
     }
 
     fun getMessages(friend: Friend) = database.getMessageDAO()
-        .getMessagesFromUser(friend.id)
+            .getMessagesFromUser(friend.id)
 
     fun appendMessage(message: Message, save: Boolean = false) {
         if (save) {
             val mMessage = Message(
-                timestamp = Calendar.getInstance().timeInMillis, direction =
-                message.direction, otherId = message.otherId, message = message.message
+                    timestamp = Calendar.getInstance().timeInMillis, direction =
+            message.direction, otherId = message.otherId, message = message.message
             )
             MainScope().launch {
                 database.getMessageDAO().insertMessage(mMessage)
@@ -152,15 +152,15 @@ class AttentionRepository(private val database: AttentionDB) {
     }
 
     fun getName(
-        token: String,
-        username: String,
-        responseListener: ((Call<GenericResult<NameResult>>, Response<GenericResult<NameResult>>)
-        -> Unit)
-        ? = null,
-        errorListener: ((Call<GenericResult<NameResult>>, Throwable) -> Unit)? = null
+            token: String,
+            username: String,
+            responseListener: ((Call<GenericResult<NameResult>>, Response<GenericResult<NameResult>>)
+            -> Unit)
+            ? = null,
+            errorListener: ((Call<GenericResult<NameResult>>, Throwable) -> Unit)? = null
     ): Call<GenericResult<NameResult>> {
         val call = apiInterface.getName(username, authHeader(token))
-        call.enqueue(object: Callback<GenericResult<NameResult>> {
+        call.enqueue(object : Callback<GenericResult<NameResult>> {
             /**
              * Invoked for a received HTTP response.
              *
@@ -187,17 +187,17 @@ class AttentionRepository(private val database: AttentionDB) {
     }
 
     fun sendMessage(
-        message: Message,
-        token: String,
-        responseListener: ((Call<GenericResult<AlertResult>>, Response<GenericResult<AlertResult>>) ->
-        Unit)?
-        = null,
-        errorListener: ((Call<GenericResult<AlertResult>>, Throwable) -> Unit)? = null
+            message: Message,
+            token: String,
+            responseListener: ((Call<GenericResult<AlertResult>>, Response<GenericResult<AlertResult>>) ->
+            Unit)?
+            = null,
+            errorListener: ((Call<GenericResult<AlertResult>>, Throwable) -> Unit)? = null
     ) {
         assert(message.direction == DIRECTION.Outgoing)
         appendMessage(message)
         val call = apiInterface.sendAlert(message.otherId, message.message, authHeader(token))
-        call.enqueue(object: Callback<GenericResult<AlertResult>> {
+        call.enqueue(object : Callback<GenericResult<AlertResult>> {
             /**
              * Invoked for a received HTTP response.
              *
@@ -236,14 +236,14 @@ class AttentionRepository(private val database: AttentionDB) {
     }
 
     fun registerDevice(
-        token: String, fcmToken: String,
-        responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>) ->
-        Unit)?
-        = null,
-        errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
+            token: String, fcmToken: String,
+            responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>) ->
+            Unit)?
+            = null,
+            errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
     ) {
         val call = apiInterface.registerDevice(fcmToken, authHeader(token))
-        call.enqueue(object: Callback<GenericResult<Void>> {
+        call.enqueue(object : Callback<GenericResult<Void>> {
             /**
              * Invoked for a received HTTP response.
              *
@@ -270,12 +270,12 @@ class AttentionRepository(private val database: AttentionDB) {
     }
 
     fun editUser(
-        token: String, firstName: String? = null, lastName:
-        String? = null, password: String? = null, oldPassword: String? = null,
-        email: String? = null,
-        responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>) ->
+            token: String, firstName: String? = null, lastName:
+            String? = null, password: String? = null, oldPassword: String? = null,
+            email: String? = null,
+            responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>) ->
             Unit)? = null,
-        errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
+            errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
     ) {
         val call = apiInterface.editUser(firstName, lastName, email, password, oldPassword,
                 authHeader(token))
@@ -306,10 +306,10 @@ class AttentionRepository(private val database: AttentionDB) {
     }
 
     fun downloadUserInfo(
-        token: String,
-        responseListener: ((Call<GenericResult<UserDataResult>>, Response<GenericResult<UserDataResult>>) ->
+            token: String,
+            responseListener: ((Call<GenericResult<UserDataResult>>, Response<GenericResult<UserDataResult>>) ->
             Unit)? = null,
-        errorListener: ((Call<GenericResult<UserDataResult>>, Throwable) -> Unit)? = null
+            errorListener: ((Call<GenericResult<UserDataResult>>, Throwable) -> Unit)? = null
     ) {
         val call = apiInterface.getUserInfo(authHeader(token))
         call.enqueue(object : Callback<GenericResult<UserDataResult>> {
@@ -348,11 +348,11 @@ class AttentionRepository(private val database: AttentionDB) {
     }
 
     fun addFriend(
-        username: String, name: String, token: String,
-        responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>) ->
-        Unit)?
-        = null,
-        errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
+            username: String, name: String, token: String,
+            responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>) ->
+            Unit)?
+            = null,
+            errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
     ) {
         val call = apiInterface.addFriend(username, authHeader(token))
         call.enqueue(object : Callback<GenericResult<Void>> {
@@ -386,16 +386,16 @@ class AttentionRepository(private val database: AttentionDB) {
     fun alertRead(username: String?, alertId: String?) {
         MainScope().launch {
             database.getFriendDAO()
-                .setMessageRead(true, alert_id = alertId, id = username)
+                    .setMessageRead(true, alert_id = alertId, id = username)
         }
     }
 
     fun sendReadReceipt(
-        alertId: String, from: String, fcmToken: String, authToken: String,
-        responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>) ->
-        Unit)?
-        = null,
-        errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
+            alertId: String, from: String, fcmToken: String, authToken: String,
+            responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>) ->
+            Unit)?
+            = null,
+            errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
     ) {
         val call = apiInterface.alertRead(alertId, from, fcmToken, authHeader(authToken))
         call.enqueue(object : Callback<GenericResult<Void>> {
@@ -425,12 +425,12 @@ class AttentionRepository(private val database: AttentionDB) {
     }
 
     fun registerUser(
-        username: String, password: String, firstName: String, lastName: String,
-        email: String,
-        responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>) ->
-        Unit)?
-        = null,
-        errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
+            username: String, password: String, firstName: String, lastName: String,
+            email: String,
+            responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>) ->
+            Unit)?
+            = null,
+            errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
     ) {
         val call = apiInterface.registerUser(firstName, lastName, username, password, email)
         call.enqueue(object : Callback<GenericResult<Void>> {
@@ -460,11 +460,11 @@ class AttentionRepository(private val database: AttentionDB) {
     }
 
     fun getAuthToken(
-        username: String, password: String,
-        responseListener: ((Call<TokenResult>, Response<TokenResult>) ->
-        Unit)?
-        = null,
-        errorListener: ((Call<TokenResult>, Throwable) -> Unit)? = null
+            username: String, password: String,
+            responseListener: ((Call<TokenResult>, Response<TokenResult>) ->
+            Unit)?
+            = null,
+            errorListener: ((Call<TokenResult>, Throwable) -> Unit)? = null
     ) {
         val call = apiInterface.getToken(username, password)
         call.enqueue(object : Callback<TokenResult> {
@@ -495,9 +495,9 @@ class AttentionRepository(private val database: AttentionDB) {
     private fun printNetworkError(error: Response<*>, request: Call<*>) {
         Log.e(javaClass.name, "Response from ${request.request().url}")
         Log.e(
-            javaClass.name, "Status: ${error.code()} Data: ${
-                error.errorBody()?.string() ?: "null"
-            }"
+                javaClass.name, "Status: ${error.code()} Data: ${
+            error.errorBody()?.string() ?: "null"
+        }"
         )
         Log.e(javaClass.name, "Headers: ${error.headers()}")
     }

@@ -30,7 +30,8 @@ class Alert : AppCompatActivity() {
 
     inner class AlertViewModelFactory(private val intent: Intent,
                                       private val attentionRepository: AttentionRepository,
-                                      private val application: Application) : ViewModelProvider.Factory {
+                                      private val application: Application) :
+            ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(AlertViewModel::class.java)) {

@@ -127,10 +127,12 @@ open class AlertHandler : FirebaseMessagingService() {
                     // Stores the id so the notification can be cancelled by the user
                     val id = showNotification(display, senderName, alertId, message.otherId, false)
 
-                    AttentionDB.getDB(applicationContext).getFriendDAO().incrementReceived(message.otherId)
+                    AttentionDB.getDB(applicationContext).getFriendDAO()
+                            .incrementReceived(message.otherId)
 
                     // Device should only show pop up if the device is off or if it has the ability to draw overlays (required to show pop up if screen is on)
-                    if (!pm.isInteractive || Settings.canDrawOverlays(this@AlertHandler)) {
+                    if (!pm.isInteractive || Settings.canDrawOverlays(this@AlertHandler)
+                            || AttentionApplication.isActivityVisible()) {
                         val intent = Intent(this@AlertHandler, Alert::class.java).apply {
                             putExtra(REMOTE_FROM, senderName)
                             putExtra(REMOTE_MESSAGE, display)

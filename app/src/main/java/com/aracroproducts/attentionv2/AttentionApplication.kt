@@ -3,12 +3,16 @@ package com.aracroproducts.attentionv2
 import android.app.Activity
 import android.app.Application
 import android.os.Bundle
-import androidx.lifecycle.*
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import com.google.android.material.color.DynamicColors
 
-class AttentionApplication: Application(), LifecycleEventObserver, Application.ActivityLifecycleCallbacks {
-    val database by lazy {AttentionDB.getDB(this)}
-    val repository by lazy {AttentionRepository(database)}
+class AttentionApplication : Application(), LifecycleEventObserver,
+        Application.ActivityLifecycleCallbacks {
+    val database by lazy { AttentionDB.getDB(this) }
+    val repository by lazy { AttentionRepository(database) }
     var activity: Activity? = null
 
     override fun onCreate() {
@@ -20,7 +24,8 @@ class AttentionApplication: Application(), LifecycleEventObserver, Application.A
     companion object {
         var shownAlertID: String? = null
         fun isActivityVisible(): Boolean {
-            return ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
+            return ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(
+                    Lifecycle.State.STARTED)
         }
     }
 

@@ -21,8 +21,8 @@ class SettingsActivity : AppCompatActivity() {
     })
 
     class SettingsViewModelFactory(
-        private val attentionRepository: AttentionRepository, private val
-        application: Application
+            private val attentionRepository: AttentionRepository, private val
+            application: Application
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -37,20 +37,20 @@ class SettingsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.settings_activity)
         supportFragmentManager
-            .beginTransaction()
-            .replace(R.id.settings, SettingsFragment(viewModel = viewModel))
-            .commit()
+                .beginTransaction()
+                .replace(R.id.settings, SettingsFragment(viewModel = viewModel))
+                .commit()
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
     }
 
     class UserInfoChangeListener(
-        private val context: Context, private val settingsFragment: SettingsFragment, private
-        val model: SettingsViewModel, val findPreference: (String) -> EditTextPreference?
+            private val context: Context, private val settingsFragment: SettingsFragment, private
+            val model: SettingsViewModel, val findPreference: (String) -> EditTextPreference?
     ) :
-        Preference.OnPreferenceChangeListener {
+            Preference.OnPreferenceChangeListener {
         private val attentionRepository = AttentionRepository(AttentionDB.getDB(context))
         private val token = context.getSharedPreferences(
-            MainViewModel.USER_INFO, Context
+                MainViewModel.USER_INFO, Context
                 .MODE_PRIVATE
         ).getString(MainViewModel.MY_TOKEN, null)
 
@@ -63,7 +63,7 @@ class SettingsActivity : AppCompatActivity() {
                     if (model.outstandingRequests == 0) {
                         settingsFragment.view?.let {
                             Snackbar.make(
-                                it, R.string.saved, Snackbar
+                                    it, R.string.saved, Snackbar
                                     .LENGTH_LONG
                             ).show()
                         }
@@ -77,7 +77,7 @@ class SettingsActivity : AppCompatActivity() {
                 403 -> {
                     settingsFragment.view?.let {
                         Snackbar.make(
-                            it, R.string.confirm_logout_title, Snackbar
+                                it, R.string.confirm_logout_title, Snackbar
                                 .LENGTH_SHORT
                         ).show()
                     }
@@ -91,7 +91,7 @@ class SettingsActivity : AppCompatActivity() {
 
             settingsFragment.view?.let {
                 Snackbar.make(
-                    it, R.string.disconnected, Snackbar
+                        it, R.string.disconnected, Snackbar
                         .LENGTH_LONG
                 ).show()
 
@@ -110,33 +110,33 @@ class SettingsActivity : AppCompatActivity() {
                 when (preference.key) {
                     context.getString(R.string.first_name_key) -> {
                         attentionRepository.editUser(token = token,
-                            firstName = newValue.toString(),
-                            responseListener = { _, response ->
-                                onResponse(response.code(), newValue, preference.key)
-                            },
-                            errorListener = { _, _ ->
-                                onError()
-                            })
+                                firstName = newValue.toString(),
+                                responseListener = { _, response ->
+                                    onResponse(response.code(), newValue, preference.key)
+                                },
+                                errorListener = { _, _ ->
+                                    onError()
+                                })
                     }
                     context.getString(R.string.last_name_key) -> {
                         attentionRepository.editUser(token = token,
-                            lastName = newValue.toString(),
-                            responseListener = { _, response ->
-                                onResponse(response.code(), newValue, preference.key)
-                            },
-                            errorListener = { _, _ ->
-                                onError()
-                            })
+                                lastName = newValue.toString(),
+                                responseListener = { _, response ->
+                                    onResponse(response.code(), newValue, preference.key)
+                                },
+                                errorListener = { _, _ ->
+                                    onError()
+                                })
                     }
                     context.getString(R.string.email_key) -> {
                         attentionRepository.editUser(token = token,
-                            email = newValue.toString(),
-                            responseListener = { _, response ->
-                                onResponse(response.code(), newValue, preference.key)
-                            },
-                            errorListener = { _, _ ->
-                                onError()
-                            })
+                                email = newValue.toString(),
+                                responseListener = { _, response ->
+                                    onResponse(response.code(), newValue, preference.key)
+                                },
+                                errorListener = { _, _ ->
+                                    onError()
+                                })
                     }
                 }
             } else {
@@ -155,8 +155,8 @@ class SettingsActivity : AppCompatActivity() {
             setPreferencesFromResource(R.xml.root_preferences, rootKey)
             val localContext = context ?: return
             val userInfoChangeListener = UserInfoChangeListener(
-                localContext, this, viewModel,
-                findPreference = this::findPreference
+                    localContext, this, viewModel,
+                    findPreference = this::findPreference
             )
             val firstName: EditTextPreference? = findPreference(getString(R.string.first_name_key))
             if (firstName != null) {
@@ -176,27 +176,28 @@ class SettingsActivity : AppCompatActivity() {
             val usernamePreference: Preference? = findPreference(getString(R.string.username_key))
             if (usernamePreference != null) {
                 usernamePreference.onPreferenceClickListener =
-                    Preference.OnPreferenceClickListener {
-                        val username = PreferenceManager.getDefaultSharedPreferences(localContext)
-                            .getString(MainViewModel.MY_ID, null)
-                        if (username != null) {
-                            val sharingIntent = Intent(Intent.ACTION_SEND).apply {
-                                type = "text/plain"
-                                val shareBody =
-                                    "Add me on Attention! https://attention.aracroproducts" +
-                                            ".com/app/add?username=$username"
-                                putExtra(Intent.EXTRA_TEXT, shareBody)
+                        Preference.OnPreferenceClickListener {
+                            val username =
+                                    PreferenceManager.getDefaultSharedPreferences(localContext)
+                                            .getString(MainViewModel.MY_ID, null)
+                            if (username != null) {
+                                val sharingIntent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    val shareBody =
+                                            "Add me on Attention! https://attention.aracroproducts" +
+                                                    ".com/app/add?username=$username"
+                                    putExtra(Intent.EXTRA_TEXT, shareBody)
+                                }
+                                startActivity(Intent.createChooser(sharingIntent, null))
                             }
-                            startActivity(Intent.createChooser(sharingIntent, null))
+                            true
                         }
-                        true
-                    }
                 usernamePreference.summary =
-                    PreferenceManager.getDefaultSharedPreferences(localContext)
-                        .getString(
-                            getString(R.string.username_key),
-                            getString(R.string.no_username)
-                        )
+                        PreferenceManager.getDefaultSharedPreferences(localContext)
+                                .getString(
+                                        getString(R.string.username_key),
+                                        getString(R.string.no_username)
+                                )
             }
 
             val logoutPreference: Preference? = findPreference(getString(R.string.logout_key))
@@ -207,27 +208,27 @@ class SettingsActivity : AppCompatActivity() {
                         setMessage(getString(R.string.confirm_logout_message))
                         setPositiveButton(R.string.confirm_logout_title) { dialog, _ ->
                             localContext.getSharedPreferences(
-                                MainViewModel.USER_INFO,
-                                Context.MODE_PRIVATE
+                                    MainViewModel.USER_INFO,
+                                    Context.MODE_PRIVATE
                             ).edit().apply {
                                 putString(MainViewModel.MY_TOKEN, null)
                                 apply()
                             }
                             PreferenceManager.getDefaultSharedPreferences(localContext).edit()
-                                .apply {
-                                    putString(getString(R.string.username_key), null)
-                                    putString(getString(R.string.first_name_key), null)
-                                    putString(getString(R.string.last_name_key), null)
-                                    putString(getString(R.string.email_key), null)
-                                    apply()
-                                }
+                                    .apply {
+                                        putString(getString(R.string.username_key), null)
+                                        putString(getString(R.string.first_name_key), null)
+                                        putString(getString(R.string.last_name_key), null)
+                                        putString(getString(R.string.email_key), null)
+                                        apply()
+                                    }
                             viewModel.clearAllDatabaseTables()
                             activity?.finish()
                             localContext.startActivity(
-                                Intent(
-                                    localContext,
-                                    LoginActivity::class.java
-                                )
+                                    Intent(
+                                            localContext,
+                                            LoginActivity::class.java
+                                    )
                             )
                             dialog.dismiss()
                         }
@@ -242,12 +243,12 @@ class SettingsActivity : AppCompatActivity() {
                     MultiSelectListPreference?
             if (vibratePreference != null) {
                 vibratePreference.onPreferenceChangeListener =
-                    Preference.OnPreferenceChangeListener { _, newValue ->
-                        vibratePreference.setSummaryFromValues(
-                            (newValue as? Set<*>) ?: HashSet<String>()
-                        )
-                        true
-                    }
+                        Preference.OnPreferenceChangeListener { _, newValue ->
+                            vibratePreference.setSummaryFromValues(
+                                    (newValue as? Set<*>) ?: HashSet<String>()
+                            )
+                            true
+                        }
                 vibratePreference.setSummaryFromValues(vibratePreference.values)
             }
 
@@ -255,12 +256,12 @@ class SettingsActivity : AppCompatActivity() {
                     MultiSelectListPreference?
             if (ringPreference != null) {
                 ringPreference.onPreferenceChangeListener =
-                    Preference.OnPreferenceChangeListener { _, newValue ->
-                        ringPreference.setSummaryFromValues(
-                            (newValue as? Set<*>) ?: HashSet<String>()
-                        )
-                        true
-                    }
+                        Preference.OnPreferenceChangeListener { _, newValue ->
+                            ringPreference.setSummaryFromValues(
+                                    (newValue as? Set<*>) ?: HashSet<String>()
+                            )
+                            true
+                        }
                 ringPreference.setSummaryFromValues(ringPreference.values)
             }
         }

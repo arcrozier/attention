@@ -673,7 +673,7 @@ class LoginActivity : AppCompatActivity() {
                     },
                     enabled = model.uiEnabled,
                     modifier = Modifier.requiredHeight(56.dp)
-                    ) {
+            ) {
                 Box {
                     Text(text = getString(R.string.create_user), modifier = Modifier.align
                     (Alignment.Center))

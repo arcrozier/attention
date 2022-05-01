@@ -14,7 +14,7 @@ class NameResult(@SerializedName("name") val name: String)
 class TokenResult(@SerializedName("token") val token: String)
 
 class GenericResult<T>(@SerializedName("success") val success: Boolean,
-                    @SerializedName("message") val message: String, @SerializedName("data") val
+                       @SerializedName("message") val message: String, @SerializedName("data") val
                        data: T)
 
 class AlertResult(@SerializedName("id") val id: String)

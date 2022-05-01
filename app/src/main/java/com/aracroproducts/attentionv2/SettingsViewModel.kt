@@ -7,7 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 
 class SettingsViewModel(private val repository: AttentionRepository, application: Application) :
-    AndroidViewModel(application) {
+        AndroidViewModel(application) {
 
     var outstandingRequests by mutableStateOf(0)
 
