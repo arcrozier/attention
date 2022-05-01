@@ -32,13 +32,7 @@
     <string name="new_password">New password…</string>
     <string name="password_verification_failed">Couldn\'t verify old password. Please login
     again and then try changing your password</string>
-    <string name="mysterious_password_change_login_issue">An unusual error occurred when
-        attempting to change your password. This could be a server-side error or a result of
-        on-device data being corrupted and, unfortunately, we aren\'t sure what your password is
-        now. Try logging in with your new password and if that doesn\'t work, your old password.
-        You can also contact Aracro Products at support@aracroproducts.com for help with getting
-        back into your account. We apologize for the inconvenience.
-    </string>
+    <string name="mysterious_password_change_login_issue">"An unusual error occurred when         attempting to change your password. This could be a server-side error or a result of         on-device data being corrupted and, unfortunately, we aren't sure what your password is         now. Try logging in with your new password and if that doesn't work, your old password.         You can also contact Aracro Products at support@aracroproducts.com for help with getting         back into your account. We apologize for the inconvenience.     "</string>
     <string name="password_updated">Password was updated successfully</string>
     <string name="username_in_use">Username is taken</string>
     <string name="invalid_email">Email is invalid. Enter a valid email or leave blank</string>
@@ -74,8 +68,7 @@
     <string name="alert_failed">Failed to send</string>
     <string name="alert_failed_not_friend">Could not send alert because you are not %s\'s
         friend</string>
-    <string name="alert_failed_no_user">Could not send alert to %s because the user does
-        not exist</string>
+    <string name="alert_failed_no_user">Could not send alert to %s because the user does         not exist</string>
     <string name="alert_failed_bad_request">An error occurred while sending an alert to %s</string>
     <string name="alert_failed_server_error">The server encountered an error while sending an alert to %s</string>
     <string name="alert_failed_no_connection">Could not send alert %s. Check you network
