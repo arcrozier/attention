@@ -30,6 +30,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import retrofit2.Call
 import retrofit2.Response
+import java.io.IOException
 import java.lang.Integer.min
 import javax.inject.Inject
 
@@ -262,14 +263,18 @@ class MainViewModel @Inject internal constructor(
         friendNameLoading = true
         lastNameRequest = attentionRepository.getName(token, username, responseListener = { _,
             response ->
+            if (connectionState != getApplication<Application>().getString(R.string.sharing))
+                connectionState = ""
+            lastNameRequest = null
+            newFriendName = response.body()?.data?.name ?: ""
+            friendNameLoading = false
             when (response.code()) {
                 200 -> {
-                    lastNameRequest = null
-                    newFriendName = response.body()?.data?.name ?: ""
-                    friendNameLoading = false
                     usernameCaption = ""
                     responseListener?.invoke(newFriendName)}
-                400 -> {}
+                400 -> {
+                    usernameCaption = getApplication<Application>().getString(R.string.nonexistent_username)
+                }
                 403 -> {
                     if (!addFriendException) launchLogin()
                     else responseListener?.invoke(
@@ -277,12 +282,13 @@ class MainViewModel @Inject internal constructor(
                     )
                 }
             }
-        }, errorListener = { _, _ ->
+        }, errorListener = { _, t ->
+            if (t is IOException) return@getName
             lastNameRequest = null
             friendNameLoading = false
             newFriendName = ""
-
-                    connectionState = getApplication<Application>().getString(R.string.disconnected)
+            if (connectionState != getApplication<Application>().getString(R.string.sharing))
+                connectionState = getApplication<Application>().getString(R.string.disconnected)
         })
     }
 
@@ -324,7 +330,10 @@ class MainViewModel @Inject internal constructor(
     }
 
     private fun errorListener() {
-        connectionState = getApplication<Application>().getString(R.string.disconnected)
+        val context = getApplication<Application>()
+        if (connectionState != context.getString(R.string.sharing)) {
+            connectionState = getApplication<Application>().getString(R.string.disconnected)
+        }
     }
 
     /**
@@ -346,6 +355,11 @@ class MainViewModel @Inject internal constructor(
                                                                                            response ->
             val context = getApplication<Application>()
             when (response.code()) {
+                200 -> {
+                    if (connectionState != context.getString(R.string.sharing)) {
+                        connectionState = ""
+                    }
+                }
                 400 -> {
                     showSnackBar(context.getString(R.string.edit_friend_name_failed))
                 }
@@ -354,7 +368,9 @@ class MainViewModel @Inject internal constructor(
                     context.startActivity(loginIntent)
                 }
                 else -> {
-                    connectionState = context.getString(R.string.connection_error)
+                    if (connectionState != context.getString(R.string.sharing)) {
+                        connectionState = context.getString(R.string.connection_error)
+                    }
                 }
             }
 
@@ -435,6 +451,9 @@ class MainViewModel @Inject internal constructor(
         attentionRepository.downloadUserInfo(token, { _, response ->
             when (response.code()) {
                 200 -> {
+                    if (connectionState != context.getString(R.string.sharing)) {
+                        connectionState = ""
+                    }
                     Log.d(sTAG, response.body().toString())
                     val defaultPrefsEditor = PreferenceManager
                         .getDefaultSharedPreferences(context)
@@ -471,7 +490,9 @@ class MainViewModel @Inject internal constructor(
                     onAuthError()
                 }
                 else -> {
-                    connectionState = context.getString(R.string.server_error)
+                    if (connectionState != context.getString(R.string.sharing)) {
+                        connectionState = context.getString(R.string.server_error)
+                    }
                 }
             }
         }, { _, _ ->
@@ -567,19 +588,24 @@ class MainViewModel @Inject internal constructor(
                 = message, direction = DIRECTION.Outgoing
             ), token = token,
                 { _, response ->
-                    val body = response.body()
-                    if (body == null) {
-                        Log.e(sTAG, "Got response but body was null")
-                        return@sendMessage
-                    }
                     when (response.code()) {
                         200 -> {
+                            val body = response.body()
+                            if (body == null) {
+                                Log.e(sTAG, "Got response but body was null")
+                                return@sendMessage
+                            }
                             showSnackBar(getApplication<Application>().getString(R.string
                                 .alert_sent))
                         }
                         400 -> {
+                            val errorBody = response.errorBody()
+                            if (errorBody == null) {
+                                Log.e(sTAG, "Got response but body was null")
+                                return@sendMessage
+                            }
                             when {
-                                body.message.contains("Could not find user", true) -> {
+                                errorBody.string().contains("Could not find user", true) -> {
                                     notifyUser(context.getString(
                                         R.string.alert_failed_no_user, name))
                                 }
@@ -591,8 +617,14 @@ class MainViewModel @Inject internal constructor(
                             }
                         }
                         403 -> {
+                            val errorBody = response.errorBody()
+                            if (errorBody == null) {
+                                Log.e(sTAG, "Got response but body was null")
+                                return@sendMessage
+                            }
                             when {
-                                body.message.contains("does not have you as a friend", true) -> {
+                                errorBody.string().contains("does not have you as a friend", true)
+                                -> {
                                     notifyUser(
                                         context.getString(
                                             R.string

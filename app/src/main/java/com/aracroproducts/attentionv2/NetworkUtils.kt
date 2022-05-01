@@ -6,7 +6,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.*
 
-const val BASE_URL = "https://attention.aracroproducts.com/api/v2"
+const val BASE_URL = "https://attention.aracroproducts.com/api/v2/"
 
 
 class NameResult(@SerializedName("name") val name: String)
@@ -40,27 +40,34 @@ class APIClient {
 }
 
 interface APIV2 {
+
+    @FormUrlEncoded
     @POST("api_token_auth/")
     fun getToken(@Field("username") username: String, @Field("password") password: String):
             Call<TokenResult>
 
+    @FormUrlEncoded
     @POST("send_alert/")
     fun sendAlert(@Field("to") to: String, @Field("message") message: String?, @Header
     ("Authorization") token: String): Call<GenericResult<AlertResult>>
 
+    @FormUrlEncoded
     @POST("register_device/")
     fun registerDevice(@Field("fcm_token") fcmToken: String, @Header("Authorization") token:
     String): Call<GenericResult<Void>>
 
+    @FormUrlEncoded
     @POST("register_user/")
     fun registerUser(@Field("first_name") firstName: String, @Field("last_name") lastName:
     String, @Field("username") username: String, @Field("password") password: String, @Field
                      ("email") email: String?): Call<GenericResult<Void>>
 
+    @FormUrlEncoded
     @POST("add_friend/")
     fun addFriend(@Field("username") username: String, @Header("Authorization") token: String):
             Call<GenericResult<Void>>
 
+    @FormUrlEncoded
     @PUT("edit_friend_name/")
     fun editFriendName(@Field("username") username: String, @Field("new_name") newName: String,
                        @Header("Authorization") token: String): Call<GenericResult<Void>>
@@ -69,10 +76,11 @@ interface APIV2 {
     fun getName(@Query("username") username: String, @Header("Authorization") token: String):
             Call<GenericResult<NameResult>>
 
-    @DELETE("delete_friend/")
-    fun deleteFriend(@Field("friend") friend: String, @Header("Authorization") token: String):
+    @DELETE("delete_friend/{id}/")
+    fun deleteFriend(@Path("id") friend: String, @Header("Authorization") token: String):
             Call<GenericResult<Void>>
 
+    @FormUrlEncoded
     @PUT("edit/")
     fun editUser(@Field("first_name") firstName: String?, @Field("last_name") lastName: String?,
                  @Field("email") email: String?, @Field("password") password: String?, @Field
@@ -82,6 +90,7 @@ interface APIV2 {
     @GET("get_info/")
     fun getUserInfo(@Header("Authorization") token: String): Call<GenericResult<UserDataResult>>
 
+    @FormUrlEncoded
     @POST("alert_read/")
     fun alertRead(@Field("alert_id") alertId: String, @Field("from") from: String, @Field
     ("fcm_token") fcmToken: String, @Header("Authorization") token: String):

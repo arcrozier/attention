@@ -38,6 +38,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldColors
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -400,9 +402,12 @@ class MainActivity : AppCompatActivity() {
                     Text(text = getString(R.string.cancel))
                 }
             },
-            title = { Text(text = getString(R.string.add_message)) },
+            title = { Text(text = getString(R.string.add_message), color = MaterialTheme
+                    .colorScheme.onSurfaceVariant) },
             text = {
                 OutlinedTextField(
+                        colors = TextFieldDefaults.outlinedTextFieldColors(textColor =
+                        MaterialTheme.colorScheme.onSurfaceVariant),
                     value = friendModel.message,
                     onValueChange = { friendModel.message = it },
                     keyboardOptions = KeyboardOptions(
@@ -436,8 +441,10 @@ class MainActivity : AppCompatActivity() {
                     Text(text = getString(R.string.cancel))
                 }
             },
-            title = { Text(text = getString(R.string.confirm_delete_title)) },
-            text = { Text(text = getString(R.string.confirm_delete_message, friend.name)) }
+            title = { Text(text = getString(R.string.confirm_delete_title), color = MaterialTheme
+                    .colorScheme.onSurfaceVariant) },
+            text = { Text(text = getString(R.string.confirm_delete_message, friend.name), color = MaterialTheme
+                    .colorScheme.onSurfaceVariant) }
         )
     }
 
@@ -468,9 +475,12 @@ class MainActivity : AppCompatActivity() {
                     Text(text = getString(R.string.cancel))
                 }
             },
-            title = { Text(text = getString(R.string.rename)) },
+            title = { Text(text = getString(R.string.rename), color = MaterialTheme
+                    .colorScheme.onSurfaceVariant) },
             text = {
                 OutlinedTextField(
+                        colors = TextFieldDefaults.outlinedTextFieldColors(textColor =
+                        MaterialTheme.colorScheme.onSurfaceVariant),
                     value = name,
                     onValueChange = { name = it },
                     keyboardOptions = KeyboardOptions(
@@ -514,8 +524,10 @@ class MainActivity : AppCompatActivity() {
                     Text(text = getString(R.string.do_not_ask_again))
                 }
             },
-            title = { Text(text = getString(R.string.draw_title)) },
-            text = { Text(text = getString(R.string.draw_message)) }
+            title = { Text(text = getString(R.string.draw_title), color = MaterialTheme
+                    .colorScheme.onSurfaceVariant) },
+            text = { Text(text = getString(R.string.draw_message), color = MaterialTheme
+                    .colorScheme.onSurfaceVariant) }
         )
     }
 
@@ -545,27 +557,19 @@ class MainActivity : AppCompatActivity() {
             }
             friendModel.popDialogState()
         },
-            buttons = {
-                Row(
-                    modifier = Modifier
-                        .padding(all = 8.dp)
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    OutlinedButton(onClick = {
-                        friendModel.popDialogState()
-                    }) {
-                        Text(getString(R.string.cancel))
-                    }
-                    Button(onClick = {
-                        onAddFriend(friendModel.addFriendUsername)
-                    }) {
-                        Text(getString(android.R.string.ok))
-                    }
-
-                }
-            },
-            title = { Text(text = getString(R.string.add_friend)) },
+                dismissButton = {
+                OutlinedButton(onClick = {
+                    friendModel.popDialogState()
+                }) {
+                    Text(getString(R.string.cancel))
+                }},
+            confirmButton = {Button(onClick = {
+                onAddFriend(friendModel.addFriendUsername)
+            }) {
+                Text(getString(android.R.string.ok))
+            }},
+            title = { Text(text = getString(R.string.add_friend), color = MaterialTheme
+                    .colorScheme.onSurfaceVariant) },
             text = {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -575,13 +579,15 @@ class MainActivity : AppCompatActivity() {
                         modifier = Modifier.fillMaxWidth(),
                         text = friendModel.newFriendName,
                         color = if (friendModel.friendNameLoading)
-                            MaterialTheme.colorScheme.onSurface.copy(
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(
                                 alpha = ContentAlpha.medium
                             )
-                        else Color.Unspecified,
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
                     )
                     OutlinedTextField(
+                            colors = TextFieldDefaults.outlinedTextFieldColors(textColor =
+                            MaterialTheme.colorScheme.onSurfaceVariant),
                         value = friendModel.addFriendUsername,
                         onValueChange = {
                             friendModel.addFriendUsername = it
@@ -605,7 +611,7 @@ class MainActivity : AppCompatActivity() {
                     )
                     Text(
                         text = friendModel.usernameCaption,
-                        color = MaterialTheme.colorScheme.onSurface.copy(
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
                             alpha = ContentAlpha.medium
                         ),
                         style = MaterialTheme.typography.labelSmall,

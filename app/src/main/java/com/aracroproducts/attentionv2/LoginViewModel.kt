@@ -44,13 +44,14 @@ class LoginViewModel @Inject constructor(
         val context = getApplication<Application>()
         attentionRepository.getAuthToken(username = username, password = password,
             responseListener = { _, response ->
-                val body = response.body()
-                if (body == null) {
-                    Log.e(sTAG, "Got response but body was null!")
-                    return@getAuthToken
-                }
+                uiEnabled = true
                 when (response.code()) {
                     200 -> {
+                        val body = response.body()
+                        if (body == null) {
+                            Log.e(sTAG, "Got response but body was null!")
+                            return@getAuthToken
+                        }
                         val userInfoEditor = context.getSharedPreferences(
                             MainViewModel.USER_INFO,
                             Context.MODE_PRIVATE
@@ -64,7 +65,7 @@ class LoginViewModel @Inject constructor(
                         onLoggedIn()
                     }
                     400 -> {
-                        Log.e(sTAG, body.toString())
+                        Log.e(sTAG, response.errorBody().toString())
                         passwordCaption = context.getString(R.string.wrong_password)
                     }
                 }
@@ -103,11 +104,6 @@ class LoginViewModel @Inject constructor(
         firstName, lastName = lastName, email = email,
             responseListener = { _, response ->
                 uiEnabled = true
-                val body = response.body()
-                if (body == null) {
-                    Log.e(sTAG, "Got response but body was null!")
-                    return@registerUser
-                }
                 when (response.code()) {
                     200 -> {
                         PreferenceManager.getDefaultSharedPreferences(context).edit().apply {
@@ -120,18 +116,23 @@ class LoginViewModel @Inject constructor(
                         login(scaffoldState, scope, onLoggedIn)
                     }
                     400 -> {
-                        Log.e(sTAG, body.message)
+                        val body = response.errorBody()
+                        if (body == null) {
+                            Log.e(sTAG, "Got response but body was null")
+                            return@registerUser
+                        }
+                        Log.e(sTAG, body.string())
                         when {
-                            body.message.contains("username taken", true) -> {
+                            body.string().contains("username taken", true) -> {
                                 usernameCaption = context.getString(R.string.username_in_use)
                             }
-                            body.message.contains("enter a valid username", true) -> {
+                            body.string().contains("enter a valid username", true) -> {
                                 usernameCaption = context.getString(R.string.invalid_username)
                             }
-                            body.message.contains("email address", true) -> {
+                            body.string().contains("email address", true) -> {
                                 emailCaption = context.getString(R.string.invalid_email)
                             }
-                            body.message.contains("password", true) -> {
+                            body.string().contains("password", true) -> {
                                 passwordCaption =
                                     context.getString(R.string.password_validation_failed)
                             }
@@ -225,7 +226,7 @@ class LoginViewModel @Inject constructor(
                         passwordCaption = context.getString(R.string.password_validation_failed)
                     }
                     403 -> {
-                        val responseData = response.body()?.message
+                        val responseData = response.errorBody()?.string()
                         if (responseData?.contains("incorrect old password", true) == true)
                             passwordCaption = context.getString(R.string.wrong_password)
                         else {

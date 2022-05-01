@@ -338,9 +338,11 @@ class AttentionRepository(private val database: AttentionDB) {
     }
 
     fun updateUserInfo(friends: List<Friend>) {
-        val keepIDs: Array<String> = Array(friends.size) { "" }
         MainScope().launch {
             database.getFriendDAO().insert(*friends.toTypedArray())
+            val keepIDs: Array<String> = Array(friends.size) { index ->
+                friends[index].id
+            }
             database.getFriendDAO().keepOnly(*keepIDs)
         }
     }
@@ -494,7 +496,7 @@ class AttentionRepository(private val database: AttentionDB) {
         Log.e(javaClass.name, "Response from ${request.request().url}")
         Log.e(
             javaClass.name, "Status: ${error.code()} Data: ${
-                error.body() ?: "null"
+                error.errorBody()?.string() ?: "null"
             }"
         )
         Log.e(javaClass.name, "Headers: ${error.headers()}")
