@@ -124,8 +124,6 @@ class MainActivity : AppCompatActivity() {
         friendModel.loadUserPrefs()
 
         checkOverlayDisplay()
-
-        reload()
     }
 
     private fun handleIntent(intent: Intent?, savedInstanceState: Bundle? = null) {
@@ -414,6 +412,7 @@ class MainActivity : AppCompatActivity() {
                         keyboardType = KeyboardType.Text,
                         capitalization = KeyboardCapitalization.Words
                     ),
+                        modifier = Modifier.fillMaxWidth(),
                     singleLine = false,
                     label = { Text(text = getString(R.string.message_label, friend.name)) },
                     placeholder = { Text(text = getString(R.string.message_hint)) }
@@ -488,6 +487,7 @@ class MainActivity : AppCompatActivity() {
                         capitalization = KeyboardCapitalization.Words
                     ),
                     singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
                     label = { Text(text = getString(R.string.name)) },
                     isError = error,
                     placeholder = { Text(text = getString(R.string.new_name)) }
@@ -604,6 +604,7 @@ class MainActivity : AppCompatActivity() {
                         keyboardActions = KeyboardActions(onDone = {
                             onAddFriend(username = friendModel.addFriendUsername)
                         }),
+                            modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         label = { Text(text = getString(R.string.username)) },
                         isError = friendModel.usernameCaption.isNotBlank(),

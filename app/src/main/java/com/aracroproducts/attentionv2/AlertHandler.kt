@@ -31,12 +31,12 @@ open class AlertHandler : FirebaseMessagingService() {
         Log.d(TAG, "New token: $token")
         val preferences = getSharedPreferences(MainViewModel.USER_INFO, MODE_PRIVATE)
         if (preferences.getString(MainViewModel.FCM_TOKEN, "") != token) {
-            val authToken = preferences.getString(MainViewModel.MY_TOKEN, null) ?: return
             Log.d(TAG, "Token is new: updating shared preferences")
             val editor = preferences.edit()
             editor.putBoolean(MainViewModel.TOKEN_UPLOADED, false)
             editor.putString(MainViewModel.FCM_TOKEN, token)
             editor.apply()
+            val authToken = preferences.getString(MainViewModel.MY_TOKEN, null) ?: return
             val repository = AttentionRepository(AttentionDB.getDB(applicationContext))
             repository.registerDevice(authToken, token, { _, response ->
                 if (response.isSuccessful) {

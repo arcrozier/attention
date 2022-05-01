@@ -222,6 +222,7 @@ class SettingsActivity : AppCompatActivity() {
                                     apply()
                                 }
                             viewModel.clearAllDatabaseTables()
+                            activity?.finish()
                             localContext.startActivity(
                                 Intent(
                                     localContext,
