@@ -6,15 +6,10 @@
     <string name="name_dialog_title">Bite ingebt zayer nomen</string>
     <string name="name">Gantze nomen</string>
     <string name="no_name">Bite ingebt a nomen</string>
-    <string name="manual_input">Ingebt a numer manuel</string>
     <string name="confirm_alert">Shikt onzog?</string>
     <string name="add_message">Leygt onzog</string>
     <string name="message_hint">Leygt onzog…</string>
-    <string name="describe_QR">QR kod far an andere nitznik tzu farbindn ir mit</string>
     <string name="invalid_id">Ir hot nisht ingegebn a gut numer</string>
-    <string name="no_id">Bite ingebt oder skant a QR ID</string>
-    <string name="scan_new">Bite skant a naye kod</string>
-    <string name="no_camera">Nisht keyn fotoaparat detektirn</string>
     <string name="alert_sent">Onzog hatzlochedik geshikt</string>
     <string name="general_error">Grayz: Onzog ken nisht shikn</string>
     <string name="user_registered">Zayer registratziye iz gut!</string>

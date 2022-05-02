@@ -5,15 +5,10 @@
     <string name="name_dialog_title">Venligst tast inn navnet dit</string>
     <string name="name">Fullt navn</string>
     <string name="no_name">Venligst tast inn et navn</string>
-    <string name="manual_input">Tast inn koden manuelt</string>
     <string name="confirm_alert">Send varsel</string>
     <string name="add_message">Legg til en melding</string>
     <string name="message_hint">Tast inn en melding</string>
-    <string name="describe_QR">QR kode for andre brukere til å legget deg til</string>
     <string name="invalid_id">Du tastet ikke inn en gyldig ID</string>
-    <string name="no_id">Venligst tast inn eller skanne en ID</string>
-    <string name="scan_new">Venligst skanne en ny kode</string>
-    <string name="no_camera">Ingen kamera funnet</string>
     <string name="alert_sent">Vellykket sendte varsel</string>
     <string name="general_error">Feil: Kun ikke sendte varsel</string>
     <string name="user_registered">Din konto har blit registret!</string>
@@ -63,7 +58,7 @@
     <string name="read">Lest</string>
     <string name="sent">Levert</string>
     <string name="offline">På nett</string>
-    <string name="disconnected">Tilkoblings feild</string>
+    <string name="disconnected">Tilkoblings feil</string>
     <string name="empty_username">Brukernavn kan ikke være tomt</string>
     <string name="nonexistent_username">Ingen bruker med denne brukernavn finnes</string>
     <string name="add_friend_failed">Kun ikke legg til venn - brukernavn kan ikke finnes eller du er allerede venner med dem</string>
@@ -112,4 +107,6 @@
     <string name="alert_failed_channel_name">Sending feil</string>
     <string name="alert_failed_channel_description">Varsler deg når et varsel mislykkes i å sende</string>
     <string name="alert_title">Oppmerk!</string>
+    <string name="friend_card_click_label">Valg fra varsel valg</string>
+    <string name="friend_card_long_click_label">Rediger eller fjern venn</string>
 </resources>

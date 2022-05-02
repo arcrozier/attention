@@ -47,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -667,20 +668,26 @@ class MainActivity : AppCompatActivity() {
                         .fillMaxWidth(1F)
                         .padding(10.dp)
                         .requiredHeight(48.dp)
-                        .combinedClickable(onClick = {
-                            state = when (state) {
-                                State.NORMAL -> State.CONFIRM
-                                State.CONFIRM, State.CANCEL, State.EDIT -> State.NORMAL
-                            }
-                        }, onLongClick = {
-                            state = when (state) {
-                                State.NORMAL -> State.EDIT
-                                else -> state
-                            }
-                            onLongPress()
-                        })
+                        .combinedClickable(
+                                onClick = {
+                                    state = when (state) {
+                                        State.NORMAL -> State.CONFIRM
+                                        State.CONFIRM, State.CANCEL, State.EDIT -> State.NORMAL
+                                    }
+                                },
+                                onClickLabel = getString(R.string.friend_card_click_label),
+                                onLongClick = {
+                                    state = when (state) {
+                                        State.NORMAL -> State.EDIT
+                                        else -> state
+                                    }
+                                    onLongPress()
+                                },
+                                onLongClickLabel = getString(R.string.friend_card_long_click_label))
         ) {
-            Column(modifier = Modifier.align(Alignment.CenterStart)) {
+            Column(modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .semantics(mergeDescendants = true) {}) {
                 Text(
                         text = friend.name,
                         style = MaterialTheme.typography.titleMedium,

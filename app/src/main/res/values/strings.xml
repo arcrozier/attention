@@ -32,7 +32,7 @@
     <string name="new_password">New password…</string>
     <string name="password_verification_failed">Couldn\'t verify old password. Please login
     again and then try changing your password</string>
-    <string name="mysterious_password_change_login_issue">"An unusual error occurred when         attempting to change your password. This could be a server-side error or a result of         on-device data being corrupted and, unfortunately, we aren't sure what your password is         now. Try logging in with your new password and if that doesn't work, your old password.         You can also contact Aracro Products at support@aracroproducts.com for help with getting         back into your account. We apologize for the inconvenience.     "</string>
+    <string name="mysterious_password_change_login_issue">An unusual error occurred when attempting to change your password. This could be a server-side error or a result of on-device data being corrupted and, unfortunately, we aren\'t sure what your password is now. Try logging in with your new password and if that doesn't work, your old password. You can also contact Aracro Products at support@aracroproducts.com for help with getting back into your account. We apologize for the inconvenience.</string>
     <string name="password_updated">Password was updated successfully</string>
     <string name="username_in_use">Username is taken</string>
     <string name="invalid_email">Email is invalid. Enter a valid email or leave blank</string>
@@ -53,17 +53,12 @@
     <string name="name">Full name</string>
     <string name="placeholder_name">Name…</string>
     <string name="no_name">Please enter a name</string>
-    <string name="manual_input">Enter code manually</string>
     <string name="share_user_id">Share user ID</string>
     <string name="confirm_alert">Send notification</string>
     <string name="add_message">Add message</string>
     <string name="message_hint">Enter message…</string>
     <string name="message_label">Custom message to %s</string>
-    <string name="describe_QR">QR code for another user to add you</string>
     <string name="invalid_id">You did not enter a valid ID</string>
-    <string name="no_id">Please enter or scan an ID</string>
-    <string name="scan_new">Please scan a new code</string>
-    <string name="no_camera">No camera detected</string>
     <string name="alert_sent">Successfully sent alert</string>
     <string name="alert_failed">Failed to send</string>
     <string name="alert_failed_not_friend">Could not send alert because you are not %s\'s
@@ -87,6 +82,9 @@
     <string name="confirm_delete_message">Are you sure you want to remove %s from your friends?</string>
     <string name="yes">Yes</string>
     <string name="add_friend">Add new friend</string>
+
+    <string name="friend_card_click_label">choose from alert options</string>
+    <string name="friend_card_long_click_label">edit or remove friend</string>
 
     <string name="cancel">Cancel</string>
     <string name="delete">Delete</string>
