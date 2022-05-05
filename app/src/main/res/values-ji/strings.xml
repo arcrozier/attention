@@ -14,7 +14,7 @@
     <string name="general_error">Grayz: Onzog ken nisht shikn</string>
     <string name="user_registered">Zayer registratziye iz gut!</string>
     <string name="default_message">%s veln zayer ufmerkzamkayt!</string>
-    <string name="message_prefix">%s zogt: %s</string>
+    <string name="message_prefix">%1$s zogt: %2$s</string>
 
     <string name="confirm_delete_title">Oysmekn chaver</string>
     <string name="confirm_delete_message">Zent ir zikher vos ir veln tzu oysmekn %s fun zayer chaverim?</string>
