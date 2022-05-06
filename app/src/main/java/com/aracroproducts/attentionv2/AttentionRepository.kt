@@ -214,8 +214,8 @@ class AttentionRepository(private val database: AttentionDB) {
                         database.getFriendDAO().setMessageAlert(alertId,
                                 message.otherId)
                         alertId?.let {
-                            database.getFriendDAO().setMessageRead(
-                                    false, alert_id = alertId, id = message.otherId
+                            database.getFriendDAO().setMessageStatus(
+                                    MessageStatus.SENT, alert_id = alertId, id = message.otherId
                             )
                         }
                         database.getFriendDAO().incrementSent(message.otherId)
@@ -383,11 +383,51 @@ class AttentionRepository(private val database: AttentionDB) {
         })
     }
 
+    fun alertDelivered(username: String?, alertId: String?) {
+        MainScope().launch {
+            database.getFriendDAO()
+                .setMessageStatus(MessageStatus.DELIVERED, alert_id = alertId, id = username)
+        }
+    }
+
     fun alertRead(username: String?, alertId: String?) {
         MainScope().launch {
             database.getFriendDAO()
-                    .setMessageRead(true, alert_id = alertId, id = username)
+                    .setMessageStatus(MessageStatus.READ, alert_id = alertId, id = username)
         }
+    }
+
+    fun sendDeliveredReceipt(
+        alertId: String, from: String, fcmToken: String, authToken: String,
+                             responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>) ->
+                             Unit)?
+                             = null,
+                             errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
+    ) { val call = apiInterface.alertDelivered(alertId, from, fcmToken, authHeader(authToken))
+        call.enqueue(object : Callback<GenericResult<Void>> {
+            /**
+             * Invoked for a received HTTP response.
+             *
+             *
+             * Note: An HTTP response may still indicate an application-level failure such as a 404 or 500.
+             * Call [Response.isSuccessful] to determine if the response indicates success.
+             */
+            override fun onResponse(call: Call<GenericResult<Void>>,
+                                    response: Response<GenericResult<Void>>) {
+                if (!response.isSuccessful) printNetworkError(response, call)
+                responseListener?.invoke(call, response)
+            }
+
+            /**
+             * Invoked when a network exception occurred talking to the server or when an unexpected
+             * exception occurred creating the request or processing the response.
+             */
+            override fun onFailure(call: Call<GenericResult<Void>>, t: Throwable) {
+                Log.e(javaClass.name, t.stackTraceToString())
+                errorListener?.invoke(call, t)
+            }
+
+        })
     }
 
     fun sendReadReceipt(

@@ -699,12 +699,10 @@ class MainActivity : AppCompatActivity() {
                                 .alpha(alpha)
                                 .blur(blur)
                 )
-                val receipt = when {
-                    friend.last_message_read ->
-                        getString(R.string.read)
-
-                    friend.last_message_sent_id != null && friend.last_message_sent_id != "null"
-                    -> getString(R.string.sent)
+                val receipt = when(friend.last_message_status) {
+                    MessageStatus.SENT -> getString(R.string.sent)
+                    MessageStatus.DELIVERED -> getString(R.string.sent)
+                    MessageStatus.READ -> getString(R.string.read)
                     else -> ""
                 }
                 Text(

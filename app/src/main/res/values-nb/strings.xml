@@ -56,7 +56,7 @@
     <string name="passwords_match">Passord er det samme</string>
     <string name="passwords_different">Passord er forskillege</string>
     <string name="read">Lest</string>
-    <string name="sent">Levert</string>
+    <string name="sent">Sendt</string>
     <string name="offline">På nett</string>
     <string name="disconnected">Tilkoblings feil</string>
     <string name="empty_username">Brukernavn kan ikke være tomt</string>

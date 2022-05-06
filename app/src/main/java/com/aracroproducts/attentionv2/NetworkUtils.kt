@@ -1,6 +1,8 @@
 package com.aracroproducts.attentionv2
 
 import com.google.gson.annotations.SerializedName
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Call
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -96,5 +98,9 @@ interface APIV2 {
     ("fcm_token") fcmToken: String, @Header("Authorization") token: String):
             Call<GenericResult<Void>>
 
-
+    @FormUrlEncoded
+    @POST("alert_delivered/")
+    fun alertDelivered(@Field("alert_id") alertId: String, @Field("from") from: String, @Field
+        ("fcm_token") fcmToken: String, @Header("Authorization") token: String):
+            Call<GenericResult<Void>>
 }

@@ -3,11 +3,25 @@ package com.aracroproducts.attentionv2
 import android.content.Context
 import androidx.lifecycle.LiveData
 import androidx.room.*
-import com.aracroproducts.attentionv2.AttentionDB.Companion.DB_V1
+import com.aracroproducts.attentionv2.AttentionDB.Companion.DB_V2
 import com.google.gson.annotations.SerializedName
 
+class Converters {
+    @TypeConverter
+    fun toMessageStatus(value: String?): MessageStatus? {
+        if (value != null) return enumValueOf<MessageStatus>(value)
+        return null
+    }
+
+    @TypeConverter
+    fun fromMessageStatus(status: MessageStatus?): String? {
+        if (status != null) return status.value
+        return null
+    }
+}
+
 @Database(
-        version = DB_V1,
+        version = DB_V2,
         entities = [Friend::class, Message::class, CachedFriend::class]
 )
 abstract class AttentionDB : RoomDatabase() {
@@ -19,7 +33,7 @@ abstract class AttentionDB : RoomDatabase() {
     abstract fun getCachedFriendDAO(): CachedFriendDAO
 
     companion object {
-        const val DB_V1 = 1
+        const val DB_V2 = 2
         private const val DB_NAME = "attention_database"
 
         @Volatile
@@ -31,7 +45,7 @@ abstract class AttentionDB : RoomDatabase() {
                         context.applicationContext,
                         AttentionDB::class.java,
                         DB_NAME
-                ).build()
+                ).fallbackToDestructiveMigration().build()
                 INSTANCE = instance
                 // return instance
                 instance
@@ -57,8 +71,9 @@ data class Friend(
         val received: Int = 0,
         @SerializedName("last_message_id_sent")
         val last_message_sent_id: String? = null,
-        @SerializedName("last_message_read")
-        val last_message_read: Boolean = false
+        @SerializedName("last_message_status")
+        @TypeConverters(Converters::class)
+        val last_message_status: MessageStatus? = null
 )
 
 data class Name(
@@ -75,6 +90,15 @@ data class Message(
 )
 
 enum class DIRECTION { Outgoing, Incoming }
+
+enum class MessageStatus(val value: String) {
+    @SerializedName("Sent")
+    SENT("Sent"),
+    @SerializedName("Delivered")
+    DELIVERED("Delivered"),
+    @SerializedName("Read")
+    READ("Read")
+}
 
 @Dao
 interface FriendDAO {
@@ -97,10 +121,11 @@ interface FriendDAO {
     suspend fun setMessageAlert(message_id: String?, id: String)
 
     @Query(
-            "UPDATE Friend SET last_message_read = :read WHERE id = :id AND last_message_sent_id =" +
+            "UPDATE Friend SET last_message_status = :status WHERE id = :id AND " +
+                    "last_message_sent_id =" +
                     " :alert_id"
     )
-    suspend fun setMessageRead(read: Boolean, id: String?, alert_id: String?)
+    suspend fun setMessageStatus(status: MessageStatus?, id: String?, alert_id: String?)
 
     @Query("SELECT * FROM Friend ORDER BY sent DESC")
     fun getFriends(): LiveData<List<Friend>>

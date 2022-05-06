@@ -93,6 +93,25 @@ open class AlertHandler : FirebaseMessagingService() {
                             PreferenceManager.getDefaultSharedPreferences(this@AlertHandler)
                     val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
                     NotificationManagerCompat.from(this@AlertHandler)
+
+                    val fcmTokenPrefs =
+                        getSharedPreferences(MainViewModel.FCM_TOKEN, Context.MODE_PRIVATE)
+
+                    // token is auth token
+                    val token = userInfo.getString(MainViewModel.MY_TOKEN, null)
+
+                    val fcmToken = fcmTokenPrefs.getString(MainViewModel.FCM_TOKEN, null)
+
+                    if (token != null && fcmToken != null) {
+                        repository.sendReadReceipt(
+                            from = messageData[REMOTE_TO] ?: "",
+                            alertId = alertId,
+                            fcmToken = fcmToken,
+                            authToken = token)
+                    } else {
+                        Log.e(javaClass.name, "Token is null when sending delivery receipt!")
+                    }
+
                     // Check if SDK >= Android 7.0, uses the new notification manager, else uses the compat manager (SDK 19+)
                     // Checks if the app should avoid notifying because it has notifications disabled or:
                     if ((!manager.areNotificationsEnabled())
@@ -156,6 +175,14 @@ open class AlertHandler : FirebaseMessagingService() {
                         )
                         startActivity(intent)
                     }
+                }
+                "delivered" -> {
+                    val attentionRepository =
+                    AttentionRepository(AttentionDB.getDB(this@AlertHandler))
+                    attentionRepository.alertDelivered(
+                        username = messageData["username_to"],
+                        alertId = messageData["alert_id"]
+                    )
                 }
                 "read" -> {
                     val attentionRepository =

@@ -395,7 +395,8 @@ class LoginActivity : AppCompatActivity() {
                     },
                     keyboardOptions = KeyboardOptions(
                             autoCorrect = false,
-                            imeAction = ImeAction.Done
+                            imeAction = ImeAction.Done,
+                        keyboardType = KeyboardType.Password
                     ),
                     keyboardActions = KeyboardActions(
                             onDone = {
