@@ -10,10 +10,17 @@ android {
         applicationId "com.aracroproducts.attentionv2"
         minSdkVersion 24
         targetSdkVersion 32
-        versionCode 13
-        versionName "2.0.0 beta 5"
+        versionCode 14
+        versionName "2.0.0 beta 6"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        javaCompileOptions {
+            annotationProcessorOptions {
+                arguments += ["room.schemaLocation": "$projectDir/schemas".toString()]
+            }
+        }
+        signingConfig signingConfigs.debug
     }
 
     buildFeatures {
@@ -23,6 +30,7 @@ android {
     buildTypes {
         release {
             minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -42,12 +50,9 @@ android {
 }
 
 dependencies {
-    implementation 'com.google.code.gson:gson:2.8.6'
-    implementation 'com.google.firebase:firebase-database:20.0.4'
-    implementation 'com.google.firebase:firebase-messaging:23.0.3'
+    implementation 'com.google.code.gson:gson:2.9.0'
+    implementation 'com.google.firebase:firebase-messaging-ktx:23.0.3'
     implementation 'com.google.firebase:firebase-analytics:20.1.2'
-    implementation 'com.journeyapps:zxing-android-embedded:4.1.0'
-    implementation 'com.google.zxing:core:3.4.0'
     implementation fileTree(dir: "libs", include: ["*.jar"])
     implementation 'androidx.appcompat:appcompat:1.4.1'
     implementation 'com.google.android.material:material:1.5.0'
@@ -62,10 +67,14 @@ dependencies {
     implementation "androidx.core:core-ktx:1.7.0"
     implementation("androidx.work:work-runtime-ktx:2.7.1")
 
-    implementation 'com.squareup.retrofit2:retrofit:2.3.0'
-    implementation("com.squareup.okhttp3:okhttp:4.9.3")
-    implementation("com.squareup.retrofit2:converter-gson:2.3.0")
-    implementation("com.google.code.gson:gson:2.8.6")
+    implementation 'com.squareup.retrofit2:retrofit:2.9.0'// define a BOM and its version
+    implementation(platform("com.squareup.okhttp3:okhttp-bom:4.9.3"))
+
+    // define any required OkHttp artifacts without version
+    implementation("com.squareup.okhttp3:okhttp")
+    implementation("com.squareup.okhttp3:logging-interceptor")
+    implementation('com.squareup.retrofit2:converter-gson:2.9.0')
+    implementation('com.google.code.gson:gson:2.9.0')
     def lifecycle_version = "2.4.1"
     def arch_version = "2.1.0"
 
@@ -100,7 +109,7 @@ dependencies {
     // Integration with activities
     implementation 'androidx.activity:activity-compose:1.4.0'
     // Compose Material Design
-    implementation 'androidx.compose.material:material:1.1.1'
+    implementation 'androidx.compose.material:material:1.2.0-alpha08'
     // Animations
     implementation 'androidx.compose.animation:animation:1.1.1'
     implementation "androidx.compose.material:material-icons-extended:1.1.1"
@@ -131,7 +140,7 @@ dependencies {
     implementation "androidx.core:core-ktx:1.7.0"
     implementation "androidx.sharetarget:sharetarget:1.2.0-rc01"
 
-    implementation 'com.google.accompanist:accompanist-swiperefresh:0.24.6-alpha'
+    implementation 'com.google.accompanist:accompanist-swiperefresh:0.24.7-alpha'
 
 }
 repositories {
