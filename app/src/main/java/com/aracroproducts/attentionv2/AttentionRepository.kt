@@ -398,12 +398,12 @@ class AttentionRepository(private val database: AttentionDB) {
     }
 
     fun sendDeliveredReceipt(
-        alertId: String, from: String, fcmToken: String, authToken: String,
+        alertId: String, from: String, authToken: String,
                              responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>) ->
                              Unit)?
                              = null,
                              errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
-    ) { val call = apiInterface.alertDelivered(alertId, from, fcmToken, authHeader(authToken))
+    ) { val call = apiInterface.alertDelivered(alertId, from, authHeader(authToken))
         call.enqueue(object : Callback<GenericResult<Void>> {
             /**
              * Invoked for a received HTTP response.

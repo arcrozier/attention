@@ -69,8 +69,8 @@ open class AlertHandler : FirebaseMessagingService() {
                             message = messageData[REMOTE_MESSAGE]
                     )
                     val repository = AttentionRepository(AttentionDB.getDB(applicationContext))
-                    val userInfo = PreferenceManager.getDefaultSharedPreferences(this@AlertHandler)
-                    if (messageData[REMOTE_TO] != userInfo.getString(
+                    val defaultPrefs = PreferenceManager.getDefaultSharedPreferences(this@AlertHandler)
+                    if (messageData[REMOTE_TO] != defaultPrefs.getString(
                                     getString(R.string.username_key),
                                     ""
                             ) || messageData[REMOTE_TO] == ""
@@ -94,19 +94,14 @@ open class AlertHandler : FirebaseMessagingService() {
                     val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
                     NotificationManagerCompat.from(this@AlertHandler)
 
-                    val fcmTokenPrefs =
-                        getSharedPreferences(MainViewModel.FCM_TOKEN, Context.MODE_PRIVATE)
-
+                    val userInfo = getSharedPreferences(MainViewModel.USER_INFO, Context.MODE_PRIVATE)
                     // token is auth token
                     val token = userInfo.getString(MainViewModel.MY_TOKEN, null)
 
-                    val fcmToken = fcmTokenPrefs.getString(MainViewModel.FCM_TOKEN, null)
-
-                    if (token != null && fcmToken != null) {
-                        repository.sendReadReceipt(
+                    if (token != null) {
+                        repository.sendDeliveredReceipt(
                             from = messageData[REMOTE_TO] ?: "",
                             alertId = alertId,
-                            fcmToken = fcmToken,
                             authToken = token)
                     } else {
                         Log.e(javaClass.name, "Token is null when sending delivery receipt!")

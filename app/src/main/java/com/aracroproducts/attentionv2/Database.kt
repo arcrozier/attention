@@ -76,10 +76,6 @@ data class Friend(
         val last_message_status: MessageStatus? = null
 )
 
-data class Name(
-        @ColumnInfo(name = "name") val name: String?
-)
-
 @Entity
 data class Message(
         @PrimaryKey(autoGenerate = true) val messageId: Int? = null,
