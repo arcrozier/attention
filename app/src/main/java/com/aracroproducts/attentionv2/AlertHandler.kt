@@ -100,7 +100,7 @@ open class AlertHandler : FirebaseMessagingService() {
 
                     if (token != null) {
                         repository.sendDeliveredReceipt(
-                            from = messageData[REMOTE_TO] ?: "",
+                            from = message.otherId,
                             alertId = alertId,
                             authToken = token)
                     } else {
