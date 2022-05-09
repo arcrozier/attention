@@ -82,7 +82,7 @@ class SettingsActivity : AppCompatActivity() {
                                 .LENGTH_SHORT
                         ).show()
                     }
-                    MainViewModel.launchLogin(context)
+                    launchLogin()
                 }
             }
         }
@@ -141,9 +141,14 @@ class SettingsActivity : AppCompatActivity() {
                     }
                 }
             } else {
-                MainViewModel.launchLogin(context)
+                launchLogin()
             }
             return false
+        }
+
+        private fun launchLogin() {
+            val loginIntent = Intent(context, LoginActivity::class.java)
+            context.startActivity(loginIntent)
         }
 
     }

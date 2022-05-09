@@ -738,11 +738,6 @@ class MainViewModel @Inject internal constructor(
                 notificationManager.createNotificationChannel(channel)
             }
         }
-
-        fun launchLogin(context: Activity) {
-            val loginIntent = Intent(context, LoginActivity::class.java)
-            context.startActivity(loginIntent)
-        }
     }
 
 
