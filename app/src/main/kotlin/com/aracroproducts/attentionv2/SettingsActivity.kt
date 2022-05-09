@@ -50,10 +50,6 @@ class SettingsActivity : AppCompatActivity() {
     ) :
             Preference.OnPreferenceChangeListener {
         private val attentionRepository = AttentionRepository(AttentionDB.getDB(context))
-        private val token = context.getSharedPreferences(
-                MainViewModel.USER_INFO, Context
-                .MODE_PRIVATE
-        ).getString(MainViewModel.MY_TOKEN, null)
 
 
         private fun onResponse(code: Int, newValue: Any?, key: String) {
@@ -100,6 +96,10 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         override fun onPreferenceChange(preference: Preference, newValue: Any?): Boolean {
+            val token = context.getSharedPreferences(
+                    MainViewModel.USER_INFO, Context
+                    .MODE_PRIVATE
+            ).getString(MainViewModel.MY_TOKEN, null)
             if (token != null) {
                 settingsFragment.view?.let {
                     val snackBar = Snackbar.make(it, R.string.saving, Snackbar.LENGTH_INDEFINITE)
