@@ -3,7 +3,6 @@ package com.aracroproducts.attentionv2
 import android.util.Log
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
-import okhttp3.ResponseBody
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response

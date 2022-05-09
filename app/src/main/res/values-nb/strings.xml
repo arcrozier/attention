@@ -88,7 +88,6 @@
     <string name="saving">Lagrer…</string>
     <string name="saved">Lagret</string>
     <string name="placeholder_name">Navn…</string>
-    <string name="share_user_id">Del bruker ID</string>
     <string name="message_label">Tilpasset melding til %s</string>
     <string name="alert_failed">Kunne ikke sende</string>
     <string name="alert_failed_not_friend">Kunne ikke sende varsel fordi du er ikke %ss venn</string>
@@ -110,4 +109,5 @@
     <string name="friend_card_click_label">Valg fra varsel valg</string>
     <string name="friend_card_long_click_label">Rediger eller fjern venn</string>
     <string name="delivered">Levert</string>
+    <string name="share_text">Legg meg til på Oppmerk! https://attention.aracroproducts.com/app/add?username=%s</string>
 </resources>

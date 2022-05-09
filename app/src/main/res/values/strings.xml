@@ -50,11 +50,12 @@
     <string name="sharing">Sharing data; tap \"add message\" on a friend to edit and send</string>
     <string name="saving">Saving…</string>
     <string name="saved">Saved</string>
+    <string name="share_text">Add me on Attention!
+        https://attention.aracroproducts.com/app/add?username=%s</string>
     <string name="name_dialog_title">Please enter your name</string>
     <string name="name">Full name</string>
     <string name="placeholder_name">Name…</string>
     <string name="no_name">Please enter a name</string>
-    <string name="share_user_id">Share user ID</string>
     <string name="confirm_alert">Send notification</string>
     <string name="add_message">Add message</string>
     <string name="message_hint">Enter message…</string>

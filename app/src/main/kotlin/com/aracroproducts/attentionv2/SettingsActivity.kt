@@ -183,9 +183,7 @@ class SettingsActivity : AppCompatActivity() {
                             if (username != null) {
                                 val sharingIntent = Intent(Intent.ACTION_SEND).apply {
                                     type = "text/plain"
-                                    val shareBody =
-                                            "Add me on Attention! https://attention.aracroproducts" +
-                                                    ".com/app/add?username=$username"
+                                    val shareBody = getString(R.string.share_text, username)
                                     putExtra(Intent.EXTRA_TEXT, shareBody)
                                 }
                                 startActivity(Intent.createChooser(sharingIntent, null))
