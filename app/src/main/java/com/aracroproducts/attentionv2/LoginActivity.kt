@@ -438,7 +438,8 @@ class LoginActivity : AppCompatActivity() {
                     }
                 }
             }
-            TextButton(onClick = { model.login = LoginViewModel.State.CREATE_USER }) {
+            TextButton(onClick = { model.login = LoginViewModel.State.CREATE_USER
+            model.passwordCaption = ""}) {
                 Text(text = getString(R.string.create_user))
             }
         }
@@ -683,7 +684,8 @@ class LoginActivity : AppCompatActivity() {
                     }
                 }
             }
-            TextButton(onClick = { model.login = LoginViewModel.State.LOGIN }) {
+            TextButton(onClick = { model.login = LoginViewModel.State.LOGIN
+            model.passwordCaption = ""}) {
                 Text(text = getString(R.string.login))
             }
         }

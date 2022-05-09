@@ -151,12 +151,12 @@ class MainViewModel @Inject internal constructor(
             val friends: List<CachedFriend> = attentionRepository.getCachedFriendsSnapshot()
             for (friend in friends) {
                 attentionRepository.getName(token, friend.username,
-                        responseListener = { _, response ->
+                        responseListener = { _, response, _ ->
                             if (response.isSuccessful) {
                                 response.body()?.data?.name?.let {
                                     attentionRepository.addFriend(friend.username,
                                             it,
-                                            token, responseListener = { _, response ->
+                                            token, responseListener = { _, response, _ ->
                                         if (response.isSuccessful || response.code() == 400)
                                             attentionRepository.deleteCachedFriend(friend.username)
                                     })
@@ -215,7 +215,7 @@ class MainViewModel @Inject internal constructor(
         }
         addFriendException = false
         attentionRepository.addFriend(
-                friend.id, friend.name, token, responseListener = { call, response ->
+                friend.id, friend.name, token, responseListener = { call, response, _ ->
             when (response.code()) {
                 200 -> {
                     responseListener?.invoke(call, response)
@@ -261,8 +261,8 @@ class MainViewModel @Inject internal constructor(
 
         lastNameRequest?.cancel()
         friendNameLoading = true
-        lastNameRequest = attentionRepository.getName(token, username, responseListener = { _,
-                                                                                            response ->
+        lastNameRequest = attentionRepository.getName(token, username,
+                responseListener = { _, response, _ ->
             if (connectionState != getApplication<Application>().getString(R.string.sharing))
                 connectionState = ""
             lastNameRequest = null
@@ -354,7 +354,7 @@ class MainViewModel @Inject internal constructor(
             return
         }
         attentionRepository.edit(Friend(id = id, name = name), token, responseListener = { _,
-                                                                                           response ->
+                                                                                           response, _ ->
             val context = getApplication<Application>()
             when (response.code()) {
                 200 -> {
@@ -450,7 +450,7 @@ class MainViewModel @Inject internal constructor(
 
     fun getUserInfo(token: String, onAuthError: () -> Unit) {
         val context = getApplication<Application>()
-        attentionRepository.downloadUserInfo(token, { _, response ->
+        attentionRepository.downloadUserInfo(token, { _, response, _ ->
             when (response.code()) {
                 200 -> {
                     if (connectionState != context.getString(R.string.sharing)) {
@@ -517,7 +517,7 @@ class MainViewModel @Inject internal constructor(
         if (fcmToken != null && !fcmTokenPrefs.getBoolean(TOKEN_UPLOADED, false) && token != null) {
             attentionRepository.registerDevice(
                     token, fcmToken,
-                    { _, response ->
+                    { _, response, errorBody ->
                         when (response.code()) {
                             200 -> {
                                 Log.d(sTAG, "Successfully uploaded token")
@@ -527,7 +527,7 @@ class MainViewModel @Inject internal constructor(
                                 }
                             }
                             else -> {
-                                Log.e(sTAG, "Error uploading token: ${response.body()?.message}")
+                                Log.e(sTAG, "Error uploading token: ${errorBody}")
                             }
                         }
                     },
@@ -589,7 +589,7 @@ class MainViewModel @Inject internal constructor(
                     otherId = to, message
             = message, direction = DIRECTION.Outgoing
             ), token = token,
-                    { _, response ->
+                    { _, response, errorBody ->
                         when (response.code()) {
                             200 -> {
                                 val body = response.body()
@@ -601,13 +601,12 @@ class MainViewModel @Inject internal constructor(
                                         .alert_sent))
                             }
                             400 -> {
-                                val errorBody = response.errorBody()
                                 if (errorBody == null) {
                                     Log.e(sTAG, "Got response but body was null")
                                     return@sendMessage
                                 }
                                 when {
-                                    errorBody.string().contains("Could not find user", true) -> {
+                                    errorBody.contains("Could not find user", true) -> {
                                         notifyUser(context.getString(
                                                 R.string.alert_failed_no_user, name))
                                     }
@@ -620,13 +619,12 @@ class MainViewModel @Inject internal constructor(
                                 }
                             }
                             403 -> {
-                                val errorBody = response.errorBody()
                                 if (errorBody == null) {
                                     Log.e(sTAG, "Got response but body was null")
                                     return@sendMessage
                                 }
                                 when {
-                                    errorBody.string()
+                                    errorBody
                                             .contains("does not have you as a friend", true)
                                     -> {
                                         notifyUser(
@@ -637,7 +635,7 @@ class MainViewModel @Inject internal constructor(
                                         )
                                     }
                                     else ->
-                                        launchLogin(context)
+                                        launchLogin()
                                 }
                             }
                             else -> {
@@ -684,7 +682,7 @@ class MainViewModel @Inject internal constructor(
                 if (authToken != null) {
                     attentionRepository.registerDevice(
                             authToken, token,
-                            { _, response ->
+                            { _, response, _ ->
                                 when (response.code()) {
                                     200 -> {
                                         editor.putBoolean(TOKEN_UPLOADED, true)

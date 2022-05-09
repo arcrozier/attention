@@ -3,6 +3,7 @@ package com.aracroproducts.attentionv2
 import android.util.Log
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
+import okhttp3.ResponseBody
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -39,7 +40,8 @@ class AttentionRepository(private val database: AttentionDB) {
 
     fun delete(
             friend: Friend, token: String,
-            responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>) -> Unit)
+            responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>, String?)
+            -> Unit)
             ? =
                     null,
             errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
@@ -60,20 +62,22 @@ class AttentionRepository(private val database: AttentionDB) {
              */
             override fun onResponse(call: Call<GenericResult<Void>>, response:
             Response<GenericResult<Void>>) {
-                if (!response.isSuccessful) printNetworkError(response, call)
+                val responseErrorBody = response.errorBody()?.string()
+                if (!response.isSuccessful) printNetworkError(response, call, responseErrorBody)
                 else {
                     MainScope().launch {
                         database.getFriendDAO().delete(friend)
                     }
                 }
-                responseListener?.invoke(call, response)
+                responseListener?.invoke(call, response, responseErrorBody)
             }
         })
     }
 
     fun edit(
             friend: Friend, token: String,
-            responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>) -> Unit)? = null,
+            responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>, String?)
+            -> Unit)? = null,
             errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
     ) {
         val call = apiInterface.editFriendName(friend.id, friend.name, authHeader(token))
@@ -87,13 +91,14 @@ class AttentionRepository(private val database: AttentionDB) {
              */
             override fun onResponse(call: Call<GenericResult<Void>>, response:
             Response<GenericResult<Void>>) {
-                if (!response.isSuccessful) printNetworkError(response, call)
+                val responseErrorBody = response.errorBody()?.string()
+                if (!response.isSuccessful) printNetworkError(response, call, responseErrorBody)
                 else {
                     MainScope().launch {
                         database.getFriendDAO().updateFriend(friend)
                     }
                 }
-                responseListener?.invoke(call, response)
+                responseListener?.invoke(call, response, responseErrorBody)
             }
 
             /**
@@ -154,7 +159,8 @@ class AttentionRepository(private val database: AttentionDB) {
     fun getName(
             token: String,
             username: String,
-            responseListener: ((Call<GenericResult<NameResult>>, Response<GenericResult<NameResult>>)
+            responseListener: ((Call<GenericResult<NameResult>>,
+                                Response<GenericResult<NameResult>>, String?)
             -> Unit)
             ? = null,
             errorListener: ((Call<GenericResult<NameResult>>, Throwable) -> Unit)? = null
@@ -170,8 +176,9 @@ class AttentionRepository(private val database: AttentionDB) {
              */
             override fun onResponse(call: Call<GenericResult<NameResult>>, response:
             Response<GenericResult<NameResult>>) {
-                if (!response.isSuccessful) printNetworkError(response, call)
-                responseListener?.invoke(call, response)
+                val responseErrorBody = response.errorBody()?.string()
+                if (!response.isSuccessful) printNetworkError(response, call, responseErrorBody)
+                responseListener?.invoke(call, response, responseErrorBody)
             }
 
             /**
@@ -189,7 +196,8 @@ class AttentionRepository(private val database: AttentionDB) {
     fun sendMessage(
             message: Message,
             token: String,
-            responseListener: ((Call<GenericResult<AlertResult>>, Response<GenericResult<AlertResult>>) ->
+            responseListener: ((Call<GenericResult<AlertResult>>,
+                                Response<GenericResult<AlertResult>>, String?) ->
             Unit)?
             = null,
             errorListener: ((Call<GenericResult<AlertResult>>, Throwable) -> Unit)? = null
@@ -207,7 +215,8 @@ class AttentionRepository(private val database: AttentionDB) {
              */
             override fun onResponse(call: Call<GenericResult<AlertResult>>, response:
             Response<GenericResult<AlertResult>>) {
-                if (!response.isSuccessful) printNetworkError(response, call)
+                val responseErrorBody = response.errorBody()?.string()
+                if (!response.isSuccessful) printNetworkError(response, call, responseErrorBody)
                 else {
                     val alertId = response.body()?.data?.id
                     MainScope().launch {
@@ -221,7 +230,7 @@ class AttentionRepository(private val database: AttentionDB) {
                         database.getFriendDAO().incrementSent(message.otherId)
                     }
                 }
-                responseListener?.invoke(call, response)
+                responseListener?.invoke(call, response, responseErrorBody)
             }
 
             /**
@@ -237,7 +246,8 @@ class AttentionRepository(private val database: AttentionDB) {
 
     fun registerDevice(
             token: String, fcmToken: String,
-            responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>) ->
+            responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>,
+                                String?) ->
             Unit)?
             = null,
             errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
@@ -253,8 +263,9 @@ class AttentionRepository(private val database: AttentionDB) {
              */
             override fun onResponse(call: Call<GenericResult<Void>>,
                                     response: Response<GenericResult<Void>>) {
-                if (!response.isSuccessful) printNetworkError(response, call)
-                responseListener?.invoke(call, response)
+                val responseErrorBody = response.errorBody()?.string()
+                if (!response.isSuccessful) printNetworkError(response, call, responseErrorBody)
+                responseListener?.invoke(call, response, responseErrorBody)
             }
 
             /**
@@ -273,7 +284,8 @@ class AttentionRepository(private val database: AttentionDB) {
             token: String, firstName: String? = null, lastName:
             String? = null, password: String? = null, oldPassword: String? = null,
             email: String? = null,
-            responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>) ->
+            responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>,
+                                String?) ->
             Unit)? = null,
             errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
     ) {
@@ -289,8 +301,9 @@ class AttentionRepository(private val database: AttentionDB) {
              */
             override fun onResponse(call: Call<GenericResult<Void>>,
                                     response: Response<GenericResult<Void>>) {
-                if (!response.isSuccessful) printNetworkError(response, call)
-                responseListener?.invoke(call, response)
+                val responseErrorBody = response.errorBody()?.string()
+                if (!response.isSuccessful) printNetworkError(response, call, responseErrorBody)
+                responseListener?.invoke(call, response, responseErrorBody)
             }
 
             /**
@@ -307,7 +320,8 @@ class AttentionRepository(private val database: AttentionDB) {
 
     fun downloadUserInfo(
             token: String,
-            responseListener: ((Call<GenericResult<UserDataResult>>, Response<GenericResult<UserDataResult>>) ->
+            responseListener: ((Call<GenericResult<UserDataResult>>,
+                                Response<GenericResult<UserDataResult>>, String?) ->
             Unit)? = null,
             errorListener: ((Call<GenericResult<UserDataResult>>, Throwable) -> Unit)? = null
     ) {
@@ -322,8 +336,9 @@ class AttentionRepository(private val database: AttentionDB) {
              */
             override fun onResponse(call: Call<GenericResult<UserDataResult>>,
                                     response: Response<GenericResult<UserDataResult>>) {
-                if (!response.isSuccessful) printNetworkError(response, call)
-                responseListener?.invoke(call, response)
+                val responseErrorBody = response.errorBody()?.string()
+                if (!response.isSuccessful) printNetworkError(response, call, responseErrorBody)
+                responseListener?.invoke(call, response, responseErrorBody)
             }
 
             /**
@@ -349,7 +364,8 @@ class AttentionRepository(private val database: AttentionDB) {
 
     fun addFriend(
             username: String, name: String, token: String,
-            responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>) ->
+            responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>,
+                                String?) ->
             Unit)?
             = null,
             errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
@@ -365,11 +381,12 @@ class AttentionRepository(private val database: AttentionDB) {
              */
             override fun onResponse(call: Call<GenericResult<Void>>,
                                     response: Response<GenericResult<Void>>) {
-                if (!response.isSuccessful) printNetworkError(response, call)
+                val responseErrorBody = response.errorBody()?.string()
+                if (!response.isSuccessful) printNetworkError(response, call, responseErrorBody)
                 else {
                     insert(Friend(username, name))
                 }
-                responseListener?.invoke(call, response)
+                responseListener?.invoke(call, response, responseErrorBody)
             }
 
             /**
@@ -399,7 +416,8 @@ class AttentionRepository(private val database: AttentionDB) {
 
     fun sendDeliveredReceipt(
         alertId: String, from: String, authToken: String,
-                             responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>) ->
+                             responseListener: ((Call<GenericResult<Void>>,
+                                                 Response<GenericResult<Void>>, String?) ->
                              Unit)?
                              = null,
                              errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
@@ -414,8 +432,9 @@ class AttentionRepository(private val database: AttentionDB) {
              */
             override fun onResponse(call: Call<GenericResult<Void>>,
                                     response: Response<GenericResult<Void>>) {
-                if (!response.isSuccessful) printNetworkError(response, call)
-                responseListener?.invoke(call, response)
+                val responseErrorBody = response.errorBody()?.string()
+                if (!response.isSuccessful) printNetworkError(response, call, responseErrorBody)
+                responseListener?.invoke(call, response, responseErrorBody)
             }
 
             /**
@@ -432,7 +451,8 @@ class AttentionRepository(private val database: AttentionDB) {
 
     fun sendReadReceipt(
             alertId: String, from: String, fcmToken: String, authToken: String,
-            responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>) ->
+            responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>,
+                                String?) ->
             Unit)?
             = null,
             errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
@@ -448,8 +468,9 @@ class AttentionRepository(private val database: AttentionDB) {
              */
             override fun onResponse(call: Call<GenericResult<Void>>,
                                     response: Response<GenericResult<Void>>) {
-                if (!response.isSuccessful) printNetworkError(response, call)
-                responseListener?.invoke(call, response)
+                val responseErrorBody = response.errorBody()?.string()
+                if (!response.isSuccessful) printNetworkError(response, call, responseErrorBody)
+                responseListener?.invoke(call, response, responseErrorBody)
             }
 
             /**
@@ -467,7 +488,8 @@ class AttentionRepository(private val database: AttentionDB) {
     fun registerUser(
             username: String, password: String, firstName: String, lastName: String,
             email: String,
-            responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>) ->
+            responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>,
+                                String?) ->
             Unit)?
             = null,
             errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
@@ -483,8 +505,9 @@ class AttentionRepository(private val database: AttentionDB) {
              */
             override fun onResponse(call: Call<GenericResult<Void>>,
                                     response: Response<GenericResult<Void>>) {
-                if (!response.isSuccessful) printNetworkError(response, call)
-                responseListener?.invoke(call, response)
+                val responseErrorBody = response.errorBody()?.string()
+                if (!response.isSuccessful) printNetworkError(response, call, responseErrorBody)
+                responseListener?.invoke(call, response, responseErrorBody)
             }
 
             /**
@@ -501,7 +524,7 @@ class AttentionRepository(private val database: AttentionDB) {
 
     fun getAuthToken(
             username: String, password: String,
-            responseListener: ((Call<TokenResult>, Response<TokenResult>) ->
+            responseListener: ((Call<TokenResult>, Response<TokenResult>, String?) ->
             Unit)?
             = null,
             errorListener: ((Call<TokenResult>, Throwable) -> Unit)? = null
@@ -516,8 +539,9 @@ class AttentionRepository(private val database: AttentionDB) {
              * Call [Response.isSuccessful] to determine if the response indicates success.
              */
             override fun onResponse(call: Call<TokenResult>, response: Response<TokenResult>) {
-                if (!response.isSuccessful) printNetworkError(response, call)
-                responseListener?.invoke(call, response)
+                val responseErrorBody = response.errorBody()?.string()
+                if (!response.isSuccessful) printNetworkError(response, call, responseErrorBody)
+                responseListener?.invoke(call, response, responseErrorBody)
             }
 
             /**
@@ -532,11 +556,11 @@ class AttentionRepository(private val database: AttentionDB) {
         })
     }
 
-    private fun printNetworkError(error: Response<*>, request: Call<*>) {
+    private fun printNetworkError(error: Response<*>, request: Call<*>, errorBody: String?) {
         Log.e(javaClass.name, "Response from ${request.request().url}")
         Log.e(
-                javaClass.name, "Status: ${error.code()} Data: ${
-            error.errorBody()?.string() ?: "null"
+                javaClass.name, "Status: ${error.code()} - Data: ${
+            errorBody ?: "null"
         }"
         )
         Log.e(javaClass.name, "Headers: ${error.headers()}")

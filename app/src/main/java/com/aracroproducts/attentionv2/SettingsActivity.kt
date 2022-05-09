@@ -111,7 +111,7 @@ class SettingsActivity : AppCompatActivity() {
                     context.getString(R.string.first_name_key) -> {
                         attentionRepository.editUser(token = token,
                                 firstName = newValue.toString(),
-                                responseListener = { _, response ->
+                                responseListener = { _, response, _ ->
                                     onResponse(response.code(), newValue, preference.key)
                                 },
                                 errorListener = { _, _ ->
@@ -121,7 +121,7 @@ class SettingsActivity : AppCompatActivity() {
                     context.getString(R.string.last_name_key) -> {
                         attentionRepository.editUser(token = token,
                                 lastName = newValue.toString(),
-                                responseListener = { _, response ->
+                                responseListener = { _, response, _ ->
                                     onResponse(response.code(), newValue, preference.key)
                                 },
                                 errorListener = { _, _ ->
@@ -131,7 +131,7 @@ class SettingsActivity : AppCompatActivity() {
                     context.getString(R.string.email_key) -> {
                         attentionRepository.editUser(token = token,
                                 email = newValue.toString(),
-                                responseListener = { _, response ->
+                                responseListener = { _, response, _ ->
                                     onResponse(response.code(), newValue, preference.key)
                                 },
                                 errorListener = { _, _ ->

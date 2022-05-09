@@ -43,7 +43,7 @@ class LoginViewModel @Inject constructor(
         uiEnabled = false
         val context = getApplication<Application>()
         attentionRepository.getAuthToken(username = username, password = password,
-                responseListener = { _, response ->
+                responseListener = { _, response, _ ->
                     uiEnabled = true
                     when (response.code()) {
                         200 -> {
@@ -102,7 +102,7 @@ class LoginViewModel @Inject constructor(
 
         attentionRepository.registerUser(username = username, password = password, firstName =
         firstName, lastName = lastName, email = email,
-                responseListener = { _, response ->
+                responseListener = { _, response, errorBody ->
                     uiEnabled = true
                     when (response.code()) {
                         200 -> {
@@ -116,23 +116,21 @@ class LoginViewModel @Inject constructor(
                             login(scaffoldState, scope, onLoggedIn)
                         }
                         400 -> {
-                            val body = response.errorBody()
-                            if (body == null) {
+                            if (errorBody == null) {
                                 Log.e(sTAG, "Got response but body was null")
                                 return@registerUser
                             }
-                            Log.e(sTAG, body.string())
                             when {
-                                body.string().contains("username taken", true) -> {
+                                errorBody.contains("username taken", true) -> {
                                     usernameCaption = context.getString(R.string.username_in_use)
                                 }
-                                body.string().contains("enter a valid username", true) -> {
+                                errorBody.contains("enter a valid username", true) -> {
                                     usernameCaption = context.getString(R.string.invalid_username)
                                 }
-                                body.string().contains("email address", true) -> {
+                                errorBody.contains("email address", true) -> {
                                     emailCaption = context.getString(R.string.invalid_email)
                                 }
-                                body.string().contains("password", true) -> {
+                                errorBody.contains("password", true) -> {
                                     passwordCaption =
                                             context.getString(R.string.password_validation_failed)
                                 }
@@ -182,12 +180,12 @@ class LoginViewModel @Inject constructor(
         attentionRepository.editUser(
                 token, password = password,
                 oldPassword = oldPassword,
-                responseListener = { _, response ->
+                responseListener = { _, response, errorBody ->
                     when (response.code()) {
                         200 -> {
                             attentionRepository.getAuthToken(savedUsername,
                                     password,
-                                    responseListener = { _, innerResponse ->
+                                    responseListener = { _, innerResponse, _ ->
                                         when (innerResponse.code()) {
                                             200 -> {
                                                 userInfo.edit().apply {
@@ -227,8 +225,7 @@ class LoginViewModel @Inject constructor(
                             passwordCaption = context.getString(R.string.password_validation_failed)
                         }
                         403 -> {
-                            val responseData = response.errorBody()?.string()
-                            if (responseData?.contains("incorrect old password", true) == true)
+                            if (errorBody?.contains("incorrect old password", true) == true)
                                 passwordCaption = context.getString(R.string.wrong_password)
                             else {
                                 login = State.LOGIN
