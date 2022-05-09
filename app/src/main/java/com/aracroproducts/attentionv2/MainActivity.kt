@@ -701,7 +701,7 @@ class MainActivity : AppCompatActivity() {
                 )
                 val receipt = when(friend.last_message_status) {
                     MessageStatus.SENT -> getString(R.string.sent)
-                    MessageStatus.DELIVERED -> getString(R.string.sent)
+                    MessageStatus.DELIVERED -> getString(R.string.delivered)
                     MessageStatus.READ -> getString(R.string.read)
                     else -> ""
                 }
@@ -816,6 +816,7 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 if (progress >= UNDO_INTERVALS && !triggered) {
+                    @Suppress("UNUSED_VALUE")
                     triggered = true
                     friendModel.sendAlert(
                             friend.id,

@@ -109,4 +109,5 @@
     <string name="alert_title">Oppmerk!</string>
     <string name="friend_card_click_label">Valg fra varsel valg</string>
     <string name="friend_card_long_click_label">Rediger eller fjern venn</string>
+    <string name="delivered">Levert</string>
 </resources>
