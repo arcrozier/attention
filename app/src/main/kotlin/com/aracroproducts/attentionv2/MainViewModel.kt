@@ -1,9 +1,6 @@
 package com.aracroproducts.attentionv2
 
-import android.app.Application
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
+import android.app.*
 import android.content.Context
 import android.content.Intent
 import android.os.Build
@@ -742,7 +739,7 @@ class MainViewModel @Inject internal constructor(
             }
         }
 
-        fun launchLogin(context: Context) {
+        fun launchLogin(context: Activity) {
             val loginIntent = Intent(context, LoginActivity::class.java)
             context.startActivity(loginIntent)
         }

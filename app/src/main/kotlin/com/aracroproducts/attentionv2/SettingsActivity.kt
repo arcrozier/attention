@@ -1,5 +1,6 @@
 package com.aracroproducts.attentionv2
 
+import android.app.Activity
 import android.app.Application
 import android.content.Context
 import android.content.Intent
@@ -44,7 +45,7 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     class UserInfoChangeListener(
-            private val context: Context, private val settingsFragment: SettingsFragment, private
+            private val context: Activity, private val settingsFragment: SettingsFragment, private
             val model: SettingsViewModel, val findPreference: (String) -> EditTextPreference?
     ) :
             Preference.OnPreferenceChangeListener {
@@ -153,7 +154,7 @@ class SettingsActivity : AppCompatActivity() {
     class SettingsFragment(private val viewModel: SettingsViewModel) : PreferenceFragmentCompat() {
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
             setPreferencesFromResource(R.xml.root_preferences, rootKey)
-            val localContext = context ?: return
+            val localContext = activity ?: return
             val userInfoChangeListener = UserInfoChangeListener(
                     localContext, this, viewModel,
                     findPreference = this::findPreference
