@@ -411,7 +411,7 @@ class MainActivity : AppCompatActivity() {
                             onValueChange = { friendModel.message = it },
                             keyboardOptions = KeyboardOptions(
                                     keyboardType = KeyboardType.Text,
-                                    capitalization = KeyboardCapitalization.Words
+                                    capitalization = KeyboardCapitalization.Sentences
                             ),
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = false,
