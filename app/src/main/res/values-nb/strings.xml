@@ -57,7 +57,7 @@
     <string name="passwords_different">Passord er forskillege</string>
     <string name="read">Lest</string>
     <string name="sent">Sendt</string>
-    <string name="offline">På nett</string>
+    <string name="offline">Frakoblet</string>
     <string name="disconnected">Tilkoblings feil</string>
     <string name="empty_username">Brukernavn kan ikke være tomt</string>
     <string name="nonexistent_username">Ingen bruker med denne brukernavn finnes</string>
@@ -110,4 +110,6 @@
     <string name="friend_card_long_click_label">Rediger eller fjern venn</string>
     <string name="delivered">Levert</string>
     <string name="share_text">Legg meg til på Oppmerk! https://attention.aracroproducts.com/app/add?username=%s</string>
+    <string name="sending">Sender…</string>
+    <string name="send_error">Et feil skedde</string>
 </resources>
