@@ -13,6 +13,8 @@
     <string name="read">Read</string>
     <string name="sent">Sent</string>
     <string name="delivered">Delivered</string>
+    <string name="sending">Sending…</string>
+    <string name="send_error">An error occurred</string>
     <string name="offline">Offline</string>
     <string name="disconnected">Connection error</string>
     <string name="empty_username">Username cannot be empty</string>

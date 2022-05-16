@@ -62,6 +62,7 @@ class LoginViewModel @Inject constructor(
                                     PreferenceManager.getDefaultSharedPreferences(context).edit()
                             defaultPrefsEditor.putString(MainViewModel.MY_ID, username)
                             defaultPrefsEditor.apply()
+                            password = ""
                             onLoggedIn()
                         }
                         400 -> {
@@ -195,6 +196,8 @@ class LoginViewModel @Inject constructor(
                                                     )
                                                     apply()
                                                 }
+                                                password = ""
+                                                oldPassword = ""
                                                 onPasswordChanged()
                                             }
                                             403 -> {
