@@ -5,6 +5,7 @@ import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.text.InputType
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModel
@@ -241,6 +242,12 @@ class SettingsActivity : AppCompatActivity() {
                     }
                     true
                 }
+            }
+
+            val delayPreference = findPreference(getString(R.string.delay_key)) as
+                    EditTextPreference?
+            delayPreference?.setOnBindEditTextListener {
+                it.inputType = InputType.TYPE_CLASS_NUMBER
             }
 
             val vibratePreference = findPreference(getString(R.string.vibrate_preference_key)) as

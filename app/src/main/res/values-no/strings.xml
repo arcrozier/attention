@@ -112,4 +112,6 @@
     <string name="share_text">Legg meg til på Oppmerk! https://attention.aracroproducts.com/app/add?username=%s</string>
     <string name="sending">Sender…</string>
     <string name="send_error">Et feil skedde</string>
+    <string name="app_preference_category">App</string>
+    <string name="delay_title">Tid for å avbryt et varsel</string>
 </resources>

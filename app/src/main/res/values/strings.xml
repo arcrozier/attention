@@ -70,7 +70,7 @@
     <string name="alert_failed_no_user">Could not send alert to %s because the user does         not exist</string>
     <string name="alert_failed_bad_request">An error occurred while sending an alert to %s</string>
     <string name="alert_failed_server_error">The server encountered an error while sending an alert to %s</string>
-    <string name="alert_failed_no_connection">Could not send alert %s. Check you network
+    <string name="alert_failed_no_connection">Could not send alert %s. Check your network
         connection and try again</string>
     <string name="general_error">Error: Could not send alert</string>
     <string name="user_registered">Your device has been registered!</string>
@@ -127,6 +127,7 @@
     <!-- Preference Titles -->
     <string name="notifications_title">Notifications</string>
     <string name="user_title">User</string>
+    <string name="app_preference_category">App</string>
 
     <!-- Notification Preferences -->
     <string name="override_dnd">Override Do Not Disturb</string>
@@ -140,6 +141,9 @@
 
     <!-- User Preferences -->
     <string name="display_name">Display name</string>
+
+    <!-- App Preferences -->
+    <string name="delay_title">Time allowed to cancel a message in seconds</string>
 
     <!-- Preference Keys -->
     <string name="name_key" translatable="false">com.aracroproducts.attention.key.preferred_name</string>
@@ -158,4 +162,5 @@
     <string name="change_password_action"
         translatable="false">com.aracroproducts.attention.action.change_password</string>
     <string name="logout_key" translatable="false">com.aracroproducts.attention.key.logout</string>
+    <string name="delay_key" translatable="false">com.aracroproducts.attention.key.delay</string>
 </resources>

@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.util.TypedValue
 import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -53,6 +54,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.content.res.ResourcesCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
@@ -838,9 +840,11 @@ class MainActivity : AppCompatActivity() {
                 var triggered by remember { mutableStateOf(false) }
 
                 LaunchedEffect(progressEnabled) {
+                    val typedValue = TypedValue()
                     while (progress < UNDO_INTERVALS && progressEnabled) {
                         progress = min(progress + 1, UNDO_INTERVALS.toInt())
-                        delay(UNDO_TIME / UNDO_INTERVALS)
+                        resources.getValue(R.integer.default_delay, typedValue, false)
+                        delay((typedValue.float * 1000).toLong() / UNDO_INTERVALS)
                     }
                 }
 
@@ -918,8 +922,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     companion object {
-        // time (in milliseconds) that the user has to cancel sending an alert
-        private const val UNDO_TIME: Long = 3500
         private const val UNDO_INTERVALS: Long = 10
 
 

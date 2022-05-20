@@ -56,6 +56,16 @@
     </PreferenceCategory>
 
     <PreferenceCategory
+        app:title="@string/app_preference_category">
+
+        <EditTextPreference
+            android:key="@string/delay_key"
+            android:title="@string/delay_title"
+            android:defaultValue="@integer/default_delay"
+            app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
         app:iconSpaceReserved="false"
         app:title="@string/notifications_title">
         <MultiSelectListPreference

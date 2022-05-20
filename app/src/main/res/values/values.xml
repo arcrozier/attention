@@ -11,14 +11,6 @@
         <item>@string/vibrate</item>
         <item>@string/ring</item>
     </string-array>
-    <!-- Reply Preference -->
-    <string-array name="reply_entries">
-        <item>Reply</item>
-        <item>Reply to all</item>
-    </string-array>
 
-    <string-array name="reply_values">
-        <item>reply</item>
-        <item>reply_all</item>
-    </string-array>
+    <item name="default_delay" format="float" type="integer">3.5</item>
 </resources>
