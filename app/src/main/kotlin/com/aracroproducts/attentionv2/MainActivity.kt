@@ -54,9 +54,9 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.core.content.res.ResourcesCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.preference.PreferenceManager
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
 import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
 import com.google.accompanist.swiperefresh.SwipeRefresh
@@ -830,25 +830,32 @@ class MainActivity : AppCompatActivity() {
                 visible = state == State.CANCEL, enter = fadeIn(),
                 exit = fadeOut()
             ) {
-
-                var progress by remember { mutableStateOf(0) }
+                val typedValue = TypedValue()
+                resources.getValue(R.integer.default_delay, typedValue, false)
+                val delay: Long by remember { mutableStateOf((PreferenceManager
+                    .getDefaultSharedPreferences(this@MainActivity)
+                    .getString(getString(R.string.delay_key), null).let {
+                        it?.toFloatOrNull() ?: typedValue.float
+                    } * 1000).toLong()) }
+                var progress by remember { mutableStateOf(0L) }
                 val animatedProgress by animateFloatAsState(
-                    targetValue = progress.toFloat() / UNDO_INTERVALS,
+                    targetValue = min(progress.toFloat() / delay, 1f).let {
+                        if (it.isNaN()) 1f
+                        else it
+                    },
                     animationSpec = ProgressIndicatorDefaults.ProgressAnimationSpec
                 )
                 var progressEnabled by remember { mutableStateOf(true) }
                 var triggered by remember { mutableStateOf(false) }
 
                 LaunchedEffect(progressEnabled) {
-                    val typedValue = TypedValue()
-                    while (progress < UNDO_INTERVALS && progressEnabled) {
-                        progress = min(progress + 1, UNDO_INTERVALS.toInt())
-                        resources.getValue(R.integer.default_delay, typedValue, false)
-                        delay((typedValue.float * 1000).toLong() / UNDO_INTERVALS)
+                    while (progress < delay && progressEnabled) {
+                        progress += DELAY_INTERVAL
+                        delay(DELAY_INTERVAL)
                     }
                 }
 
-                if (progress >= UNDO_INTERVALS && !triggered) {
+                if (progress >= delay && !triggered) {
                     @Suppress("UNUSED_VALUE")
                     triggered = true
                     friendModel.sendAlert(
@@ -922,8 +929,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     companion object {
-        private const val UNDO_INTERVALS: Long = 10
-
+        private const val DELAY_INTERVAL: Long = 100
 
     }
 }

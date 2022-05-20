@@ -247,7 +247,7 @@ class SettingsActivity : AppCompatActivity() {
             val delayPreference = findPreference(getString(R.string.delay_key)) as
                     EditTextPreference?
             delayPreference?.setOnBindEditTextListener {
-                it.inputType = InputType.TYPE_CLASS_NUMBER
+                it.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
             }
 
             val vibratePreference = findPreference(getString(R.string.vibrate_preference_key)) as
