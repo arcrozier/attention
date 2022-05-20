@@ -10,8 +10,8 @@ android {
         applicationId "com.aracroproducts.attentionv2"
         minSdkVersion 24
         targetSdkVersion 32
-        versionCode 21
-        versionName "2.0.0 beta 13"
+        versionCode 22
+        versionName "2.0.0 beta 14"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -52,7 +52,7 @@ android {
 
 dependencies {
     implementation 'com.google.code.gson:gson:2.9.0'
-    implementation 'com.google.firebase:firebase-messaging-ktx:23.0.4'
+    implementation 'com.google.firebase:firebase-messaging-ktx:23.0.5'
     implementation 'com.google.firebase:firebase-analytics:21.0.0'
     implementation fileTree(dir: "libs", include: ["*.jar"])
     implementation 'androidx.appcompat:appcompat:1.4.1'
@@ -112,7 +112,7 @@ dependencies {
     // Integration with activities
     implementation 'androidx.activity:activity-compose:1.4.0'
     // Compose Material Design
-    implementation 'androidx.compose.material:material:1.2.0-beta01'
+    implementation 'androidx.compose.material:material:1.2.0-beta02'
     // Animations
     implementation 'androidx.compose.animation:animation:1.1.1'
     implementation "androidx.compose.material:material-icons-extended:1.1.1"
@@ -122,7 +122,7 @@ dependencies {
     implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.4.1'
     // UI Tests
     androidTestImplementation 'androidx.compose.ui:ui-test-junit4:1.1.1'
-    implementation("androidx.compose.material3:material3:1.0.0-alpha10")
+    implementation("androidx.compose.material3:material3:1.0.0-alpha12")
 
     def room_version = "2.4.2"
 
