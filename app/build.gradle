@@ -28,10 +28,15 @@ android {
     }
 
     buildTypes {
+        debug {
+            versionNameSuffix ".debug"
+            resValue "string", "version_name", "${defaultConfig.versionName}${versionNameSuffix}"
+        }
         release {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            resValue "string", "version_name", "${defaultConfig.versionName}"
         }
     }
     compileOptions {
@@ -47,6 +52,7 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion '1.1.1'
     }
+
     namespace 'com.aracroproducts.attentionv2'
 }
 

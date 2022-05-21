@@ -30,6 +30,8 @@
     <string name="email">Email</string>
     <string name="confirm_password">Confirm password</string>
     <string name="change_password">Change password</string>
+    <string name="tos_agree">I have read and agree to the <annotation tag="tos">terms of
+        service</annotation></string>
     <string name="wrong_password">Invalid username or password</string>
     <string name="password_validation_failed">Password must be at least 8 characters</string>
     <string name="new_password">New password…</string>
@@ -143,7 +145,13 @@
     <string name="display_name">Display name</string>
 
     <!-- App Preferences -->
-    <string name="delay_title">Time allowed to cancel a message in seconds</string>
+    <string name="delay_title">Time to cancel a message (seconds)</string>
+
+    <!-- Legal -->
+    <string name="legal_title">Legal</string>
+    <string name="app_version">App Version</string>
+    <string name="terms_of_service">Terms of Service</string>
+    <string name="privacy_policy">Privacy Policy</string>
 
     <!-- Preference Keys -->
     <string name="name_key" translatable="false">com.aracroproducts.attention.key.preferred_name</string>

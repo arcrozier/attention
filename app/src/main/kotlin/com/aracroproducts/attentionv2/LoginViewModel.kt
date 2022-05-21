@@ -38,6 +38,7 @@ class LoginViewModel @Inject constructor(
     var lastName by mutableStateOf("")
     var email by mutableStateOf("")
     var emailCaption by mutableStateOf("")
+    var agreedToToS by mutableStateOf(false)
 
     fun login(scaffoldState: ScaffoldState, scope: CoroutineScope, onLoggedIn: () -> Unit) {
         uiEnabled = false

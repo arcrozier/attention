@@ -15,6 +15,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -336,7 +338,7 @@ class LoginActivity : AppCompatActivity() {
         Column(
                 verticalArrangement = centerWithBottomElement, horizontalAlignment = Alignment
                 .CenterHorizontally, modifier =
-        Modifier
+            Modifier
                 .padding(paddingValues)
                 .fillMaxSize()
         ) {
@@ -438,14 +440,18 @@ class LoginActivity : AppCompatActivity() {
                     }
                 }
             }
-            TextButton(onClick = { model.login = LoginViewModel.State.CREATE_USER
-            model.passwordCaption = ""}) {
+            TextButton(onClick = {
+                model.login = LoginViewModel.State.CREATE_USER
+                model.passwordCaption = ""
+                model.agreedToToS = false
+            }) {
                 Text(text = getString(R.string.create_user))
             }
         }
 
     }
 
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun CreateUser(
             model: LoginViewModel, scaffoldState: ScaffoldState,
@@ -663,6 +669,46 @@ class LoginActivity : AppCompatActivity() {
                 )
             }
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
+            // todo add agree to ToS check box
+            Row {
+                Checkbox(checked = model.agreedToToS, onCheckedChange = {
+                    model.agreedToToS = !model.agreedToToS
+                },
+                enabled = model.uiEnabled)
+                Text(text = getString(R.string.tos_agree))
+                /*
+                // get the text as SpannedString so we can get the spans attached to the text
+val titleText = getText(R.string.title) as SpannedString
+
+// get all the annotation spans from the text
+val annotations = titleText.getSpans(0, titleText.length, Annotation::class.java)
+
+// create a copy of the title text as a SpannableString.
+// the constructor copies both the text and the spans. so we can add and remove spans
+val spannableString = SpannableString(titleText)
+
+// iterate through all the annotation spans
+for (annotation in annotations) {
+   // look for the span with the key font
+   if (annotation.key == "font") {
+      val fontName = annotation.value
+      // check the value associated to the annotation key
+      if (fontName == "title_emphasis") {
+         // create the typeface
+         val typeface = getFontCompat(R.font.permanent_marker)
+         // set the span at the same indices as the annotation
+         spannableString.setSpan(CustomTypefaceSpan(typeface),
+            titleText.getSpanStart(annotation),
+            titleText.getSpanEnd(annotation),
+            Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+      }
+   }
+}
+
+// now, the spannableString contains both the annotation spans and the CustomTypefaceSpan
+styledText.text = spannableString
+                 */
+            }
             Button(
                     onClick = {
                         model.createUser(
@@ -677,8 +723,7 @@ class LoginActivity : AppCompatActivity() {
                     modifier = Modifier.requiredHeight(56.dp)
             ) {
                 Box {
-                    Text(text = getString(R.string.create_user), modifier = Modifier.align
-                    (Alignment.Center))
+                    Text(text = getString(R.string.create_user), modifier = Modifier.align(Alignment.Center))
                     if (!model.uiEnabled) {
                         CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                     }

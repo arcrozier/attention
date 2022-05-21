@@ -56,7 +56,8 @@
     </PreferenceCategory>
 
     <PreferenceCategory
-        app:title="@string/app_preference_category">
+        app:title="@string/app_preference_category"
+        app:iconSpaceReserved="false">
 
         <EditTextPreference
             android:key="@string/delay_key"
@@ -90,5 +91,32 @@
             app:summaryOff="@string/override_summary_off"
             app:summaryOn="@string/override_summary_on" />
     </PreferenceCategory>
+
+    <PreferenceCategory
+        app:iconSpaceReserved="false"
+        app:title="@string/legal_title">
+
+        <Preference
+            android:title="@string/terms_of_service" >
+
+            <intent
+                android:action="android.intent.action.VIEW"
+                android:data="https://aracroproducts.com/legal/tac/" />
+        </Preference>
+
+        <Preference
+            android:title="@string/privacy_policy" >
+            <intent
+                android:action="android.intent.action.VIEW"
+                android:data="https://aracroproducts.com/legal/privacy-policy/attention/" />
+        </Preference>
+    </PreferenceCategory>
+
+    <EditTextPreference
+        android:title="@string/app_version"
+        android:enabled="false"
+        android:iconSpaceReserved="false"
+        android:defaultValue="@string/version_name"
+        app:useSimpleSummaryProvider="true"/>
 
 </PreferenceScreen>
