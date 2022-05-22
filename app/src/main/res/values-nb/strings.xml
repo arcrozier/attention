@@ -114,4 +114,9 @@
     <string name="send_error">Et feil skedde</string>
     <string name="app_preference_category">App</string>
     <string name="delay_title">Tid for å avbryt et varsel</string>
+    <string name="tos_agree">Jeg har lest og godtår <annotation url="tos">vilkårene for bruk</annotation></string>
+    <string name="legal_title">Juridisk</string>
+    <string name="app_version">App Versjon</string>
+    <string name="privacy_policy">Personvernerklæring</string>
+    <string name="terms_of_service">Vilkår for Bruk</string>
 </resources>
