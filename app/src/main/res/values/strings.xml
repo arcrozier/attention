@@ -171,4 +171,8 @@
         translatable="false">com.aracroproducts.attention.action.change_password</string>
     <string name="logout_key" translatable="false">com.aracroproducts.attention.key.logout</string>
     <string name="delay_key" translatable="false">com.aracroproducts.attention.key.delay</string>
+
+    <!-- URLs -->
+    <string name="tos_url" translatable="false">https://aracroproducts.com/legal/tac/</string>
+    <string name="privacy_policy_url" translatable="false">https://aracroproducts.com/legal/privacy-policy/attention/</string>
 </resources>

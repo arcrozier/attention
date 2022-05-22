@@ -60,7 +60,8 @@ interface APIV2 {
     @POST("register_user/")
     fun registerUser(@Field("first_name") firstName: String, @Field("last_name") lastName:
     String, @Field("username") username: String, @Field("password") password: String, @Field
-                     ("email") email: String?): Call<GenericResult<Void>>
+                     ("email") email: String?, @Field("tos_agree") tosAgree: String = "yes"):
+            Call<GenericResult<Void>>
 
     @FormUrlEncoded
     @POST("add_friend/")

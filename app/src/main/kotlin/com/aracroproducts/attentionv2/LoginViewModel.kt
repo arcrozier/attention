@@ -39,6 +39,7 @@ class LoginViewModel @Inject constructor(
     var email by mutableStateOf("")
     var emailCaption by mutableStateOf("")
     var agreedToToS by mutableStateOf(false)
+    var checkboxError by mutableStateOf(false)
 
     fun login(scaffoldState: ScaffoldState, scope: CoroutineScope, onLoggedIn: () -> Unit) {
         uiEnabled = false
@@ -95,6 +96,10 @@ class LoginViewModel @Inject constructor(
         }
         if (!(email.isEmpty() || android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches())) {
             emailCaption = context.getString(R.string.invalid_email)
+            passed = false
+        }
+        if (!agreedToToS) {
+            checkboxError = true
             passed = false
         }
         if (!passed) {

@@ -1,6 +1,8 @@
 package com.aracroproducts.attentionv2
 
 import android.app.Application
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -9,16 +11,19 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxColors
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -31,6 +36,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
@@ -338,7 +345,7 @@ class LoginActivity : AppCompatActivity() {
         Column(
                 verticalArrangement = centerWithBottomElement, horizontalAlignment = Alignment
                 .CenterHorizontally, modifier =
-            Modifier
+        Modifier
                 .padding(paddingValues)
                 .fillMaxSize()
         ) {
@@ -398,7 +405,7 @@ class LoginActivity : AppCompatActivity() {
                     keyboardOptions = KeyboardOptions(
                             autoCorrect = false,
                             imeAction = ImeAction.Done,
-                        keyboardType = KeyboardType.Password
+                            keyboardType = KeyboardType.Password
                     ),
                     keyboardActions = KeyboardActions(
                             onDone = {
@@ -669,45 +676,50 @@ class LoginActivity : AppCompatActivity() {
                 )
             }
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
-            // todo add agree to ToS check box
             Row {
                 Checkbox(checked = model.agreedToToS, onCheckedChange = {
                     model.agreedToToS = !model.agreedToToS
+                    model.checkboxError = false
                 },
-                enabled = model.uiEnabled)
-                Text(text = getString(R.string.tos_agree))
-                /*
+                        enabled = model.uiEnabled,
+                        colors = CheckboxDefaults.colors(uncheckedColor =
+                        if (model.checkboxError) MaterialTheme.colorScheme.error
+                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                )
+
                 // get the text as SpannedString so we can get the spans attached to the text
-val titleText = getText(R.string.title) as SpannedString
+                val titleText = getText(R.string.tos_agree) as AnnotatedString
 
-// get all the annotation spans from the text
-val annotations = titleText.getSpans(0, titleText.length, Annotation::class.java)
+                // get all the annotation spans from the text
+                val spanStyles = titleText.spanStyles
 
-// create a copy of the title text as a SpannableString.
-// the constructor copies both the text and the spans. so we can add and remove spans
-val spannableString = SpannableString(titleText)
+                // iterate through all the annotation spans
+                val newSpans = List(spanStyles.size) { i ->
+                    // look for the span with the tos tag
+                    if (spanStyles[i].tag == "tos") {
+                        spanStyles[i].copy(spanStyles[i].item.copy(color =
+                        MaterialTheme.colorScheme.primary))
+                    }
+                    else spanStyles[i]
+                }
 
-// iterate through all the annotation spans
-for (annotation in annotations) {
-   // look for the span with the key font
-   if (annotation.key == "font") {
-      val fontName = annotation.value
-      // check the value associated to the annotation key
-      if (fontName == "title_emphasis") {
-         // create the typeface
-         val typeface = getFontCompat(R.font.permanent_marker)
-         // set the span at the same indices as the annotation
-         spannableString.setSpan(CustomTypefaceSpan(typeface),
-            titleText.getSpanStart(annotation),
-            titleText.getSpanEnd(annotation),
-            Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-      }
-   }
-}
+                val newText = AnnotatedString(titleText.text, newSpans)
+                ClickableText(
+                        text = newText,
+                        style = TextStyle(color = if (model.checkboxError) MaterialTheme
+                                .colorScheme.error else MaterialTheme.colorScheme.onBackground),
+                        onClick = { offset ->
+                    val annotation = newText.getStringAnnotations(tag = "policy", start = offset, end = offset)
+                            .firstOrNull()
+                    if (annotation != null) {
+                        val browserIntent = Intent(Intent.ACTION_VIEW,
+                                Uri.parse(getString(R.string.tos_url)))
+                        startActivity(browserIntent)
+                    } else {
+                        model.agreedToToS = !model.agreedToToS
+                    }
+                })
 
-// now, the spannableString contains both the annotation spans and the CustomTypefaceSpan
-styledText.text = spannableString
-                 */
             }
             Button(
                     onClick = {
@@ -723,14 +735,17 @@ styledText.text = spannableString
                     modifier = Modifier.requiredHeight(56.dp)
             ) {
                 Box {
-                    Text(text = getString(R.string.create_user), modifier = Modifier.align(Alignment.Center))
+                    Text(text = getString(R.string.create_user),
+                            modifier = Modifier.align(Alignment.Center))
                     if (!model.uiEnabled) {
                         CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                     }
                 }
             }
-            TextButton(onClick = { model.login = LoginViewModel.State.LOGIN
-            model.passwordCaption = ""}) {
+            TextButton(onClick = {
+                model.login = LoginViewModel.State.LOGIN
+                model.passwordCaption = ""
+            }) {
                 Text(text = getString(R.string.login))
             }
         }

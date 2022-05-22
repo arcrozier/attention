@@ -101,14 +101,14 @@
 
             <intent
                 android:action="android.intent.action.VIEW"
-                android:data="https://aracroproducts.com/legal/tac/" />
+                android:data="@string/tos_url" />
         </Preference>
 
         <Preference
             android:title="@string/privacy_policy" >
             <intent
                 android:action="android.intent.action.VIEW"
-                android:data="https://aracroproducts.com/legal/privacy-policy/attention/" />
+                android:data="@string/privacy_policy_url" />
         </Preference>
     </PreferenceCategory>
 
