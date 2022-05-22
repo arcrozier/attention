@@ -30,7 +30,7 @@
     <string name="email">Email</string>
     <string name="confirm_password">Confirm password</string>
     <string name="change_password">Change password</string>
-    <string name="tos_agree">I have read and agree to the <annotation tag="tos">terms of
+    <string name="tos_agree">I have read and agree to the <annotation url="tos">terms of
         service</annotation></string>
     <string name="wrong_password">Invalid username or password</string>
     <string name="password_validation_failed">Password must be at least 8 characters</string>

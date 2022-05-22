@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.text.SpannedString
 import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -42,6 +43,7 @@ import androidx.compose.ui.text.input.*
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.core.text.getSpans
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
@@ -49,6 +51,8 @@ import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlin.math.min
 import kotlin.math.roundToInt
+import android.text.Annotation
+import androidx.compose.ui.text.SpanStyle
 
 class LoginActivity : AppCompatActivity() {
 
@@ -687,31 +691,34 @@ class LoginActivity : AppCompatActivity() {
                         else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                 )
 
-                // get the text as SpannedString so we can get the spans attached to the text
-                val titleText = getText(R.string.tos_agree) as AnnotatedString
-
-                // get all the annotation spans from the text
-                val spanStyles = titleText.spanStyles
-
-                // iterate through all the annotation spans
-                val newSpans = List(spanStyles.size) { i ->
-                    // look for the span with the tos tag
-                    if (spanStyles[i].tag == "tos") {
-                        spanStyles[i].copy(spanStyles[i].item.copy(color =
-                        MaterialTheme.colorScheme.primary))
+                val spannedString = SpannedString(getText(R.string.tos_agree))
+                val resultBuilder = AnnotatedString.Builder()
+                resultBuilder.append(spannedString.toString())
+                spannedString.getSpans<Annotation>(0, spannedString.length).forEach { annotation ->
+                    val spanStart = spannedString.getSpanStart(annotation)
+                    val spanEnd = spannedString.getSpanEnd(annotation)
+                    resultBuilder.addStringAnnotation(
+                            tag = annotation.key,
+                            annotation = annotation.value,
+                            start = spanStart,
+                            end = spanEnd
+                    )
+                    if (annotation.key == "url") {
+                        resultBuilder.addStyle(SpanStyle(color = MaterialTheme.colorScheme
+                                .primary), spanStart, spanEnd)
                     }
-                    else spanStyles[i]
                 }
 
-                val newText = AnnotatedString(titleText.text, newSpans)
+                val newText = resultBuilder.toAnnotatedString()
                 ClickableText(
                         text = newText,
                         style = TextStyle(color = if (model.checkboxError) MaterialTheme
                                 .colorScheme.error else MaterialTheme.colorScheme.onBackground),
+                        modifier = Modifier.align(Alignment.CenterVertically),
                         onClick = { offset ->
-                    val annotation = newText.getStringAnnotations(tag = "policy", start = offset, end = offset)
-                            .firstOrNull()
-                    if (annotation != null) {
+                    val annotation = newText.getStringAnnotations(tag = "url",
+                            start = offset, end = offset).firstOrNull()
+                    if (annotation != null && annotation.item == "tos") {
                         val browserIntent = Intent(Intent.ACTION_VIEW,
                                 Uri.parse(getString(R.string.tos_url)))
                         startActivity(browserIntent)
