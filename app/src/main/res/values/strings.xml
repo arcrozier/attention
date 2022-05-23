@@ -5,6 +5,16 @@
     <string name="next">Next</string>
     <string name="previous">Previous</string>
 
+    <string name="upgrade_title">New version available!</string>
+    <string name="upgrade_body">Dear Attention user, \n\n
+        We are so glad you are continuing to use this service. We wanted to let you know that
+        there is a new version of Attention available to download. This comes with a large
+        number of new features, as well as better security. We strongly recommend you
+        migrate as soon as possible. You can continue to use this version until 1 January
+        2023, when it will stop working.</string>
+    <string name="download_now">Get the newest version</string>
+    <string name="wait">Later</string>
+
     <string name="name_dialog_title">Please enter your name</string>
     <string name="name">Full name</string>
     <string name="no_name">Please enter a name</string>

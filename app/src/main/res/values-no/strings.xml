@@ -54,4 +54,8 @@
     <string name="vibrate">Vibrer</string>
     <string name="ring">Ring</string>
     <string name="display_name">Navn som skal vises</string>
+    <string name="upgrade_title">Ny versjon tiljenglig</string>
+    <string name="upgrade_body">Kjære Følg Med-bruker, \\n\\n Vi er så glad at du fortsetter å bruke denne tjeneste. Vi vil si fra at det er en ny versjon av Følg Med tiljenglig for nedlasting. Denne kommer med et stort mengde nye trekk, og også bedre sikkerhet. Vi anbefaler at du flytter så snart som mulig. Du kan fortsette å bruke denne versjon inntil 1. januar 2023, når den vil slutte å fungere.</string>
+    <string name="download_now">Skaff deg den nyeste versjonen</string>
+    <string name="wait">Senere</string>
 </resources>

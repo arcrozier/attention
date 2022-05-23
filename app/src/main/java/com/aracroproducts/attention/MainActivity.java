@@ -111,6 +111,25 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
+        AlertDialog dialog =
+                new AlertDialog.Builder(this)
+                        .setTitle(R.string.upgrade_title)
+                        .setMessage(R.string.upgrade_body)
+                        .setPositiveButton(R.string.download_now,
+                                (DialogInterface dialogInterface, int id) -> {
+                            Intent browserIntent = new Intent(Intent.ACTION_VIEW,
+                                    Uri.parse("https://attention.aracroproducts.com/app/"));
+                            startActivity(browserIntent);
+                            //finishCreate();
+                        })
+                        .setNegativeButton(R.string.wait,
+                                (DialogInterface dialogInterface, int id) -> {
+                            finishCreate();
+                                }).create();
+        dialog.show();
+    }
+
+    private void finishCreate() {
         SharedPreferences prefs = getSharedPreferences(USER_INFO, Context.MODE_PRIVATE);
         SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
 
@@ -180,8 +199,6 @@ public class MainActivity extends AppCompatActivity {
             });
             alertDialog.show();
         }
-
-
     }
 
     @Override
