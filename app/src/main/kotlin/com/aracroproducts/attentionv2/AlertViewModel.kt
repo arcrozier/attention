@@ -40,6 +40,10 @@ class AlertViewModel(intent: Intent, private val attentionRepository: AttentionR
     private val timer = object : CountDownTimer(5000, 500) {
         @Suppress("DEPRECATION")
         override fun onTick(l: Long) {
+            if (silenced) {
+                cancel()
+                return
+            }
             val context = getApplication<Application>()
             Log.d(sTAG, "Vibrating device")
             val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -56,22 +60,25 @@ class AlertViewModel(intent: Intent, private val attentionRepository: AttentionR
             } else {
                 vibrator.vibrate(400)
             }
-
         }
 
-        override fun onFinish() {}
+        override fun onFinish() {
+            start()
+        }
     }
 
     fun startPrompting() {
-        val context = getApplication<Application>()
-        val settings = PreferenceManager.getDefaultSharedPreferences(context)
-        val vibrate =
-                settings.getStringSet(context.getString(R.string.vibrate_preference_key), HashSet())
-        val ring = settings.getStringSet(context.getString(R.string.ring_preference_key),
-                HashSet())
+        if (!silenced) {
+            val context = getApplication<Application>()
+            val settings = PreferenceManager.getDefaultSharedPreferences(context)
+            val vibrate =
+                    settings.getStringSet(context.getString(R.string.vibrate_preference_key), HashSet())
+            val ring = settings.getStringSet(context.getString(R.string.ring_preference_key),
+                    HashSet())
 
-        if (ring != null) ring(ring)
-        if (vibrate != null) vibrate(vibrate)
+            if (ring != null) ring(ring)
+            if (vibrate != null) vibrate(vibrate)
+        }
     }
 
     fun ok() {
@@ -109,7 +116,13 @@ class AlertViewModel(intent: Intent, private val attentionRepository: AttentionR
      */
     private fun ring(ringAllowed: Set<String>) {
         if (soundAllowed(ringAllowed)) {
-            ringtone.play()
+            val context = getApplication<Application>()
+            val manager = context.getSystemService(AppCompatActivity.AUDIO_SERVICE) as AudioManager
+            if (manager.ringerMode == AudioManager.RINGER_MODE_NORMAL) {
+                ringtone.play()
+            } else {
+                // todo save current media volume, turn up media volume, and play ringtone as media
+            }
         }
     }
 
@@ -129,6 +142,7 @@ class AlertViewModel(intent: Intent, private val attentionRepository: AttentionR
         if (ringtone.isPlaying) {
             ringtone.stop()
         }
+        // todo check if media is playing, and stop if appropriate
     }
 
     /**
