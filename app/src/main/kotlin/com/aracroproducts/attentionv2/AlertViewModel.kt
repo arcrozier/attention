@@ -56,7 +56,7 @@ class AlertViewModel(intent: Intent, private val attentionRepository: AttentionR
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 vibrator.vibrate(VibrationEffect.createOneShot(400,
-                        VibrationEffect.DEFAULT_AMPLITUDE))
+                        MAX_AMPLITUDE))
             } else {
                 vibrator.vibrate(400)
             }
@@ -200,5 +200,6 @@ class AlertViewModel(intent: Intent, private val attentionRepository: AttentionR
     companion object {
         val sTAG: String? = AlertViewModel::class.java.canonicalName
         const val NO_ID = -1
+        const val MAX_AMPLITUDE = 255
     }
 }
