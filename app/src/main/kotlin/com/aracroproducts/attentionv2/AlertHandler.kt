@@ -1,5 +1,6 @@
 package com.aracroproducts.attentionv2
 
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -63,17 +64,18 @@ open class AlertHandler : FirebaseMessagingService() {
             when (messageData["action"]) {
                 "alert" -> {
                     val message = Message(
-                            timestamp = System.currentTimeMillis(),
-                            otherId = messageData[REMOTE_FROM] ?: return@launch,
-                            direction = DIRECTION.Incoming,
-                            message = messageData[REMOTE_MESSAGE]
+                        timestamp = System.currentTimeMillis(),
+                        otherId = messageData[REMOTE_FROM] ?: return@launch,
+                        direction = DIRECTION.Incoming,
+                        message = messageData[REMOTE_MESSAGE]
                     )
                     val repository = AttentionRepository(AttentionDB.getDB(applicationContext))
-                    val defaultPrefs = PreferenceManager.getDefaultSharedPreferences(this@AlertHandler)
+                    val defaultPrefs =
+                        PreferenceManager.getDefaultSharedPreferences(this@AlertHandler)
                     if (messageData[REMOTE_TO] != defaultPrefs.getString(
-                                    getString(R.string.username_key),
-                                    ""
-                            ) || messageData[REMOTE_TO] == ""
+                            getString(R.string.username_key),
+                            ""
+                        ) || messageData[REMOTE_TO] == ""
                     ) return@launch  //if message is not addressed to the user, ends
 
                     val alertId = messageData[ALERT_ID]
@@ -84,17 +86,17 @@ open class AlertHandler : FirebaseMessagingService() {
                     val senderName = repository.getFriend(message.otherId).name
 
                     val display = if (message.message == "None") getString(
-                            R.string.default_message,
-                            senderName
+                        R.string.default_message,
+                        senderName
                     ) else getString(R.string.message_prefix, senderName, message.message)
 
                     repository.appendMessage(message = message)
                     val preferences =
-                            PreferenceManager.getDefaultSharedPreferences(this@AlertHandler)
+                        PreferenceManager.getDefaultSharedPreferences(this@AlertHandler)
                     val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-                    NotificationManagerCompat.from(this@AlertHandler)
 
-                    val userInfo = getSharedPreferences(MainViewModel.USER_INFO, Context.MODE_PRIVATE)
+                    val userInfo =
+                        getSharedPreferences(MainViewModel.USER_INFO, Context.MODE_PRIVATE)
                     // token is auth token
                     val token = userInfo.getString(MainViewModel.MY_TOKEN, null)
 
@@ -102,7 +104,8 @@ open class AlertHandler : FirebaseMessagingService() {
                         repository.sendDeliveredReceipt(
                             from = message.otherId,
                             alertId = alertId,
-                            authToken = token)
+                            authToken = token
+                        )
                     } else {
                         Log.e(javaClass.name, "Token is null when sending delivery receipt!")
                     }
@@ -110,25 +113,26 @@ open class AlertHandler : FirebaseMessagingService() {
                     // Check if SDK >= Android 7.0, uses the new notification manager, else uses the compat manager (SDK 19+)
                     // Checks if the app should avoid notifying because it has notifications disabled or:
                     if ((!manager.areNotificationsEnabled())
-                            || (!preferences.getBoolean(
-                                    getString(R.string.override_dnd_key),
-                                    false
-                            ) // Checks whether it should not be overriding Do Not Disturb
-                                    && (manager.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL // Do not disturb is on
-                                    && manager.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_UNKNOWN))
+                        || (!preferences.getBoolean(
+                            getString(R.string.override_dnd_key),
+                            false
+                        ) // Checks whether it should not be overriding Do Not Disturb
+                                && (manager.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL // Do not disturb is on
+                                && manager.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_UNKNOWN))
                     ) { // Also do not disturb is on
+                        // todo disable zen mode if necessary - see https://developer.android.com/reference/android/service/notification/ZenPolicy.Builder#allowMessages(int)
                         Log.d(
-                                TAG,
-                                "App is disabled from showing notifications or interruption filter is set to block notifications"
+                            TAG,
+                            "App is disabled from showing notifications or interruption filter is set to block notifications"
                         )
                         showNotification(display, senderName, alertId, message.otherId, true)
                         return@launch
                     }
                     try {
                         if (Settings.Global.getInt(
-                                        contentResolver,
-                                        "zen_mode"
-                                ) > 1
+                                contentResolver,
+                                "zen_mode"
+                            ) > 1
                         ) { // a variant of do not disturb
                             Log.d(TAG, "Device's zen mode is enabled")
                             return@launch
@@ -142,11 +146,12 @@ open class AlertHandler : FirebaseMessagingService() {
                     val id = showNotification(display, senderName, alertId, message.otherId, false)
 
                     AttentionDB.getDB(applicationContext).getFriendDAO()
-                            .incrementReceived(message.otherId)
+                        .incrementReceived(message.otherId)
 
                     // Device should only show pop up if the device is off or if it has the ability to draw overlays (required to show pop up if screen is on)
                     if (!pm.isInteractive || Settings.canDrawOverlays(this@AlertHandler)
-                            || AttentionApplication.isActivityVisible()) {
+                        || AttentionApplication.isActivityVisible()
+                    ) {
                         val intent = Intent(this@AlertHandler, Alert::class.java).apply {
                             putExtra(REMOTE_FROM, senderName)
                             putExtra(REMOTE_MESSAGE, display)
@@ -156,24 +161,24 @@ open class AlertHandler : FirebaseMessagingService() {
                             putExtra(REMOTE_FROM_USERNAME, message.otherId)
                             if (AttentionApplication.isActivityVisible())
                                 addFlags(
-                                        Intent.FLAG_ACTIVITY_NEW_TASK
+                                    Intent.FLAG_ACTIVITY_NEW_TASK
                                 )
                             else
                                 addFlags(
-                                        Intent.FLAG_ACTIVITY_NEW_TASK or Intent
-                                                .FLAG_ACTIVITY_CLEAR_TASK
+                                    Intent.FLAG_ACTIVITY_NEW_TASK or Intent
+                                        .FLAG_ACTIVITY_CLEAR_TASK
                                 )
                         }
                         Log.d(
-                                TAG,
-                                "Sender: $senderName, ${message.otherId} Message: ${message.message}"
+                            TAG,
+                            "Sender: $senderName, ${message.otherId} Message: ${message.message}"
                         )
                         startActivity(intent)
                     }
                 }
                 "delivered" -> {
                     val attentionRepository =
-                    AttentionRepository(AttentionDB.getDB(this@AlertHandler))
+                        AttentionRepository(AttentionDB.getDB(this@AlertHandler))
                     attentionRepository.alertDelivered(
                         username = messageData["username_to"],
                         alertId = messageData["alert_id"]
@@ -181,15 +186,17 @@ open class AlertHandler : FirebaseMessagingService() {
                 }
                 "read" -> {
                     val attentionRepository =
-                            AttentionRepository(AttentionDB.getDB(this@AlertHandler))
+                        AttentionRepository(AttentionDB.getDB(this@AlertHandler))
                     attentionRepository.alertRead(
-                            username = messageData["username_to"], alertId =
-                    messageData["alert_id"]
+                        username = messageData["username_to"], alertId =
+                        messageData["alert_id"]
                     )
 
                     if (AttentionApplication.shownAlertID == messageData["alert_id"]) {
-                        (application as? AttentionApplication)?.activity?.finish() ?: Log.e(TAG,
-                                "Couldn't finish application")
+                        (application as? AttentionApplication)?.activity?.finish() ?: Log.e(
+                            TAG,
+                            "Couldn't finish application"
+                        )
                     }
                 }
                 else -> {
@@ -207,8 +214,10 @@ open class AlertHandler : FirebaseMessagingService() {
      * @param missed        - Whether the alert was missed
      * @return              - Returns the ID of the notification
      */
-    private fun showNotification(message: String, senderName: String?, alertId: String, fromUser:
-    String, missed: Boolean): Int {
+    private fun showNotification(
+        message: String, senderName: String?, alertId: String, fromUser:
+        String, missed: Boolean
+    ): Int {
         val intent = Intent(this, Alert::class.java).apply {
             putExtra(REMOTE_MESSAGE, message)
             putExtra(REMOTE_FROM, senderName)
@@ -223,22 +232,28 @@ open class AlertHandler : FirebaseMessagingService() {
             createMissedNotificationChannel(this)
             builder = NotificationCompat.Builder(this, CHANNEL_ID)
             builder
-                    .setSmallIcon(R.drawable.app_icon_foreground)
-                    .setContentTitle(getString(R.string.notification_title, senderName))
-                    .setContentText(message)
-                    .setStyle(NotificationCompat.BigTextStyle().bigText(message))
-                    .setPriority(NotificationCompat.PRIORITY_MAX)
-                    .setContentIntent(pendingIntent).setAutoCancel(true)
+                .setSmallIcon(R.drawable.app_icon_foreground)
+                .setContentTitle(getString(R.string.notification_title, senderName))
+                .setContentText(message)
+                .setCategory(
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+                        Notification.CATEGORY_MISSED_CALL
+                    else Notification.CATEGORY_MESSAGE
+                )
+                .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setContentIntent(pendingIntent).setAutoCancel(true)
         } else {
             createNotificationChannel()
             builder = NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
             builder
-                    .setSmallIcon(R.drawable.app_icon_foreground)
-                    .setContentTitle(getString(R.string.alert_notification_title, senderName))
-                    .setContentText(message)
-                    .setStyle(NotificationCompat.BigTextStyle().bigText(message))
-                    .setPriority(NotificationCompat.PRIORITY_MAX)
-                    .setContentIntent(pendingIntent).setAutoCancel(true)
+                .setSmallIcon(R.drawable.app_icon_foreground)
+                .setContentTitle(getString(R.string.alert_notification_title, senderName))
+                .setContentText(message)
+                .setCategory(Notification.CATEGORY_MESSAGE)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setContentIntent(pendingIntent).setAutoCancel(true)
         }
         val notificationID = (System.currentTimeMillis() % 1000000000L).toInt() + 1
         val notificationManagerCompat = NotificationManagerCompat.from(this)

@@ -2,8 +2,10 @@ package com.aracroproducts.attentionv2
 
 import android.app.Activity
 import android.app.Application
+import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
 import android.os.Bundle
 import android.text.InputType
 import androidx.activity.viewModels
@@ -275,6 +277,16 @@ class SettingsActivity : AppCompatActivity() {
                         }
                 ringPreference.setSummaryFromValues(ringPreference.values)
             }
+
+            val dndPreference = findPreference(getString(R.string.override_dnd_key)) as
+                    SwitchPreference?
+            val manager = context?.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+            if (dndPreference?.isChecked == true && manager.isNotificationPolicyAccessGranted) {
+                dndPreference.isChecked = false
+            }
+            // todo on change - check whether we actually can override DND
+            // see https://developer.android.com/reference/android/app/NotificationManager#isNotificationPolicyAccessGranted()
+            // if not, display a prompt asking the user to go to settings
         }
 
         private fun MultiSelectListPreference.setSummaryFromValues(values: Set<*>) {

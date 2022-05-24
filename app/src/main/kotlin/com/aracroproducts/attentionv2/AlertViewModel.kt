@@ -30,6 +30,7 @@ class AlertViewModel(intent: Intent, private val attentionRepository: AttentionR
     val id = intent.getIntExtra(AlertHandler.ASSOCIATED_NOTIFICATION, NO_ID)
     val alertId = intent.getStringExtra(AlertHandler.ALERT_ID) ?: ""
     private val fromUsername = intent.getStringExtra(AlertHandler.REMOTE_FROM_USERNAME) ?: ""
+    private var ringerMode: Int? = null
 
 
     private val ringtone = RingtoneManager.getRingtone(getApplication(), RingtoneManager
@@ -118,11 +119,11 @@ class AlertViewModel(intent: Intent, private val attentionRepository: AttentionR
         if (soundAllowed(ringAllowed)) {
             val context = getApplication<Application>()
             val manager = context.getSystemService(AppCompatActivity.AUDIO_SERVICE) as AudioManager
-            if (manager.ringerMode == AudioManager.RINGER_MODE_NORMAL) {
-                ringtone.play()
-            } else {
-                // todo save current media volume, turn up media volume, and play ringtone as media
+            if (manager.ringerMode != AudioManager.RINGER_MODE_NORMAL) {
+                ringerMode = manager.ringerMode
+                manager.ringerMode = AudioManager.RINGER_MODE_NORMAL
             }
+            ringtone.play()
         }
     }
 
@@ -138,11 +139,16 @@ class AlertViewModel(intent: Intent, private val attentionRepository: AttentionR
 
     fun silence() {
         silenced = true
+        val ringerModeToRestore = ringerMode
+        if (ringerModeToRestore != null) {
+            val context = getApplication<Application>()
+            val manager = context.getSystemService(AppCompatActivity.AUDIO_SERVICE) as AudioManager
+            manager.ringerMode = ringerModeToRestore
+        }
         timer.cancel()
         if (ringtone.isPlaying) {
             ringtone.stop()
         }
-        // todo check if media is playing, and stop if appropriate
     }
 
     /**
