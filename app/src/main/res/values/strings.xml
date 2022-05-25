@@ -83,6 +83,9 @@
 
     <string name="confirm_logout_title">Logout</string>
     <string name="confirm_logout_message">Are you sure you want to log out?</string>
+    <string name="allow_dnd_title">Allow Attention! to control Do Not Disturb</string>
+    <string name="allow_dnd_message">To enable Attention to override Do Not Disturb, you
+        need to grant permission in settings.</string>
     <string name="confirm_delete_title">Delete friend</string>
     <string name="confirm_delete_message">Are you sure you want to remove %s from your friends?</string>
     <string name="yes">Yes</string>
@@ -100,8 +103,6 @@
     <string name="back">Back</string>
 
 
-    <string name="permissions_needed">Permission required to scan</string>
-    <string name="permission_details">Grant camera permission to scan your friend\'s QR code. You can also enter their user ID manually, if you prefer</string>
     <string name="channel_name">Missed alerts</string>
     <string name="channel_description">Notifies you when you missed an alert</string>
     <string name="alert_failed_channel_name">Sending errors</string>

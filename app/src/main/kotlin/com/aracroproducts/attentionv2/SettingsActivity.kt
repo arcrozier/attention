@@ -6,9 +6,12 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.media.AudioManager
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.text.InputType
 import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -210,7 +213,7 @@ class SettingsActivity : AppCompatActivity() {
             val logoutPreference: Preference? = findPreference(getString(R.string.logout_key))
             if (logoutPreference != null) {
                 logoutPreference.onPreferenceClickListener = Preference.OnPreferenceClickListener {
-                    androidx.appcompat.app.AlertDialog.Builder(localContext).apply {
+                    AlertDialog.Builder(localContext).apply {
                         setTitle(getString(R.string.confirm_logout_title))
                         setMessage(getString(R.string.confirm_logout_message))
                         setPositiveButton(R.string.confirm_logout_title) { dialog, _ ->
@@ -284,7 +287,38 @@ class SettingsActivity : AppCompatActivity() {
             if (dndPreference?.isChecked == true && manager.isNotificationPolicyAccessGranted) {
                 dndPreference.isChecked = false
             }
-            // todo on change - check whether we actually can override DND
+            dndPreference?.onPreferenceChangeListener = Preference.OnPreferenceChangeListener {
+                _, newValue ->
+                if (newValue is Boolean) {
+                    if (newValue) {
+                        if (manager.isNotificationPolicyAccessGranted) {
+                            return@OnPreferenceChangeListener true
+                        } else {
+                            // todo do we listen for the change and turn on override?
+                            AlertDialog.Builder(localContext).apply {
+                                setTitle(R.string.allow_dnd_title)
+                                setMessage(R.string.allow_dnd_message)
+                                setPositiveButton(R.string.open_settings) { dialog, _ ->
+                                    val intent = Intent(Settings
+                                            .ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS,
+                                            Uri.parse("package:" + localContext.packageName))
+                                    startActivity(intent)
+                                    dialog.cancel()
+                                }
+                                setNegativeButton(R.string.cancel) { dialog, _ ->
+                                    dialog.cancel()
+                                }
+                                show()
+                            }
+                            return@OnPreferenceChangeListener false
+                        }
+                    }
+                    return@OnPreferenceChangeListener true
+                }
+                throw IllegalArgumentException("Non-boolean value provided to switch on change " +
+                        "listener!")
+            }
+            // on change - check whether we actually can override DND
             // see https://developer.android.com/reference/android/app/NotificationManager#isNotificationPolicyAccessGranted()
             // if not, display a prompt asking the user to go to settings
         }

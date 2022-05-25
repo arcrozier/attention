@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.text.Annotation
 import android.text.SpannedString
 import android.util.Log
 import androidx.activity.compose.setContent
@@ -21,7 +22,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxColors
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -38,6 +38,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.unit.Density
@@ -51,8 +52,6 @@ import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlin.math.min
 import kotlin.math.roundToInt
-import android.text.Annotation
-import androidx.compose.ui.text.SpanStyle
 
 class LoginActivity : AppCompatActivity() {
 
