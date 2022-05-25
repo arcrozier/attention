@@ -5,7 +5,6 @@ import android.app.Application
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
-import android.media.AudioManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
@@ -284,8 +283,8 @@ class SettingsActivity : AppCompatActivity() {
             val dndPreference = findPreference(getString(R.string.override_dnd_key)) as
                     SwitchPreference?
             val manager = context?.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-            if (dndPreference?.isChecked == true && manager.isNotificationPolicyAccessGranted) {
-                dndPreference.isChecked = false
+            if (!manager.isNotificationPolicyAccessGranted) {
+                dndPreference?.isChecked = false
             }
             dndPreference?.onPreferenceChangeListener = Preference.OnPreferenceChangeListener {
                 _, newValue ->
@@ -294,7 +293,6 @@ class SettingsActivity : AppCompatActivity() {
                         if (manager.isNotificationPolicyAccessGranted) {
                             return@OnPreferenceChangeListener true
                         } else {
-                            // todo do we listen for the change and turn on override?
                             AlertDialog.Builder(localContext).apply {
                                 setTitle(R.string.allow_dnd_title)
                                 setMessage(R.string.allow_dnd_message)
@@ -315,7 +313,7 @@ class SettingsActivity : AppCompatActivity() {
                     }
                     return@OnPreferenceChangeListener true
                 }
-                throw IllegalArgumentException("Non-boolean value provided to switch on change " +
+                throw IllegalArgumentException("Non-boolean value provided to switch on-change " +
                         "listener!")
             }
             // on change - check whether we actually can override DND
