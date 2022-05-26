@@ -119,4 +119,7 @@
     <string name="app_version">App Versjon</string>
     <string name="terms_of_service">Vilkår for Bruk</string>
     <string name="privacy_policy">Personvernerklæring</string>
+    <string name="could_not_ring">Kunne ikke ringe enheten din fordi Oppmerk! har ikke tillatelse til å endre Ikke Forstyr modus.</string>
+    <string name="allow_dnd_title">Tillat Oppmerk! til å kontrollere Ikke Forstyr</string>
+    <string name="allow_dnd_message">For å la Oppmerk overstyr Ikke Forstyr, du må gi tillatelse i instillingene.</string>
 </resources>

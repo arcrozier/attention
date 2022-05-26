@@ -298,8 +298,7 @@ class SettingsActivity : AppCompatActivity() {
                                 setMessage(R.string.allow_dnd_message)
                                 setPositiveButton(R.string.open_settings) { dialog, _ ->
                                     val intent = Intent(Settings
-                                            .ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS,
-                                            Uri.parse("package:" + localContext.packageName))
+                                            .ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
                                     startActivity(intent)
                                     dialog.cancel()
                                 }

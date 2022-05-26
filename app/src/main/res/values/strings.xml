@@ -73,6 +73,8 @@
     <string name="alert_failed_server_error">The server encountered an error while sending an alert to %s</string>
     <string name="alert_failed_no_connection">Could not send alert %s. Check your network
         connection and try again</string>
+    <string name="could_not_ring">Could not ring device as Attention! does not
+        have permission to change Do Not Disturb state</string>
     <string name="general_error">Error: Could not send alert</string>
     <string name="user_registered">Your device has been registered!</string>
     <string name="default_message">%s wants your attention!</string>

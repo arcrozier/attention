@@ -212,7 +212,7 @@ open class AlertHandler : FirebaseMessagingService() {
                                 // Do not disturb is on
                             manager.currentInterruptionFilter
                                 == NotificationManager.INTERRUPTION_FILTER_UNKNOWN
-                        ) &&
+                        ) ||
                         (Build.VERSION.SDK_INT < Build.VERSION_CODES.R ||
                                 (manager
                                         .consolidatedNotificationPolicy

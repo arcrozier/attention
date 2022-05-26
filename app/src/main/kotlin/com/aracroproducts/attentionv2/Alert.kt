@@ -4,15 +4,21 @@ import android.app.Application
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.text.AnnotatedString
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
@@ -28,10 +34,12 @@ class Alert : AppCompatActivity() {
         AlertViewModelFactory(intent, AttentionRepository(AttentionDB.getDB(this)), application)
     })
 
-    inner class AlertViewModelFactory(private val intent: Intent,
-                                      private val attentionRepository: AttentionRepository,
-                                      private val application: Application) :
-            ViewModelProvider.Factory {
+    inner class AlertViewModelFactory(
+        private val intent: Intent,
+        private val attentionRepository: AttentionRepository,
+        private val application: Application
+    ) :
+        ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(AlertViewModel::class.java)) {
@@ -69,24 +77,42 @@ class Alert : AppCompatActivity() {
     }
 
     @Composable
-    fun Dialog(message: String) {
+    fun Dialog(message: AnnotatedString) {
         AlertDialog(
-                onDismissRequest = { },
-                confirmButton = {
-                    TextButton(onClick = { alertModel.silence() }) {
-                        Text(text = getString(R.string.silence))
+            onDismissRequest = { },
+            dismissButton = {
+                Row {
+                    AnimatedVisibility(visible = !alertModel.silenced, enter = fadeIn(), exit = fadeOut()) {
+                        TextButton(onClick = { alertModel.silence() }) {
+                            Text(text = getString(R.string.silence))
+                        }
                     }
-                },
-                dismissButton = {
-                    Button(onClick = {
-                        alertModel.ok()
-                        finish()
-                    }) {
-                        Text(text = getString(android.R.string.ok))
+
+                    AnimatedVisibility(visible = alertModel.showDNDButton, enter = fadeIn(), exit = fadeOut
+                        ()) {
+                        TextButton(onClick = {
+                            alertModel.silence()
+                            val intent = Intent(
+                                Settings
+                                    .ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS
+                            )
+                            startActivity(intent)
+                        }) {
+                            Text(text = getString(R.string.open_settings))
+                        }
                     }
-                },
-                title = { Text(getString(R.string.alert_title)) },
-                text = { Text(message) }
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    alertModel.ok()
+                    finish()
+                }) {
+                    Text(text = getString(android.R.string.ok))
+                }
+            },
+            title = { Text(getString(R.string.alert_title)) },
+            text = { Text(message) }
         )
     }
 }
