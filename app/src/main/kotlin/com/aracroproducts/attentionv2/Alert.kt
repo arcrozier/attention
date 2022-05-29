@@ -1,6 +1,7 @@
 package com.aracroproducts.attentionv2
 
 import android.app.Application
+import android.app.NotificationManager
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -88,7 +89,9 @@ class Alert : AppCompatActivity() {
                         }
                     }
 
-                    AnimatedVisibility(visible = alertModel.showDNDButton, enter = fadeIn(), exit = fadeOut
+                    AnimatedVisibility(visible = alertModel.showDNDButton &&
+                        (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).isNotificationPolicyAccessGranted,
+                        enter = fadeIn(), exit = fadeOut
                         ()) {
                         TextButton(onClick = {
                             alertModel.silence()
