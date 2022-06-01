@@ -17,8 +17,6 @@
     <string name="confirm_delete_title">Slett venn</string>
     <string name="confirm_delete_message">Er du sikker du vil fjerne %s som en venn?</string>
     <string name="yes">Ja</string>
-    <string name="permissions_needed">Tillatelse kreves til å skanne</string>
-    <string name="permission_details">Bevilge kamera tillatelse til å skanne vennens QR kode. Du kan også tast inn deres bruker ID manuelt, vist du vil</string>
     <string name="channel_name">Varsler du gikk glip av</string>
     <string name="channel_description">Varlser nåar du gå glipp av en varsling</string>
     <string name="notification_title">Ubesvart varsel fra %s</string>

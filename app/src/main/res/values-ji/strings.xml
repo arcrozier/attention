@@ -25,8 +25,6 @@
     <string name="new_name">Ingebn naye nomen</string>
 
 
-    <string name="permissions_needed">Reshuth darfn far tzu skan</string>
-    <string name="permission_details">Gebt fotoaparat reshuth far tzu skan zayer khaver\'s QR kod. Ir kent oykh ingebn zayer ID manuel, vayl ir veln</string>
     <string name="channel_name">Onzogn ir hot nisht gezen</string>
     <string name="channel_description">Onzogn ir ven ir hot nisht gezen an onzog</string>
     <string name="notification_title">Nisht-gezen onzog fun %s</string>
