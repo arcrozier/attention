@@ -10,8 +10,8 @@ android {
         applicationId "com.aracroproducts.attentionv2"
         minSdkVersion 24
         targetSdkVersion 32
-        versionCode 26
-        versionName "2.0.1 beta 1"
+        versionCode 27
+        versionName "2.0.1 beta 2"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
