@@ -33,10 +33,19 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.autofill.AutofillNode
+import androidx.compose.ui.autofill.AutofillType
+import androidx.compose.ui.composed
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalAutofill
+import androidx.compose.ui.platform.LocalAutofillTree
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -69,6 +78,28 @@ class LoginActivity : AppCompatActivity() {
                 return LoginViewModel(attentionRepository, application) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class")
+        }
+    }
+
+    @OptIn(ExperimentalComposeUiApi::class)
+    fun Modifier.autofill(
+            autofillTypes: List<AutofillType>,
+            onFill: ((String) -> Unit),
+    ) = composed {
+        val autofill = LocalAutofill.current
+        val autofillNode = AutofillNode(onFill = onFill, autofillTypes = autofillTypes)
+        LocalAutofillTree.current += autofillNode
+
+        this.onGloballyPositioned {
+            autofillNode.boundingBox = it.boundsInWindow()
+        }.onFocusChanged { focusState ->
+            autofill?.run {
+                if (focusState.isFocused) {
+                    requestAutofillForNode(autofillNode)
+                } else {
+                    cancelAutofillForNode(autofillNode)
+                }
+            }
         }
     }
 
@@ -156,6 +187,7 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
+    @OptIn(ExperimentalComposeUiApi::class)
     @Composable
     fun ChangePassword(
             model: LoginViewModel, scaffoldState: ScaffoldState, coroutineScope:
@@ -173,13 +205,18 @@ class LoginActivity : AppCompatActivity() {
                 .fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            val autofillPassword = AutofillNode(
+                    autofillTypes = listOf(AutofillType.Password),
+                    onFill = { onOldPasswordChanged(model, it) }
+            )
+            LocalAutofillTree.current += autofillPassword
             TextField(
                     value = model.oldPassword,
+                    modifier = Modifier.onGloballyPositioned {
+                        autofillPassword.boundingBox = it.boundsInWindow()
+                    },
                     onValueChange = {
-                        model.oldPassword = it.filter { letter ->
-                            letter != '\n'
-                        }
-                        model.passwordCaption = ""
+                        onOldPasswordChanged(model, it)
                     },
                     visualTransformation = if (passwordHidden)
                         PasswordVisualTransformation() else
@@ -220,13 +257,18 @@ class LoginActivity : AppCompatActivity() {
                 )
             }
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
+            val autofillNewPassword = AutofillNode(
+                    autofillTypes = listOf(AutofillType.NewPassword),
+                    onFill = {
+                        onNewPasswordChanged(model, it)
+                        onConfirmPasswordChanged(model, it)
+                    }
+            )
+            LocalAutofillTree.current += autofillNewPassword
             TextField(
                     value = model.password,
                     onValueChange = {
-                        model.password = it.filter { letter ->
-                            letter != '\n'
-                        }
-                        model.newPasswordCaption = ""
+                        onNewPasswordChanged(model, it)
                     },
                     visualTransformation = if (passwordHidden)
                         PasswordVisualTransformation() else
@@ -245,7 +287,11 @@ class LoginActivity : AppCompatActivity() {
                     label = {
                         Text(text = getString(R.string.new_password))
                     },
-                    modifier = Modifier.focusRequester(passwordFocusRequester),
+                    modifier = Modifier
+                            .focusRequester(passwordFocusRequester)
+                            .onGloballyPositioned {
+                                autofillNewPassword.boundingBox = it.boundsInWindow()
+                            },
                     isError = model.newPasswordCaption.isNotBlank(),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
@@ -262,10 +308,7 @@ class LoginActivity : AppCompatActivity() {
             TextField(
                     value = model.confirmPassword,
                     onValueChange = {
-                        model.confirmPassword = it.filter { letter ->
-                            letter != '\n'
-                        }
-                        model.confirmPasswordCaption = ""
+                        onConfirmPasswordChanged(model, it)
                     },
                     visualTransformation = if (passwordHidden)
                         PasswordVisualTransformation() else
@@ -339,6 +382,42 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
+    private fun onUsernameChanged(model: LoginViewModel, username: String) {
+        model.username = username.filter { letter ->
+            letter != '\n'
+        }
+        model.passwordCaption = ""
+    }
+
+    private fun onPasswordChanged(model: LoginViewModel, password: String) {
+        model.password = password.filter { letter ->
+            letter != '\n'
+        }
+        model.passwordCaption = ""
+    }
+
+    private fun onNewPasswordChanged(model: LoginViewModel, password: String) {
+        model.password = password.filter { letter ->
+            letter != '\n'
+        }
+        model.newPasswordCaption = ""
+    }
+
+    private fun onConfirmPasswordChanged(model: LoginViewModel, password: String) {
+        model.confirmPassword = password.filter { letter ->
+            letter != '\n'
+        }
+        model.confirmPasswordCaption = ""
+    }
+
+    private fun onOldPasswordChanged(model: LoginViewModel, password: String) {
+        model.oldPassword = password.filter { letter ->
+            letter != '\n'
+        }
+        model.passwordCaption = ""
+    }
+
+    @OptIn(ExperimentalComposeUiApi::class)
     @Composable
     fun Login(model: LoginViewModel, scaffoldState: ScaffoldState, coroutineScope:
     CoroutineScope, paddingValues: PaddingValues) {
@@ -353,18 +432,24 @@ class LoginActivity : AppCompatActivity() {
                 .fillMaxSize()
         ) {
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
+            val autofillUsername = AutofillNode(
+                    autofillTypes = listOf(AutofillType.Username),
+                    onFill = {
+                        onUsernameChanged(model, it)
+                    }
+            )
+            LocalAutofillTree.current += autofillUsername
             TextField(
                     value = model.username,
                     onValueChange = {
-                        model.username = it.filter { letter ->
-                            letter != '\n'
-                        }
-                        model.passwordCaption = ""
+                        onUsernameChanged(model, it)
+                    },
+                    modifier = Modifier.onGloballyPositioned {
+                        autofillUsername.boundingBox = it.boundsInWindow()
                     },
                     label = { Text(text = getString(R.string.username)) },
                     keyboardOptions = KeyboardOptions(
-                            autoCorrect = false, imeAction = ImeAction
-                            .Next
+                            autoCorrect = false, imeAction = ImeAction.Next
                     ),
                     enabled = model.uiEnabled,
                     isError = model.passwordCaption.isNotBlank(),
@@ -380,13 +465,20 @@ class LoginActivity : AppCompatActivity() {
                 )
             }
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
+            val autofillPassword = AutofillNode(
+                    autofillTypes = listOf(AutofillType.Password),
+                    onFill = {
+                        onPasswordChanged(model, it)
+                    }
+            )
+            LocalAutofillTree.current += autofillPassword
             TextField(
                     value = model.password,
                     onValueChange = {
-                        model.password = it.filter { letter ->
-                            letter != '\n'
-                        }
-                        model.passwordCaption = ""
+                        onPasswordChanged(model, it)
+                    },
+                    modifier = Modifier.onGloballyPositioned {
+                        autofillPassword.boundingBox = it.boundsInWindow()
                     },
                     visualTransformation = if (passwordHidden)
                         PasswordVisualTransformation() else
@@ -458,10 +550,17 @@ class LoginActivity : AppCompatActivity() {
                 Text(text = getString(R.string.create_user))
             }
         }
-
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
+    private fun onNewUsernameChanged(model: LoginViewModel, username: String) {
+        model.username = username.substring(0, min(username.length, 150)).filter {
+            it.isLetterOrDigit() or (it == '@') or (it == '_') or (it == '-') or (it ==
+                    '+') or (it == '.')
+        }
+        model.usernameCaption = ""
+    }
+
+    @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
     @Composable
     fun CreateUser(
             model: LoginViewModel, scaffoldState: ScaffoldState,
@@ -479,15 +578,21 @@ class LoginActivity : AppCompatActivity() {
                 horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
+            val autofillNewUsername = AutofillNode(
+                    autofillTypes = listOf(AutofillType.NewUsername),
+                    onFill = {
+                        onNewUsernameChanged(model, it)
+                    }
+            )
+            LocalAutofillTree.current += autofillNewUsername
             TextField(
                     // use model is error - reset on change
                     value = model.username,
                     onValueChange = { value ->
-                        model.username = value.substring(0, min(value.length, 150)).filter {
-                            it.isLetterOrDigit() or (it == '@') or (it == '_') or (it == '-') or (it ==
-                                    '+') or (it == '.')
-                        }
-                        model.usernameCaption = ""
+                        onNewUsernameChanged(model, value)
+                    },
+                    modifier = Modifier.onGloballyPositioned {
+                        autofillNewUsername.boundingBox = it.boundsInWindow()
                     },
                     isError = model.usernameCaption.isNotBlank(),
                     singleLine = true,
@@ -509,12 +614,24 @@ class LoginActivity : AppCompatActivity() {
                 )
             }
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
+            val autofillFirstName = AutofillNode(
+                    autofillTypes = listOf(AutofillType.PersonFirstName),
+                    onFill = {
+                        model.firstName = it.filter { letter ->
+                            letter != '\n'
+                        }
+                    }
+            )
+            LocalAutofillTree.current += autofillFirstName
             TextField(
                     value = model.firstName,
                     onValueChange = {
                         model.firstName = it.filter { letter ->
                             letter != '\n'
                         }
+                    },
+                    modifier = Modifier.onGloballyPositioned {
+                        autofillFirstName.boundingBox = it.boundsInWindow()
                     },
                     singleLine = true,
                     label = { Text(text = getString(R.string.first_name)) },
@@ -526,12 +643,24 @@ class LoginActivity : AppCompatActivity() {
                     enabled = model.uiEnabled
             )
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
+            val autofillLastName = AutofillNode(
+                    autofillTypes = listOf(AutofillType.PersonLastName),
+                    onFill = {
+                        model.lastName = it.filter { letter ->
+                            letter != '\n'
+                        }
+                    }
+            )
+            LocalAutofillTree.current += autofillLastName
             TextField(
                     value = model.lastName,
                     onValueChange = {
                         model.lastName = it.filter { letter ->
                             letter != '\n'
                         }
+                    },
+                    modifier = Modifier.onGloballyPositioned {
+                         autofillLastName.boundingBox = it.boundsInWindow()
                     },
                     label = { Text(text = getString(R.string.last_name)) },
                     singleLine = true,
@@ -543,6 +672,16 @@ class LoginActivity : AppCompatActivity() {
                     enabled = model.uiEnabled
             )
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
+            val autofillEmail = AutofillNode(
+                    autofillTypes = listOf(AutofillType.EmailAddress),
+                    onFill = {
+                        model.email = it.filter { letter ->
+                            letter != '\n'
+                        }
+                        model.emailCaption = ""
+                    }
+            )
+            LocalAutofillTree.current += autofillEmail
             TextField(
                     value = model.email,
                     onValueChange = {
@@ -550,6 +689,9 @@ class LoginActivity : AppCompatActivity() {
                             letter != '\n'
                         }
                         model.emailCaption = ""
+                    },
+                    modifier = Modifier.onGloballyPositioned {
+                         autofillEmail.boundingBox = it.boundsInWindow()
                     },
                     isError = !(model.email.isEmpty() || android.util.Patterns.EMAIL_ADDRESS
                             .matcher(model.email)
@@ -572,13 +714,21 @@ class LoginActivity : AppCompatActivity() {
                 )
             }
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
+            val autofillNewPassword = AutofillNode(
+                    autofillTypes = listOf(AutofillType.NewPassword),
+                    onFill = {
+                        onPasswordChanged(model, it)
+                        onConfirmPasswordChanged(model, it)
+                    }
+            )
+            LocalAutofillTree.current += autofillNewPassword
             TextField(
                     value = model.password,
                     onValueChange = {
-                        model.password = it.filter { letter ->
-                            letter != '\n'
-                        }
-                        model.passwordCaption = ""
+                        onPasswordChanged(model, it)
+                    },
+                    modifier = Modifier.onGloballyPositioned {
+                         autofillNewPassword.boundingBox = it.boundsInWindow()
                     },
                     visualTransformation = if (passwordHidden)
                         PasswordVisualTransformation() else
@@ -623,10 +773,7 @@ class LoginActivity : AppCompatActivity() {
             TextField(
                     value = model.confirmPassword,
                     onValueChange = {
-                        model.confirmPassword = it.filter { letter ->
-                            letter != '\n'
-                        }
-                        model.confirmPasswordCaption = ""
+                        onConfirmPasswordChanged(model, it)
                     },
                     visualTransformation = if (passwordHidden)
                         PasswordVisualTransformation() else
@@ -715,16 +862,16 @@ class LoginActivity : AppCompatActivity() {
                                 .colorScheme.error else MaterialTheme.colorScheme.onBackground),
                         modifier = Modifier.align(Alignment.CenterVertically),
                         onClick = { offset ->
-                    val annotation = newText.getStringAnnotations(tag = "url",
-                            start = offset, end = offset).firstOrNull()
-                    if (annotation != null && annotation.item == "tos") {
-                        val browserIntent = Intent(Intent.ACTION_VIEW,
-                                Uri.parse(getString(R.string.tos_url)))
-                        startActivity(browserIntent)
-                    } else {
-                        model.agreedToToS = !model.agreedToToS
-                    }
-                })
+                            val annotation = newText.getStringAnnotations(tag = "url",
+                                    start = offset, end = offset).firstOrNull()
+                            if (annotation != null && annotation.item == "tos") {
+                                val browserIntent = Intent(Intent.ACTION_VIEW,
+                                        Uri.parse(getString(R.string.tos_url)))
+                                startActivity(browserIntent)
+                            } else {
+                                model.agreedToToS = !model.agreedToToS
+                            }
+                        })
 
             }
             Button(
