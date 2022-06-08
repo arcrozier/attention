@@ -584,7 +584,6 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    @OptIn(ExperimentalComposeUiApi::class)
     @Composable
     fun ChangePassword(
         model: LoginViewModel, scaffoldState: ScaffoldState, coroutineScope:
@@ -648,10 +647,11 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun onUsernameChanged(model: LoginViewModel, username: String) {
-        model.username = username.filter { letter ->
-            letter != '\n'
+        model.username = username.substring(0, min(username.length, 150)).filter {
+            it.isLetterOrDigit() or (it == '@') or (it == '_') or (it == '-') or (it ==
+                    '+') or (it == '.')
         }
-        model.passwordCaption = ""
+        model.usernameCaption = ""
     }
 
     private fun onPasswordChanged(model: LoginViewModel, password: String) {
@@ -675,7 +675,6 @@ class LoginActivity : AppCompatActivity() {
         model.oldPasswordCaption = ""
     }
 
-    @OptIn(ExperimentalComposeUiApi::class)
     @Composable
     fun Login(
         model: LoginViewModel, scaffoldState: ScaffoldState, coroutineScope:
@@ -724,23 +723,11 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    private fun onNewUsernameChanged(model: LoginViewModel, username: String) {
-        model.username = username.substring(0, min(username.length, 150)).filter {
-            it.isLetterOrDigit() or (it == '@') or (it == '_') or (it == '-') or (it ==
-                    '+') or (it == '.')
-        }
-        model.usernameCaption = ""
-    }
-
-    @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
     @Composable
     fun CreateUser(
         model: LoginViewModel, scaffoldState: ScaffoldState,
         coroutineScope: CoroutineScope, paddingValues: PaddingValues
     ) {
-        var passwordHidden by remember {
-            mutableStateOf(true)
-        }
         val confirmPasswordFocusRequester = FocusRequester()
         Column(
             verticalArrangement = centerWithBottomElement, modifier = Modifier
