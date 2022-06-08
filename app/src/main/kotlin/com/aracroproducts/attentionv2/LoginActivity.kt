@@ -661,13 +661,6 @@ class LoginActivity : AppCompatActivity() {
         model.passwordCaption = ""
     }
 
-    private fun onNewPasswordChanged(model: LoginViewModel, password: String) {
-        model.password = password.filter { letter ->
-            letter != '\n'
-        }
-        model.oldPasswordCaption = ""
-    }
-
     private fun onConfirmPasswordChanged(model: LoginViewModel, password: String) {
         model.confirmPassword = password.filter { letter ->
             letter != '\n'
@@ -679,7 +672,7 @@ class LoginActivity : AppCompatActivity() {
         model.oldPassword = password.filter { letter ->
             letter != '\n'
         }
-        model.passwordCaption = ""
+        model.oldPasswordCaption = ""
     }
 
     @OptIn(ExperimentalComposeUiApi::class)
