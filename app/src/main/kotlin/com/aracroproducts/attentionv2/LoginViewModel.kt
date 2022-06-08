@@ -30,8 +30,9 @@ class LoginViewModel @Inject constructor(
     var usernameCaption by mutableStateOf("")
     var oldPassword by mutableStateOf("")
     var password by mutableStateOf("")
+    var passwordHidden by mutableStateOf(true)
     var passwordCaption by mutableStateOf("")
-    var newPasswordCaption by mutableStateOf("")
+    var oldPasswordCaption by mutableStateOf("")
     var confirmPassword by mutableStateOf("")
     var confirmPasswordCaption by mutableStateOf("")
     var firstName by mutableStateOf("")
@@ -65,6 +66,7 @@ class LoginViewModel @Inject constructor(
                             defaultPrefsEditor.putString(MainViewModel.MY_ID, username)
                             defaultPrefsEditor.apply()
                             password = ""
+                            passwordHidden = true
                             onLoggedIn()
                         }
                         400 -> {
@@ -158,11 +160,11 @@ class LoginViewModel @Inject constructor(
         val context = getApplication<Application>()
         var passed = true
         if (oldPassword.isBlank()) {
-            passwordCaption = context.getString(R.string.wrong_password)
+            oldPasswordCaption = context.getString(R.string.wrong_password)
             passed = false
         }
         if (password.length < 8) {
-            newPasswordCaption = context.getString(R.string.password_validation_failed)
+            passwordCaption = context.getString(R.string.password_validation_failed)
             passed = false
         }
         if (password != confirmPassword) {
@@ -204,6 +206,7 @@ class LoginViewModel @Inject constructor(
                                                 }
                                                 password = ""
                                                 oldPassword = ""
+                                                passwordHidden = true
                                                 onPasswordChanged()
                                             }
                                             403 -> {
