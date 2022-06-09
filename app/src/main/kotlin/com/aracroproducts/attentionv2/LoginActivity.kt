@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.text.Annotation
 import android.text.SpannedString
 import android.util.Log
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -114,6 +115,13 @@ class LoginActivity : AppCompatActivity() {
             loginViewModel.login = LoginViewModel.State.CHANGE_PASSWORD
         }
 
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(loginViewModel.login != LoginViewModel.State.CHANGE_PASSWORD) {
+            override fun handleOnBackPressed() {
+                moveTaskToBack(true)
+            }
+
+        })
+
         setContent {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 HarmonizedTheme {
@@ -124,14 +132,6 @@ class LoginActivity : AppCompatActivity() {
                     Screen(model = loginViewModel)
                 }
             }
-        }
-    }
-
-    override fun onBackPressed() {
-        if (loginViewModel.login != LoginViewModel.State.CHANGE_PASSWORD)
-            moveTaskToBack(true)
-        else {
-            super.onBackPressed()
         }
     }
 
