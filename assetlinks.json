@@ -1,0 +1,27 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.aracroproducts.attentionv2",
+    "sha256_cert_fingerprints": [
+      "78:A3:54:A7:BE:6B:38:F4:BB:DA:B7:F3:EB:19:B5:B4:14:24:67:15:BF:F0:BD:0F:23:52:16:2D:D7:32:74:82"
+    ]
+  }
+},
+{
+  "relation": ["delegate_permission/common.get_login_creds"],
+  "target": {
+    "namespace": "web",
+    "site": "https://attention.aracroproducts.com"
+  }
+ },
+ {
+  "relation": ["delegate_permission/common.get_login_creds"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.aracroproducts.attentionv2",
+    "sha256_cert_fingerprints": [
+      "78:A3:54:A7:BE:6B:38:F4:BB:DA:B7:F3:EB:19:B5:B4:14:24:67:15:BF:F0:BD:0F:23:52:16:2D:D7:32:74:82"
+    ]
+  }
+ }]

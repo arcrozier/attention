@@ -243,6 +243,9 @@ class AttentionRepository(private val database: AttentionDB) {
         })
     }
 
+    // todo add pass through for mute field
+    // todo add muted(friend, boolean) internet call
+
     fun registerDevice(
             token: String, fcmToken: String,
             responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>,

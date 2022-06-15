@@ -722,6 +722,7 @@ class MainActivity : AppCompatActivity() {
             Column(modifier = Modifier
                 .align(Alignment.CenterStart)
                 .semantics(mergeDescendants = true) {}) {
+                // todo check if muted, append muted emoji if it is
                 Text(
                     text = friend.name,
                     style = MaterialTheme.typography.titleMedium,
