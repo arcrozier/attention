@@ -3,6 +3,7 @@ package com.aracroproducts.attentionv2
 import android.app.Application
 import android.content.Context
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.material.ScaffoldState
 import androidx.compose.material.SnackbarDuration
 import androidx.compose.runtime.getValue
@@ -10,6 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.preference.PreferenceManager
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -20,7 +22,7 @@ class LoginViewModel @Inject constructor(
 ) : AndroidViewModel(application) {
 
     enum class State {
-        LOGIN, CREATE_USER, CHANGE_PASSWORD
+        LOGIN, CREATE_USER, CHANGE_PASSWORD, CHOOSE_USERNAME
     }
 
     var login by mutableStateOf(State.LOGIN)
@@ -42,7 +44,52 @@ class LoginViewModel @Inject constructor(
     var agreedToToS by mutableStateOf(false)
     var checkboxError by mutableStateOf(false)
 
-    fun login(scaffoldState: ScaffoldState, scope: CoroutineScope, onLoggedIn: () -> Unit) {
+    fun login(account: GoogleSignInAccount, username: String?, onLoggedIn: () -> Unit) {
+        val idToken = account.idToken ?: return
+        uiEnabled = false
+        val context = getApplication<Application>()
+        attentionRepository.signInWithGoogle(userIdToken = idToken, username = username,
+                responseListener = {
+                    _, response, _ ->
+                    uiEnabled = true
+                    when (response.code()) {
+                        200 -> {
+                            val body = response.body()
+                            if (body == null) {
+                                Log.e(sTAG, "Got response but body was null!")
+                                return@signInWithGoogle
+                            }
+                            loginFinished(body.token, onLoggedIn)
+                        }
+                        400 -> {
+                            Log.e(sTAG, response.errorBody().toString())
+                            passwordCaption = context.getString(R.string.wrong_password)
+                        }
+                    }
+                }, errorListener = { _, t ->
+            genericErrorHandling(0, null, null, context, t)
+            uiEnabled = true
+                })
+    }
+
+    private fun loginFinished(token: String, onLoggedIn: () -> Unit) {
+        val context = getApplication<Application>()
+        val userInfoEditor = context.getSharedPreferences(
+                MainViewModel.USER_INFO,
+                Context.MODE_PRIVATE
+        ).edit()
+        userInfoEditor.putString(MainViewModel.MY_TOKEN, token)
+        userInfoEditor.apply()
+        val defaultPrefsEditor =
+                PreferenceManager.getDefaultSharedPreferences(context).edit()
+        defaultPrefsEditor.putString(MainViewModel.MY_ID, username)
+        defaultPrefsEditor.apply()
+        password = ""
+        passwordHidden = true
+        onLoggedIn()
+    }
+
+    fun login(scaffoldState: ScaffoldState?, scope: CoroutineScope?, onLoggedIn: () -> Unit) {
         uiEnabled = false
         val context = getApplication<Application>()
         attentionRepository.getAuthToken(username = username, password = password,
@@ -55,19 +102,7 @@ class LoginViewModel @Inject constructor(
                                 Log.e(sTAG, "Got response but body was null!")
                                 return@getAuthToken
                             }
-                            val userInfoEditor = context.getSharedPreferences(
-                                    MainViewModel.USER_INFO,
-                                    Context.MODE_PRIVATE
-                            ).edit()
-                            userInfoEditor.putString(MainViewModel.MY_TOKEN, body.token)
-                            userInfoEditor.apply()
-                            val defaultPrefsEditor =
-                                    PreferenceManager.getDefaultSharedPreferences(context).edit()
-                            defaultPrefsEditor.putString(MainViewModel.MY_ID, username)
-                            defaultPrefsEditor.apply()
-                            password = ""
-                            passwordHidden = true
-                            onLoggedIn()
+                            loginFinished(body.token, onLoggedIn)
                         }
                         400 -> {
                             Log.e(sTAG, response.errorBody().toString())
@@ -268,25 +303,33 @@ class LoginViewModel @Inject constructor(
     }
 
     private fun genericErrorHandling(
-            code: Int, scaffoldState: ScaffoldState, scope:
-            CoroutineScope, context: Context, t: Throwable? = null
+            code: Int, scaffoldState: ScaffoldState?, scope:
+            CoroutineScope?, context: Context, t: Throwable? = null
     ) {
         when (code) {
             500 -> {
-                displaySnackBar(
-                        scaffoldState, scope, context.getString(
-                        R.string
-                                .server_error
-                ), context.getString(android.R.string.ok)
-                )
+                if (scaffoldState != null && scope != null) {
+                    displaySnackBar(
+                            scaffoldState, scope, context.getString(
+                            R.string
+                                    .server_error
+                    ), context.getString(android.R.string.ok)
+                    )
+                } else {
+                    Toast.makeText(context, R.string.server_error, Toast.LENGTH_LONG).show()
+                }
             }
             else -> {
-                displaySnackBar(
-                        scaffoldState, scope, context.getString(
-                        R.string
-                                .connection_error
-                ), context.getString(android.R.string.ok)
-                )
+                if (scaffoldState != null && scope != null) {
+                    displaySnackBar(
+                            scaffoldState, scope, context.getString(
+                            R.string
+                                    .connection_error
+                    ), context.getString(android.R.string.ok)
+                    )
+                } else {
+                    Toast.makeText(context, R.string.connection_error, Toast.LENGTH_LONG).show()
+                }
                 Log.e(sTAG, "An unexpected error occurred: ${t?.message}")
             }
         }

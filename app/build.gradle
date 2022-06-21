@@ -115,7 +115,7 @@ dependencies {
     // optional - Test helpers for LiveData
     testImplementation "androidx.arch.core:core-testing:$arch_version"
 
-    def jetpack_compose_version = "1.2.0-beta03"
+    def jetpack_compose_version = "1.2.0-rc01"
     // Integration with activities
     implementation 'androidx.activity:activity-compose:1.4.0'
     // Compose Material Design
@@ -150,6 +150,9 @@ dependencies {
     implementation "androidx.sharetarget:sharetarget:1.2.0-rc01"
 
     implementation 'com.google.accompanist:accompanist-swiperefresh:0.24.9-beta'
+
+    // Sign in with Google
+    implementation 'com.google.android.gms:play-services-auth:20.2.0'
 
 }
 repositories {

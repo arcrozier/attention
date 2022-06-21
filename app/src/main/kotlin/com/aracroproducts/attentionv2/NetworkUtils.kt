@@ -42,6 +42,11 @@ class APIClient {
 interface APIV2 {
 
     @FormUrlEncoded
+    @POST("google_auth/")
+    fun googleSignIn(@Field("id_token") userId: String, @Field("username") username: String?):
+            Call<TokenResult>
+
+    @FormUrlEncoded
     @POST("api_token_auth/")
     fun getToken(@Field("username") username: String, @Field("password") password: String):
             Call<TokenResult>

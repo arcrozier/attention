@@ -2,6 +2,7 @@ package com.aracroproducts.attentionv2
 
 import android.app.Application
 import android.content.Intent
+import android.content.IntentSender
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -9,6 +10,9 @@ import android.text.Annotation
 import android.text.SpannedString
 import android.util.Log
 import androidx.activity.compose.setContent
+import androidx.activity.result.ActivityResult
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.*
@@ -32,7 +36,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -59,15 +64,51 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
 import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
+import com.google.android.gms.auth.api.identity.BeginSignInRequest
+import com.google.android.gms.auth.api.identity.Identity
+import com.google.android.gms.auth.api.identity.SignInClient
+import com.google.android.gms.auth.api.identity.SignInCredential
+import com.google.android.gms.common.api.ApiException
 import kotlinx.coroutines.CoroutineScope
 import kotlin.math.min
 import kotlin.math.roundToInt
+
 
 class LoginActivity : AppCompatActivity() {
 
     private val loginViewModel: LoginViewModel by viewModels(factoryProducer = {
         LoginViewModelFactory(AttentionRepository(AttentionDB.getDB(this)), application)
     })
+
+    private val oneTapClient: SignInClient? = null
+
+    private val loginResultHandler = registerForActivityResult(
+            ActivityResultContracts.StartIntentSenderForResult()
+    ) { result: ActivityResult ->
+        // handle intent result here
+        if (result.resultCode == RESULT_OK) {
+            val credential: SignInCredential?
+            try {
+                credential = oneTapClient?.getSignInCredentialFromIntent(result.data) ?: return@registerForActivityResult
+                val idToken = credential.googleIdToken
+                val username = credential.id
+                val password = credential.password
+                if (idToken != null) {
+                    // Got an ID token from Google. Use it to authenticate
+                    // with your backend.
+                    Log.d(TAG, "Got ID token.")
+                } else if (password != null) {
+                    // Got a saved username and password. Use them to authenticate
+                    // with your backend.
+                    Log.d(TAG, "Got password.")
+                }
+            } catch (e: ApiException) {
+                e.printStackTrace()
+            }
+        } else {
+            //...
+        }
+    }
 
     class LoginViewModelFactory(
         private val attentionRepository: AttentionRepository, private val
@@ -92,19 +133,19 @@ class LoginActivity : AppCompatActivity() {
         LocalAutofillTree.current += autofillNode
 
         this
-            .onGloballyPositioned {
-                autofillNode.boundingBox = it.boundsInWindow()
-            }
-            .onFocusChanged { focusState ->
-                print(autofill)
-                autofill?.run {
-                    if (focusState.isFocused) {
-                        requestAutofillForNode(autofillNode)
-                    } else {
-                        cancelAutofillForNode(autofillNode)
+                .onGloballyPositioned {
+                    autofillNode.boundingBox = it.boundsInWindow()
+                }
+                .onFocusChanged { focusState ->
+                    print(autofill)
+                    autofill?.run {
+                        if (focusState.isFocused) {
+                            requestAutofillForNode(autofillNode)
+                        } else {
+                            cancelAutofillForNode(autofillNode)
+                        }
                     }
                 }
-            }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -112,6 +153,30 @@ class LoginActivity : AppCompatActivity() {
 
         if (intent.action == getString(R.string.change_password_action)) {
             loginViewModel.login = LoginViewModel.State.CHANGE_PASSWORD
+        } else {
+            val oneTapClient = Identity.getSignInClient(this)
+            val signUpRequest = BeginSignInRequest.builder()
+                    .setGoogleIdTokenRequestOptions(BeginSignInRequest.GoogleIdTokenRequestOptions.builder()
+                            .setSupported(true)
+                            // Your server's client ID, not your Android client ID.
+                            .setServerClientId(getString(R.string.client_id))
+                            // Show all accounts on the device.
+                            .setFilterByAuthorizedAccounts(false)
+                            .build())
+                    .build()
+
+            oneTapClient.beginSignIn(signUpRequest)
+                    .addOnSuccessListener(this) { result ->
+                        try {
+                            loginResultHandler.launch( IntentSenderRequest.Builder(result.pendingIntent.intentSender).build())
+                        } catch (e: IntentSender.SendIntentException) {
+                            Log.e(TAG, "Couldn't start One Tap UI: ${e.localizedMessage}")
+                        }
+                    }
+                    .addOnFailureListener(this) { e ->
+                        // No Google Accounts found. Just continue presenting the signed-out UI.
+                        e.localizedMessage?.let { Log.d(TAG, it) }
+                    }
         }
 
         setContent {
@@ -405,13 +470,15 @@ class LoginActivity : AppCompatActivity() {
             onValueChange = {
                 onPasswordChanged(model, it)
             },
-            modifier = Modifier.focusRequester(currentFocusRequester ?: FocusRequester()).autofill(
-                autofillTypes = listOf(AutofillType.NewPassword),
-                onFill = {
-                    onPasswordChanged(model, it)
-                    onConfirmPasswordChanged(model, it)
-                }
-            ),
+            modifier = Modifier
+                    .focusRequester(currentFocusRequester ?: FocusRequester())
+                    .autofill(
+                            autofillTypes = listOf(AutofillType.NewPassword),
+                            onFill = {
+                                onPasswordChanged(model, it)
+                                onConfirmPasswordChanged(model, it)
+                            }
+                    ),
             visualTransformation = if (model.passwordHidden)
                 PasswordVisualTransformation() else
                 VisualTransformation.None,
@@ -683,7 +750,7 @@ class LoginActivity : AppCompatActivity() {
         Column(
             verticalArrangement = centerWithBottomElement, horizontalAlignment = Alignment
                 .CenterHorizontally, modifier =
-            Modifier
+        Modifier
                 .padding(paddingValues)
                 .fillMaxSize()
         ) {
@@ -829,5 +896,6 @@ class LoginActivity : AppCompatActivity() {
 
     companion object {
         val LIST_ELEMENT_PADDING = 10.dp
+        val TAG = LoginActivity::class.java.name
     }
 }

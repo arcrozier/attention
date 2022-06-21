@@ -521,6 +521,24 @@ class AttentionRepository(private val database: AttentionDB) {
         })
     }
 
+    fun signInWithGoogle(userIdToken: String, username: String? = null,
+                         responseListener: ((Call<TokenResult>, Response<TokenResult>, String?) -> Unit)? = null,
+                         errorListener: ((Call<TokenResult>, Throwable) -> Unit)? = null) {
+        val call = apiInterface.googleSignIn(userIdToken, username)
+        call.enqueue(object : Callback<TokenResult> {
+            override fun onResponse(call: Call<TokenResult>, response: Response<TokenResult>) {
+                val responseErrorBody = response.errorBody()?.string()
+                if (!response.isSuccessful) printNetworkError(response, call, responseErrorBody)
+                responseListener?.invoke(call, response, responseErrorBody)
+            }
+
+            override fun onFailure(call: Call<TokenResult>, t: Throwable) {
+                Log.e(javaClass.name, t.stackTraceToString())
+                errorListener?.invoke(call, t)
+            }
+        })
+    }
+
     fun getAuthToken(
             username: String, password: String,
             responseListener: ((Call<TokenResult>, Response<TokenResult>, String?) ->
