@@ -81,7 +81,7 @@ class LoginActivity : AppCompatActivity() {
         LoginViewModelFactory(AttentionRepository(AttentionDB.getDB(this)), application)
     })
 
-    private val oneTapClient: SignInClient? = null
+    private var oneTapClient: SignInClient? = null
 
     private val loginResultHandler = registerForActivityResult(
             ActivityResultContracts.StartIntentSenderForResult()
@@ -97,17 +97,25 @@ class LoginActivity : AppCompatActivity() {
                 if (idToken != null) {
                     // Got an ID token from Google. Use it to authenticate
                     // with your backend.
+                    loginViewModel.login {
+                        finish()
+                    }
                     Log.d(TAG, "Got ID token.")
                 } else if (password != null) {
                     // Got a saved username and password. Use them to authenticate
                     // with your backend.
+                    loginViewModel.username = username
+                    loginViewModel.password = password
+                    loginViewModel.login(null, null) {
+                        finish()
+                    }
                     Log.d(TAG, "Got password.")
                 }
             } catch (e: ApiException) {
                 e.printStackTrace()
             }
         } else {
-            //...
+            //... TODO
         }
     }
 
@@ -152,10 +160,21 @@ class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(loginViewModel.login != LoginViewModel.State.CHANGE_PASSWORD) {
+            override fun handleOnBackPressed() {
+                if (loginViewModel.login == LoginViewModel.State.CHOOSE_USERNAME) {
+                    loginViewModel.login = LoginViewModel.State.LOGIN
+                } else {
+                    moveTaskToBack(true)
+                }
+            }
+
+        })
+
         if (intent.action == getString(R.string.change_password_action)) {
             loginViewModel.login = LoginViewModel.State.CHANGE_PASSWORD
         } else {
-            val oneTapClient = Identity.getSignInClient(this)
+            oneTapClient = Identity.getSignInClient(this)
             val signUpRequest = BeginSignInRequest.builder()
                     .setGoogleIdTokenRequestOptions(BeginSignInRequest.GoogleIdTokenRequestOptions.builder()
                             .setSupported(true)
@@ -166,26 +185,18 @@ class LoginActivity : AppCompatActivity() {
                             .build())
                     .build()
 
-            oneTapClient.beginSignIn(signUpRequest)
-                    .addOnSuccessListener(this) { result ->
+            oneTapClient?.beginSignIn(signUpRequest)?.addOnSuccessListener(this) { result ->
                         try {
                             loginResultHandler.launch( IntentSenderRequest.Builder(result.pendingIntent.intentSender).build())
                         } catch (e: IntentSender.SendIntentException) {
                             Log.e(TAG, "Couldn't start One Tap UI: ${e.localizedMessage}")
                         }
                     }
-                    .addOnFailureListener(this) { e ->
+                    ?.addOnFailureListener(this) { e ->
                         // No Google Accounts found. Just continue presenting the signed-out UI.
                         e.localizedMessage?.let { Log.d(TAG, it) }
                     }
         }
-
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(loginViewModel.login != LoginViewModel.State.CHANGE_PASSWORD) {
-            override fun handleOnBackPressed() {
-                moveTaskToBack(true)
-            }
-
-        })
 
         setContent {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -243,7 +254,7 @@ class LoginActivity : AppCompatActivity() {
             },
             scaffoldState = scaffoldState,
             backgroundColor = MaterialTheme.colorScheme.background
-        ) {
+        ) { // TODO animate the appearance and disappearance
             when (model.login) {
                 LoginViewModel.State.LOGIN -> {
                     Login(model, scaffoldState = scaffoldState, coroutineScope = coroutineScope, it)
@@ -259,6 +270,9 @@ class LoginActivity : AppCompatActivity() {
                         model = model, scaffoldState = scaffoldState,
                         coroutineScope = coroutineScope, it
                     )
+                }
+                LoginViewModel.State.CHOOSE_USERNAME -> {
+                    // TODO
                 }
             }
         }

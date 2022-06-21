@@ -25,6 +25,7 @@ class LoginViewModel @Inject constructor(
         LOGIN, CREATE_USER, CHANGE_PASSWORD, CHOOSE_USERNAME
     }
 
+    var idToken: String? = null
     var login by mutableStateOf(State.LOGIN)
 
     var uiEnabled by mutableStateOf(true)
@@ -44,11 +45,11 @@ class LoginViewModel @Inject constructor(
     var agreedToToS by mutableStateOf(false)
     var checkboxError by mutableStateOf(false)
 
-    fun login(account: GoogleSignInAccount, username: String?, onLoggedIn: () -> Unit) {
-        val idToken = account.idToken ?: return
+    fun login(onLoggedIn: () -> Unit) {
+        val localIdToken = idToken ?: return
         uiEnabled = false
         val context = getApplication<Application>()
-        attentionRepository.signInWithGoogle(userIdToken = idToken, username = username,
+        attentionRepository.signInWithGoogle(userIdToken = localIdToken, username = username,
                 responseListener = {
                     _, response, _ ->
                     uiEnabled = true
@@ -63,7 +64,11 @@ class LoginViewModel @Inject constructor(
                         }
                         400 -> {
                             Log.e(sTAG, response.errorBody().toString())
-                            passwordCaption = context.getString(R.string.wrong_password)
+                            usernameCaption = context.getString(R.string.username_in_use)
+                        }
+                        401 -> {
+                            // need to provide a username
+                            login = State.CHOOSE_USERNAME
                         }
                     }
                 }, errorListener = { _, t ->
