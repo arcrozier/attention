@@ -25,6 +25,10 @@
         name</string>
     <string name="create_user">Create account</string>
     <string name="login">Log in</string>
+    <string name="create_user_title">Create Account</string>
+    <string name="choose_username_title">Choose Username</string>
+    <string name="change_password_title">Change Password</string>
+    <string name="login_title">Log In</string>
     <string name="first_name">First name</string>
     <string name="last_name">Last name</string>
     <string name="email">Email</string>

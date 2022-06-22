@@ -16,6 +16,7 @@ import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.ClickableText
@@ -91,13 +92,13 @@ class LoginActivity : AppCompatActivity() {
             val credential: SignInCredential?
             try {
                 credential = oneTapClient?.getSignInCredentialFromIntent(result.data) ?: return@registerForActivityResult
-                val idToken = credential.googleIdToken
+                loginViewModel.idToken = credential.googleIdToken
                 val username = credential.id
                 val password = credential.password
-                if (idToken != null) {
+                if (loginViewModel.idToken != null) {
                     // Got an ID token from Google. Use it to authenticate
                     // with your backend.
-                    loginViewModel.login {
+                    loginViewModel.loginWithGoogle(null, null) {
                         finish()
                     }
                     Log.d(TAG, "Got ID token.")
@@ -114,8 +115,6 @@ class LoginActivity : AppCompatActivity() {
             } catch (e: ApiException) {
                 e.printStackTrace()
             }
-        } else {
-            //... TODO
         }
     }
 
@@ -141,8 +140,7 @@ class LoginActivity : AppCompatActivity() {
         val autofillNode = AutofillNode(onFill = onFill, autofillTypes = autofillTypes)
         LocalAutofillTree.current += autofillNode
 
-        this
-                .onGloballyPositioned {
+        onGloballyPositioned {
                     autofillNode.boundingBox = it.boundsInWindow()
                 }
                 .onFocusChanged { focusState ->
@@ -211,15 +209,16 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
+    @OptIn(ExperimentalAnimationApi::class)
     @Composable
     fun Screen(model: LoginViewModel) {
         val scaffoldState = rememberScaffoldState()
         val coroutineScope = rememberCoroutineScope()
 
-
         Scaffold(
             topBar = {
-                if (model.login == LoginViewModel.State.CHANGE_PASSWORD) {
+                if (model.login == LoginViewModel.State.CHANGE_PASSWORD || model.login ==
+                        LoginViewModel.State.CHOOSE_USERNAME) {
                     TopAppBar(
                         backgroundColor = MaterialTheme.colorScheme.primary,
                         title = {
@@ -229,13 +228,15 @@ class LoginActivity : AppCompatActivity() {
                             )
                         },
                         navigationIcon = {
-                            IconButton(onClick = this::onBackPressed) {
+                            IconButton(onClick = {
+                                onBackPressedDispatcher.onBackPressed()
+                            }) {
                                 Icon(
-                                    Icons.Default.ArrowBack, getString(
+                                        Icons.Default.ArrowBack, getString(
                                         R.string
-                                            .back
-                                    ),
-                                    tint = MaterialTheme.colorScheme.onPrimary
+                                                .back
+                                ),
+                                        tint = MaterialTheme.colorScheme.onPrimary
                                 )
                             }
                         }
@@ -254,25 +255,38 @@ class LoginActivity : AppCompatActivity() {
             },
             scaffoldState = scaffoldState,
             backgroundColor = MaterialTheme.colorScheme.background
-        ) { // TODO animate the appearance and disappearance
-            when (model.login) {
-                LoginViewModel.State.LOGIN -> {
-                    Login(model, scaffoldState = scaffoldState, coroutineScope = coroutineScope, it)
+        ) {
+            AnimatedContent(targetState = model.login, transitionSpec = {
+                if (targetState == LoginViewModel.State.LOGIN) {
+                    slideInHorizontally { width -> width } with slideOutHorizontally { width ->
+                        -width}
+                } else {
+                    slideInHorizontally { width -> -width } with slideOutHorizontally { width ->
+                        width}
                 }
-                LoginViewModel.State.CREATE_USER -> {
-                    CreateUser(
-                        model, scaffoldState = scaffoldState,
-                        coroutineScope = coroutineScope, it
-                    )
-                }
-                LoginViewModel.State.CHANGE_PASSWORD -> {
-                    ChangePassword(
-                        model = model, scaffoldState = scaffoldState,
-                        coroutineScope = coroutineScope, it
-                    )
-                }
-                LoginViewModel.State.CHOOSE_USERNAME -> {
-                    // TODO
+            }) { targetState ->
+                when (targetState) {
+                    LoginViewModel.State.LOGIN -> {
+                        Login(model, scaffoldState = scaffoldState, coroutineScope = coroutineScope,
+                                it)
+                    }
+                    LoginViewModel.State.CREATE_USER -> {
+                        CreateUser(
+                                model, scaffoldState = scaffoldState,
+                                coroutineScope = coroutineScope, it
+                        )
+                    }
+                    LoginViewModel.State.CHANGE_PASSWORD -> {
+                        ChangePassword(
+                                model = model, scaffoldState = scaffoldState,
+                                coroutineScope = coroutineScope, it
+                        )
+                    }
+                    LoginViewModel.State.CHOOSE_USERNAME -> {
+                        ChooseUsername(model = model, scaffoldState = scaffoldState,
+                                coroutineScope = coroutineScope,
+                                paddingValues = it)
+                    }
                 }
             }
         }
@@ -666,6 +680,44 @@ class LoginActivity : AppCompatActivity() {
     }
 
     @Composable
+    fun ChooseUsername(
+            model: LoginViewModel, scaffoldState: ScaffoldState, coroutineScope: CoroutineScope,
+            paddingValues: PaddingValues
+    ) {
+        Column(
+                verticalArrangement = Arrangement.Center, modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(text = getString(R.string.choose_username_title), style = MaterialTheme
+                    .typography.headlineMedium)
+            Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING * 2))
+            UsernameField(model = model, newUsername = true)
+            Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
+            Button(
+                    onClick = {
+                        model.loginWithGoogle(scaffoldState, coroutineScope) {
+                            finish()
+                        }
+                    },
+                    enabled = model.uiEnabled,
+                    modifier = Modifier.requiredHeight(56.dp)
+            ) {
+                Box {
+                    Text(
+                            text = getString(R.string.change_password), modifier = Modifier.align
+                    (Alignment.Center)
+                    )
+                    if (!model.uiEnabled) {
+                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    }
+                }
+            }
+        }
+    }
+
+    @Composable
     fun ChangePassword(
         model: LoginViewModel, scaffoldState: ScaffoldState, coroutineScope:
         CoroutineScope, paddingValues: PaddingValues
@@ -702,22 +754,23 @@ class LoginActivity : AppCompatActivity() {
                 }
             }
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
+
             Button(
-                onClick = {
-                    model.changePassword(
-                        scaffoldState = scaffoldState,
-                        scope = coroutineScope
-                    ) {
-                        finish()
-                    }
-                },
-                enabled = model.uiEnabled,
-                modifier = Modifier.requiredHeight(56.dp)
+                    onClick = {
+                        model.login(
+                                scaffoldState = scaffoldState,
+                                scope = coroutineScope
+                        ) {
+                            finish()
+                        }
+                    },
+                    enabled = model.uiEnabled,
+                    modifier = Modifier.requiredHeight(56.dp)
             ) {
                 Box {
                     Text(
-                        text = getString(R.string.change_password), modifier = Modifier.align
-                            (Alignment.Center)
+                            text = getString(R.string.change_password), modifier = Modifier.align
+                    (Alignment.Center)
                     )
                     if (!model.uiEnabled) {
                         CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
@@ -768,7 +821,9 @@ class LoginActivity : AppCompatActivity() {
                 .padding(paddingValues)
                 .fillMaxSize()
         ) {
-            Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
+            Text(text = getString(R.string.login_title), style = MaterialTheme
+                    .typography.headlineMedium)
+            Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING * 2))
             UsernameField(model = model, newUsername = false)
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             PasswordField(model, scaffoldState, coroutineScope, ImeAction.Done)

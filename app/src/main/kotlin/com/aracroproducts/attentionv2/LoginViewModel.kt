@@ -14,6 +14,7 @@ import androidx.preference.PreferenceManager
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import java.lang.IllegalStateException
 import javax.inject.Inject
 
 class LoginViewModel @Inject constructor(
@@ -45,8 +46,9 @@ class LoginViewModel @Inject constructor(
     var agreedToToS by mutableStateOf(false)
     var checkboxError by mutableStateOf(false)
 
-    fun login(onLoggedIn: () -> Unit) {
-        val localIdToken = idToken ?: return
+    fun loginWithGoogle(scaffoldState: ScaffoldState?, coroutineScope: CoroutineScope?, onLoggedIn:
+    () -> Unit) {
+        val localIdToken = idToken ?: throw IllegalStateException("idToken was null")
         uiEnabled = false
         val context = getApplication<Application>()
         attentionRepository.signInWithGoogle(userIdToken = localIdToken, username = username,
@@ -72,7 +74,7 @@ class LoginViewModel @Inject constructor(
                         }
                     }
                 }, errorListener = { _, t ->
-            genericErrorHandling(0, null, null, context, t)
+            genericErrorHandling(0, scaffoldState, coroutineScope, context, t)
             uiEnabled = true
                 })
     }
