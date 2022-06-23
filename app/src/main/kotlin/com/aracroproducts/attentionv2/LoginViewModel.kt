@@ -27,6 +27,7 @@ class LoginViewModel @Inject constructor(
     }
 
     var idToken: String? = null
+    var showOneTapUI = true
     var login by mutableStateOf(State.LOGIN)
 
     var uiEnabled by mutableStateOf(true)

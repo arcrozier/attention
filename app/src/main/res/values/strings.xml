@@ -29,6 +29,7 @@
     <string name="choose_username_title">Choose Username</string>
     <string name="change_password_title">Change Password</string>
     <string name="login_title">Log In</string>
+    <string name="sign_in_w_google">Sign in with Google</string>
     <string name="first_name">First name</string>
     <string name="last_name">Last name</string>
     <string name="email">Email</string>
