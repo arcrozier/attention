@@ -72,6 +72,7 @@ import com.google.android.gms.auth.api.identity.*
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.CommonStatusCodes
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import kotlin.math.min
 import kotlin.math.roundToInt
 
@@ -276,13 +277,11 @@ class LoginActivity : AppCompatActivity() {
         ) {
             AnimatedContent(targetState = model.login, transitionSpec = {
                 if (targetState == LoginViewModel.State.LOGIN) {
-                    slideInHorizontally { width -> width } with slideOutHorizontally { width ->
-                        -width
-                    }
+                    slideIntoContainer(towards = AnimatedContentScope.SlideDirection.Right) with
+                            slideOutOfContainer(towards = AnimatedContentScope.SlideDirection.Right)
                 } else {
-                    slideInHorizontally { width -> -width } with slideOutHorizontally { width ->
-                        width
-                    }
+                    slideIntoContainer(towards = AnimatedContentScope.SlideDirection.Left) with
+                            slideOutOfContainer(towards = AnimatedContentScope.SlideDirection.Left)
                 }
             }) { targetState ->
                 when (targetState) {
@@ -713,7 +712,7 @@ class LoginActivity : AppCompatActivity() {
         ) {
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             Text(text = getString(R.string.choose_username_title), style = MaterialTheme
-                    .typography.headlineMedium)
+                    .typography.headlineMedium, color = MaterialTheme.colorScheme.onSurface)
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING * 2))
             UsernameField(model = model, newUsername = true)
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
@@ -746,7 +745,6 @@ class LoginActivity : AppCompatActivity() {
     ) {
         val passwordFocusRequester = FocusRequester()
         val confirmPasswordFocusRequester = FocusRequester()
-        Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
         Column(
                 verticalArrangement = Arrangement.Center, modifier = Modifier
                 .padding(paddingValues)
@@ -755,7 +753,7 @@ class LoginActivity : AppCompatActivity() {
         ) {
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             Text(text = getString(R.string.change_password_title), style = MaterialTheme
-                    .typography.headlineMedium)
+                    .typography.headlineMedium, color = MaterialTheme.colorScheme.onSurface)
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING * 2))
             OldPasswordField(model = model, passwordFocusRequester = passwordFocusRequester)
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
@@ -849,7 +847,7 @@ class LoginActivity : AppCompatActivity() {
         ) {
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             Text(text = getString(R.string.login_title), style = MaterialTheme
-                    .typography.headlineMedium)
+                    .typography.headlineMedium, color = MaterialTheme.colorScheme.onSurface)
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING * 2))
             UsernameField(model = model, newUsername = false)
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
@@ -882,11 +880,11 @@ class LoginActivity : AppCompatActivity() {
                                     .disabled
                     ), modifier = Modifier.fillMaxWidth(0.75f)
             )
-            Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
-            androidx.compose.material3.OutlinedButton(onClick = { signIn() }) {
+            Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING * 2))
+            androidx.compose.material3.OutlinedButton(onClick = { signIn(scaffoldState, coroutineScope) }) {
                 Text(text = getString(R.string.sign_in_w_google))
             }
-            Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
+            Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING * 2))
             TextButton(onClick = {
                 model.passwordHidden = true
                 model.login = LoginViewModel.State.CREATE_USER
@@ -913,7 +911,7 @@ class LoginActivity : AppCompatActivity() {
         ) {
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             Text(text = getString(R.string.create_user_title), style = MaterialTheme
-                    .typography.headlineMedium)
+                    .typography.headlineMedium, color = MaterialTheme.colorScheme.onSurface)
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING * 2))
             UsernameField(model = model, newUsername = true)
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
@@ -1005,7 +1003,7 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    private fun signIn() {
+    private fun signIn(scaffoldState: ScaffoldState, coroutineScope: CoroutineScope) {
         val request = GetSignInIntentRequest.builder()
                 .setServerClientId(getString(R.string.client_id))
                 .build()
@@ -1021,6 +1019,10 @@ class LoginActivity : AppCompatActivity() {
                 }
                 .addOnFailureListener { e: Exception? ->
                     Log.e(TAG, "Google Sign-in failed", e)
+                    coroutineScope.launch {
+                        scaffoldState.snackbarHostState.showSnackbar(message = getString(R.string
+                                .google_sign_in_failed), duration = SnackbarDuration.Short)
+                    }
                 }
     }
 
