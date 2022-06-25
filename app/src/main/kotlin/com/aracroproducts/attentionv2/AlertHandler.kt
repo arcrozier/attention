@@ -64,7 +64,9 @@ open class AlertHandler : FirebaseMessagingService() {
             when (messageData["action"]) {
                 "alert" -> {
                     val message = Message(
-                            timestamp = System.currentTimeMillis(),
+                            timestamp = messageData[ALERT_TIMESTAMP]?.toLong()?.let {
+                                it * 1000
+                            } ?: System.currentTimeMillis(),
                             otherId = messageData[REMOTE_FROM] ?: return@launch,
                             direction = DIRECTION.Incoming,
                             message = messageData[REMOTE_MESSAGE]
@@ -310,6 +312,7 @@ open class AlertHandler : FirebaseMessagingService() {
         const val REMOTE_TO = "alert_to"
         const val REMOTE_MESSAGE = "alert_message"
         const val ALERT_ID = "alert_id"
+        const val ALERT_TIMESTAMP = "alert_timestamp"
         const val ASSOCIATED_NOTIFICATION = "notification_id"
         const val SHOULD_VIBRATE = "vibrate"
 

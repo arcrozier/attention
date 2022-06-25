@@ -85,6 +85,10 @@
     <string name="user_registered">Your device has been registered!</string>
     <string name="default_message">%s wants your attention!</string>
     <string name="message_prefix">%1$s says: %2$s</string>
+    <string name="seconds_ago">%1$d s ago</string>
+    <string name="minutes_ago">%1$d m ago</string>
+    <string name="sent_at">Sent at %1$s</string>
+    <string name="sent_on">Sent %1$s</string>
     <string name="silence">Silence</string>
 
     <string name="bad_add_link">Invalid link</string>

@@ -5,6 +5,8 @@ import android.app.NotificationManager
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.util.Log
 import androidx.activity.compose.setContent
@@ -13,17 +15,24 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.text.AnnotatedString
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
 import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
+import java.text.DateFormat
+import java.time.Duration
+import java.time.Instant
+import java.time.Period
+import java.time.temporal.ChronoUnit
+import java.util.*
 
 /**
  * An Activity that displays the pop up dialog for an alert
@@ -115,7 +124,81 @@ class Alert : AppCompatActivity() {
                 }
             },
             title = { Text(getString(R.string.alert_title)) },
-            text = { Text(message) }
+            text = { Column {
+                Text(message)
+                Text(timeSince(since = Calendar.getInstance().timeInMillis = ))
+            } }
         )
+    }
+
+    @Composable
+    fun timeSince(since: Calendar): String {
+        var value by remember {mutableStateOf(durationToMinimalDisplay(since))}
+
+        DisposableEffect(Unit) {
+            val handler = Handler(Looper.getMainLooper())
+
+            val runnable = {
+                value = durationToMinimalDisplay(since)
+            }
+
+            handler.postDelayed(runnable, value.second)
+
+            onDispose {
+                handler.removeCallbacks(runnable)
+            }
+        }
+
+        return value.first
+    }
+
+    /**
+     * Given a time instant, returns a minimal way of displaying this time (relative to current
+     * time)
+     *
+     * If the time was less than a minute ago, will display as "x s ago". If less than an hour
+     * ago, will display as "x m ago". If the time was the same calendar day, displays as a
+     * localized hour:minute format, in local time. If the time was on a previous calendar day,
+     * displays as a localized date-time format, in local time.
+     *
+     * The first element of the pair is the formatted time. The second element is how long until
+     * this value will change and should be refreshed, in milliseconds
+     */
+    private fun durationToMinimalDisplay(since: Calendar): Pair<String, Long> {
+        val now = Instant.now()
+        val duration = Duration.between(since.toInstant(), now)
+        when {
+            duration.toSeconds() < 60 -> {
+                return Pair(getString(R.string.seconds_ago, duration.seconds), secondsToMillis(1)
+                        - duration.toMillisPart())
+            }
+            duration.toMinutes() < 60 -> {
+                return Pair(getString(R.string.minutes_ago, duration.toMinutes()),
+                        minutesToMillis() - duration.toSecondsPart())
+            }
+            since.toInstant().truncatedTo(ChronoUnit.DAYS) == now.truncatedTo(ChronoUnit.DAYS)
+            -> {
+                return Pair(getString(R.string.sent_at, DateFormat.getTimeInstance().format(since
+                        .time)),
+                        Duration.between(since.toInstant(),
+                                since.toInstant().truncatedTo(ChronoUnit.DAYS)
+                                .plus(1, ChronoUnit.DAYS)).toMillis())
+                // This returns the amount of time (in milliseconds) until tomorrow
+            }
+            else -> {
+                return Pair(getString(R.string.sent_on,
+                        DateFormat.getDateTimeInstance().format(since.time)), Long.MAX_VALUE)
+                // This value will never change (unless the user changes their timezone, which
+            // probably wouldn't happen without the app getting recomposed?)
+            }
+        }
+    }
+
+    private fun secondsToMillis(seconds: Long): Long {
+        return seconds * 1000
+    }
+
+    private fun minutesToMillis(minutes: Long = 1): Long {
+        return minutes * secondsToMillis(60)
     }
 }
