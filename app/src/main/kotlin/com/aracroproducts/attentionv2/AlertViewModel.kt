@@ -42,6 +42,7 @@ class AlertViewModel(
             ) ?: ""
         )
     )
+    val timestamp = intent.getLongExtra(AlertHandler.ALERT_TIMESTAMP, System.currentTimeMillis())
     var showDNDButton by mutableStateOf(false)
     val id = intent.getIntExtra(AlertHandler.ASSOCIATED_NOTIFICATION, NO_ID)
     val alertId = intent.getStringExtra(AlertHandler.ALERT_ID) ?: ""

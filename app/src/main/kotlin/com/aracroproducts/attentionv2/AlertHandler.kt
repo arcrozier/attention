@@ -147,6 +147,7 @@ open class AlertHandler : FirebaseMessagingService() {
                             putExtra(ASSOCIATED_NOTIFICATION, id)
                             putExtra(SHOULD_VIBRATE, true)
                             putExtra(ALERT_ID, alertId)
+                            putExtra(ALERT_TIMESTAMP, message.timestamp)
                             putExtra(REMOTE_FROM_USERNAME, message.otherId)
                             if (AttentionApplication.isActivityVisible())
                                 addFlags(

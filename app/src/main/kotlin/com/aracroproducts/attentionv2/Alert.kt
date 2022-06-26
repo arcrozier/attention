@@ -17,10 +17,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material.ContentAlpha
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.text.AnnotatedString
 import androidx.lifecycle.ViewModel
@@ -30,7 +28,6 @@ import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
 import java.text.DateFormat
 import java.time.Duration
 import java.time.Instant
-import java.time.Period
 import java.time.temporal.ChronoUnit
 import java.util.*
 
@@ -126,7 +123,10 @@ class Alert : AppCompatActivity() {
             title = { Text(getString(R.string.alert_title)) },
             text = { Column {
                 Text(message)
-                Text(timeSince(since = Calendar.getInstance().timeInMillis = ))
+                Text(timeSince(since = Calendar.getInstance().apply {timeInMillis = alertModel
+                    .timestamp}), color = MaterialTheme.colorScheme.onSurface.copy(
+                    alpha = ContentAlpha.medium
+                ))
             } }
         )
     }
