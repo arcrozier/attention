@@ -183,7 +183,6 @@
         translatable="false">com.aracroproducts.attention.action.change_password</string>
     <string name="logout_key" translatable="false">com.aracroproducts.attention.key.logout</string>
     <string name="delay_key" translatable="false">com.aracroproducts.attention.key.delay</string>
-
     <string name="client_id" translatable="false">357995852275-tcfjuvtbrk3c57t5gsuc9a9jdfdn137s.apps.googleusercontent.com</string>
 
     <!-- URLs -->

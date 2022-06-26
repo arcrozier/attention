@@ -73,6 +73,14 @@ class LoginViewModel @Inject constructor(
                             // need to provide a username
                             login = State.CHOOSE_USERNAME
                         }
+                        else -> {
+                            genericErrorHandling(
+                                    response.code(),
+                                    scaffoldState,
+                                    coroutineScope,
+                                    context
+                            )
+                        }
                     }
                 }, errorListener = { _, t ->
             genericErrorHandling(0, scaffoldState, coroutineScope, context, t)

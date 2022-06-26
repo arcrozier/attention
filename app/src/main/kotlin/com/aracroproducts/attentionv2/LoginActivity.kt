@@ -134,6 +134,8 @@ class LoginActivity : AppCompatActivity() {
                     }
                 }
             }
+        } else {
+            Log.e(TAG, "Google sign-in returned ${result.resultCode}, expected $RESULT_OK")
         }
     }
 
