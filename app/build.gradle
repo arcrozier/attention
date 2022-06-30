@@ -57,14 +57,16 @@ android {
 }
 
 dependencies {
-    implementation 'com.google.firebase:firebase-messaging-ktx:23.0.5'
+    def lifecycle_version = "2.5.0"
+
+    implementation 'com.google.firebase:firebase-messaging-ktx:23.0.6'
     implementation 'com.google.firebase:firebase-analytics:21.0.0'
     implementation fileTree(dir: "libs", include: ["*.jar"])
     implementation 'androidx.appcompat:appcompat:1.4.2'
     implementation 'com.google.android.material:material:1.6.1'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-    implementation 'androidx.navigation:navigation-fragment-ktx:2.4.2'
-    implementation 'androidx.navigation:navigation-ui-ktx:2.4.2'
+    implementation "androidx.navigation:navigation-fragment-ktx:$lifecycle_version"
+    implementation "androidx.navigation:navigation-ui-ktx:$lifecycle_version"
     implementation 'androidx.preference:preference-ktx:1.2.0'
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.3'
@@ -84,7 +86,6 @@ dependencies {
     def gson_version = "2.9.0"
     implementation "com.squareup.retrofit2:converter-gson:$gson_version"
     implementation "com.google.code.gson:gson:$gson_version"
-    def lifecycle_version = "2.4.1"
     def arch_version = "2.1.0"
 
     // ViewModel
@@ -115,9 +116,9 @@ dependencies {
     // optional - Test helpers for LiveData
     testImplementation "androidx.arch.core:core-testing:$arch_version"
 
-    def jetpack_compose_version = "1.2.0-rc01"
+    def jetpack_compose_version = "1.2.0-rc03"
     // Integration with activities
-    implementation 'androidx.activity:activity-compose:1.4.0'
+    implementation 'androidx.activity:activity-compose:1.5.0'
     // Compose Material Design
     implementation "androidx.compose.material:material:$jetpack_compose_version"
     // Animations
@@ -126,10 +127,10 @@ dependencies {
     // Tooling support (Previews, etc.)
     implementation "androidx.compose.ui:ui-tooling:$jetpack_compose_version"
     // Integration with ViewModels
-    implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.4.1'
+    implementation "androidx.lifecycle:lifecycle-viewmodel-compose:$lifecycle_version"
     // UI Tests
     androidTestImplementation 'androidx.compose.ui:ui-test-junit4:1.1.1'
-    implementation("androidx.compose.material3:material3:1.0.0-alpha13")
+    implementation("androidx.compose.material3:material3:1.0.0-alpha14")
 
     def room_version = "2.4.2"
 
