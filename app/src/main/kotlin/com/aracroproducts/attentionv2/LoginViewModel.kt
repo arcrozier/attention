@@ -63,7 +63,8 @@ class LoginViewModel @Inject constructor(
                                 Log.e(sTAG, "Got response but body was null!")
                                 return@signInWithGoogle
                             }
-                            loginFinished(body.token, onLoggedIn)
+                            loginFinished(body.token)
+                            onLoggedIn()
                         }
                         400 -> {
                             Log.e(sTAG, response.errorBody().toString())
@@ -88,7 +89,7 @@ class LoginViewModel @Inject constructor(
                 })
     }
 
-    private fun loginFinished(token: String, onLoggedIn: () -> Unit) {
+    private fun loginFinished(token: String) {
         val context = getApplication<Application>()
         val userInfoEditor = context.getSharedPreferences(
                 MainViewModel.USER_INFO,
@@ -102,10 +103,10 @@ class LoginViewModel @Inject constructor(
         defaultPrefsEditor.apply()
         password = ""
         passwordHidden = true
-        onLoggedIn()
     }
 
-    fun login(scaffoldState: ScaffoldState?, scope: CoroutineScope?, onLoggedIn: () -> Unit) {
+    fun login(scaffoldState: ScaffoldState?, scope: CoroutineScope?,
+              onLoggedIn: (username: String, password: String) -> Unit) {
         uiEnabled = false
         val context = getApplication<Application>()
         attentionRepository.getAuthToken(username = username, password = password,
@@ -118,7 +119,8 @@ class LoginViewModel @Inject constructor(
                                 Log.e(sTAG, "Got response but body was null!")
                                 return@getAuthToken
                             }
-                            loginFinished(body.token, onLoggedIn)
+                            onLoggedIn(username, password)
+                            loginFinished(body.token)
                         }
                         400 -> {
                             Log.e(sTAG, response.errorBody().toString())
@@ -131,7 +133,8 @@ class LoginViewModel @Inject constructor(
         })
     }
 
-    fun createUser(scaffoldState: ScaffoldState, scope: CoroutineScope, onLoggedIn: () -> Unit) {
+    fun createUser(scaffoldState: ScaffoldState, scope: CoroutineScope,
+                   onLoggedIn: (username: String, password: String) -> Unit) {
         uiEnabled = false
         val context = getApplication<Application>()
         var passed = true

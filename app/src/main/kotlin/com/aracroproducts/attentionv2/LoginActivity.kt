@@ -87,6 +87,15 @@ class LoginActivity : AppCompatActivity() {
 
     private var oneTapClient: SignInClient? = null
 
+    private val passwordSaveResultHandler = registerForActivityResult(
+            ActivityResultContracts.StartIntentSenderForResult()) { result: ActivityResult ->
+        if (!(result.resultCode == RESULT_OK && result.resultCode == RESULT_CANCELED)) {
+            Log.e(TAG, "Unexpected result code from password saving: Got ${result.resultCode}, " +
+                    "expected $RESULT_OK or $RESULT_CANCELED")
+        }
+        finish()
+    }
+
     private val loginResultHandler = registerForActivityResult(
             ActivityResultContracts.StartIntentSenderForResult()
     ) { result: ActivityResult ->
@@ -112,9 +121,7 @@ class LoginActivity : AppCompatActivity() {
                     // with your backend.
                     loginViewModel.username = username
                     loginViewModel.password = password
-                    loginViewModel.login(null, null) {
-                        finish()
-                    }
+                    loginViewModel.login(null, null, ::signInWithPassword)
                     Log.d(TAG, "Got password.")
                 }
             } catch (e: ApiException) {
@@ -293,10 +300,9 @@ class LoginActivity : AppCompatActivity() {
                     onClick = {
                         model.login(
                                 scaffoldState = scaffoldState,
-                                scope = coroutineScope
-                        ) {
-                            finish()
-                        }
+                                scope = coroutineScope,
+                                onLoggedIn = ::signInWithPassword
+                        )
                     },
                     enabled = model.uiEnabled,
                     modifier = Modifier.requiredHeight(56.dp)
@@ -340,8 +346,9 @@ class LoginActivity : AppCompatActivity() {
                     onClick = {
                         model.login(
                                 scaffoldState = scaffoldState,
-                                scope = coroutineScope
-                        ) { finish() }
+                                scope = coroutineScope,
+                                onLoggedIn = ::signInWithPassword
+                        )
                     },
                     enabled = model.uiEnabled,
                     modifier = Modifier.requiredHeight(56.dp)
@@ -364,7 +371,7 @@ class LoginActivity : AppCompatActivity() {
                     ), modifier = Modifier.fillMaxWidth(0.75f)
             )
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING * 2))
-            androidx.compose.material3.OutlinedButton(onClick = { signIn(scaffoldState,
+            androidx.compose.material3.OutlinedButton(onClick = { signInWithGoogle(scaffoldState,
                 coroutineScope) },
             enabled = model.uiEnabled) {
                 Text(text = getString(R.string.sign_in_w_google))
@@ -421,11 +428,9 @@ class LoginActivity : AppCompatActivity() {
             ) {
                 model.createUser(
                         scaffoldState = scaffoldState,
-                        scope = coroutineScope
-                ) {
-                    Log.d(javaClass.name, "Logged in!")
-                    finish()
-                }
+                        scope = coroutineScope,
+                        onLoggedIn = ::signInWithPassword
+                )
             }
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             ToSCheckbox(model = model)
@@ -433,11 +438,9 @@ class LoginActivity : AppCompatActivity() {
                     onClick = {
                         model.createUser(
                                 scaffoldState = scaffoldState,
-                                scope = coroutineScope
-                        ) {
-                            Log.d(javaClass.name, "Logged in!")
-                            finish()
-                        }
+                                scope = coroutineScope,
+                                onLoggedIn = ::signInWithPassword
+                        )
                     },
                     enabled = model.uiEnabled,
                     modifier = Modifier.requiredHeight(56.dp)
@@ -753,14 +756,14 @@ class LoginActivity : AppCompatActivity() {
                 onPasswordChanged(model, it)
             },
             modifier = Modifier
-                .focusRequester(currentFocusRequester ?: FocusRequester())
-                .autofill(
-                    autofillTypes = listOf(AutofillType.NewPassword),
-                    onFill = {
-                        onPasswordChanged(model, it)
-                        onConfirmPasswordChanged(model, it)
-                    }
-                ),
+                    .focusRequester(currentFocusRequester ?: FocusRequester())
+                    .autofill(
+                            autofillTypes = listOf(AutofillType.NewPassword),
+                            onFill = {
+                                onPasswordChanged(model, it)
+                                onConfirmPasswordChanged(model, it)
+                            }
+                    ),
             visualTransformation = if (model.passwordHidden)
                 PasswordVisualTransformation() else
                 VisualTransformation.None,
@@ -788,8 +791,9 @@ class LoginActivity : AppCompatActivity() {
                     if (imeAction == ImeAction.Done) {
                         model.login(
                             scaffoldState = scaffoldState,
-                            scope = coroutineScope
-                        ) { finish() }
+                            scope = coroutineScope,
+                                onLoggedIn = ::signInWithPassword
+                        )
                     }
                 },
                 onNext = {
@@ -983,7 +987,20 @@ class LoginActivity : AppCompatActivity() {
             }
     }
 
-    private fun signIn(scaffoldState: ScaffoldState, coroutineScope: CoroutineScope) {
+    private fun signInWithPassword(username: String, password: String) {
+        val signInPassword = SignInPassword(username, password)
+        val savePasswordRequest =
+                SavePasswordRequest.builder().setSignInPassword(signInPassword).build()
+        Identity.getCredentialSavingClient(this)
+                .savePassword(savePasswordRequest)
+                .addOnSuccessListener { result ->
+            passwordSaveResultHandler.launch(
+                    IntentSenderRequest.Builder(result.pendingIntent.intentSender).build())
+        }
+        finish()
+    }
+
+    private fun signInWithGoogle(scaffoldState: ScaffoldState, coroutineScope: CoroutineScope) {
         loginViewModel.uiEnabled = false
         val request = GetSignInIntentRequest.builder()
                 .setServerClientId(getString(R.string.client_id))
