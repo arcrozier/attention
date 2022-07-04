@@ -44,6 +44,22 @@
       },
       "oauth_client": [
         {
+          "client_id": "357995852275-jbeasto8l307ptub1lj9qf7q7uk4n9jk.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.aracroproducts.attentionv2",
+            "certificate_hash": "cba86878e0c5e775a7fd58b080e12c80bf7a4388"
+          }
+        },
+        {
+          "client_id": "357995852275-sv0iho8pv7pcjlgr73olmsq68m6p74b4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.aracroproducts.attentionv2",
+            "certificate_hash": "b38df2ed5af683d66003746ddadf08d6e2b324a5"
+          }
+        },
+        {
           "client_id": "357995852275-0udn3v1auklkvh573710h22a7upm2cbi.apps.googleusercontent.com",
           "client_type": 3
         }

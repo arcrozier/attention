@@ -9,6 +9,8 @@
         app:iconSpaceReserved="false"
         app:title="@string/account">
 
+        <!-- TODO make this a split button - tapping the username opens the login activity and
+        allows you to change your username -->
         <Preference
             android:id="@+id/show_username_preference"
             android:key="@string/username_key"
@@ -47,6 +49,9 @@
                 android:targetClass="com.aracroproducts.attentionv2.LoginActivity"
                 android:targetPackage="com.aracroproducts.attentionv2" />
         </Preference>
+
+        <!-- TODO add link Google account button - opens login activity, has a sign in with
+        Google button and underneath a password field -->
 
         <Preference
             android:key="@string/logout_key"
