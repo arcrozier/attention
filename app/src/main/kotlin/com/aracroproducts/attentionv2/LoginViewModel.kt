@@ -11,15 +11,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.preference.PreferenceManager
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import java.lang.IllegalStateException
 import javax.inject.Inject
 
 class LoginViewModel @Inject constructor(
-        private val attentionRepository: AttentionRepository,
-        application: Application
+    private val attentionRepository: AttentionRepository, application: Application
 ) : AndroidViewModel(application) {
 
     enum class State {
@@ -47,94 +44,124 @@ class LoginViewModel @Inject constructor(
     var agreedToToS by mutableStateOf(false)
     var checkboxError by mutableStateOf(false)
 
-    fun loginWithGoogle(scaffoldState: ScaffoldState?, coroutineScope: CoroutineScope?, onLoggedIn:
-    () -> Unit) {
+    fun loginWithGoogle(
+        scaffoldState: ScaffoldState?, coroutineScope: CoroutineScope?, onLoggedIn: () -> Unit
+    ) {
         val localIdToken = idToken ?: throw IllegalStateException("idToken was null")
         uiEnabled = false
         val context = getApplication<Application>()
-        attentionRepository.signInWithGoogle(userIdToken = localIdToken, username = username,
-                responseListener = {
-                    _, response, _ ->
-                    uiEnabled = true
-                    when (response.code()) {
-                        200 -> {
-                            val body = response.body()
-                            if (body == null) {
-                                Log.e(sTAG, "Got response but body was null!")
-                                return@signInWithGoogle
-                            }
-                            loginFinished(body.token)
-                            onLoggedIn()
-                        }
-                        400 -> {
-                            Log.e(sTAG, response.errorBody().toString())
-                            usernameCaption = context.getString(R.string.username_in_use)
-                        }
-                        401 -> {
-                            // need to provide a username
-                            login = State.CHOOSE_USERNAME
-                        }
-                        else -> {
-                            genericErrorHandling(
-                                    response.code(),
-                                    scaffoldState,
-                                    coroutineScope,
-                                    context
-                            )
-                        }
-                    }
-                }, errorListener = { _, t ->
-            genericErrorHandling(0, scaffoldState, coroutineScope, context, t)
-            uiEnabled = true
-                })
+        attentionRepository.signInWithGoogle(userIdToken = localIdToken,
+                                             username = username,
+                                             responseListener = { _, response, _ ->
+                                                 uiEnabled = true
+                                                 when (response.code()) {
+                                                     200 -> {
+                                                         val body = response.body()
+                                                         if (body == null) {
+                                                             Log.e(
+                                                                 sTAG,
+                                                                 "Got response but body was null!"
+                                                             )
+                                                             return@signInWithGoogle
+                                                         }
+                                                         loginFinished(body.token)
+                                                         onLoggedIn()
+                                                     }
+                                                     400 -> {
+                                                         Log.e(
+                                                             sTAG,
+                                                             response.errorBody().toString()
+                                                         )
+                                                         usernameCaption =
+                                                             context.getString(R.string.username_in_use)
+                                                     }
+                                                     401 -> { // need to provide a username
+                                                         login = State.CHOOSE_USERNAME
+                                                     }
+                                                     else -> {
+                                                         genericErrorHandling(
+                                                             response.code(),
+                                                             scaffoldState,
+                                                             coroutineScope,
+                                                             context
+                                                         )
+                                                     }
+                                                 }
+                                             },
+                                             errorListener = { _, t ->
+                                                 genericErrorHandling(
+                                                     0,
+                                                     scaffoldState,
+                                                     coroutineScope,
+                                                     context,
+                                                     t
+                                                 )
+                                                 uiEnabled = true
+                                             })
     }
 
     private fun loginFinished(token: String) {
         val context = getApplication<Application>()
         val userInfoEditor = context.getSharedPreferences(
-                MainViewModel.USER_INFO,
-                Context.MODE_PRIVATE
+            MainViewModel.USER_INFO, Context.MODE_PRIVATE
         ).edit()
         userInfoEditor.putString(MainViewModel.MY_TOKEN, token)
         userInfoEditor.apply()
-        val defaultPrefsEditor =
-                PreferenceManager.getDefaultSharedPreferences(context).edit()
+        val defaultPrefsEditor = PreferenceManager.getDefaultSharedPreferences(context).edit()
         defaultPrefsEditor.putString(MainViewModel.MY_ID, username)
         defaultPrefsEditor.apply()
         password = ""
         passwordHidden = true
     }
 
-    fun login(scaffoldState: ScaffoldState?, scope: CoroutineScope?,
-              onLoggedIn: (username: String, password: String) -> Unit) {
+    fun login(
+        scaffoldState: ScaffoldState?,
+        scope: CoroutineScope?,
+        onLoggedIn: (username: String, password: String) -> Unit
+    ) {
         uiEnabled = false
         val context = getApplication<Application>()
-        attentionRepository.getAuthToken(username = username, password = password,
-                responseListener = { _, response, _ ->
-                    uiEnabled = true
-                    when (response.code()) {
-                        200 -> {
-                            val body = response.body()
-                            if (body == null) {
-                                Log.e(sTAG, "Got response but body was null!")
-                                return@getAuthToken
-                            }
-                            onLoggedIn(username, password)
-                            loginFinished(body.token)
-                        }
-                        400 -> {
-                            Log.e(sTAG, response.errorBody().toString())
-                            passwordCaption = context.getString(R.string.wrong_password)
-                        }
-                    }
-                }, errorListener = { _, t ->
-            genericErrorHandling(0, scaffoldState, scope, context, t)
-            uiEnabled = true
-        })
+        attentionRepository.getAuthToken(username = username,
+                                         password = password,
+                                         responseListener = { _, response, _ ->
+                                             uiEnabled = true
+                                             when (response.code()) {
+                                                 200 -> {
+                                                     val body = response.body()
+                                                     if (body == null) {
+                                                         Log.e(
+                                                             sTAG,
+                                                             "Got response but body was null!"
+                                                         )
+                                                         return@getAuthToken
+                                                     }
+                                                     onLoggedIn(username, password)
+                                                     loginFinished(body.token)
+                                                 }
+                                                 400 -> {
+                                                     Log.e(sTAG, response.errorBody().toString())
+                                                     passwordCaption =
+                                                         context.getString(R.string.wrong_password)
+                                                 }
+                                             }
+                                         },
+                                         errorListener = { _, t ->
+                                             genericErrorHandling(
+                                                 0,
+                                                 scaffoldState,
+                                                 scope,
+                                                 context,
+                                                 t
+                                             )
+                                             uiEnabled = true
+                                         })
     }
 
-    fun createUser(scaffoldState: ScaffoldState, scope: CoroutineScope,
-                   onLoggedIn: (username: String, password: String) -> Unit) {
+    fun createUser(
+        scaffoldState: ScaffoldState,
+        scope: CoroutineScope,
+        onLoggedIn: (username: String, password: String) -> Unit
+    ) {
         uiEnabled = false
         val context = getApplication<Application>()
         var passed = true
@@ -163,52 +190,90 @@ class LoginViewModel @Inject constructor(
             return
         }
 
-        attentionRepository.registerUser(username = username, password = password, firstName =
-        firstName, lastName = lastName, email = email,
-                responseListener = { _, response, errorBody ->
-                    uiEnabled = true
-                    when (response.code()) {
-                        200 -> {
-                            PreferenceManager.getDefaultSharedPreferences(context).edit().apply {
-                                putString(context.getString(R.string.username_key), username)
-                                putString(context.getString(R.string.first_name_key), firstName)
-                                putString(context.getString(R.string.last_name_key), lastName)
-                                putString(context.getString(R.string.email_key), email)
-                                apply()
-                            }
-                            login(scaffoldState, scope, onLoggedIn)
-                        }
-                        400 -> {
-                            if (errorBody == null) {
-                                Log.e(sTAG, "Got response but body was null")
-                                return@registerUser
-                            }
-                            when {
-                                errorBody.contains("username taken", true) -> {
-                                    usernameCaption = context.getString(R.string.username_in_use)
-                                }
-                                errorBody.contains("enter a valid username", true) -> {
-                                    usernameCaption = context.getString(R.string.invalid_username)
-                                }
-                                errorBody.contains("email address", true) -> {
-                                    emailCaption = context.getString(R.string.invalid_email)
-                                }
-                                errorBody.contains("password", true) -> {
-                                    passwordCaption =
-                                            context.getString(R.string.password_validation_failed)
-                                }
-                            }
-                        }
-                    }
-                }, errorListener = { _, t ->
-            genericErrorHandling(0, scaffoldState, scope, context, t)
-            uiEnabled = true
-        })
+        attentionRepository.registerUser(username = username,
+                                         password = password,
+                                         firstName = firstName,
+                                         lastName = lastName,
+                                         email = email,
+                                         responseListener = { _, response, errorBody ->
+                                             uiEnabled = true
+                                             when (response.code()) {
+                                                 200 -> {
+                                                     PreferenceManager.getDefaultSharedPreferences(
+                                                         context
+                                                     ).edit().apply {
+                                                         putString(
+                                                             context.getString(R.string.username_key),
+                                                             username
+                                                         )
+                                                         putString(
+                                                             context.getString(R.string.first_name_key),
+                                                             firstName
+                                                         )
+                                                         putString(
+                                                             context.getString(R.string.last_name_key),
+                                                             lastName
+                                                         )
+                                                         putString(
+                                                             context.getString(R.string.email_key),
+                                                             email
+                                                         )
+                                                         apply()
+                                                     }
+                                                     login(scaffoldState, scope, onLoggedIn)
+                                                 }
+                                                 400 -> {
+                                                     if (errorBody == null) {
+                                                         Log.e(
+                                                             sTAG,
+                                                             "Got response but body was null"
+                                                         )
+                                                         return@registerUser
+                                                     }
+                                                     when {
+                                                         errorBody.contains(
+                                                             "username taken",
+                                                             true
+                                                         ) -> {
+                                                             usernameCaption =
+                                                                 context.getString(R.string.username_in_use)
+                                                         }
+                                                         errorBody.contains(
+                                                             "enter a valid username",
+                                                             true
+                                                         ) -> {
+                                                             usernameCaption =
+                                                                 context.getString(R.string.invalid_username)
+                                                         }
+                                                         errorBody.contains(
+                                                             "email address",
+                                                             true
+                                                         ) -> {
+                                                             emailCaption =
+                                                                 context.getString(R.string.invalid_email)
+                                                         }
+                                                         errorBody.contains("password", true) -> {
+                                                             passwordCaption =
+                                                                 context.getString(R.string.password_validation_failed)
+                                                         }
+                                                     }
+                                                 }
+                                             }
+                                         },
+                                         errorListener = { _, t ->
+                                             genericErrorHandling(
+                                                 0,
+                                                 scaffoldState,
+                                                 scope,
+                                                 context,
+                                                 t
+                                             )
+                                             uiEnabled = true
+                                         })
     }
 
     fun changePassword(
-            scaffoldState: ScaffoldState, scope: CoroutineScope, onPasswordChanged: () ->
-            Unit
+        scaffoldState: ScaffoldState, scope: CoroutineScope, onPasswordChanged: () -> Unit
     ) {
         uiEnabled = false
         val context = getApplication<Application>()
@@ -231,7 +296,7 @@ class LoginViewModel @Inject constructor(
         }
 
         val savedUsername = PreferenceManager.getDefaultSharedPreferences(context)
-                .getString(MainViewModel.MY_ID, null)
+            .getString(MainViewModel.MY_ID, null)
         val userInfo = context.getSharedPreferences(MainViewModel.USER_INFO, Context.MODE_PRIVATE)
         val token = userInfo.getString(MainViewModel.MY_TOKEN, null)
         if (savedUsername == null || token == null) {
@@ -240,99 +305,122 @@ class LoginViewModel @Inject constructor(
             uiEnabled = true
             return
         }
-        attentionRepository.editUser(
-                token, password = password,
-                oldPassword = oldPassword,
-                responseListener = { _, response, errorBody ->
-                    when (response.code()) {
-                        200 -> {
-                            attentionRepository.getAuthToken(savedUsername,
-                                    password,
-                                    responseListener = { _, innerResponse, _ ->
-                                        when (innerResponse.code()) {
-                                            200 -> {
-                                                userInfo.edit().apply {
-                                                    putString(
-                                                            MainViewModel.MY_TOKEN,
-                                                            innerResponse.body()?.token
-                                                    )
-                                                    apply()
-                                                }
-                                                password = ""
-                                                oldPassword = ""
-                                                passwordHidden = true
-                                                onPasswordChanged()
-                                            }
-                                            403 -> {
-                                                usernameCaption = context.getString(
-                                                        R.string.mysterious_password_change_login_issue
-                                                )
-                                                login = State.LOGIN
-                                            }
-                                            else -> {
-                                                genericErrorHandling(
-                                                        innerResponse.code(),
-                                                        scaffoldState,
-                                                        scope,
-                                                        context
-                                                )
-                                            }
-                                        }
-                                    },
-                                    errorListener = { _, t ->
-                                        usernameCaption =
-                                                context.getString(R.string.password_updated)
-                                        genericErrorHandling(0, scaffoldState, scope, context, t)
-                                        login = State.LOGIN
-                                        uiEnabled = true
-                                    })
-                        }
-                        400 -> {
-                            passwordCaption = context.getString(R.string.password_validation_failed)
-                        }
-                        403 -> {
-                            if (errorBody?.contains("incorrect old password", true) == true)
-                                passwordCaption = context.getString(R.string.wrong_password)
-                            else {
-                                login = State.LOGIN
-                            }
-                        }
-                    }
-                }, errorListener = { _, t ->
-            genericErrorHandling(0, scaffoldState, scope, context, t)
-            uiEnabled = true
+        attentionRepository.editUser(token,
+                                     password = password,
+                                     oldPassword = oldPassword,
+                                     responseListener = { _, response, errorBody ->
+                                         when (response.code()) {
+                                             200 -> {
+                                                 attentionRepository.getAuthToken(savedUsername,
+                                                                                  password,
+                                                                                  responseListener = { _, innerResponse, _ ->
+                                                                                      when (innerResponse.code()) {
+                                                                                          200 -> {
+                                                                                              userInfo.edit()
+                                                                                                  .apply {
+                                                                                                      putString(
+                                                                                                          MainViewModel.MY_TOKEN,
+                                                                                                          innerResponse.body()?.token
+                                                                                                      )
+                                                                                                      apply()
+                                                                                                  }
+                                                                                              password =
+                                                                                                  ""
+                                                                                              oldPassword =
+                                                                                                  ""
+                                                                                              passwordHidden =
+                                                                                                  true
+                                                                                              onPasswordChanged()
+                                                                                          }
+                                                                                          403 -> {
+                                                                                              usernameCaption =
+                                                                                                  context.getString(
+                                                                                                      R.string.mysterious_password_change_login_issue
+                                                                                                  )
+                                                                                              login =
+                                                                                                  State.LOGIN
+                                                                                          }
+                                                                                          else -> {
+                                                                                              genericErrorHandling(
+                                                                                                  innerResponse.code(),
+                                                                                                  scaffoldState,
+                                                                                                  scope,
+                                                                                                  context
+                                                                                              )
+                                                                                          }
+                                                                                      }
+                                                                                  },
+                                                                                  errorListener = { _, t ->
+                                                                                      usernameCaption =
+                                                                                          context.getString(
+                                                                                              R.string.password_updated
+                                                                                          )
+                                                                                      genericErrorHandling(
+                                                                                          0,
+                                                                                          scaffoldState,
+                                                                                          scope,
+                                                                                          context,
+                                                                                          t
+                                                                                      )
+                                                                                      login =
+                                                                                          State.LOGIN
+                                                                                      uiEnabled =
+                                                                                          true
+                                                                                  })
+                                             }
+                                             400 -> {
+                                                 passwordCaption =
+                                                     context.getString(R.string.password_validation_failed)
+                                             }
+                                             403 -> {
+                                                 if (errorBody?.contains(
+                                                         "incorrect old password",
+                                                         true
+                                                     ) == true
+                                                 ) passwordCaption =
+                                                     context.getString(R.string.wrong_password)
+                                                 else {
+                                                     login = State.LOGIN
+                                                 }
+                                             }
+                                         }
+                                     },
+                                     errorListener = { _, t ->
+                                         genericErrorHandling(0, scaffoldState, scope, context, t)
+                                         uiEnabled = true
 
-        })
+                                     })
 
     }
 
     private fun displaySnackBar(
-            scaffoldState: ScaffoldState,
-            scope: CoroutineScope,
-            message: String,
-            actionText: String,
-            length: SnackbarDuration = SnackbarDuration.Indefinite
+        scaffoldState: ScaffoldState,
+        scope: CoroutineScope,
+        message: String,
+        actionText: String,
+        length: SnackbarDuration = SnackbarDuration.Indefinite
     ) {
         scope.launch {
             scaffoldState.snackbarHostState.showSnackbar(
-                    message, actionLabel = actionText,
-                    duration = length
+                message, actionLabel = actionText, duration = length
             )
         }
     }
 
     private fun genericErrorHandling(
-            code: Int, scaffoldState: ScaffoldState?, scope:
-            CoroutineScope?, context: Context, t: Throwable? = null
+        code: Int,
+        scaffoldState: ScaffoldState?,
+        scope: CoroutineScope?,
+        context: Context,
+        t: Throwable? = null
     ) {
         when (code) {
             500 -> {
                 if (scaffoldState != null && scope != null) {
                     displaySnackBar(
-                            scaffoldState, scope, context.getString(
-                            R.string
-                                    .server_error
-                    ), context.getString(android.R.string.ok)
+                        scaffoldState, scope, context.getString(
+                            R.string.server_error
+                        ), context.getString(android.R.string.ok)
                     )
                 } else {
                     Toast.makeText(context, R.string.server_error, Toast.LENGTH_LONG).show()
@@ -341,10 +429,9 @@ class LoginViewModel @Inject constructor(
             else -> {
                 if (scaffoldState != null && scope != null) {
                     displaySnackBar(
-                            scaffoldState, scope, context.getString(
-                            R.string
-                                    .connection_error
-                    ), context.getString(android.R.string.ok)
+                        scaffoldState, scope, context.getString(
+                            R.string.connection_error
+                        ), context.getString(android.R.string.ok)
                     )
                 } else {
                     Toast.makeText(context, R.string.connection_error, Toast.LENGTH_LONG).show()

@@ -38,12 +38,10 @@ class AttentionRepository(private val database: AttentionDB) {
 
 
     fun delete(
-            friend: Friend, token: String,
-            responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>, String?)
-            -> Unit)
-            ? =
-                    null,
-            errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
+        friend: Friend,
+        token: String,
+        responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>, String?) -> Unit)? = null,
+        errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
     ) {
         val call = apiInterface.deleteFriend(friend.id, authHeader(token))
         call.enqueue(object : Callback<GenericResult<Void>> {
@@ -59,8 +57,9 @@ class AttentionRepository(private val database: AttentionDB) {
              * Note: An HTTP response may still indicate an application-level failure such as a 404 or 500.
              * Call [Response.isSuccessful] to determine if the response indicates success.
              */
-            override fun onResponse(call: Call<GenericResult<Void>>, response:
-            Response<GenericResult<Void>>) {
+            override fun onResponse(
+                call: Call<GenericResult<Void>>, response: Response<GenericResult<Void>>
+            ) {
                 val responseErrorBody = response.errorBody()?.string()
                 if (!response.isSuccessful) printNetworkError(response, call, responseErrorBody)
                 else {
@@ -74,10 +73,10 @@ class AttentionRepository(private val database: AttentionDB) {
     }
 
     fun edit(
-            friend: Friend, token: String,
-            responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>, String?)
-            -> Unit)? = null,
-            errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
+        friend: Friend,
+        token: String,
+        responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>, String?) -> Unit)? = null,
+        errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
     ) {
         val call = apiInterface.editFriendName(friend.id, friend.name, authHeader(token))
         call.enqueue(object : Callback<GenericResult<Void>> {
@@ -88,8 +87,9 @@ class AttentionRepository(private val database: AttentionDB) {
              * Note: An HTTP response may still indicate an application-level failure such as a 404 or 500.
              * Call [Response.isSuccessful] to determine if the response indicates success.
              */
-            override fun onResponse(call: Call<GenericResult<Void>>, response:
-            Response<GenericResult<Void>>) {
+            override fun onResponse(
+                call: Call<GenericResult<Void>>, response: Response<GenericResult<Void>>
+            ) {
                 val responseErrorBody = response.errorBody()?.string()
                 if (!response.isSuccessful) printNetworkError(response, call, responseErrorBody)
                 else {
@@ -116,17 +116,15 @@ class AttentionRepository(private val database: AttentionDB) {
     fun cacheFriend(username: String) {
         MainScope().launch {
             database.getCachedFriendDAO().insert(
-                    CachedFriend
-                    (username)
+                CachedFriend(username)
             )
         }
     }
 
-    fun getCachedFriends() = database.getCachedFriendDAO()
-            .getCachedFriends()
+    fun getCachedFriends() = database.getCachedFriendDAO().getCachedFriends()
 
     suspend fun getCachedFriendsSnapshot(): List<CachedFriend> =
-            database.getCachedFriendDAO().getCachedFriendsSnapshot()
+        database.getCachedFriendDAO().getCachedFriendsSnapshot()
 
     fun deleteCachedFriend(username: String) {
         MainScope().launch {
@@ -134,14 +132,15 @@ class AttentionRepository(private val database: AttentionDB) {
         }
     }
 
-    fun getMessages(friend: Friend) = database.getMessageDAO()
-            .getMessagesFromUser(friend.id)
+    fun getMessages(friend: Friend) = database.getMessageDAO().getMessagesFromUser(friend.id)
 
     fun appendMessage(message: Message, save: Boolean = false) {
         if (save) {
             val mMessage = Message(
-                    timestamp = Calendar.getInstance().timeInMillis, direction =
-            message.direction, otherId = message.otherId, message = message.message
+                timestamp = Calendar.getInstance().timeInMillis,
+                direction = message.direction,
+                otherId = message.otherId,
+                message = message.message
             )
             MainScope().launch {
                 database.getMessageDAO().insertMessage(mMessage)
@@ -156,13 +155,12 @@ class AttentionRepository(private val database: AttentionDB) {
     }
 
     fun getName(
-            token: String,
-            username: String,
-            responseListener: ((Call<GenericResult<NameResult>>,
-                                Response<GenericResult<NameResult>>, String?)
-            -> Unit)
-            ? = null,
-            errorListener: ((Call<GenericResult<NameResult>>, Throwable) -> Unit)? = null
+        token: String,
+        username: String,
+        responseListener: ((
+            Call<GenericResult<NameResult>>, Response<GenericResult<NameResult>>, String?
+        ) -> Unit)? = null,
+        errorListener: ((Call<GenericResult<NameResult>>, Throwable) -> Unit)? = null
     ): Call<GenericResult<NameResult>> {
         val call = apiInterface.getName(username, authHeader(token))
         call.enqueue(object : Callback<GenericResult<NameResult>> {
@@ -173,8 +171,9 @@ class AttentionRepository(private val database: AttentionDB) {
              * Note: An HTTP response may still indicate an application-level failure such as a 404 or 500.
              * Call [Response.isSuccessful] to determine if the response indicates success.
              */
-            override fun onResponse(call: Call<GenericResult<NameResult>>, response:
-            Response<GenericResult<NameResult>>) {
+            override fun onResponse(
+                call: Call<GenericResult<NameResult>>, response: Response<GenericResult<NameResult>>
+            ) {
                 val responseErrorBody = response.errorBody()?.string()
                 if (!response.isSuccessful) printNetworkError(response, call, responseErrorBody)
                 responseListener?.invoke(call, response, responseErrorBody)
@@ -193,13 +192,12 @@ class AttentionRepository(private val database: AttentionDB) {
     }
 
     fun sendMessage(
-            message: Message,
-            token: String,
-            responseListener: ((Call<GenericResult<AlertResult>>,
-                                Response<GenericResult<AlertResult>>, String?) ->
-            Unit)?
-            = null,
-            errorListener: ((Call<GenericResult<AlertResult>>, Throwable) -> Unit)? = null
+        message: Message,
+        token: String,
+        responseListener: ((
+            Call<GenericResult<AlertResult>>, Response<GenericResult<AlertResult>>, String?
+        ) -> Unit)? = null,
+        errorListener: ((Call<GenericResult<AlertResult>>, Throwable) -> Unit)? = null
     ) {
         assert(message.direction == DIRECTION.Outgoing)
         appendMessage(message)
@@ -212,18 +210,21 @@ class AttentionRepository(private val database: AttentionDB) {
              * Note: An HTTP response may still indicate an application-level failure such as a 404 or 500.
              * Call [Response.isSuccessful] to determine if the response indicates success.
              */
-            override fun onResponse(call: Call<GenericResult<AlertResult>>, response:
-            Response<GenericResult<AlertResult>>) {
+            override fun onResponse(
+                call: Call<GenericResult<AlertResult>>,
+                response: Response<GenericResult<AlertResult>>
+            ) {
                 val responseErrorBody = response.errorBody()?.string()
                 if (!response.isSuccessful) printNetworkError(response, call, responseErrorBody)
                 else {
                     val alertId = response.body()?.data?.id
                     MainScope().launch {
-                        database.getFriendDAO().setMessageAlert(alertId,
-                                message.otherId)
+                        database.getFriendDAO().setMessageAlert(
+                            alertId, message.otherId
+                        )
                         alertId?.let {
                             database.getFriendDAO().setMessageStatus(
-                                    MessageStatus.SENT, alert_id = alertId, id = message.otherId
+                                MessageStatus.SENT, alert_id = alertId, id = message.otherId
                             )
                         }
                         database.getFriendDAO().incrementSent(message.otherId)
@@ -247,12 +248,9 @@ class AttentionRepository(private val database: AttentionDB) {
     // todo add muted(friend, boolean) internet call
 
     fun registerDevice(
-            token: String, fcmToken: String,
-            responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>,
-                                String?) ->
-            Unit)?
-            = null,
-            errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
+        token: String, fcmToken: String, responseListener: ((
+            Call<GenericResult<Void>>, Response<GenericResult<Void>>, String?
+        ) -> Unit)? = null, errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
     ) {
         val call = apiInterface.registerDevice(fcmToken, authHeader(token))
         call.enqueue(object : Callback<GenericResult<Void>> {
@@ -263,8 +261,9 @@ class AttentionRepository(private val database: AttentionDB) {
              * Note: An HTTP response may still indicate an application-level failure such as a 404 or 500.
              * Call [Response.isSuccessful] to determine if the response indicates success.
              */
-            override fun onResponse(call: Call<GenericResult<Void>>,
-                                    response: Response<GenericResult<Void>>) {
+            override fun onResponse(
+                call: Call<GenericResult<Void>>, response: Response<GenericResult<Void>>
+            ) {
                 val responseErrorBody = response.errorBody()?.string()
                 if (!response.isSuccessful) printNetworkError(response, call, responseErrorBody)
                 responseListener?.invoke(call, response, responseErrorBody)
@@ -282,12 +281,11 @@ class AttentionRepository(private val database: AttentionDB) {
         })
     }
 
-    fun unregisterDevice(token: String, fcmToken: String,
-                         responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>,
-                                             String?) ->
-                         Unit)?
-                         = null,
-                         errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null) {
+    fun unregisterDevice(
+        token: String, fcmToken: String, responseListener: ((
+            Call<GenericResult<Void>>, Response<GenericResult<Void>>, String?
+        ) -> Unit)? = null, errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
+    ) {
         val call = apiInterface.unregisterDevice(fcmToken, authHeader(token))
         call.enqueue(object : Callback<GenericResult<Void>> {
             /**
@@ -297,8 +295,9 @@ class AttentionRepository(private val database: AttentionDB) {
              * Note: An HTTP response may still indicate an application-level failure such as a 404 or 500.
              * Call [Response.isSuccessful] to determine if the response indicates success.
              */
-            override fun onResponse(call: Call<GenericResult<Void>>,
-                                    response: Response<GenericResult<Void>>) {
+            override fun onResponse(
+                call: Call<GenericResult<Void>>, response: Response<GenericResult<Void>>
+            ) {
                 val responseErrorBody = response.errorBody()?.string()
                 if (!response.isSuccessful) printNetworkError(response, call, responseErrorBody)
                 responseListener?.invoke(call, response, responseErrorBody)
@@ -317,16 +316,20 @@ class AttentionRepository(private val database: AttentionDB) {
     }
 
     fun editUser(
-            token: String, firstName: String? = null, lastName:
-            String? = null, password: String? = null, oldPassword: String? = null,
-            email: String? = null,
-            responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>,
-                                String?) ->
-            Unit)? = null,
-            errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
+        token: String,
+        firstName: String? = null,
+        lastName: String? = null,
+        password: String? = null,
+        oldPassword: String? = null,
+        email: String? = null,
+        responseListener: ((
+            Call<GenericResult<Void>>, Response<GenericResult<Void>>, String?
+        ) -> Unit)? = null,
+        errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
     ) {
-        val call = apiInterface.editUser(firstName, lastName, email, password, oldPassword,
-                authHeader(token))
+        val call = apiInterface.editUser(
+            firstName, lastName, email, password, oldPassword, authHeader(token)
+        )
         call.enqueue(object : Callback<GenericResult<Void>> {
             /**
              * Invoked for a received HTTP response.
@@ -335,8 +338,9 @@ class AttentionRepository(private val database: AttentionDB) {
              * Note: An HTTP response may still indicate an application-level failure such as a 404 or 500.
              * Call [Response.isSuccessful] to determine if the response indicates success.
              */
-            override fun onResponse(call: Call<GenericResult<Void>>,
-                                    response: Response<GenericResult<Void>>) {
+            override fun onResponse(
+                call: Call<GenericResult<Void>>, response: Response<GenericResult<Void>>
+            ) {
                 val responseErrorBody = response.errorBody()?.string()
                 if (!response.isSuccessful) printNetworkError(response, call, responseErrorBody)
                 responseListener?.invoke(call, response, responseErrorBody)
@@ -355,11 +359,11 @@ class AttentionRepository(private val database: AttentionDB) {
     }
 
     fun downloadUserInfo(
-            token: String,
-            responseListener: ((Call<GenericResult<UserDataResult>>,
-                                Response<GenericResult<UserDataResult>>, String?) ->
-            Unit)? = null,
-            errorListener: ((Call<GenericResult<UserDataResult>>, Throwable) -> Unit)? = null
+        token: String,
+        responseListener: ((
+            Call<GenericResult<UserDataResult>>, Response<GenericResult<UserDataResult>>, String?
+        ) -> Unit)? = null,
+        errorListener: ((Call<GenericResult<UserDataResult>>, Throwable) -> Unit)? = null
     ) {
         val call = apiInterface.getUserInfo(authHeader(token))
         call.enqueue(object : Callback<GenericResult<UserDataResult>> {
@@ -370,8 +374,10 @@ class AttentionRepository(private val database: AttentionDB) {
              * Note: An HTTP response may still indicate an application-level failure such as a 404 or 500.
              * Call [Response.isSuccessful] to determine if the response indicates success.
              */
-            override fun onResponse(call: Call<GenericResult<UserDataResult>>,
-                                    response: Response<GenericResult<UserDataResult>>) {
+            override fun onResponse(
+                call: Call<GenericResult<UserDataResult>>,
+                response: Response<GenericResult<UserDataResult>>
+            ) {
                 val responseErrorBody = response.errorBody()?.string()
                 if (!response.isSuccessful) printNetworkError(response, call, responseErrorBody)
                 responseListener?.invoke(call, response, responseErrorBody)
@@ -399,12 +405,9 @@ class AttentionRepository(private val database: AttentionDB) {
     }
 
     fun addFriend(
-            username: String, name: String, token: String,
-            responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>,
-                                String?) ->
-            Unit)?
-            = null,
-            errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
+        username: String, name: String, token: String, responseListener: ((
+            Call<GenericResult<Void>>, Response<GenericResult<Void>>, String?
+        ) -> Unit)? = null, errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
     ) {
         val call = apiInterface.addFriend(username, authHeader(token))
         call.enqueue(object : Callback<GenericResult<Void>> {
@@ -415,8 +418,9 @@ class AttentionRepository(private val database: AttentionDB) {
              * Note: An HTTP response may still indicate an application-level failure such as a 404 or 500.
              * Call [Response.isSuccessful] to determine if the response indicates success.
              */
-            override fun onResponse(call: Call<GenericResult<Void>>,
-                                    response: Response<GenericResult<Void>>) {
+            override fun onResponse(
+                call: Call<GenericResult<Void>>, response: Response<GenericResult<Void>>
+            ) {
                 val responseErrorBody = response.errorBody()?.string()
                 if (!response.isSuccessful) printNetworkError(response, call, responseErrorBody)
                 else {
@@ -446,18 +450,16 @@ class AttentionRepository(private val database: AttentionDB) {
     fun alertRead(username: String?, alertId: String?) {
         MainScope().launch {
             database.getFriendDAO()
-                    .setMessageStatus(MessageStatus.READ, alert_id = alertId, id = username)
+                .setMessageStatus(MessageStatus.READ, alert_id = alertId, id = username)
         }
     }
 
     fun sendDeliveredReceipt(
-        alertId: String, from: String, authToken: String,
-                             responseListener: ((Call<GenericResult<Void>>,
-                                                 Response<GenericResult<Void>>, String?) ->
-                             Unit)?
-                             = null,
-                             errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
-    ) { val call = apiInterface.alertDelivered(alertId, from, authHeader(authToken))
+        alertId: String, from: String, authToken: String, responseListener: ((
+            Call<GenericResult<Void>>, Response<GenericResult<Void>>, String?
+        ) -> Unit)? = null, errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
+    ) {
+        val call = apiInterface.alertDelivered(alertId, from, authHeader(authToken))
         call.enqueue(object : Callback<GenericResult<Void>> {
             /**
              * Invoked for a received HTTP response.
@@ -466,8 +468,9 @@ class AttentionRepository(private val database: AttentionDB) {
              * Note: An HTTP response may still indicate an application-level failure such as a 404 or 500.
              * Call [Response.isSuccessful] to determine if the response indicates success.
              */
-            override fun onResponse(call: Call<GenericResult<Void>>,
-                                    response: Response<GenericResult<Void>>) {
+            override fun onResponse(
+                call: Call<GenericResult<Void>>, response: Response<GenericResult<Void>>
+            ) {
                 val responseErrorBody = response.errorBody()?.string()
                 if (!response.isSuccessful) printNetworkError(response, call, responseErrorBody)
                 responseListener?.invoke(call, response, responseErrorBody)
@@ -486,12 +489,9 @@ class AttentionRepository(private val database: AttentionDB) {
     }
 
     fun sendReadReceipt(
-            alertId: String, from: String, fcmToken: String, authToken: String,
-            responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>,
-                                String?) ->
-            Unit)?
-            = null,
-            errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
+        alertId: String, from: String, fcmToken: String, authToken: String, responseListener: ((
+            Call<GenericResult<Void>>, Response<GenericResult<Void>>, String?
+        ) -> Unit)? = null, errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
     ) {
         val call = apiInterface.alertRead(alertId, from, fcmToken, authHeader(authToken))
         call.enqueue(object : Callback<GenericResult<Void>> {
@@ -502,8 +502,9 @@ class AttentionRepository(private val database: AttentionDB) {
              * Note: An HTTP response may still indicate an application-level failure such as a 404 or 500.
              * Call [Response.isSuccessful] to determine if the response indicates success.
              */
-            override fun onResponse(call: Call<GenericResult<Void>>,
-                                    response: Response<GenericResult<Void>>) {
+            override fun onResponse(
+                call: Call<GenericResult<Void>>, response: Response<GenericResult<Void>>
+            ) {
                 val responseErrorBody = response.errorBody()?.string()
                 if (!response.isSuccessful) printNetworkError(response, call, responseErrorBody)
                 responseListener?.invoke(call, response, responseErrorBody)
@@ -522,13 +523,15 @@ class AttentionRepository(private val database: AttentionDB) {
     }
 
     fun registerUser(
-            username: String, password: String, firstName: String, lastName: String,
-            email: String,
-            responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>,
-                                String?) ->
-            Unit)?
-            = null,
-            errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
+        username: String,
+        password: String,
+        firstName: String,
+        lastName: String,
+        email: String,
+        responseListener: ((
+            Call<GenericResult<Void>>, Response<GenericResult<Void>>, String?
+        ) -> Unit)? = null,
+        errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
     ) {
         val call = apiInterface.registerUser(firstName, lastName, username, password, email)
         call.enqueue(object : Callback<GenericResult<Void>> {
@@ -539,8 +542,9 @@ class AttentionRepository(private val database: AttentionDB) {
              * Note: An HTTP response may still indicate an application-level failure such as a 404 or 500.
              * Call [Response.isSuccessful] to determine if the response indicates success.
              */
-            override fun onResponse(call: Call<GenericResult<Void>>,
-                                    response: Response<GenericResult<Void>>) {
+            override fun onResponse(
+                call: Call<GenericResult<Void>>, response: Response<GenericResult<Void>>
+            ) {
                 val responseErrorBody = response.errorBody()?.string()
                 if (!response.isSuccessful) printNetworkError(response, call, responseErrorBody)
                 responseListener?.invoke(call, response, responseErrorBody)
@@ -558,9 +562,12 @@ class AttentionRepository(private val database: AttentionDB) {
         })
     }
 
-    fun signInWithGoogle(userIdToken: String, username: String? = null,
-                         responseListener: ((Call<TokenResult>, Response<TokenResult>, String?) -> Unit)? = null,
-                         errorListener: ((Call<TokenResult>, Throwable) -> Unit)? = null) {
+    fun signInWithGoogle(
+        userIdToken: String,
+        username: String? = null,
+        responseListener: ((Call<TokenResult>, Response<TokenResult>, String?) -> Unit)? = null,
+        errorListener: ((Call<TokenResult>, Throwable) -> Unit)? = null
+    ) {
         val call = apiInterface.googleSignIn(userIdToken, username)
         call.enqueue(object : Callback<TokenResult> {
             override fun onResponse(call: Call<TokenResult>, response: Response<TokenResult>) {
@@ -577,11 +584,10 @@ class AttentionRepository(private val database: AttentionDB) {
     }
 
     fun getAuthToken(
-            username: String, password: String,
-            responseListener: ((Call<TokenResult>, Response<TokenResult>, String?) ->
-            Unit)?
-            = null,
-            errorListener: ((Call<TokenResult>, Throwable) -> Unit)? = null
+        username: String,
+        password: String,
+        responseListener: ((Call<TokenResult>, Response<TokenResult>, String?) -> Unit)? = null,
+        errorListener: ((Call<TokenResult>, Throwable) -> Unit)? = null
     ) {
         val call = apiInterface.getToken(username, password)
         call.enqueue(object : Callback<TokenResult> {
@@ -613,9 +619,9 @@ class AttentionRepository(private val database: AttentionDB) {
     private fun printNetworkError(error: Response<*>, request: Call<*>, errorBody: String?) {
         Log.e(javaClass.name, "Response from ${request.request().url}")
         Log.e(
-                javaClass.name, "Status: ${error.code()} - Data: ${
-            errorBody ?: "null"
-        }"
+            javaClass.name, "Status: ${error.code()} - Data: ${
+                errorBody ?: "null"
+            }"
         )
         Log.e(javaClass.name, "Headers: ${error.headers()}")
     }

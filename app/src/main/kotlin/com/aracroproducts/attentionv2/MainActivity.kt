@@ -73,8 +73,7 @@ class MainActivity : AppCompatActivity() {
     })
 
     class MainViewModelFactory(
-        private val attentionRepository: AttentionRepository, private val
-        application: Application
+        private val attentionRepository: AttentionRepository, private val application: Application
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -143,8 +142,7 @@ class MainActivity : AppCompatActivity() {
                     friendModel.addFriendUsername = tempId
                     friendModel.getFriendName(tempId) {
                         throw IllegalStateException(
-                            "Should not attempt to log in while " +
-                                    "addFriendException is true"
+                            "Should not attempt to log in while " + "addFriendException is true"
                         )
                     }
                     friendModel.swapDialogState(Triple(
@@ -159,15 +157,11 @@ class MainActivity : AppCompatActivity() {
             friendModel.connectionState = getString(R.string.sharing)
             friendModel.message = intent.getStringExtra(Intent.EXTRA_TEXT) ?: ""
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
-                intent.hasExtra(Intent.EXTRA_SHORTCUT_ID)
-            ) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && intent.hasExtra(Intent.EXTRA_SHORTCUT_ID)) {
                 val username = intent.getStringExtra(Intent.EXTRA_SHORTCUT_ID) ?: ""
-                friendModel.appendDialogState(
-                    Triple(
-                        MainViewModel.DialogStatus.ADD_MESSAGE_TEXT,
-                        Friend(username, "")
-                    ) {})
+                friendModel.appendDialogState(Triple(
+                    MainViewModel.DialogStatus.ADD_MESSAGE_TEXT, Friend(username, "")
+                ) {})
             }
         }
     }
@@ -181,13 +175,11 @@ class MainActivity : AppCompatActivity() {
         val userInfo = getSharedPreferences(MainViewModel.USER_INFO, Context.MODE_PRIVATE)
 
         if (!Settings.canDrawOverlays(application) && !userInfo.getBoolean(
-                MainViewModel.OVERLAY_NO_PROMPT,
-                false
+                MainViewModel.OVERLAY_NO_PROMPT, false
             )
         ) {
             friendModel.appendDialogState(Triple(
-                MainViewModel.DialogStatus.OVERLAY_PERMISSION,
-                null
+                MainViewModel.DialogStatus.OVERLAY_PERMISSION, null
             ) {})
         }
     }
@@ -218,18 +210,16 @@ class MainActivity : AppCompatActivity() {
     @ExperimentalFoundationApi
     @Composable
     fun HomeWrapper(model: MainViewModel) {
-        val displayDialog: Triple<MainViewModel.DialogStatus, Friend?, (String) -> Unit> by model
-            .dialogState
+        val displayDialog: Triple<MainViewModel.DialogStatus, Friend?, (String) -> Unit> by model.dialogState
         val showSnackbar = model.isSnackBarShowing
 
         val friends by model.friends.observeAsState(listOf())
-        Home(
-            friends = friends,
-            onLongPress = { model.onLongPress() },
-            onEditName = { model.onEditName(it) },
-            onDeletePrompt = { model.onDeleteFriend(it) },
-            dialogState = displayDialog,
-            showSnackbar = showSnackbar
+        Home(friends = friends,
+             onLongPress = { model.onLongPress() },
+             onEditName = { model.onEditName(it) },
+             onDeletePrompt = { model.onDeleteFriend(it) },
+             dialogState = displayDialog,
+             showSnackbar = showSnackbar
         )
     }
 
@@ -237,7 +227,9 @@ class MainActivity : AppCompatActivity() {
     @ExperimentalFoundationApi
     @Composable
     fun Home(
-        friends: List<Friend>, onLongPress: () -> Unit, onEditName: (friend: Friend) -> Unit,
+        friends: List<Friend>,
+        onLongPress: () -> Unit,
+        onEditName: (friend: Friend) -> Unit,
         onDeletePrompt: (friend: Friend) -> Unit,
         dialogState: Triple<MainViewModel.DialogStatus, Friend?, (String) -> Unit>,
         showSnackbar: String
@@ -247,8 +239,7 @@ class MainActivity : AppCompatActivity() {
         val scope = rememberCoroutineScope()
         if (showSnackbar.isNotBlank()) {
             LaunchedEffect(scaffoldState.snackbarHostState) {
-                scope.launch {
-                    // cancels by default after a short amount of time
+                scope.launch { // cancels by default after a short amount of time
 
                     when (scaffoldState.snackbarHostState.showSnackbar(message = showSnackbar)) {
                         SnackbarResult.Dismissed -> {
@@ -261,8 +252,9 @@ class MainActivity : AppCompatActivity() {
         }
 
         AnimatedContent(targetState = dialogState.first, transitionSpec = {
-            slideIntoContainer(towards = AnimatedContentScope.SlideDirection.Up) with
-                    slideOutOfContainer(towards = AnimatedContentScope.SlideDirection.Down)
+            slideIntoContainer(towards = AnimatedContentScope.SlideDirection.Up) with slideOutOfContainer(
+                towards = AnimatedContentScope.SlideDirection.Down
+            )
         }) { targetState ->
             when (targetState) {
                 MainViewModel.DialogStatus.ADD_FRIEND -> AddFriendDialog()
@@ -272,12 +264,12 @@ class MainActivity : AppCompatActivity() {
                 }
                 MainViewModel.DialogStatus.FRIEND_NAME -> dialogState.second?.let {
                     EditFriendNameDialog(
-                            friend = it
+                        friend = it
                     )
                 }
                 MainViewModel.DialogStatus.CONFIRM_DELETE -> dialogState.second?.let {
                     DeleteFriendDialog(
-                            friend = it
+                        friend = it
                     )
                 }
                 MainViewModel.DialogStatus.CONFIRM_DELETE_CACHED -> dialogState.second?.let {
@@ -288,72 +280,58 @@ class MainActivity : AppCompatActivity() {
         }
 
 
-        Scaffold(scaffoldState = scaffoldState,
-            topBar = {
-                TopAppBar(
-                    backgroundColor = MaterialTheme.colorScheme.primary,
-                    title = {
-                        Column {
-                            Text(
-                                getString(R.string.app_name),
-                                color = MaterialTheme.colorScheme.onPrimary
-                            )
-                            if (friendModel.connectionState.isNotBlank()) Text(
-                                friendModel.connectionState,
-                                style = MaterialTheme.typography
-                                    .labelSmall,
-                                color = MaterialTheme.colorScheme.onPrimary
-                            )
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = {
-                            val intent = Intent(
-                                applicationContext,
-                                SettingsActivity::class.java
-                            )
-                            startActivity(intent)
-                        }) {
-                            Icon(
-                                Icons.Filled.Settings, contentDescription = getString(
-                                    R
-                                        .string.action_settings
-                                ), tint = MaterialTheme.colorScheme.onPrimary
-                            )
-
-                        }
-                    }
-                )
-            },
-            backgroundColor = MaterialTheme.colorScheme.background,
-            floatingActionButton = {
-                FloatingActionButton(
-                    onClick = {
-                        friendModel.appendDialogState(Triple(
-                            MainViewModel.DialogStatus.ADD_FRIEND,
-                            null
-                        ) {})
-                    },
-                    backgroundColor = MaterialTheme.colorScheme.secondary
-                ) {
-                    Icon(
-                        Icons.Filled.Add,
-                        contentDescription = getString(R.string.add_friend),
-                        tint = MaterialTheme.colorScheme.onSecondary
+        Scaffold(scaffoldState = scaffoldState, topBar = {
+            TopAppBar(backgroundColor = MaterialTheme.colorScheme.primary, title = {
+                Column {
+                    Text(
+                        getString(R.string.app_name),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    if (friendModel.connectionState.isNotBlank()) Text(
+                        friendModel.connectionState,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
+            }, actions = {
+                IconButton(onClick = {
+                    val intent = Intent(
+                        applicationContext, SettingsActivity::class.java
+                    )
+                    startActivity(intent)
+                }) {
+                    Icon(
+                        Icons.Filled.Settings, contentDescription = getString(
+                            R.string.action_settings
+                        ), tint = MaterialTheme.colorScheme.onPrimary
+                    )
+
+                }
+            })
+        }, backgroundColor = MaterialTheme.colorScheme.background, floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    friendModel.appendDialogState(Triple(
+                        MainViewModel.DialogStatus.ADD_FRIEND, null
+                    ) {})
+                }, backgroundColor = MaterialTheme.colorScheme.secondary
+            ) {
+                Icon(
+                    Icons.Filled.Add,
+                    contentDescription = getString(R.string.add_friend),
+                    tint = MaterialTheme.colorScheme.onSecondary
+                )
             }
-        ) {
+        }) {
             SwipeRefresh(
                 state = rememberSwipeRefreshState(friendModel.isRefreshing),
                 onRefresh = { reload() },
                 modifier = Modifier.padding(it)
-            )
-            {
+            ) {
                 LazyColumn(
-                        Modifier
-                                .background(MaterialTheme.colorScheme.background)
-                                .fillMaxSize()
+                    Modifier
+                        .background(MaterialTheme.colorScheme.background)
+                        .fillMaxSize()
                 ) {
                     items(friends) { friend ->
                         FriendCard(
@@ -364,19 +342,18 @@ class MainActivity : AppCompatActivity() {
                         )
                         Divider(
                             color = MaterialTheme.colorScheme.outline.copy(
-                                alpha = ContentAlpha
-                                    .disabled
+                                alpha = ContentAlpha.disabled
                             ), modifier = Modifier.padding(start = 16.dp, end = 16.dp)
                         )
                     }
                     items(cachedFriends) { cachedFriend ->
                         FriendCard(friend = Friend(cachedFriend.username, cachedFriend.username),
-                            onLongPress
-                            = {}, onEditName = {}, onDeletePrompt = {})
+                                   onLongPress = {},
+                                   onEditName = {},
+                                   onDeletePrompt = {})
                         Divider(
                             color = MaterialTheme.colorScheme.outline.copy(
-                                alpha = ContentAlpha
-                                    .disabled
+                                alpha = ContentAlpha.disabled
                             ), modifier = Modifier.padding(start = 16.dp, end = 16.dp)
                         )
                     }
@@ -388,87 +365,80 @@ class MainActivity : AppCompatActivity() {
     @Composable
     fun AddMessageText(friend: Friend, onSend: (message: String) -> Unit) {
 
-        AlertDialog(onDismissRequest = { friendModel.popDialogState() },
-            confirmButton = {
-                Button(onClick = {
-                    val message = friendModel.message
-                    friendModel.message = ""
-                    if (friendModel.connectionState == getString(R.string.sharing)) {
-                        friendModel.connectionState = ""
-                    }
-                    friendModel.popDialogState()
-                    onSend(message)
-                }) {
-                    Text(text = getString(R.string.send))
+        AlertDialog(onDismissRequest = { friendModel.popDialogState() }, confirmButton = {
+            Button(onClick = {
+                val message = friendModel.message
+                friendModel.message = ""
+                if (friendModel.connectionState == getString(R.string.sharing)) {
+                    friendModel.connectionState = ""
                 }
-            },
-            dismissButton = {
-                OutlinedButton(onClick = {
-                    friendModel.popDialogState()
-                }) {
-                    Text(text = getString(R.string.cancel))
-                }
-            },
-            title = {
-                Text(
-                    text = getString(R.string.add_message), color = MaterialTheme
-                        .colorScheme.onSurfaceVariant
-                )
-            },
-            text = {
-                OutlinedTextField(
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                        textColor =
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    ),
-                    value = friendModel.message,
-                    onValueChange = { friendModel.message = it },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Text,
-                        capitalization = KeyboardCapitalization.Sentences
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = false,
-                    label = { Text(text = getString(R.string.message_label, friend.name)) },
-                    placeholder = { Text(text = getString(R.string.message_hint)) }
-                )
+                friendModel.popDialogState()
+                onSend(message)
+            }) {
+                Text(text = getString(R.string.send))
             }
-        )
+        }, dismissButton = {
+            OutlinedButton(onClick = {
+                friendModel.popDialogState()
+            }) {
+                Text(text = getString(R.string.cancel))
+            }
+        }, title = {
+            Text(
+                text = getString(R.string.add_message),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }, text = {
+            OutlinedTextField(colors = TextFieldDefaults.outlinedTextFieldColors(
+                textColor = MaterialTheme.colorScheme.onSurfaceVariant
+            ),
+                              value = friendModel.message,
+                              onValueChange = { friendModel.message = it },
+                              keyboardOptions = KeyboardOptions(
+                                  keyboardType = KeyboardType.Text,
+                                  capitalization = KeyboardCapitalization.Sentences
+                              ),
+                              modifier = Modifier.fillMaxWidth(),
+                              singleLine = false,
+                              label = {
+                                  Text(
+                                      text = getString(
+                                          R.string.message_label,
+                                          friend.name
+                                      )
+                                  )
+                              },
+                              placeholder = { Text(text = getString(R.string.message_hint)) })
+        })
     }
 
     @Composable
     fun DeleteFriendDialog(friend: Friend, cached: Boolean = false) {
-        AlertDialog(onDismissRequest = { friendModel.popDialogState() },
-            confirmButton = {
-                Button(onClick = {
-                    friendModel.popDialogState()
-                    if (cached) friendModel.confirmDeleteCachedFriend(friend)
-                    else friendModel.confirmDeleteFriend(friend = friend, ::launchLogin)
-                }) {
-                    Text(text = getString(R.string.delete))
-                }
-            },
-            dismissButton = {
-                OutlinedButton(onClick = {
-                    friendModel.popDialogState()
-                }) {
-                    Text(text = getString(R.string.cancel))
-                }
-            },
-            title = {
-                Text(
-                    text = getString(R.string.confirm_delete_title), color = MaterialTheme
-                        .colorScheme.onSurfaceVariant
-                )
-            },
-            text = {
-                Text(
-                    text = getString(R.string.confirm_delete_message, friend.name),
-                    color = MaterialTheme
-                        .colorScheme.onSurfaceVariant
-                )
+        AlertDialog(onDismissRequest = { friendModel.popDialogState() }, confirmButton = {
+            Button(onClick = {
+                friendModel.popDialogState()
+                if (cached) friendModel.confirmDeleteCachedFriend(friend)
+                else friendModel.confirmDeleteFriend(friend = friend, ::launchLogin)
+            }) {
+                Text(text = getString(R.string.delete))
             }
-        )
+        }, dismissButton = {
+            OutlinedButton(onClick = {
+                friendModel.popDialogState()
+            }) {
+                Text(text = getString(R.string.cancel))
+            }
+        }, title = {
+            Text(
+                text = getString(R.string.confirm_delete_title),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }, text = {
+            Text(
+                text = getString(R.string.confirm_delete_message, friend.name),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        })
     }
 
     @Composable
@@ -477,96 +447,82 @@ class MainActivity : AppCompatActivity() {
             mutableStateOf(friend.name)
         }
         var error by remember { mutableStateOf(false) }
-        AlertDialog(onDismissRequest = { friendModel.popDialogState() },
-            confirmButton = {
-                Button(onClick = {
-                    val savingName = name.trim()
-                    if (savingName.isEmpty()) {
-                        error = true
-                    } else {
-                        friendModel.confirmEditName(friend.id, savingName, ::launchLogin)
-                        friendModel.popDialogState()
-                    }
-                }) {
-                    Text(text = getString(R.string.save))
-                }
-            },
-            dismissButton = {
-                OutlinedButton(onClick = {
+        AlertDialog(onDismissRequest = { friendModel.popDialogState() }, confirmButton = {
+            Button(onClick = {
+                val savingName = name.trim()
+                if (savingName.isEmpty()) {
+                    error = true
+                } else {
+                    friendModel.confirmEditName(friend.id, savingName, ::launchLogin)
                     friendModel.popDialogState()
-                }) {
-                    Text(text = getString(R.string.cancel))
                 }
-            },
-            title = {
-                Text(
-                    text = getString(R.string.rename), color = MaterialTheme
-                        .colorScheme.onSurfaceVariant
-                )
-            },
-            text = {
-                OutlinedTextField(
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                        textColor =
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    ),
-                    value = name,
-                    onValueChange = { name = it },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Text,
-                        capitalization = KeyboardCapitalization.Words
-                    ),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text(text = getString(R.string.name)) },
-                    isError = error,
-                    placeholder = { Text(text = getString(R.string.new_name)) }
-                )
+            }) {
+                Text(text = getString(R.string.save))
             }
-        )
+        }, dismissButton = {
+            OutlinedButton(onClick = {
+                friendModel.popDialogState()
+            }) {
+                Text(text = getString(R.string.cancel))
+            }
+        }, title = {
+            Text(
+                text = getString(R.string.rename),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }, text = {
+            OutlinedTextField(colors = TextFieldDefaults.outlinedTextFieldColors(
+                textColor = MaterialTheme.colorScheme.onSurfaceVariant
+            ),
+                              value = name,
+                              onValueChange = { name = it },
+                              keyboardOptions = KeyboardOptions(
+                                  keyboardType = KeyboardType.Text,
+                                  capitalization = KeyboardCapitalization.Words
+                              ),
+                              singleLine = true,
+                              modifier = Modifier.fillMaxWidth(),
+                              label = { Text(text = getString(R.string.name)) },
+                              isError = error,
+                              placeholder = { Text(text = getString(R.string.new_name)) })
+        })
     }
 
     @Composable
     fun OverlaySettingsDialog() {
-        AlertDialog(onDismissRequest = { friendModel.popDialogState() },
-            confirmButton = {
-                Button(onClick = {
-                    val intent = Intent(
-                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                        Uri.parse("package:" + applicationContext.packageName)
-                    )
-                    friendModel.popDialogState()
-                    startActivity(intent)
-                }) {
-                    Text(text = getString(R.string.open_settings))
-                }
-            },
-            dismissButton = {
-                OutlinedButton(onClick = {
-                    val editor = getSharedPreferences(
-                        MainViewModel
-                            .USER_INFO, MODE_PRIVATE
-                    ).edit()
-                    editor.putBoolean(MainViewModel.OVERLAY_NO_PROMPT, true)
-                    editor.apply()
-                    friendModel.popDialogState()
-                }) {
-                    Text(text = getString(R.string.do_not_ask_again))
-                }
-            },
-            title = {
-                Text(
-                    text = getString(R.string.draw_title), color = MaterialTheme
-                        .colorScheme.onSurfaceVariant
+        AlertDialog(onDismissRequest = { friendModel.popDialogState() }, confirmButton = {
+            Button(onClick = {
+                val intent = Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:" + applicationContext.packageName)
                 )
-            },
-            text = {
-                Text(
-                    text = getString(R.string.draw_message), color = MaterialTheme
-                        .colorScheme.onSurfaceVariant
-                )
+                friendModel.popDialogState()
+                startActivity(intent)
+            }) {
+                Text(text = getString(R.string.open_settings))
             }
-        )
+        }, dismissButton = {
+            OutlinedButton(onClick = {
+                val editor = getSharedPreferences(
+                    MainViewModel.USER_INFO, MODE_PRIVATE
+                ).edit()
+                editor.putBoolean(MainViewModel.OVERLAY_NO_PROMPT, true)
+                editor.apply()
+                friendModel.popDialogState()
+            }) {
+                Text(text = getString(R.string.do_not_ask_again))
+            }
+        }, title = {
+            Text(
+                text = getString(R.string.draw_title),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }, text = {
+            Text(
+                text = getString(R.string.draw_message),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        })
     }
 
     private fun onAddFriend(username: String) {
@@ -594,87 +550,82 @@ class MainActivity : AppCompatActivity() {
                 reload()
             }
             friendModel.popDialogState()
-        },
-            dismissButton = {
-                OutlinedButton(onClick = {
-                    friendModel.popDialogState()
-                }) {
-                    Text(getString(R.string.cancel))
-                }
-            },
-            confirmButton = {
-                Button(onClick = {
-                    onAddFriend(friendModel.addFriendUsername)
-                }) {
-                    Text(getString(android.R.string.ok))
-                }
-            },
-            title = {
+        }, dismissButton = {
+            OutlinedButton(onClick = {
+                friendModel.popDialogState()
+            }) {
+                Text(getString(R.string.cancel))
+            }
+        }, confirmButton = {
+            Button(onClick = {
+                onAddFriend(friendModel.addFriendUsername)
+            }) {
+                Text(getString(android.R.string.ok))
+            }
+        }, title = {
+            Text(
+                text = getString(R.string.add_friend),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }, text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Text(
-                    text = getString(R.string.add_friend), color = MaterialTheme
-                        .colorScheme.onSurfaceVariant
+                    modifier = Modifier.fillMaxWidth(),
+                    text = friendModel.newFriendName,
+                    color = if (friendModel.friendNameLoading) MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                        alpha = ContentAlpha.medium
+                    )
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
                 )
-            },
-            text = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        modifier = Modifier.fillMaxWidth(),
-                        text = friendModel.newFriendName,
-                        color = if (friendModel.friendNameLoading)
-                            MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                                alpha = ContentAlpha.medium
-                            )
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
-                    )
-                    OutlinedTextField(
-                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                            textColor =
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        value = friendModel.addFriendUsername,
-                        onValueChange = {
-                            friendModel.addFriendUsername = it
-                            friendModel.getFriendName(
-                                it, launchLogin = ::launchLogin
-                            )
-                        },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Text,
-                            autoCorrect = false,
-                            capitalization = KeyboardCapitalization.None,
-                            imeAction = ImeAction.Done
-                        ),
-                        keyboardActions = KeyboardActions(onDone = {
-                            onAddFriend(username = friendModel.addFriendUsername)
-                        }),
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        label = { Text(text = getString(R.string.username)) },
-                        isError = friendModel.usernameCaption.isNotBlank(),
-                        placeholder = { Text(text = getString(R.string.placeholder_name)) }
-                    )
-                    Text(
-                        text = friendModel.usernameCaption,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                            alpha = ContentAlpha.medium
-                        ),
-                        style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier.padding(start = 16.dp)
-                    )
-                }
-            })
+                OutlinedTextField(colors = TextFieldDefaults.outlinedTextFieldColors(
+                    textColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                                  value = friendModel.addFriendUsername,
+                                  onValueChange = {
+                                      friendModel.addFriendUsername = it
+                                      friendModel.getFriendName(
+                                          it, launchLogin = ::launchLogin
+                                      )
+                                  },
+                                  keyboardOptions = KeyboardOptions(
+                                      keyboardType = KeyboardType.Text,
+                                      autoCorrect = false,
+                                      capitalization = KeyboardCapitalization.None,
+                                      imeAction = ImeAction.Done
+                                  ),
+                                  keyboardActions = KeyboardActions(onDone = {
+                                      onAddFriend(username = friendModel.addFriendUsername)
+                                  }),
+                                  modifier = Modifier.fillMaxWidth(),
+                                  singleLine = true,
+                                  label = { Text(text = getString(R.string.username)) },
+                                  isError = friendModel.usernameCaption.isNotBlank(),
+                                  placeholder = { Text(text = getString(R.string.placeholder_name)) })
+                Text(
+                    text = friendModel.usernameCaption,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                        alpha = ContentAlpha.medium
+                    ),
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(start = 16.dp)
+                )
+            }
+        })
     }
 
     @OptIn(ExperimentalAnimationApi::class)
     @ExperimentalFoundationApi
     @Composable
     fun FriendCard(
-        friend: Friend, onLongPress: () -> Unit, onEditName: (friend: Friend) -> Unit,
-        onDeletePrompt: (friend: Friend) -> Unit, cached: Boolean = false
+        friend: Friend,
+        onLongPress: () -> Unit,
+        onEditName: (friend: Friend) -> Unit,
+        onDeletePrompt: (friend: Friend) -> Unit,
+        cached: Boolean = false
     ) {
         var state by remember { mutableStateOf(State.NORMAL) }
         var message: String? by remember { mutableStateOf(null) }
@@ -687,7 +638,7 @@ class MainActivity : AppCompatActivity() {
             else -> ""
         }
 
-        var sendingStatus: String? by remember { mutableStateOf(null)}
+        var sendingStatus: String? by remember { mutableStateOf(null) }
 
         val subtitle = sendingStatus ?: receipt
 
@@ -704,63 +655,55 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        Box(
-            modifier = Modifier
-                    .fillMaxWidth(1F)
-                    .padding(10.dp)
-                    .requiredHeight(48.dp)
-                    .combinedClickable(
-                            onClick = {
-                                state = when (state) {
-                                    State.NORMAL -> State.CONFIRM
-                                    State.CONFIRM, State.CANCEL, State.EDIT -> State.NORMAL
-                                }
-                            },
-                            onClickLabel = getString(R.string.friend_card_click_label),
-                            onLongClick = {
-                                state = when (state) {
-                                    State.NORMAL -> State.EDIT
-                                    else -> state
-                                }
-                                onLongPress()
-                            },
-                            onLongClickLabel = getString(R.string.friend_card_long_click_label)
-                    )
+        Box(modifier = Modifier
+            .fillMaxWidth(1F)
+            .padding(10.dp)
+            .requiredHeight(48.dp)
+            .combinedClickable(onClick = {
+                state = when (state) {
+                    State.NORMAL -> State.CONFIRM
+                    State.CONFIRM, State.CANCEL, State.EDIT -> State.NORMAL
+                }
+            }, onClickLabel = getString(R.string.friend_card_click_label), onLongClick = {
+                state = when (state) {
+                    State.NORMAL -> State.EDIT
+                    else -> state
+                }
+                onLongPress()
+            }, onLongClickLabel = getString(R.string.friend_card_long_click_label)
+            )
         ) {
             Column(modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .semantics(mergeDescendants = true) {}) {
-                // todo check if muted, append muted emoji if it is
+                .align(Alignment.CenterStart)
+                .semantics(mergeDescendants = true) {}) { // todo check if muted, append muted emoji if it is
                 Text(
                     text = friend.name,
                     style = MaterialTheme.typography.titleMedium,
                     color = if (cached) MaterialTheme.colorScheme.onBackground.copy(
-                        alpha =
-                        ContentAlpha.medium
+                        alpha = ContentAlpha.medium
                     ) else MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier
-                            .alpha(alpha)
-                            .blur(blur)
+                        .alpha(alpha)
+                        .blur(blur)
                 )
                 Text(
                     text = subtitle,
-                    color = if (subtitle == getString(R.string.send_error))
-                        MaterialTheme.colorScheme.error.copy(alpha = ContentAlpha.medium)
-                        else MaterialTheme.colorScheme
-                            .onBackground.copy(
+                    color = if (subtitle == getString(R.string.send_error)) MaterialTheme.colorScheme.error.copy(
                         alpha = ContentAlpha.medium
-                    ),
+                    )
+                    else MaterialTheme.colorScheme.onBackground.copy(
+                            alpha = ContentAlpha.medium
+                        ),
                     style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier
-                            .alpha(alpha)
-                            .blur(blur)
+                        .alpha(alpha)
+                        .blur(blur)
                 )
             }
             AnimatedContent(targetState = state, transitionSpec = {
-                val enterTransition = when(targetState) {
+                val enterTransition = when (targetState) {
                     State.EDIT -> {
-                        slideIntoContainer(towards = AnimatedContentScope.SlideDirection.Right) +
-                                fadeIn()
+                        slideIntoContainer(towards = AnimatedContentScope.SlideDirection.Right) + fadeIn()
                     }
                     State.CONFIRM -> {
                         scaleIn() + fadeIn()
@@ -774,8 +717,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 val exitTransition = when (initialState) {
                     State.EDIT -> {
-                        slideOutOfContainer(towards = AnimatedContentScope.SlideDirection.Left) +
-                                fadeOut()
+                        slideOutOfContainer(towards = AnimatedContentScope.SlideDirection.Left) + fadeOut()
                     }
                     State.CONFIRM -> {
                         scaleOut() + fadeOut()
@@ -793,32 +735,30 @@ class MainActivity : AppCompatActivity() {
                     State.NORMAL -> {}
                     State.CONFIRM -> {
                         Row(
-                                horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier
-                                .fillMaxWidth()
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             IconButton(onClick = { state = State.NORMAL }) {
                                 Icon(
-                                        Icons.Filled.Close,
-                                        tint = MaterialTheme.colorScheme.onBackground,
-                                        contentDescription = getString(R.string.cancel)
+                                    Icons.Filled.Close,
+                                    tint = MaterialTheme.colorScheme.onBackground,
+                                    contentDescription = getString(R.string.cancel)
                                 )
                             }
                             Button(
-                                    onClick = {
-                                        state = State.CANCEL
-                                        message = null
-                                    }, colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme
-                                            .colorScheme.primary,
+                                onClick = {
+                                    state = State.CANCEL
+                                    message = null
+                                }, colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
                                     contentColor = MaterialTheme.colorScheme.onPrimary
-                            )
+                                )
                             ) {
                                 Text(getString(R.string.confirm_alert))
                             }
                             OutlinedButton(onClick = {
                                 friendModel.appendDialogState(Triple(
-                                        MainViewModel
-                                                .DialogStatus.ADD_MESSAGE_TEXT, friend
+                                    MainViewModel.DialogStatus.ADD_MESSAGE_TEXT, friend
                                 ) {
                                     message = it
                                     state = State.CANCEL
@@ -830,26 +770,24 @@ class MainActivity : AppCompatActivity() {
                     }
                     State.EDIT -> {
                         Row(
-                                horizontalArrangement = Arrangement.End, modifier = Modifier
-                                .fillMaxWidth()
+                            horizontalArrangement = Arrangement.End,
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             IconButton(onClick = { state = State.NORMAL }) {
                                 Icon(
-                                        Icons.Filled.Close,
-                                        tint = MaterialTheme.colorScheme.onBackground,
-                                        contentDescription = getString(R.string.cancel)
+                                    Icons.Filled.Close,
+                                    tint = MaterialTheme.colorScheme.onBackground,
+                                    contentDescription = getString(R.string.cancel)
                                 )
                             }
                             Button(
-                                    onClick = {
-                                        if (cached) friendModel.onDeleteCachedFriend(friend)
-                                        else onDeletePrompt(friend)
-                                        state = State.NORMAL
-                                    }, colors =
-                            ButtonDefaults
-                                    .buttonColors(
-                                            containerColor = MaterialTheme.colorScheme.error,
-                                            contentColor = MaterialTheme.colorScheme.onError
+                                onClick = {
+                                    if (cached) friendModel.onDeleteCachedFriend(friend)
+                                    else onDeletePrompt(friend)
+                                    state = State.NORMAL
+                                }, colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.error,
+                                        contentColor = MaterialTheme.colorScheme.onError
                                     )
                             ) {
                                 Text(getString(R.string.delete))
@@ -866,18 +804,19 @@ class MainActivity : AppCompatActivity() {
                     State.CANCEL -> {
                         val typedValue = TypedValue()
                         resources.getValue(R.integer.default_delay, typedValue, false)
-                        val delay: Long by remember { mutableStateOf((PreferenceManager
-                                .getDefaultSharedPreferences(this@MainActivity)
-                                .getString(getString(R.string.delay_key), null).let {
-                                    it?.toFloatOrNull() ?: typedValue.float
-                                } * 1000).toLong()) }
+                        val delay: Long by remember {
+                            mutableStateOf((PreferenceManager.getDefaultSharedPreferences(this@MainActivity)
+                                                .getString(getString(R.string.delay_key), null)
+                                                .let {
+                                                    it?.toFloatOrNull() ?: typedValue.float
+                                                } * 1000).toLong())
+                        }
                         var progress by remember { mutableStateOf(0L) }
                         val animatedProgress by animateFloatAsState(
-                                targetValue = min(progress.toFloat() / delay, 1f).let {
-                                    if (it.isNaN()) 1f
-                                    else it
-                                },
-                                animationSpec = ProgressIndicatorDefaults.ProgressAnimationSpec
+                            targetValue = min(progress.toFloat() / delay, 1f).let {
+                                if (it.isNaN()) 1f
+                                else it
+                            }, animationSpec = ProgressIndicatorDefaults.ProgressAnimationSpec
                         )
                         var progressEnabled by remember { mutableStateOf(true) }
                         var triggered by remember { mutableStateOf(false) }
@@ -890,55 +829,50 @@ class MainActivity : AppCompatActivity() {
                         }
 
                         if (progress >= delay && !triggered) {
-                            @Suppress("UNUSED_VALUE")
-                            triggered = true
-                            friendModel.sendAlert(
-                                    friend.id,
-                                    message = message,
-                                    launchLogin = ::launchLogin,
-                                    onError = {
-                                        sendingStatus = getString(R.string.send_error)
-                                    },
-                                    onSuccess = {
-                                        sendingStatus = null
-                                    })
+                            @Suppress("UNUSED_VALUE") triggered = true
+                            friendModel.sendAlert(friend.id,
+                                                  message = message,
+                                                  launchLogin = ::launchLogin,
+                                                  onError = {
+                                                      sendingStatus = getString(R.string.send_error)
+                                                  },
+                                                  onSuccess = {
+                                                      sendingStatus = null
+                                                  })
                             state = State.NORMAL
                             progressEnabled = false
                             sendingStatus = getString(R.string.sending)
                         }
-                        CancelBar(progress = animatedProgress,
-                                modifier = Modifier
-                                        .clickable {
-                                            progressEnabled = false
-                                            state = State.NORMAL
-                                            progress = 0
-                                        }
-                                        .fillMaxSize())
-                    }
+                        CancelBar(progress = animatedProgress, modifier = Modifier
+                            .clickable {
+                                progressEnabled = false
+                                state = State.NORMAL
+                                progress = 0
+                            }
+                            .fillMaxSize())
                     }
                 }
             }
+        }
     }
 
     @Composable
     fun CancelBar(
-        progress: Float,
-        modifier: Modifier = Modifier
+        progress: Float, modifier: Modifier = Modifier
     ) {
         Box(
             modifier = modifier
-                    .clip(shape = RoundedCornerShape(5.dp))
-                    .background(color = MaterialTheme.colorScheme.inversePrimary)
+                .clip(shape = RoundedCornerShape(5.dp))
+                .background(color = MaterialTheme.colorScheme.inversePrimary)
         ) {
 
             Box(
                 modifier = Modifier
-                        .fillMaxWidth(progress)
-                        .fillMaxHeight()
-                        .clip(shape = RoundedCornerShape(5.dp))
-                        .background(color = MaterialTheme.colorScheme.primary)
-            ) {
-            }
+                    .fillMaxWidth(progress)
+                    .fillMaxHeight()
+                    .clip(shape = RoundedCornerShape(5.dp))
+                    .background(color = MaterialTheme.colorScheme.primary)
+            ) {}
             Text(text = getString(R.string.cancel), modifier = Modifier.align(Alignment.Center))
         }
     }
@@ -955,8 +889,7 @@ class MainActivity : AppCompatActivity() {
     private fun checkPlayServices(): Boolean {
         if (GoogleApiAvailability.getInstance()
                 .isGooglePlayServicesAvailable(this) != ConnectionResult.SUCCESS
-        ) {
-            // check for Google Play Services
+        ) { // check for Google Play Services
             Toast.makeText(this, getString(R.string.no_play_services), Toast.LENGTH_LONG).show()
             GoogleApiAvailability.getInstance().makeGooglePlayServicesAvailable(this)
             return false

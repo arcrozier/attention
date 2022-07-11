@@ -11,12 +11,15 @@
 
         <!-- TODO make this a split button - tapping the username opens the login activity and
         allows you to change your username -->
-        <Preference
-            android:id="@+id/show_username_preference"
-            android:key="@string/username_key"
-            android:title="@string/username"
-            app:icon="@drawable/baseline_share_24"
-            app:iconSpaceReserved="true" />
+        <com.aracroproducts.attentionv2.SplitPreference>
+            <Preference
+                android:id="@+id/show_username_preference"
+                android:key="@string/username_key"
+                android:title="@string/username"
+                app:icon="@drawable/baseline_share_24"
+                app:iconSpaceReserved="true" />
+            <com.aracroproducts.attentionv2.IconPreference />
+        </com.aracroproducts.attentionv2.SplitPreference>
 
         <EditTextPreference
             android:id="@+id/email_preference"

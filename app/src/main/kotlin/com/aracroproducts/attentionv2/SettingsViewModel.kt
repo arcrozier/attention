@@ -10,7 +10,7 @@ import com.aracroproducts.attentionv2.MainViewModel.Companion.FCM_TOKEN
 import com.aracroproducts.attentionv2.MainViewModel.Companion.TOKEN_UPLOADED
 
 class SettingsViewModel(private val repository: AttentionRepository, application: Application) :
-        AndroidViewModel(application) {
+    AndroidViewModel(application) {
 
     var outstandingRequests by mutableStateOf(0)
 
