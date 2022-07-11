@@ -15,6 +15,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.preference.*
+import com.aracroproducts.attentionv2.MainViewModel.Companion.FCM_TOKEN
+import com.aracroproducts.attentionv2.MainViewModel.Companion.MY_TOKEN
 import com.google.android.material.snackbar.Snackbar
 
 /**
@@ -104,7 +106,7 @@ class SettingsActivity : AppCompatActivity() {
             val token = context.getSharedPreferences(
                     MainViewModel.USER_INFO, Context
                     .MODE_PRIVATE
-            ).getString(MainViewModel.MY_TOKEN, null)
+            ).getString(MY_TOKEN, null)
             if (token != null) {
                 settingsFragment.view?.let {
                     val snackBar = Snackbar.make(it, R.string.saving, Snackbar.LENGTH_INDEFINITE)
@@ -216,11 +218,15 @@ class SettingsActivity : AppCompatActivity() {
                         setTitle(getString(R.string.confirm_logout_title))
                         setMessage(getString(R.string.confirm_logout_message))
                         setPositiveButton(R.string.confirm_logout_title) { dialog, _ ->
-                            localContext.getSharedPreferences(
+                            val userInfo = localContext.getSharedPreferences(
                                     MainViewModel.USER_INFO,
                                     Context.MODE_PRIVATE
-                            ).edit().apply {
-                                putString(MainViewModel.MY_TOKEN, null)
+                            )
+                            val fcmTokenPrefs = context.getSharedPreferences(FCM_TOKEN, Context.MODE_PRIVATE)
+                            viewModel.unregisterDevice(userInfo.getString(MY_TOKEN, null) ?: "",
+                                    fcmTokenPrefs.getString(FCM_TOKEN, null) ?: "")
+                            userInfo.edit().apply {
+                                putString(MY_TOKEN, null)
                                 apply()
                             }
                             PreferenceManager.getDefaultSharedPreferences(localContext).edit()

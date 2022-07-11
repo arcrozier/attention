@@ -2,6 +2,7 @@ package com.aracroproducts.attentionv2
 
 import android.app.Application
 import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
 import android.content.IntentSender.SendIntentException
 import android.net.Uri
@@ -69,6 +70,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.text.getSpans
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.aracroproducts.attentionv2.MainViewModel.Companion.TOKEN_UPLOADED
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
 import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
 import com.google.android.gms.auth.api.identity.*
@@ -113,7 +115,7 @@ class LoginActivity : AppCompatActivity() {
                 // Got an ID token from Google. Use it to authenticate
                 // with your backend.
                 loginViewModel.loginWithGoogle(null, null) {
-                    finish()
+                    completeSignIn()
                 }
                 Log.d(TAG, "Got ID token.")
             } else if (password != null) {
@@ -1027,7 +1029,7 @@ class LoginActivity : AppCompatActivity() {
                     passwordSaveResultHandler.launch(
                             IntentSenderRequest.Builder(result.pendingIntent.intentSender).build())
                 }
-        finish()
+        completeSignIn()
     }
 
     private fun signInWithGoogle(scaffoldState: ScaffoldState, coroutineScope: CoroutineScope) {
@@ -1060,6 +1062,15 @@ class LoginActivity : AppCompatActivity() {
                                 .google_sign_in_failed), duration = SnackbarDuration.Short)
                     }
                 }
+    }
+
+    private fun completeSignIn() {
+        val fcmTokenPrefs = getSharedPreferences(MainViewModel.FCM_TOKEN, Context.MODE_PRIVATE)
+        fcmTokenPrefs.edit().apply {
+            putBoolean(TOKEN_UPLOADED, false)
+            apply()
+        }
+        finish()
     }
 
     companion object {

@@ -62,6 +62,11 @@ interface APIV2 {
     String): Call<GenericResult<Void>>
 
     @FormUrlEncoded
+    @POST("unregister_device/")
+    fun unregisterDevice(@Field("fcm_token") fcmToken: String, @Header("Authorization") token:
+    String): Call<GenericResult<Void>>
+
+    @FormUrlEncoded
     @POST("register_user/")
     fun registerUser(@Field("first_name") firstName: String, @Field("last_name") lastName:
     String, @Field("username") username: String, @Field("password") password: String, @Field
