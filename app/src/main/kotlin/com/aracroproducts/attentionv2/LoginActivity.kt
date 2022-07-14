@@ -361,6 +361,7 @@ class LoginActivity : AppCompatActivity() {
             modifier = Modifier
                 .padding(paddingValues)
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
         ) {
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             Text(
