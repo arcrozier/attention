@@ -11,11 +11,23 @@ import android.text.InputType
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.ContentAlpha
+import androidx.compose.material.TopAppBar
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.preference.*
 import com.aracroproducts.attentionv2.MainViewModel.Companion.FCM_TOKEN
 import com.aracroproducts.attentionv2.MainViewModel.Companion.MY_TOKEN
+import com.aracroproducts.attentionv2.MainViewModel.Companion.USER_INFO
 import com.google.android.material.snackbar.Snackbar
 
 /**
@@ -45,6 +57,71 @@ class SettingsActivity : AppCompatActivity() {
         supportFragmentManager.beginTransaction()
             .replace(R.id.settings, SettingsFragment(viewModel = viewModel)).commit()
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+    }
+
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Composable
+    fun PreferenceScreen(preferences: @Composable () -> Unit) {
+        Scaffold(topBar = {
+            TopAppBar(backgroundColor = MaterialTheme.colorScheme.primary, title = {
+                Text(
+                    getString(R.string.title_activity_settings),
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            }, navigationIcon = {
+                IconButton(onClick = {
+                    onBackPressedDispatcher.onBackPressed()
+                }) {
+                    Icon(
+                        Icons.Default.ArrowBack, getString(
+                            R.string.back
+                        ), tint = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+            })
+        }) {
+            preferences()
+        }
+    }
+
+    @Composable
+    fun Preference(
+        key: String,
+        title: Int,
+        summary: (key: String) -> String = {
+            getSharedPreferences(USER_INFO, Context.MODE_PRIVATE).getString(it, null) ?: ""
+        },
+        modifier: Modifier = Modifier,
+        action: @Composable () -> Unit,
+        icon: (@Composable BoxScope
+        .() -> Unit)? = null,
+        reserveIconSpace: Boolean = true,
+        titleColor: Color = MaterialTheme.colorScheme.onSurface,
+        titleStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.labelMedium,
+        summaryColor: Color = MaterialTheme.colorScheme.onSurface.copy(
+            alpha = ContentAlpha.medium
+        ),
+        summaryStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.labelSmall
+    ) {
+        Row(modifier = modifier
+            .fillMaxWidth()
+            .height(73.dp)) {
+            if (icon != null || reserveIconSpace) {
+                val iconSpot: @Composable BoxScope.() -> Unit = icon ?: { }
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center,
+                    content = iconSpot
+                )
+            }
+            Column(modifier = modifier.fillMaxHeight(), verticalArrangement = Arrangement.Center) {
+                Text(text = getString(title), style = titleStyle, color = titleColor)
+                Text(text = summary(key), style = summaryStyle, color = summaryColor)
+            }
+            action()
+        }
     }
 
     class UserInfoChangeListener(
@@ -208,8 +285,8 @@ class SettingsActivity : AppCompatActivity() {
                     }
                 usernamePreference.summary =
                     PreferenceManager.getDefaultSharedPreferences(localContext).getString(
-                            getString(R.string.username_key), getString(R.string.no_username)
-                        )
+                        getString(R.string.username_key), getString(R.string.no_username)
+                    )
             }
 
             val logoutPreference: Preference? = findPreference(getString(R.string.logout_key))
