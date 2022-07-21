@@ -11,6 +11,7 @@ import android.text.InputType
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material.TopAppBar
@@ -18,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -85,14 +87,14 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     @Composable
-    fun Preference(
-        key: String,
+    fun <T> Preference(
+        preference: ComposablePreference<T>,
         title: Int,
+        action: (@Composable (value: T) -> Unit)? = null,
         summary: (key: String) -> String = {
             getSharedPreferences(USER_INFO, Context.MODE_PRIVATE).getString(it, null) ?: ""
         },
         modifier: Modifier = Modifier,
-        action: @Composable () -> Unit,
         icon: (@Composable BoxScope
         .() -> Unit)? = null,
         reserveIconSpace: Boolean = true,
@@ -101,11 +103,23 @@ class SettingsActivity : AppCompatActivity() {
         summaryColor: Color = MaterialTheme.colorScheme.onSurface.copy(
             alpha = ContentAlpha.medium
         ),
-        summaryStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.labelSmall
+        summaryStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.labelSmall,
+        onPreferenceClicked: (key: String, value: MutableState<T>) -> Boolean = { _, _ ->
+            false
+        },
+        onPreferenceChanged: Preference.OnPreferenceChangeListener = Preference
+                .OnPreferenceChangeListener { _, _ ->
+                    true
+                },
+        enabled: Boolean = true,
+
     ) {
+        val value = preference.value
         Row(modifier = modifier
             .fillMaxWidth()
-            .height(73.dp)) {
+            .height(73.dp).clickable(enabled = enabled, onClick = {
+
+            })) {
             if (icon != null || reserveIconSpace) {
                 val iconSpot: @Composable BoxScope.() -> Unit = icon ?: { }
                 Box(
@@ -118,9 +132,9 @@ class SettingsActivity : AppCompatActivity() {
             }
             Column(modifier = modifier.fillMaxHeight(), verticalArrangement = Arrangement.Center) {
                 Text(text = getString(title), style = titleStyle, color = titleColor)
-                Text(text = summary(key), style = summaryStyle, color = summaryColor)
+                Text(text = summary(preference.key), style = summaryStyle, color = summaryColor)
             }
-            action()
+            if (action != null) action(value)
         }
     }
 
