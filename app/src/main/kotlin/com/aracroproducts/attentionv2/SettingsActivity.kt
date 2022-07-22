@@ -87,6 +87,11 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     @Composable
+    fun PreferenceGroup(title: Int, preferences: @Composable () -> Unit) {
+
+    }
+
+    @Composable
     fun <T> Preference(
         preference: ComposablePreference<T>,
         title: Int,
