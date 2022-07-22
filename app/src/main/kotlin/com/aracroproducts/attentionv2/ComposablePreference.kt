@@ -7,15 +7,17 @@ abstract class ComposablePreference<T>(val key: String) {
     abstract var value: T
 }
 
+class EphemeralPreference<T>(key: String, override var value: T) : ComposablePreference<T>(key)
+
 class BooleanPreference(key: String, val context: Context) : ComposablePreference<Boolean>(key) {
     override var value
-    get() = getValue(false)
-    set(value) {
-        PreferenceManager.getDefaultSharedPreferences(context).edit().apply {
-            putBoolean(key, value)
-            apply()
+        get() = getValue(false)
+        set(value) {
+            PreferenceManager.getDefaultSharedPreferences(context).edit().apply {
+                putBoolean(key, value)
+                apply()
+            }
         }
-    }
 
     fun getValue(default: Boolean): Boolean {
         return PreferenceManager.getDefaultSharedPreferences(context).getBoolean(key, default)
@@ -33,8 +35,8 @@ class StringPreference(key: String, val context: Context) : ComposablePreference
         }
 
     fun getValue(default: String): String {
-        return PreferenceManager.getDefaultSharedPreferences(context).getString(key, default) ?:
-        default
+        return PreferenceManager.getDefaultSharedPreferences(context).getString(key, default)
+                ?: default
     }
 }
 
@@ -50,8 +52,8 @@ class StringSetPreference(key: String, val context: Context) : ComposablePrefere
         }
 
     fun getValue(default: Set<String>): Set<String> {
-        return PreferenceManager.getDefaultSharedPreferences(context).getStringSet(key, default) ?:
-        default
+        return PreferenceManager.getDefaultSharedPreferences(context).getStringSet(key, default)
+                ?: default
     }
 }
 
