@@ -5,21 +5,30 @@ import android.app.Application
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.text.InputType
+import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,6 +42,8 @@ import androidx.preference.*
 import com.aracroproducts.attentionv2.MainViewModel.Companion.FCM_TOKEN
 import com.aracroproducts.attentionv2.MainViewModel.Companion.MY_TOKEN
 import com.aracroproducts.attentionv2.MainViewModel.Companion.USER_INFO
+import com.aracroproducts.attentionv2.ui.theme.AppTheme
+import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
 import com.google.android.material.snackbar.Snackbar
 
 /**
@@ -59,15 +70,58 @@ class SettingsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.settings_activity)
-        supportFragmentManager.beginTransaction()
-                .replace(R.id.settings, SettingsFragment(viewModel = viewModel)).commit()
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        setContent {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                HarmonizedTheme {
+                    PreferenceScreenWrapper()
+                }
+            } else {
+                AppTheme {
+                    PreferenceScreenWrapper()
+                }
+            }
+        }
+    }
+
+    @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
+    @Composable
+    fun PreferenceScreenWrapper() {
+        val preferences = listOf(
+            Pair<Int, @Composable () -> Unit>(R.string.account) @Composable {
+                Preference(preference = StringPreference(getString(R.string.username_key), this),
+                        title = R.string.username, onPreferenceClicked = {
+                    val username =
+                            PreferenceManager.getDefaultSharedPreferences(this)
+                                    .getString(MainViewModel.MY_ID, null)
+                    if (username != null) {
+                        val sharingIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            val shareBody = getString(R.string.share_text, username)
+                            putExtra(Intent.EXTRA_TEXT, shareBody)
+                        }
+                        startActivity(Intent.createChooser(sharingIntent, null))
+                    }
+                    true
+                }, summary = {
+                    PreferenceManager.getDefaultSharedPreferences(this).getString(
+                            getString(R.string.username_key), null
+                    ) ?: getString(R.string.no_username)
+                })
+            }
+        )
+        PreferenceScreen(preferences = preferences, selected = viewModel
+                .selectedPreferenceGroupIndex, screenClass = calculateWindowSizeClass(activity = this).widthSizeClass,
+                onGroupSelected = { key, preferenceGroup ->
+                    viewModel.selectedPreferenceGroupIndex = key
+                    viewModel.currentPreferenceGroup = preferenceGroup
+                })
     }
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    fun PreferenceScreen(preferences: @Composable () -> Unit) {
+    fun PreferenceScreen(preferences: List<Pair<Int, @Composable () -> Unit>>, selected: Int,
+                         screenClass: WindowWidthSizeClass, onGroupSelected: (key: Int,
+                                                                              preferences: @Composable () -> Unit) -> Unit) {
         Scaffold(topBar = {
             TopAppBar(backgroundColor = MaterialTheme.colorScheme.primary, title = {
                 Text(
@@ -86,13 +140,27 @@ class SettingsActivity : AppCompatActivity() {
                 }
             })
         }) {
-            preferences()
+            LazyColumn(modifier = Modifier.selectableGroup()) {
+                items(items = preferences, key = { preference -> preference.first }) { preference ->
+                    PreferenceGroup(
+                            title = preference.first,
+                            onClick = {
+                                onGroupSelected(preference.first, preference.second)
+                            },
+                            selected =
+                            preference.first == selected,
+                            tablet = screenClass != WindowWidthSizeClass.Compact,
+                            preferences = preference
+                                    .second,
+                    )
+                }
+            }
         }
     }
 
     @Composable
-    fun PreferenceGroup(title: Int, preferences: @Composable () -> Unit, selected: Boolean,
-                        tablet: Boolean) {
+    fun PreferenceGroup(title: Int, selected: Boolean,
+                        tablet: Boolean, onClick: () -> Unit, preferences: @Composable () -> Unit) {
         assert(!selected || tablet)
         if (tablet) {
             Box(modifier = Modifier
@@ -102,12 +170,13 @@ class SettingsActivity : AppCompatActivity() {
                     .clip(
                             RoundedCornerShape(12.dp))
                     .background(if (selected) MaterialTheme
-                            .colorScheme.secondaryContainer else Color.Transparent), contentAlignment =
-            Alignment.Center) {
+                            .colorScheme.secondaryContainer else Color.Transparent)
+                    .selectable(selected = selected, onClick = onClick),
+                    contentAlignment =
+                    Alignment.Center) {
                 Text(text = getString(title), style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.onSecondaryContainer)
             }
-            if (selected) viewModel.currentPReferenceGroup = preferences
         } else {
             Text(text = getString(title), style = MaterialTheme.typography.titleSmall, fontWeight
             = FontWeight.Bold)
@@ -136,24 +205,23 @@ class SettingsActivity : AppCompatActivity() {
             onPreferenceClicked: (preference: ComposablePreference<T>) -> Boolean = {
                 false
             },
-            onPreferenceChanged: (preference: ComposablePreference<T>, newValue: T) -> Boolean = { _,
-                                                                                                   _ ->
-                true
-            },
+            onPreferenceChanged: ComposablePreferenceChangeListener<T> =
+                    object : ComposablePreferenceChangeListener<T> {
+                        override fun onPreferenceChange(preference: ComposablePreference<T>,
+                                                        newValue: T): Boolean {
+                            return true
+                        }
+                    },
             enabled: Boolean = true,
 
             ) {
+        preference.onPreferenceChangeListener.add(onPreferenceChanged)
         val value = preference.value
         Row(modifier = modifier
                 .fillMaxWidth()
                 .height(73.dp)
                 .clickable(enabled = enabled, onClick = {
-                    val temp = EphemeralPreference(preference.key, preference.value)
-                    if (onPreferenceClicked(temp)) {
-                        if (onPreferenceChanged(preference, temp.value)) {
-                            preference.value = temp.value
-                        }
-                    }
+                    onPreferenceClicked(preference)
                 })) {
             if (icon != null || reserveIconSpace) {
                 val iconSpot: @Composable BoxScope.() -> Unit = icon ?: { }
@@ -178,7 +246,7 @@ class SettingsActivity : AppCompatActivity() {
             private val settingsFragment: SettingsFragment,
             private val model: SettingsViewModel,
             val findPreference: (String) -> EditTextPreference?
-    ) : Preference.OnPreferenceChangeListener {
+    ) : ComposablePreferenceChangeListener<String> {
         private val attentionRepository = AttentionRepository(AttentionDB.getDB(context))
 
 
@@ -222,7 +290,8 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
 
-        override fun onPreferenceChange(preference: Preference, newValue: Any?): Boolean {
+        override fun onPreferenceChange(preference: ComposablePreference<String>, newValue:
+        String): Boolean {
             val token = context.getSharedPreferences(
                     MainViewModel.USER_INFO, Context.MODE_PRIVATE
             ).getString(MY_TOKEN, null)

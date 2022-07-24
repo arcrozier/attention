@@ -2,6 +2,7 @@ package com.aracroproducts.attentionv2
 
 import android.app.Application
 import android.content.Context
+import android.content.res.Resources.ID_NULL
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -13,9 +14,9 @@ import com.aracroproducts.attentionv2.MainViewModel.Companion.TOKEN_UPLOADED
 class SettingsViewModel(private val repository: AttentionRepository, application: Application) :
         AndroidViewModel(application) {
 
-    var outstandingRequests by mutableStateOf(0)
+    var outstandingRequests by mutableStateOf(ID_NULL)
 
-    var currentPReferenceGroup by mutableStateOf<@Composable () -> Unit>(@Composable {})
+    var currentPreferenceGroup by mutableStateOf<@Composable () -> Unit>(@Composable {})
     var selectedPreferenceGroupIndex by mutableStateOf(0)
 
     fun clearAllDatabaseTables() = repository.clearTables()
