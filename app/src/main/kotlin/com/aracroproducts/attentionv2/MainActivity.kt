@@ -843,7 +843,8 @@ class MainActivity : AppCompatActivity() {
                         }
 
                         if (progress >= delay && !triggered) {
-                            @Suppress("UNUSED_VALUE") triggered = true
+                            @Suppress("UNUSED_VALUE")
+                            triggered = true
                             friendModel.sendAlert(friend.id,
                                     message = message,
                                     launchLogin = ::launchLogin,

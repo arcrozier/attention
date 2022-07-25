@@ -13,6 +13,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedContentScope
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.with
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -30,6 +34,8 @@ import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSiz
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -164,14 +170,16 @@ class SettingsActivity : AppCompatActivity() {
         assert(!selected || tablet)
         if (tablet) {
             Box(modifier = Modifier
-                    .padding(10.dp)
-                    .fillMaxWidth(0.9f)
-                    .height(73.dp)
-                    .clip(
-                            RoundedCornerShape(12.dp))
-                    .background(if (selected) MaterialTheme
-                            .colorScheme.secondaryContainer else Color.Transparent)
-                    .selectable(selected = selected, onClick = onClick),
+                .padding(10.dp)
+                .fillMaxWidth(0.9f)
+                .height(73.dp)
+                .clip(
+                    RoundedCornerShape(12.dp)
+                )
+                .background(
+                    if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
+                )
+                .selectable(selected = selected, onClick = onClick),
                     contentAlignment =
                     Alignment.Center) {
                 Text(text = getString(title), style = MaterialTheme.typography.headlineSmall,
@@ -182,6 +190,72 @@ class SettingsActivity : AppCompatActivity() {
             = FontWeight.Bold)
             preferences()
         }
+    }
+
+    @OptIn(ExperimentalAnimationApi::class)
+    @Composable
+    fun <T> DialoguePreference(
+        preference: ComposablePreference<T>,
+        title: Int,
+        action: (@Composable (value: T) -> Unit)? = null,
+        summary: (key: String) -> String = {
+            getSharedPreferences(USER_INFO, Context.MODE_PRIVATE).getString(it, null) ?: ""
+        },
+        modifier: Modifier = Modifier,
+        icon: (@Composable BoxScope
+        .() -> Unit)? = null,
+        reserveIconSpace: Boolean = true,
+        titleColor: Color = MaterialTheme.colorScheme.onSurface,
+        titleStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.labelMedium,
+        summaryColor: Color = MaterialTheme.colorScheme.onSurface.copy(
+            alpha = ContentAlpha.medium
+        ),
+        summaryStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.labelSmall,
+        onPreferenceChanged: ComposablePreferenceChangeListener<T> =
+            object : ComposablePreferenceChangeListener<T> {
+                override fun onPreferenceChange(preference: ComposablePreference<T>,
+                                                newValue: T): Boolean {
+                    return true
+                }
+            },
+        enabled: Boolean = true,
+        dialog: @Composable (preference: ComposablePreference<T>, dismissDialog: () -> Unit,
+                             context: Context, title: String) -> Unit,
+    ) {
+        val editing = rememberSaveable {
+            mutableStateOf(false)
+        }
+        AnimatedContent(targetState = editing, transitionSpec = {
+            slideIntoContainer(
+                towards = AnimatedContentScope.SlideDirection.Up) with slideOutOfContainer(
+                towards = AnimatedContentScope.SlideDirection.Down
+            )
+        }) { targetState ->
+            if (targetState.value) {
+                dialog(preference = preference, dismissDialog = {
+                    editing.value = false
+                }, context = this@SettingsActivity, title = getString(title))
+            }
+        }
+        Preference(
+            preference = preference,
+            title = title,
+            action = action,
+            summary = summary,
+            modifier = modifier,
+            icon = icon,
+            reserveIconSpace = reserveIconSpace,
+            titleColor = titleColor,
+            titleStyle = titleStyle,
+            summaryColor = summaryColor,
+            summaryStyle = summaryStyle,
+            onPreferenceChanged = onPreferenceChanged,
+            enabled = enabled,
+            onPreferenceClicked = {
+                editing.value = true
+                true
+            }
+        )
     }
 
     @Composable
@@ -218,17 +292,17 @@ class SettingsActivity : AppCompatActivity() {
         preference.onPreferenceChangeListener.add(onPreferenceChanged)
         val value = preference.value
         Row(modifier = modifier
-                .fillMaxWidth()
-                .height(73.dp)
-                .clickable(enabled = enabled, onClick = {
-                    onPreferenceClicked(preference)
-                })) {
+            .fillMaxWidth()
+            .height(73.dp)
+            .clickable(enabled = enabled, onClick = {
+                onPreferenceClicked(preference)
+            })) {
             if (icon != null || reserveIconSpace) {
                 val iconSpot: @Composable BoxScope.() -> Unit = icon ?: { }
                 Box(
                         modifier = Modifier
-                                .size(24.dp)
-                                .padding(16.dp),
+                            .size(24.dp)
+                            .padding(16.dp),
                         contentAlignment = Alignment.Center,
                         content = iconSpot
                 )
