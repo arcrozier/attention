@@ -25,16 +25,24 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.ContentAlpha
-import androidx.compose.material.TopAppBar
+import androidx.compose.material.*
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,7 +58,8 @@ import com.aracroproducts.attentionv2.MainViewModel.Companion.MY_TOKEN
 import com.aracroproducts.attentionv2.MainViewModel.Companion.USER_INFO
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
 import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
-import com.google.android.material.snackbar.Snackbar
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 /**
  * The class for the settings menu in the app
@@ -92,9 +101,15 @@ class SettingsActivity : AppCompatActivity() {
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     @Composable
     fun PreferenceScreenWrapper() {
+
+        val snackbarHostState = remember { SnackbarHostState() }
+        val coroutineScope = rememberCoroutineScope()
+
+        val userInfoChangeListener = UserInfoChangeListener(this, viewModel, snackbarHostState, coroutineScope)
         val preferences = listOf(
             Pair<Int, @Composable () -> Unit>(R.string.account) @Composable {
-                Preference(preference = StringPreference(getString(R.string.username_key), this),
+                Preference(preference = StringPreference(getString(R.string.username_key),
+                        this),
                         title = R.string.username, onPreferenceClicked = {
                     val username =
                             PreferenceManager.getDefaultSharedPreferences(this)
@@ -113,6 +128,14 @@ class SettingsActivity : AppCompatActivity() {
                             getString(R.string.username_key), null
                     ) ?: getString(R.string.no_username)
                 })
+            },
+            Pair<Int, @Composable () -> Unit>(R.string.account) @Composable {
+                DialoguePreference(
+                        preference = StringPreference(getString(R.string.email_key), this),
+                        title = R.string.email, dialog = { preference, dismissDialog, context,
+                    title ->
+                    StringPreferenceChange(preference, dismissDialog, context, title)
+                }, onPreferenceChanged = userInfoChangeListener)
             }
         )
         PreferenceScreen(preferences = preferences, selected = viewModel
@@ -120,14 +143,15 @@ class SettingsActivity : AppCompatActivity() {
                 onGroupSelected = { key, preferenceGroup ->
                     viewModel.selectedPreferenceGroupIndex = key
                     viewModel.currentPreferenceGroup = preferenceGroup
-                })
+                }, snackbarHostState = snackbarHostState)
     }
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun PreferenceScreen(preferences: List<Pair<Int, @Composable () -> Unit>>, selected: Int,
-                         screenClass: WindowWidthSizeClass, onGroupSelected: (key: Int,
-                                                                              preferences: @Composable () -> Unit) -> Unit) {
+                         screenClass: WindowWidthSizeClass,
+                         onGroupSelected: (key: Int, preferences: @Composable () -> Unit) -> Unit,
+                         snackbarHostState: SnackbarHostState = remember {SnackbarHostState()}) {
         Scaffold(topBar = {
             TopAppBar(backgroundColor = MaterialTheme.colorScheme.primary, title = {
                 Text(
@@ -145,7 +169,8 @@ class SettingsActivity : AppCompatActivity() {
                     )
                 }
             })
-        }) {
+        }, snackbarHost = {SnackbarHost(snackbarHostState)}, containerColor = MaterialTheme
+                .colorScheme.background) {
             LazyColumn(modifier = Modifier.selectableGroup()) {
                 items(items = preferences, key = { preference -> preference.first }) { preference ->
                     PreferenceGroup(
@@ -170,16 +195,16 @@ class SettingsActivity : AppCompatActivity() {
         assert(!selected || tablet)
         if (tablet) {
             Box(modifier = Modifier
-                .padding(10.dp)
-                .fillMaxWidth(0.9f)
-                .height(73.dp)
-                .clip(
-                    RoundedCornerShape(12.dp)
-                )
-                .background(
-                    if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
-                )
-                .selectable(selected = selected, onClick = onClick),
+                    .padding(10.dp)
+                    .fillMaxWidth(0.9f)
+                    .height(73.dp)
+                    .clip(
+                            RoundedCornerShape(12.dp)
+                    )
+                    .background(
+                            if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
+                    )
+                    .selectable(selected = selected, onClick = onClick),
                     contentAlignment =
                     Alignment.Center) {
                 Text(text = getString(title), style = MaterialTheme.typography.headlineSmall,
@@ -292,17 +317,17 @@ class SettingsActivity : AppCompatActivity() {
         preference.onPreferenceChangeListener.add(onPreferenceChanged)
         val value = preference.value
         Row(modifier = modifier
-            .fillMaxWidth()
-            .height(73.dp)
-            .clickable(enabled = enabled, onClick = {
-                onPreferenceClicked(preference)
-            })) {
+                .fillMaxWidth()
+                .height(73.dp)
+                .clickable(enabled = enabled, onClick = {
+                    onPreferenceClicked(preference)
+                })) {
             if (icon != null || reserveIconSpace) {
                 val iconSpot: @Composable BoxScope.() -> Unit = icon ?: { }
                 Box(
                         modifier = Modifier
-                            .size(24.dp)
-                            .padding(16.dp),
+                                .size(24.dp)
+                                .padding(16.dp),
                         contentAlignment = Alignment.Center,
                         content = iconSpot
                 )
@@ -317,50 +342,51 @@ class SettingsActivity : AppCompatActivity() {
 
     class UserInfoChangeListener(
             private val context: Activity,
-            private val settingsFragment: SettingsFragment,
             private val model: SettingsViewModel,
-            val findPreference: (String) -> EditTextPreference?
+            private val snackbarHostState: SnackbarHostState,
+            private val coroutineScope: CoroutineScope
     ) : ComposablePreferenceChangeListener<String> {
         private val attentionRepository = AttentionRepository(AttentionDB.getDB(context))
 
 
         private fun onResponse(code: Int, newValue: Any?, key: String) {
             model.outstandingRequests--
-            when (code) {
+            val message = when (code) {
                 200 -> {
-                    findPreference(key)?.text = newValue.toString()
+                    StringPreference(key, context).value = newValue.toString()
                     if (model.outstandingRequests == 0) {
-                        settingsFragment.view?.let {
-                            Snackbar.make(
-                                    it, R.string.saved, Snackbar.LENGTH_LONG
-                            ).show()
-                        }
+                        R.string.saved
                     }
+                    null
                 }
                 400 -> {
-                    settingsFragment.view?.let {
-                        Snackbar.make(it, R.string.invalid_email, Snackbar.LENGTH_LONG).show()
-                    }
+                    R.string.invalid_email
                 }
                 403 -> {
-                    settingsFragment.view?.let {
-                        Snackbar.make(
-                                it, R.string.confirm_logout_title, Snackbar.LENGTH_SHORT
-                        ).show()
-                    }
                     launchLogin()
+                    R.string.confirm_logout_title
                 }
+                else -> {
+                    R.string.unknown_error
+                }
+            }
+            if (message != null)
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar(
+                        context.getString(message),
+                         withDismissAction = false,
+                        duration = SnackbarDuration.Long
+                )
             }
         }
 
         private fun onError() {
             model.outstandingRequests--
-
-            settingsFragment.view?.let {
-                Snackbar.make(
-                        it, R.string.disconnected, Snackbar.LENGTH_LONG
-                ).show()
-
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar(
+                        context.getString(R.string.disconnected),
+                        duration = SnackbarDuration.Long
+                )
             }
         }
 
@@ -370,11 +396,13 @@ class SettingsActivity : AppCompatActivity() {
                     MainViewModel.USER_INFO, Context.MODE_PRIVATE
             ).getString(MY_TOKEN, null)
             if (token != null) {
-                settingsFragment.view?.let {
-                    val snackBar = Snackbar.make(it, R.string.saving, Snackbar.LENGTH_INDEFINITE)
-                    snackBar.setAction(android.R.string.ok) {
-                        snackBar.dismiss()
-                    }.show()
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar(
+                            context.getString(R.string.saving),
+                            actionLabel = context.getString(android.R.string.ok),
+                            withDismissAction = true,
+                            duration = SnackbarDuration.Indefinite
+                    )
                 }
                 model.outstandingRequests++
                 when (preference.key) {

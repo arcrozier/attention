@@ -96,7 +96,8 @@ interface ComposablePreferenceChangeListener<T> {
 }
 
 @Composable
-fun StringPreferenceChange(preference: StringPreference, dismissDialog: () -> Unit, context:
+fun StringPreferenceChange(preference: ComposablePreference<String>, dismissDialog: () -> Unit,
+                           context:
 Context, title: String) {
     var newValue by remember { mutableStateOf(preference.value)}
     AlertDialog(onDismissRequest = { dismissDialog() }, dismissButton = {

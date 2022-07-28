@@ -44,7 +44,12 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -240,7 +245,7 @@ class LoginActivity : AppCompatActivity() {
     @Composable
     fun ChooseUsername(
         model: LoginViewModel,
-        scaffoldState: ScaffoldState,
+        snackbarHostState: SnackbarHostState,
         coroutineScope: CoroutineScope,
         paddingValues: PaddingValues
     ) {
@@ -262,7 +267,7 @@ class LoginActivity : AppCompatActivity() {
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             Button(
                 onClick = {
-                    model.loginWithGoogle(scaffoldState, coroutineScope) {
+                    model.loginWithGoogle(snackbarHostState, coroutineScope) {
                         finish()
                     }
                 }, enabled = model.uiEnabled, modifier = Modifier.requiredHeight(56.dp)
@@ -283,7 +288,7 @@ class LoginActivity : AppCompatActivity() {
     @Composable
     fun ChangePassword(
         model: LoginViewModel,
-        scaffoldState: ScaffoldState,
+        snackbarHostState: SnackbarHostState,
         coroutineScope: CoroutineScope,
         paddingValues: PaddingValues
     ) {
@@ -307,7 +312,7 @@ class LoginActivity : AppCompatActivity() {
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             PasswordField(
                 model = model,
-                scaffoldState = scaffoldState,
+                snackbarHostState = snackbarHostState,
                 coroutineScope = coroutineScope,
                 imeAction = ImeAction.Next,
                 nextFocusRequester = confirmPasswordFocusRequester,
@@ -318,7 +323,7 @@ class LoginActivity : AppCompatActivity() {
                 model = model, confirmPasswordFocusRequester = confirmPasswordFocusRequester
             ) {
                 model.changePassword(
-                    scaffoldState = scaffoldState, scope = coroutineScope
+                    snackbarHostState = snackbarHostState, scope = coroutineScope
                 ) {
                     finish()
                 }
@@ -328,7 +333,7 @@ class LoginActivity : AppCompatActivity() {
             Button(
                 onClick = {
                     model.login(
-                        scaffoldState = scaffoldState,
+                        snackbarHostState = snackbarHostState,
                         scope = coroutineScope,
                         onLoggedIn = ::signInWithPassword
                     )
@@ -351,7 +356,7 @@ class LoginActivity : AppCompatActivity() {
     @Composable
     fun Login(
         model: LoginViewModel,
-        scaffoldState: ScaffoldState,
+        snackbarHostState: SnackbarHostState,
         coroutineScope: CoroutineScope,
         paddingValues: PaddingValues
     ) {
@@ -372,12 +377,12 @@ class LoginActivity : AppCompatActivity() {
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING * 2))
             UsernameField(model = model, newUsername = false)
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
-            PasswordField(model, scaffoldState, coroutineScope, ImeAction.Done)
+            PasswordField(model, snackbarHostState, coroutineScope, ImeAction.Done)
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             Button(
                 onClick = {
                     model.login(
-                        scaffoldState = scaffoldState,
+                        snackbarHostState = snackbarHostState,
                         scope = coroutineScope,
                         onLoggedIn = ::signInWithPassword
                     )
@@ -402,7 +407,7 @@ class LoginActivity : AppCompatActivity() {
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING * 2))
             OutlinedButton(onClick = {
                 signInWithGoogle(
-                    scaffoldState, coroutineScope
+                    snackbarHostState, coroutineScope
                 )
             }, enabled = model.uiEnabled) {
                 Text(text = getString(R.string.sign_in_w_google))
@@ -422,7 +427,7 @@ class LoginActivity : AppCompatActivity() {
     @Composable
     fun CreateUser(
         model: LoginViewModel,
-        scaffoldState: ScaffoldState,
+        snackbarHostState: SnackbarHostState,
         coroutineScope: CoroutineScope,
         paddingValues: PaddingValues
     ) {
@@ -452,7 +457,7 @@ class LoginActivity : AppCompatActivity() {
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             PasswordField(
                 model = model,
-                scaffoldState = scaffoldState,
+                snackbarHostState = snackbarHostState,
                 coroutineScope = coroutineScope,
                 imeAction = ImeAction.Next,
                 nextFocusRequester = confirmPasswordFocusRequester
@@ -462,7 +467,7 @@ class LoginActivity : AppCompatActivity() {
                 model = model, confirmPasswordFocusRequester = confirmPasswordFocusRequester
             ) {
                 model.createUser(
-                    scaffoldState = scaffoldState,
+                    snackbarHostState = snackbarHostState,
                     scope = coroutineScope,
                     onLoggedIn = ::signInWithPassword
                 )
@@ -472,7 +477,7 @@ class LoginActivity : AppCompatActivity() {
             Button(
                 onClick = {
                     model.createUser(
-                        scaffoldState = scaffoldState,
+                        snackbarHostState = snackbarHostState,
                         scope = coroutineScope,
                         onLoggedIn = ::signInWithPassword
                     )
@@ -498,13 +503,13 @@ class LoginActivity : AppCompatActivity() {
 
     }
 
-    @OptIn(ExperimentalAnimationApi::class)
+    @OptIn(ExperimentalAnimationApi::class, ExperimentalMaterial3Api::class)
     @Composable
     fun Screen(model: LoginViewModel) {
-        val scaffoldState = rememberScaffoldState()
+        val snackbarHostState = remember{ SnackbarHostState() }
         val coroutineScope = rememberCoroutineScope()
 
-        Scaffold(
+        androidx.compose.material3.Scaffold(
             topBar = {
                 if (model.login == LoginViewModel.State.CHANGE_PASSWORD || model.login == LoginViewModel.State.CHOOSE_USERNAME) {
                     TopAppBar(backgroundColor = MaterialTheme.colorScheme.primary, title = {
@@ -534,7 +539,9 @@ class LoginActivity : AppCompatActivity() {
                         },
                     )
                 }
-            }, scaffoldState = scaffoldState, backgroundColor = MaterialTheme.colorScheme.background
+            }, snackbarHost = {SnackbarHost(snackbarHostState)}, containerColor = MaterialTheme
+            .colorScheme
+                .background
         ) {
             AnimatedContent(targetState = model.login, transitionSpec = {
                 if (targetState == LoginViewModel.State.LOGIN) {
@@ -551,7 +558,7 @@ class LoginActivity : AppCompatActivity() {
                     LoginViewModel.State.LOGIN -> {
                         Login(
                             model,
-                            scaffoldState = scaffoldState,
+                            snackbarHostState = snackbarHostState,
                             coroutineScope = coroutineScope,
                             it
                         )
@@ -559,7 +566,7 @@ class LoginActivity : AppCompatActivity() {
                     LoginViewModel.State.CREATE_USER -> {
                         CreateUser(
                             model,
-                            scaffoldState = scaffoldState,
+                            snackbarHostState = snackbarHostState,
                             coroutineScope = coroutineScope,
                             it
                         )
@@ -567,7 +574,7 @@ class LoginActivity : AppCompatActivity() {
                     LoginViewModel.State.CHANGE_PASSWORD -> {
                         ChangePassword(
                             model = model,
-                            scaffoldState = scaffoldState,
+                            snackbarHostState = snackbarHostState,
                             coroutineScope = coroutineScope,
                             it
                         )
@@ -575,7 +582,7 @@ class LoginActivity : AppCompatActivity() {
                     LoginViewModel.State.CHOOSE_USERNAME -> {
                         ChooseUsername(
                             model = model,
-                            scaffoldState = scaffoldState,
+                            snackbarHostState = snackbarHostState,
                             coroutineScope = coroutineScope,
                             paddingValues = it
                         )
@@ -764,7 +771,7 @@ class LoginActivity : AppCompatActivity() {
     @Composable
     fun PasswordField(
         model: LoginViewModel,
-        scaffoldState: ScaffoldState,
+        snackbarHostState: SnackbarHostState,
         coroutineScope: CoroutineScope,
         imeAction: ImeAction,
         nextFocusRequester: FocusRequester? = null,
@@ -803,7 +810,7 @@ class LoginActivity : AppCompatActivity() {
                   keyboardActions = KeyboardActions(onDone = {
                       if (imeAction == ImeAction.Done) {
                           model.login(
-                              scaffoldState = scaffoldState,
+                              snackbarHostState = snackbarHostState,
                               scope = coroutineScope,
                               onLoggedIn = ::signInWithPassword
                           )
@@ -998,7 +1005,7 @@ class LoginActivity : AppCompatActivity() {
         completeSignIn()
     }
 
-    private fun signInWithGoogle(scaffoldState: ScaffoldState, coroutineScope: CoroutineScope) {
+    private fun signInWithGoogle(snackbarHostState: SnackbarHostState, coroutineScope: CoroutineScope) {
         loginViewModel.uiEnabled = false
         val request =
             GetSignInIntentRequest.builder().setServerClientId(getString(R.string.client_id))
@@ -1013,7 +1020,7 @@ class LoginActivity : AppCompatActivity() {
                     Log.e(TAG, "Google Sign-in failed")
                     loginViewModel.uiEnabled = true
                     coroutineScope.launch {
-                        scaffoldState.snackbarHostState.showSnackbar(
+                        snackbarHostState.showSnackbar(
                             message = getString(
                                 R.string.google_sign_in_failed
                             ), duration = SnackbarDuration.Short
@@ -1024,7 +1031,7 @@ class LoginActivity : AppCompatActivity() {
                 Log.e(TAG, "Google Sign-in failed", e)
                 loginViewModel.uiEnabled = true
                 coroutineScope.launch {
-                    scaffoldState.snackbarHostState.showSnackbar(
+                    snackbarHostState.showSnackbar(
                         message = getString(
                             R.string.google_sign_in_failed
                         ), duration = SnackbarDuration.Short

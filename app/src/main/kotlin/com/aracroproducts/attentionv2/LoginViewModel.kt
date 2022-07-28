@@ -4,8 +4,8 @@ import android.app.Application
 import android.content.Context
 import android.util.Log
 import android.widget.Toast
-import androidx.compose.material.ScaffoldState
-import androidx.compose.material.SnackbarDuration
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -45,7 +45,7 @@ class LoginViewModel @Inject constructor(
     var checkboxError by mutableStateOf(false)
 
     fun loginWithGoogle(
-        scaffoldState: ScaffoldState?, coroutineScope: CoroutineScope?, onLoggedIn: () -> Unit
+            snackbarHostState: SnackbarHostState?, coroutineScope: CoroutineScope?, onLoggedIn: () -> Unit
     ) {
         val localIdToken = idToken ?: throw IllegalStateException("idToken was null")
         uiEnabled = false
@@ -81,7 +81,7 @@ class LoginViewModel @Inject constructor(
                                                      else -> {
                                                          genericErrorHandling(
                                                              response.code(),
-                                                             scaffoldState,
+                                                             snackbarHostState,
                                                              coroutineScope,
                                                              context
                                                          )
@@ -91,7 +91,7 @@ class LoginViewModel @Inject constructor(
                                              errorListener = { _, t ->
                                                  genericErrorHandling(
                                                      0,
-                                                     scaffoldState,
+                                                     snackbarHostState,
                                                      coroutineScope,
                                                      context,
                                                      t
@@ -115,9 +115,9 @@ class LoginViewModel @Inject constructor(
     }
 
     fun login(
-        scaffoldState: ScaffoldState?,
-        scope: CoroutineScope?,
-        onLoggedIn: (username: String, password: String) -> Unit
+            snackbarHostState: SnackbarHostState?,
+            scope: CoroutineScope?,
+            onLoggedIn: (username: String, password: String) -> Unit
     ) {
         uiEnabled = false
         val context = getApplication<Application>()
@@ -148,7 +148,7 @@ class LoginViewModel @Inject constructor(
                                          errorListener = { _, t ->
                                              genericErrorHandling(
                                                  0,
-                                                 scaffoldState,
+                                                 snackbarHostState,
                                                  scope,
                                                  context,
                                                  t
@@ -158,9 +158,9 @@ class LoginViewModel @Inject constructor(
     }
 
     fun createUser(
-        scaffoldState: ScaffoldState,
-        scope: CoroutineScope,
-        onLoggedIn: (username: String, password: String) -> Unit
+            snackbarHostState: SnackbarHostState,
+            scope: CoroutineScope,
+            onLoggedIn: (username: String, password: String) -> Unit
     ) {
         uiEnabled = false
         val context = getApplication<Application>()
@@ -220,7 +220,7 @@ class LoginViewModel @Inject constructor(
                                                          )
                                                          apply()
                                                      }
-                                                     login(scaffoldState, scope, onLoggedIn)
+                                                     login(snackbarHostState, scope, onLoggedIn)
                                                  }
                                                  400 -> {
                                                      if (errorBody == null) {
@@ -263,7 +263,7 @@ class LoginViewModel @Inject constructor(
                                          errorListener = { _, t ->
                                              genericErrorHandling(
                                                  0,
-                                                 scaffoldState,
+                                                 snackbarHostState,
                                                  scope,
                                                  context,
                                                  t
@@ -273,7 +273,7 @@ class LoginViewModel @Inject constructor(
     }
 
     fun changePassword(
-        scaffoldState: ScaffoldState, scope: CoroutineScope, onPasswordChanged: () -> Unit
+            snackbarHostState: SnackbarHostState, scope: CoroutineScope, onPasswordChanged: () -> Unit
     ) {
         uiEnabled = false
         val context = getApplication<Application>()
@@ -343,7 +343,7 @@ class LoginViewModel @Inject constructor(
                                                                                           else -> {
                                                                                               genericErrorHandling(
                                                                                                   innerResponse.code(),
-                                                                                                  scaffoldState,
+                                                                                                  snackbarHostState,
                                                                                                   scope,
                                                                                                   context
                                                                                               )
@@ -357,7 +357,7 @@ class LoginViewModel @Inject constructor(
                                                                                           )
                                                                                       genericErrorHandling(
                                                                                           0,
-                                                                                          scaffoldState,
+                                                                                          snackbarHostState,
                                                                                           scope,
                                                                                           context,
                                                                                           t
@@ -386,7 +386,7 @@ class LoginViewModel @Inject constructor(
                                          }
                                      },
                                      errorListener = { _, t ->
-                                         genericErrorHandling(0, scaffoldState, scope, context, t)
+                                         genericErrorHandling(0, snackbarHostState, scope, context, t)
                                          uiEnabled = true
 
                                      })
@@ -394,14 +394,14 @@ class LoginViewModel @Inject constructor(
     }
 
     private fun displaySnackBar(
-        scaffoldState: ScaffoldState,
+        snackbarHostState: SnackbarHostState,
         scope: CoroutineScope,
         message: String,
         actionText: String,
         length: SnackbarDuration = SnackbarDuration.Indefinite
     ) {
         scope.launch {
-            scaffoldState.snackbarHostState.showSnackbar(
+            snackbarHostState.showSnackbar(
                 message, actionLabel = actionText, duration = length
             )
         }
@@ -409,16 +409,16 @@ class LoginViewModel @Inject constructor(
 
     private fun genericErrorHandling(
         code: Int,
-        scaffoldState: ScaffoldState?,
+        snackbarHostState: SnackbarHostState?,
         scope: CoroutineScope?,
         context: Context,
         t: Throwable? = null
     ) {
         when (code) {
             500 -> {
-                if (scaffoldState != null && scope != null) {
+                if (snackbarHostState != null && scope != null) {
                     displaySnackBar(
-                        scaffoldState, scope, context.getString(
+                        snackbarHostState, scope, context.getString(
                             R.string.server_error
                         ), context.getString(android.R.string.ok)
                     )
@@ -427,9 +427,9 @@ class LoginViewModel @Inject constructor(
                 }
             }
             else -> {
-                if (scaffoldState != null && scope != null) {
+                if (snackbarHostState != null && scope != null) {
                     displaySnackBar(
-                        scaffoldState, scope, context.getString(
+                        snackbarHostState, scope, context.getString(
                             R.string.connection_error
                         ), context.getString(android.R.string.ok)
                     )
