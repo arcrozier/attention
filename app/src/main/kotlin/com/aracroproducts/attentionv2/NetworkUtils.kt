@@ -6,7 +6,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.*
 
-const val BASE_URL = "https://attention.aracroproducts.com/api/v2/"
+const val BASE_URL: String = BuildConfig.BASE_URL
 
 
 class NameResult(@SerializedName("name") val name: String)

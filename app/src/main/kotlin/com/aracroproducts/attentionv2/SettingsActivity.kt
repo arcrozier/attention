@@ -2,16 +2,12 @@ package com.aracroproducts.attentionv2
 
 import android.app.Activity
 import android.app.Application
-import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.provider.Settings
-import android.text.InputType
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentScope
@@ -25,17 +21,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.*
-import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material.ContentAlpha
+import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
@@ -52,7 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.preference.*
+import androidx.preference.PreferenceManager
 import com.aracroproducts.attentionv2.MainViewModel.Companion.FCM_TOKEN
 import com.aracroproducts.attentionv2.MainViewModel.Companion.MY_TOKEN
 import com.aracroproducts.attentionv2.MainViewModel.Companion.USER_INFO
@@ -128,15 +118,109 @@ class SettingsActivity : AppCompatActivity() {
                             getString(R.string.username_key), null
                     ) ?: getString(R.string.no_username)
                 })
-            },
-            Pair<Int, @Composable () -> Unit>(R.string.account) @Composable {
                 DialoguePreference(
                         preference = StringPreference(getString(R.string.email_key), this),
                         title = R.string.email, dialog = { preference, dismissDialog, context,
-                    title ->
+                                                           title ->
                     StringPreferenceChange(preference, dismissDialog, context, title)
                 }, onPreferenceChanged = userInfoChangeListener)
-            }
+                DialoguePreference(
+                        preference = StringPreference(getString(R.string.first_name_key), this),
+                        title = R.string.first_name,
+                        dialog = { preference, dismissDialog, context, title ->
+                            StringPreferenceChange(preference = preference,
+                                    dismissDialog = dismissDialog,
+                                    context = context, title = title)
+                        }, onPreferenceChanged = userInfoChangeListener)
+                DialoguePreference(
+                        preference = StringPreference(getString(R.string.last_name_key), this),
+                        title = R.string.last_name,
+                        dialog = { preference, dismissDialog, context, title ->
+                            StringPreferenceChange(preference = preference,
+                                    dismissDialog = dismissDialog,
+                                    context = context, title = title)
+                        }, onPreferenceChanged = userInfoChangeListener)
+                Preference(preference = EphemeralPreference(getString(R.string.password_key),
+                        null), title = R.string.password, summary = null, onPreferenceClicked
+                = {
+                            val intent = Intent(this, LoginActivity::class.java)
+                            intent.action = getString(R.string.change_password_action)
+                    startActivity(intent)
+                    true
+                })
+                Preference(preference = EphemeralPreference(getString(R.string.link_account_key),
+                        null), title = R.string.link_account, summary = null, onPreferenceClicked
+                = {
+                    // TODO open login
+                    true
+                })
+                DialoguePreference(
+                        preference = EphemeralPreference(getString(R.string.logout_key), null),
+                        title = R.string.confirm_logout_title, titleColor = MaterialTheme
+                        .colorScheme.error) { _,
+                                                                                   dismissDialog,
+                                                                 context, title ->
+                    AlertDialog(onDismissRequest = { dismissDialog() }, title = {
+                        Text(text = title)
+                    }, text = {
+                        Text(text = getString(R.string.confirm_logout_message))
+                    }, confirmButton = {
+                        Button(onClick = {
+                            val userInfo = context.getSharedPreferences(
+                                    USER_INFO, Context.MODE_PRIVATE
+                            )
+                            val fcmTokenPrefs =
+                                    context.getSharedPreferences(FCM_TOKEN, Context.MODE_PRIVATE)
+                            viewModel.unregisterDevice(
+                                    userInfo.getString(MY_TOKEN, null) ?: "",
+                                    fcmTokenPrefs.getString(FCM_TOKEN, null) ?: ""
+                            )
+                            userInfo.edit().apply {
+                                remove(MY_TOKEN)
+                                apply()
+                            }
+                            PreferenceManager.getDefaultSharedPreferences(context).edit()
+                                    .apply {
+                                        remove(getString(R.string.username_key))
+                                        remove(getString(R.string.first_name_key))
+                                        remove(getString(R.string.last_name_key))
+                                        remove(getString(R.string.email_key))
+                                        apply()
+                                    }
+                            viewModel.clearAllDatabaseTables()
+                            finish()
+                            context.startActivity(
+                                    Intent(
+                                            context, LoginActivity::class.java
+                                    )
+                            )
+                            dismissDialog()
+                        }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme
+                                .colorScheme.error, contentColor = MaterialTheme.colorScheme.onError)) {
+                            Text(text = getString(R.string.confirm_logout_title))
+                        }
+                    }, dismissButton = {
+                        FilledTonalButton(onClick = { dismissDialog() }) {
+                            Text(text = getString(R.string.cancel))
+                        }
+
+                    })
+                }
+
+            },
+            Pair<Int, @Composable () -> Unit>(R.string.app_preference_category) @Composable {
+                DialoguePreference(
+                        preference = FloatPreference(getString(R.string.delay_key), this),
+                        title = R.string.delay_title) { preference, dismissDialog, context, title ->
+                    FloatPreferenceChange(preference = preference, dismissDialog = dismissDialog,
+                            context = context,
+                            title = title)
+                }
+            },
+                Pair<Int, @Composable () -> Unit>(R.string.notifications_title) @Composable {
+
+                }
+
         )
         PreferenceScreen(preferences = preferences, selected = viewModel
                 .selectedPreferenceGroupIndex, screenClass = calculateWindowSizeClass(activity = this).widthSizeClass,
@@ -171,7 +255,9 @@ class SettingsActivity : AppCompatActivity() {
             })
         }, snackbarHost = {SnackbarHost(snackbarHostState)}, containerColor = MaterialTheme
                 .colorScheme.background) {
-            LazyColumn(modifier = Modifier.selectableGroup()) {
+            LazyColumn(modifier = Modifier
+                    .selectableGroup()
+                    .padding(it)) {
                 items(items = preferences, key = { preference -> preference.first }) { preference ->
                     PreferenceGroup(
                             title = preference.first,
@@ -222,11 +308,11 @@ class SettingsActivity : AppCompatActivity() {
     fun <T> DialoguePreference(
         preference: ComposablePreference<T>,
         title: Int,
+        modifier: Modifier = Modifier,
         action: (@Composable (value: T) -> Unit)? = null,
-        summary: (key: String) -> String = {
+        summary: ((key: String) -> String)? = {
             getSharedPreferences(USER_INFO, Context.MODE_PRIVATE).getString(it, null) ?: ""
         },
-        modifier: Modifier = Modifier,
         icon: (@Composable BoxScope
         .() -> Unit)? = null,
         reserveIconSpace: Boolean = true,
@@ -287,11 +373,11 @@ class SettingsActivity : AppCompatActivity() {
     fun <T> Preference(
             preference: ComposablePreference<T>,
             title: Int,
+            modifier: Modifier = Modifier,
             action: (@Composable (value: T) -> Unit)? = null,
-            summary: (key: String) -> String = {
+            summary: ((key: String) -> String)? = {
                 getSharedPreferences(USER_INFO, Context.MODE_PRIVATE).getString(it, null) ?: ""
             },
-            modifier: Modifier = Modifier,
             icon: (@Composable BoxScope
             .() -> Unit)? = null,
             reserveIconSpace: Boolean = true,
@@ -334,7 +420,8 @@ class SettingsActivity : AppCompatActivity() {
             }
             Column(modifier = modifier.fillMaxHeight(), verticalArrangement = Arrangement.Center) {
                 Text(text = getString(title), style = titleStyle, color = titleColor)
-                Text(text = summary(preference.key), style = summaryStyle, color = summaryColor)
+                if (summary != null) Text(text = summary(preference.key), style = summaryStyle,
+                                color = summaryColor)
             }
             if (action != null) action(value)
         }
@@ -393,7 +480,7 @@ class SettingsActivity : AppCompatActivity() {
         override fun onPreferenceChange(preference: ComposablePreference<String>, newValue:
         String): Boolean {
             val token = context.getSharedPreferences(
-                    MainViewModel.USER_INFO, Context.MODE_PRIVATE
+                    USER_INFO, Context.MODE_PRIVATE
             ).getString(MY_TOKEN, null)
             if (token != null) {
                 coroutineScope.launch {
@@ -408,7 +495,7 @@ class SettingsActivity : AppCompatActivity() {
                 when (preference.key) {
                     context.getString(R.string.first_name_key) -> {
                         attentionRepository.editUser(token = token,
-                                firstName = newValue.toString(),
+                                firstName = newValue,
                                 responseListener = { _, response, _ ->
                                     onResponse(
                                             response.code(),
@@ -422,7 +509,7 @@ class SettingsActivity : AppCompatActivity() {
                     }
                     context.getString(R.string.last_name_key) -> {
                         attentionRepository.editUser(token = token,
-                                lastName = newValue.toString(),
+                                lastName = newValue,
                                 responseListener = { _, response, _ ->
                                     onResponse(
                                             response.code(),
@@ -436,7 +523,7 @@ class SettingsActivity : AppCompatActivity() {
                     }
                     context.getString(R.string.email_key) -> {
                         attentionRepository.editUser(token = token,
-                                email = newValue.toString(),
+                                email = newValue,
                                 responseListener = { _, response, _ ->
                                     onResponse(
                                             response.code(),
@@ -464,7 +551,7 @@ class SettingsActivity : AppCompatActivity() {
 
     /**
      * A fragment for individual settings panels
-     */
+     *
     class SettingsFragment(private val viewModel: SettingsViewModel) : PreferenceFragmentCompat() {
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
             setPreferencesFromResource(R.xml.root_preferences, rootKey)
@@ -632,5 +719,5 @@ class SettingsActivity : AppCompatActivity() {
         private fun MultiSelectListPreference.setSummaryFromValues(values: Set<*>) {
             summary = values.joinToString(", ") { entries[findIndexOfValue(it as? String ?: "")] }
         }
-    }
+    }*/
 }

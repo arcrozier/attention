@@ -592,7 +592,7 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    @OptIn(ExperimentalComposeUiApi::class)
+    @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
     @Composable
     fun UsernameField(
         model: LoginViewModel, newUsername: Boolean
@@ -626,7 +626,7 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    @OptIn(ExperimentalComposeUiApi::class)
+    @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
     @Composable
     fun EmailField(model: LoginViewModel) {
         TextField(value = model.email,
@@ -665,7 +665,7 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    @OptIn(ExperimentalComposeUiApi::class)
+    @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
     @Composable
     fun FirstNameField(model: LoginViewModel) {
         TextField(value = model.firstName,
@@ -691,7 +691,7 @@ class LoginActivity : AppCompatActivity() {
         )
     }
 
-    @OptIn(ExperimentalComposeUiApi::class)
+    @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
     @Composable
     fun LastNameField(model: LoginViewModel) {
         TextField(value = model.lastName,
@@ -717,7 +717,7 @@ class LoginActivity : AppCompatActivity() {
         )
     }
 
-    @OptIn(ExperimentalComposeUiApi::class)
+    @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
     @Composable
     fun OldPasswordField(model: LoginViewModel, passwordFocusRequester: FocusRequester) {
         TextField(value = model.oldPassword,
@@ -767,7 +767,7 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    @OptIn(ExperimentalComposeUiApi::class)
+    @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
     @Composable
     fun PasswordField(
         model: LoginViewModel,
@@ -834,6 +834,7 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun ConfirmPasswordField(
         model: LoginViewModel,

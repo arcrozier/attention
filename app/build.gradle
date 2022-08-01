@@ -31,12 +31,16 @@ android {
         debug {
             versionNameSuffix ".debug"
             resValue "string", "version_name", "${defaultConfig.versionName}${versionNameSuffix}"
+            buildConfigField "String", "BASE_URL", "\"http://attention.aracroproducts" +
+                    ".com:1080/api/v2/\""
         }
         release {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             resValue "string", "version_name", "${defaultConfig.versionName}"
+            buildConfigField "String", "BASE_URL", "\"https://attention.aracroproducts" +
+                    ".com/api/v2/\""
         }
     }
     compileOptions {
@@ -57,7 +61,7 @@ android {
 }
 
 dependencies {
-    def lifecycle_version = "2.5.0"
+    def lifecycle_version = "2.5.1"
 
     implementation 'com.google.firebase:firebase-messaging-ktx:23.0.6'
     implementation 'com.google.firebase:firebase-analytics:21.1.0'
@@ -94,7 +98,7 @@ dependencies {
     implementation "androidx.lifecycle:lifecycle-viewmodel-compose:$lifecycle_version"
     // LiveData
     implementation "androidx.lifecycle:lifecycle-livedata-ktx:$lifecycle_version"
-    implementation 'androidx.compose.runtime:runtime-livedata:1.1.1'
+    implementation 'androidx.compose.runtime:runtime-livedata:1.2.0'
     // Lifecycles only (without ViewModel or LiveData)
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycle_version"
 
@@ -116,9 +120,9 @@ dependencies {
     // optional - Test helpers for LiveData
     testImplementation "androidx.arch.core:core-testing:$arch_version"
 
-    def jetpack_compose_version = "1.2.0-rc03"
+    def jetpack_compose_version = "1.2.0"
     // Integration with activities
-    implementation 'androidx.activity:activity-compose:1.5.0'
+    implementation 'androidx.activity:activity-compose:1.5.1'
     // Compose Material Design
     implementation "androidx.compose.material:material:$jetpack_compose_version"
     // Animations
@@ -129,11 +133,12 @@ dependencies {
     // Integration with ViewModels
     implementation "androidx.lifecycle:lifecycle-viewmodel-compose:$lifecycle_version"
     // UI Tests
-    androidTestImplementation 'androidx.compose.ui:ui-test-junit4:1.1.1'
-    implementation("androidx.compose.material3:material3:1.0.0-alpha14")
-    implementation("androidx.compose.material3:material3-window-size-class:1.0.0-alpha14")
+    def compose_material_version = "1.0.0-alpha15"
+    androidTestImplementation 'androidx.compose.ui:ui-test-junit4:1.2.0'
+    implementation("androidx.compose.material3:material3:$compose_material_version")
+    implementation("androidx.compose.material3:material3-window-size-class:$compose_material_version")
 
-    def room_version = "2.4.2"
+    def room_version = "2.4.3"
 
     implementation "androidx.room:room-runtime:$room_version"
     implementation "androidx.room:room-ktx:$room_version"
@@ -149,7 +154,7 @@ dependencies {
     implementation "androidx.room:room-paging:$room_version"
 
     // For sharing
-    implementation "androidx.sharetarget:sharetarget:1.2.0-rc01"
+    implementation "androidx.sharetarget:sharetarget:1.2.0-rc02"
 
     implementation 'com.google.accompanist:accompanist-swiperefresh:0.24.9-beta'
 

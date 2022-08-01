@@ -70,6 +70,7 @@
     <string name="message_hint">Enter message…</string>
     <string name="message_label">Custom message to %s</string>
     <string name="invalid_id">You did not enter a valid ID</string>
+    <string name="invalid_float">Please enter a valid number</string>
     <string name="alert_sent">Successfully sent alert</string>
     <string name="alert_failed">Failed to send</string>
     <string name="alert_failed_not_friend">Could not send alert because you are not %s\'s
@@ -102,6 +103,7 @@
     <string name="confirm_delete_message">Are you sure you want to remove %s from your friends?</string>
     <string name="yes">Yes</string>
     <string name="add_friend">Add new friend</string>
+    <string name="link_account">Link Google Account</string>
 
     <string name="friend_card_click_label">choose from alert options</string>
     <string name="friend_card_long_click_label">edit or remove friend</string>
@@ -178,6 +180,8 @@
         .last_name</string>
     <string name="password_key" translatable="false">com.aracroproducts.attention.key
         .password</string>
+    <string name="link_account_key" translatable="false">com.aracroproducts.attention.key
+        .link_account</string>
     <string name="alert_title">Attention!</string>
     <string name="change_password_action"
         translatable="false">com.aracroproducts.attention.action.change_password</string>
