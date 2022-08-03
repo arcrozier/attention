@@ -113,7 +113,7 @@ class SettingsActivity : AppCompatActivity() {
                         startActivity(Intent.createChooser(sharingIntent, null))
                     }
                     true
-                }, summary = {
+                }, summary = { _, _ ->
                     PreferenceManager.getDefaultSharedPreferences(this).getString(
                             getString(R.string.username_key), null
                     ) ?: getString(R.string.no_username)
@@ -211,7 +211,8 @@ class SettingsActivity : AppCompatActivity() {
             Pair<Int, @Composable () -> Unit>(R.string.app_preference_category) @Composable {
                 DialoguePreference(
                         preference = FloatPreference(getString(R.string.delay_key), this),
-                        title = R.string.delay_title) { preference, dismissDialog, context, title ->
+                        title = R.string.delay_title, default = 3.5f) { preference, dismissDialog,
+                                                                 context, title ->
                     FloatPreferenceChange(preference = preference, dismissDialog = dismissDialog,
                             context = context,
                             title = title)
@@ -310,8 +311,9 @@ class SettingsActivity : AppCompatActivity() {
         title: Int,
         modifier: Modifier = Modifier,
         action: (@Composable (value: T) -> Unit)? = null,
-        summary: ((key: String) -> String)? = {
-            getSharedPreferences(USER_INFO, Context.MODE_PRIVATE).getString(it, null) ?: ""
+        summary: ((key: String, default: T?) -> String)? = { key, def ->
+            getSharedPreferences(USER_INFO, Context.MODE_PRIVATE)
+                .getString(key, def?.toString()) ?: (def?.toString() ?: "")
         },
         icon: (@Composable BoxScope
         .() -> Unit)? = null,
@@ -330,8 +332,9 @@ class SettingsActivity : AppCompatActivity() {
                 }
             },
         enabled: Boolean = true,
+        default: T? = null,
         dialog: @Composable (preference: ComposablePreference<T>, dismissDialog: () -> Unit,
-                             context: Context, title: String) -> Unit,
+                             context: Context, title: String) -> Unit
     ) {
         val editing = rememberSaveable {
             mutableStateOf(false)
@@ -365,7 +368,8 @@ class SettingsActivity : AppCompatActivity() {
             onPreferenceClicked = {
                 editing.value = true
                 true
-            }
+            },
+            default = default
         )
     }
 
@@ -375,8 +379,9 @@ class SettingsActivity : AppCompatActivity() {
             title: Int,
             modifier: Modifier = Modifier,
             action: (@Composable (value: T) -> Unit)? = null,
-            summary: ((key: String) -> String)? = {
-                getSharedPreferences(USER_INFO, Context.MODE_PRIVATE).getString(it, null) ?: ""
+            summary: ((key: String, default: T?) -> String)? = { key, def ->
+                getSharedPreferences(USER_INFO, Context.MODE_PRIVATE)
+                    .getString(key, def?.toString()) ?: (def?.toString() ?: "")
             },
             icon: (@Composable BoxScope
             .() -> Unit)? = null,
@@ -398,10 +403,10 @@ class SettingsActivity : AppCompatActivity() {
                         }
                     },
             enabled: Boolean = true,
-
+            default: T? = null
             ) {
         preference.onPreferenceChangeListener.add(onPreferenceChanged)
-        val value = preference.value
+        val value = if (default != null) preference.getValue(default) else preference.value
         Row(modifier = modifier
                 .fillMaxWidth()
                 .height(73.dp)
@@ -420,7 +425,8 @@ class SettingsActivity : AppCompatActivity() {
             }
             Column(modifier = modifier.fillMaxHeight(), verticalArrangement = Arrangement.Center) {
                 Text(text = getString(title), style = titleStyle, color = titleColor)
-                if (summary != null) Text(text = summary(preference.key), style = summaryStyle,
+                if (summary != null) Text(text = summary(preference.key, default), style =
+                summaryStyle,
                                 color = summaryColor)
             }
             if (action != null) action(value)

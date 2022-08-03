@@ -1,12 +1,14 @@
 package com.aracroproducts.attentionv2
 
 import android.content.Context
-import androidx.compose.material.AlertDialog
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
 import androidx.preference.PreferenceManager
-import java.lang.UnsupportedOperationException
 
 abstract class ComposablePreference<T>(val key: String) {
     abstract var value: T
@@ -19,9 +21,15 @@ abstract class ComposablePreference<T>(val key: String) {
         }
         return true
     }
+
+    abstract fun getValue(default: T): T
 }
 
-class EphemeralPreference<T>(key: String, override var value: T) : ComposablePreference<T>(key)
+class EphemeralPreference<T>(key: String, override var value: T) : ComposablePreference<T>(key) {
+    override fun getValue(default: T): T {
+        return value
+    }
+}
 
 /*
 class NonPersistentPreference<T>(key: String) : ComposablePreference<Nothing>(key) {
@@ -44,7 +52,7 @@ class BooleanPreference(key: String, val context: Context) : ComposablePreferenc
             }
         }
 
-    fun getValue(default: Boolean): Boolean {
+    override fun getValue(default: Boolean): Boolean {
         return PreferenceManager.getDefaultSharedPreferences(context).getBoolean(key, default)
     }
 }
@@ -60,7 +68,7 @@ class StringPreference(key: String, val context: Context) : ComposablePreference
             }
         }
 
-    fun getValue(default: String): String {
+    override fun getValue(default: String): String {
         return PreferenceManager.getDefaultSharedPreferences(context).getString(key, default)
                 ?: default
     }
@@ -78,7 +86,7 @@ class StringSetPreference(key: String, val context: Context) : ComposablePrefere
             }
         }
 
-    fun getValue(default: Set<String>): Set<String> {
+    override fun getValue(default: Set<String>): Set<String> {
         return PreferenceManager.getDefaultSharedPreferences(context).getStringSet(key, default)
                 ?: default
     }
@@ -95,7 +103,7 @@ class FloatPreference(key: String, val context: Context) : ComposablePreference<
             }
         }
 
-    fun getValue(default: Float): Float {
+    override fun getValue(default: Float): Float {
         return PreferenceManager.getDefaultSharedPreferences(context).getFloat(key, default)
     }
 }
@@ -159,36 +167,50 @@ fun FloatPreferenceChange(preference: ComposablePreference<Float>, dismissDialog
             })
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MultiSelectListPreferenceChange(preference: ComposablePreference<Set<String>>, dismissDialog: () ->
 Unit,
                           context:
-                          Context, title: String) {
-    var newValue by remember { mutableStateOf(preference.value)}
-    var valid by remember {
-        mutableStateOf(true)
-    }
+                          Context, title: String, entriesRes: Int, entryValuesRes: Int) {
+    val newValue = remember { mutableStateMapOf(*preference.value.map { Pair(it,
+                                                                             true)}.toTypedArray()) }
+    val entries = context.resources.getStringArray(entriesRes)
+    val entryValues = context.resources.getStringArray(entryValuesRes)
+
     AlertDialog(onDismissRequest = { dismissDialog() }, dismissButton = {
         OutlinedButton(onClick = dismissDialog) {
             Text(text = context.getString(R.string.cancel))
         }
     }, confirmButton = {
-        try {
-            preference.value = newValue
-            dismissDialog()
-        } catch (e: NumberFormatException) {
-            valid = false
-        }
+        preference.value = newValue.keys
+        dismissDialog()
+
     }, title = {
         Text(text = title)
     },
             text = {
-                // TODO
-                if (!valid) {
-                    Text(text = context.getString(R.string.invalid_float), style = MaterialTheme
-                            .typography.labelSmall, color = MaterialTheme.colorScheme.onSurface
-                            .copy(alpha = ContentAlpha.medium))
+                Column {
+                    for ((index, entry) in entries.withIndex()) {
+                        Row(modifier = Modifier.toggleable(value = newValue.containsKey(entry),
+                                                           onValueChange = {
+                                                               if (it) {
+                                                                   newValue[entry] = true
+                                                               } else {
+                                                                   newValue.remove(entry)
+                                                               }
+                                                           })) {
+                            Checkbox(checked = newValue.containsKey(entry), onCheckedChange = null
+                                /*{
+                                if (it) {
+                                    newValue[entry] = true
+                                } else {
+                                    newValue.remove(entry)
+                                }
+                            }*/)
+                            Text(text = entryValues[index])
+                        }
+                    }
                 }
+
             })
 }
