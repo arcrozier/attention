@@ -12,8 +12,7 @@ import androidx.preference.PreferenceManager
 
 abstract class ComposablePreference<T>(val key: String) {
     abstract var value: T
-    val onPreferenceChangeListener: MutableList<ComposablePreferenceChangeListener<T>> =
-            ArrayList()
+    val onPreferenceChangeListener: MutableList<ComposablePreferenceChangeListener<T>> = ArrayList()
 
     fun shouldPersistChange(newValue: T): Boolean {
         for (preferenceChangeListener in onPreferenceChangeListener) {
@@ -70,12 +69,12 @@ class StringPreference(key: String, val context: Context) : ComposablePreference
 
     override fun getValue(default: String): String {
         return PreferenceManager.getDefaultSharedPreferences(context).getString(key, default)
-                ?: default
+               ?: default
     }
 }
 
-class StringSetPreference(key: String, val context: Context) : ComposablePreference<Set<String>>
-(key) {
+class StringSetPreference(key: String, val context: Context) :
+    ComposablePreference<Set<String>>(key) {
     override var value: Set<String>
         get() = getValue(HashSet())
         set(value) {
@@ -88,7 +87,7 @@ class StringSetPreference(key: String, val context: Context) : ComposablePrefere
 
     override fun getValue(default: Set<String>): Set<String> {
         return PreferenceManager.getDefaultSharedPreferences(context).getStringSet(key, default)
-                ?: default
+               ?: default
     }
 }
 
@@ -114,10 +113,13 @@ interface ComposablePreferenceChangeListener<T> {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StringPreferenceChange(preference: ComposablePreference<String>, dismissDialog: () -> Unit,
-                           context:
-Context, title: String) {
-    var newValue by remember { mutableStateOf(preference.value)}
+fun StringPreferenceChange(
+    preference: ComposablePreference<String>,
+    dismissDialog: () -> Unit,
+    context: Context,
+    title: String
+) {
+    var newValue by remember { mutableStateOf(preference.value) }
     AlertDialog(onDismissRequest = { dismissDialog() }, dismissButton = {
         OutlinedButton(onClick = dismissDialog) {
             Text(text = context.getString(R.string.cancel))
@@ -127,18 +129,20 @@ Context, title: String) {
         dismissDialog()
     }, title = {
         Text(text = title)
-    },
-            text = {
+    }, text = {
         OutlinedTextField(value = newValue, onValueChange = { newValue = it })
     })
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FloatPreferenceChange(preference: ComposablePreference<Float>, dismissDialog: () -> Unit,
-                           context:
-                           Context, title: String) {
-    var newValue by remember { mutableStateOf(preference.value.toString())}
+fun FloatPreferenceChange(
+    preference: ComposablePreference<Float>,
+    dismissDialog: () -> Unit,
+    context: Context,
+    title: String
+) {
+    var newValue by remember { mutableStateOf(preference.value.toString()) }
     var valid by remember {
         mutableStateOf(true)
     }
@@ -155,25 +159,34 @@ fun FloatPreferenceChange(preference: ComposablePreference<Float>, dismissDialog
         }
     }, title = {
         Text(text = title)
-    },
-            text = {
-                OutlinedTextField(value = newValue, onValueChange = { newValue = it }, isError =
-                !valid)
-                if (!valid) {
-                    Text(text = context.getString(R.string.invalid_float), style = MaterialTheme
-                            .typography.labelSmall, color = MaterialTheme.colorScheme.onSurface
-                            .copy(alpha = ContentAlpha.medium))
-                }
-            })
+    }, text = {
+        OutlinedTextField(value = newValue, onValueChange = { newValue = it }, isError = !valid)
+        if (!valid) {
+            Text(
+                text = context.getString(R.string.invalid_float),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = ContentAlpha.medium)
+            )
+        }
+    })
 }
 
 @Composable
-fun MultiSelectListPreferenceChange(preference: ComposablePreference<Set<String>>, dismissDialog: () ->
-Unit,
-                          context:
-                          Context, title: String, entriesRes: Int, entryValuesRes: Int) {
-    val newValue = remember { mutableStateMapOf(*preference.value.map { Pair(it,
-                                                                             true)}.toTypedArray()) }
+fun MultiSelectListPreferenceChange(
+    preference: ComposablePreference<Set<String>>,
+    dismissDialog: () -> Unit,
+    context: Context,
+    title: String,
+    entriesRes: Int,
+    entryValuesRes: Int
+) {
+    val newValue = remember {
+        mutableStateMapOf(*preference.value.map {
+            Pair(
+                it, true
+            )
+        }.toTypedArray())
+    }
     val entries = context.resources.getStringArray(entriesRes)
     val entryValues = context.resources.getStringArray(entryValuesRes)
 
@@ -187,30 +200,44 @@ Unit,
 
     }, title = {
         Text(text = title)
-    },
-            text = {
-                Column {
-                    for ((index, entry) in entries.withIndex()) {
-                        Row(modifier = Modifier.toggleable(value = newValue.containsKey(entry),
-                                                           onValueChange = {
-                                                               if (it) {
-                                                                   newValue[entry] = true
-                                                               } else {
-                                                                   newValue.remove(entry)
-                                                               }
-                                                           })) {
-                            Checkbox(checked = newValue.containsKey(entry), onCheckedChange = null
-                                /*{
+    }, text = {
+        Column {
+            for ((index, entry) in entries.withIndex()) {
+                Row(
+                    modifier = Modifier.toggleable(value = newValue.containsKey(entry),
+                                                   onValueChange = {
+                                                       if (it) {
+                                                           newValue[entry] = true
+                                                       } else {
+                                                           newValue.remove(entry)
+                                                       }
+                                                   })
+                ) {
+                    Checkbox(
+                        checked = newValue.containsKey(entry), onCheckedChange = null/*{
                                 if (it) {
                                     newValue[entry] = true
                                 } else {
                                     newValue.remove(entry)
                                 }
-                            }*/)
-                            Text(text = entryValues[index])
-                        }
-                    }
+                            }*/
+                    )
+                    Text(text = entryValues[index])
                 }
+            }
+        }
 
-            })
+    })
+}
+
+fun multiselectListPreferenceSummary(
+    value: Set<String>, entries: Array<String>, values: Array<String>
+): String {
+    return entries.filter { value.contains(it) }.mapIndexed { index, _ -> values[index] }
+        .joinToString(", ")
+}
+
+@Composable
+fun CheckboxAction(value: Boolean) {
+    Switch(checked = value, onCheckedChange = {})
 }

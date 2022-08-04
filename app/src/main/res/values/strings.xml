@@ -190,6 +190,6 @@
     <string name="client_id" translatable="false">357995852275-tcfjuvtbrk3c57t5gsuc9a9jdfdn137s.apps.googleusercontent.com</string>
 
     <!-- URLs -->
-    <string name="tos_url" translatable="false">https://aracroproducts.com/legal/tac/</string>
+    <string name="tos_url" translatable="false">https://aracroproducts.com/legal/tos/</string>
     <string name="privacy_policy_url" translatable="false">https://aracroproducts.com/legal/privacy-policy/attention/</string>
 </resources>
