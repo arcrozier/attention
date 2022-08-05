@@ -177,7 +177,7 @@ class LoginActivity : AppCompatActivity() {
             }
 
         })
-
+        // TODO handle the link account action
         if (intent.action == getString(R.string.change_password_action)) {
             loginViewModel.login = LoginViewModel.State.CHANGE_PASSWORD
         } else if (loginViewModel.showOneTapUI) {
@@ -263,7 +263,9 @@ class LoginActivity : AppCompatActivity() {
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING * 2))
-            UsernameField(model = model, newUsername = true)
+            UsernameField(value = model.username, onValueChanged = {onUsernameChanged(model, it)},
+                    newUsername = true, error = model.passwordCaption.isNotBlank(), caption =
+            model.usernameCaption, enabled = model.uiEnabled, context = this@LoginActivity)
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             Button(
                 onClick = {
@@ -375,7 +377,9 @@ class LoginActivity : AppCompatActivity() {
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING * 2))
-            UsernameField(model = model, newUsername = false)
+            UsernameField(value = model.username, onValueChanged = {onUsernameChanged(model, it)},
+                    newUsername = true, error = model.passwordCaption.isNotBlank(), caption =
+            model.usernameCaption, enabled = model.uiEnabled, context = this@LoginActivity)
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             PasswordField(model, snackbarHostState, coroutineScope, ImeAction.Done)
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
@@ -447,7 +451,9 @@ class LoginActivity : AppCompatActivity() {
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING * 2))
-            UsernameField(model = model, newUsername = true)
+            UsernameField(value = model.username, onValueChanged = {onUsernameChanged(model, it)},
+                    newUsername = true, error = model.passwordCaption.isNotBlank(), caption =
+            model.usernameCaption, enabled = model.uiEnabled, context = this@LoginActivity)
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             FirstNameField(model = model)
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
@@ -509,7 +515,7 @@ class LoginActivity : AppCompatActivity() {
         val snackbarHostState = remember{ SnackbarHostState() }
         val coroutineScope = rememberCoroutineScope()
 
-        androidx.compose.material3.Scaffold(
+        Scaffold(
             topBar = {
                 if (model.login == LoginViewModel.State.CHANGE_PASSWORD || model.login == LoginViewModel.State.CHOOSE_USERNAME) {
                     TopAppBar(backgroundColor = MaterialTheme.colorScheme.primary, title = {
@@ -592,39 +598,7 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
-    @Composable
-    fun UsernameField(
-        model: LoginViewModel, newUsername: Boolean
-    ) {
-        TextField(
-            value = model.username,
-            onValueChange = {
-                onUsernameChanged(model, it)
-            },
-            modifier = Modifier.autofill(autofillTypes = if (newUsername) listOf(
-                AutofillType.NewUsername
-            ) else listOf(AutofillType.Username), onFill = {
-                onUsernameChanged(model, it)
-            }),
-            label = { Text(text = getString(R.string.username)) },
-            keyboardOptions = KeyboardOptions(
-                autoCorrect = false, imeAction = ImeAction.Next
-            ),
-            enabled = model.uiEnabled,
-            isError = model.passwordCaption.isNotBlank(),
-        )
-        if (model.usernameCaption.isNotBlank()) {
-            Text(
-                text = model.usernameCaption,
-                color = MaterialTheme.colorScheme.onSurface.copy(
-                    alpha = ContentAlpha.medium
-                ),
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.padding(start = 16.dp)
-            )
-        }
-    }
+
 
     @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
     @Composable
@@ -970,28 +944,7 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    @OptIn(ExperimentalComposeUiApi::class)
-    fun Modifier.autofill(
-        autofillTypes: List<AutofillType>,
-        onFill: ((String) -> Unit),
-    ) = composed {
-        val autofill = LocalAutofill.current
-        val autofillNode = AutofillNode(onFill = onFill, autofillTypes = autofillTypes)
-        LocalAutofillTree.current += autofillNode
 
-        onGloballyPositioned {
-            autofillNode.boundingBox = it.boundsInWindow()
-        }.onFocusChanged { focusState ->
-                print(autofill)
-                autofill?.run {
-                    if (focusState.isFocused) {
-                        requestAutofillForNode(autofillNode)
-                    } else {
-                        cancelAutofillForNode(autofillNode)
-                    }
-                }
-            }
-    }
 
     private fun signInWithPassword(username: String, password: String) {
         val signInPassword = SignInPassword(username, password)
@@ -1054,10 +1007,68 @@ class LoginActivity : AppCompatActivity() {
         val LIST_ELEMENT_PADDING = 10.dp
         val TAG: String = LoginActivity::class.java.name
 
-        private fun onUsernameChanged(model: LoginViewModel, username: String) {
-            model.username = username.substring(0, min(username.length, 150)).filter {
+        @OptIn(ExperimentalComposeUiApi::class)
+        fun Modifier.autofill(
+                autofillTypes: List<AutofillType>,
+                onFill: ((String) -> Unit),
+        ) = composed {
+            val autofill = LocalAutofill.current
+            val autofillNode = AutofillNode(onFill = onFill, autofillTypes = autofillTypes)
+            LocalAutofillTree.current += autofillNode
+
+            onGloballyPositioned {
+                autofillNode.boundingBox = it.boundsInWindow()
+            }.onFocusChanged { focusState ->
+                print(autofill)
+                autofill?.run {
+                    if (focusState.isFocused) {
+                        requestAutofillForNode(autofillNode)
+                    } else {
+                        cancelAutofillForNode(autofillNode)
+                    }
+                }
+            }
+        }
+
+        @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
+        @Composable
+        fun UsernameField(
+                value: String, onValueChanged: (newValue: String) -> Unit, newUsername: Boolean, enabled:
+                Boolean, error: Boolean, caption: String, context: Context
+        ) {
+            TextField(
+                    value = value,
+                    onValueChange = {onValueChanged(filterUsername(it))},
+                    modifier = Modifier.autofill(autofillTypes = if (newUsername) listOf(
+                            AutofillType.NewUsername
+                    ) else listOf(AutofillType.Username), onFill = {onValueChanged(filterUsername(it))}),
+                    label = { Text(text = context.getString(R.string.username)) },
+                    keyboardOptions = KeyboardOptions(
+                            autoCorrect = false, imeAction = ImeAction.Next
+                    ),
+                    enabled = enabled,
+                    isError = error,
+            )
+            if (caption.isNotBlank()) {
+                Text(
+                        text = caption,
+                        color = MaterialTheme.colorScheme.onSurface.copy(
+                                alpha = ContentAlpha.medium
+                        ),
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(start = 16.dp)
+                )
+            }
+        }
+
+        private fun filterUsername(username: String): String {
+            return username.substring(0, min(username.length, 150)).filter {
                 it.isLetterOrDigit() or (it == '@') or (it == '_') or (it == '-') or (it == '+') or (it == '.')
             }
+        }
+
+        private fun onUsernameChanged(model: LoginViewModel, username: String) {
+            model.username = username
             model.usernameCaption = ""
         }
 

@@ -28,24 +28,24 @@ import androidx.compose.material.ContentAlpha
 import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.preference.PreferenceManager
+import com.aracroproducts.attentionv2.LoginActivity.Companion.UsernameField
 import com.aracroproducts.attentionv2.MainViewModel.Companion.FCM_TOKEN
 import com.aracroproducts.attentionv2.MainViewModel.Companion.MY_TOKEN
 import com.aracroproducts.attentionv2.MainViewModel.Companion.USER_INFO
@@ -96,7 +96,7 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
-    @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
+    @OptIn(ExperimentalMaterial3WindowSizeClassApi::class, ExperimentalMaterial3Api::class)
     @Composable
     fun PreferenceScreenWrapper() {
 
@@ -106,23 +106,97 @@ class SettingsActivity : AppCompatActivity() {
         val userInfoChangeListener =
             UserInfoChangeListener(this, viewModel, snackbarHostState, coroutineScope)
         val preferences = listOf(Pair<Int, @Composable () -> Unit>(R.string.account) @Composable {
-            Preference(preference = StringPreference(
-                getString(R.string.username_key), this
-            ), title = R.string.username, onPreferenceClicked = {
-                val username = PreferenceManager.getDefaultSharedPreferences(this)
-                    .getString(MainViewModel.MY_ID, null)
-                if (username != null) {
-                    val sharingIntent = Intent(Intent.ACTION_SEND).apply {
-                        type = "text/plain"
-                        val shareBody = getString(R.string.share_text, username)
-                        putExtra(Intent.EXTRA_TEXT, shareBody)
-                    }
-                    startActivity(Intent.createChooser(sharingIntent, null))
-                }
-                true
-            }, summary = { value ->
+            SplitPreference(largePreference = {
+                DialoguePreference(preference = StringPreference(
+                    getString(R.string.username_key), this
+            ), title = R.string.username,
+                        dialog = { preference, dismissDialog, context, title ->
+                            var newValue by remember { mutableStateOf(preference.value) }
+                            var loading by remember {mutableStateOf(false)}
+                            var error by remember {mutableStateOf(false)}
+                            var usernameCaption by remember {mutableStateOf("")}
+                            val token = context.getSharedPreferences(
+                                    USER_INFO, Context.MODE_PRIVATE
+                            ).getString(MY_TOKEN, null)
+                            if (token == null) {
+                                val loginIntent = Intent(context, LoginActivity::class.java)
+                                context.startActivity(loginIntent)
+                                return@DialoguePreference
+                            }
+                            AlertDialog(onDismissRequest = { if (!loading) dismissDialog() },
+                                    dismissButton = {
+                                OutlinedButton(onClick = {
+                                    if (!loading) dismissDialog()
+                                }, enabled = !loading) {
+                                    Text(text = context.getString(R.string.cancel))
+                                }
+                            }, confirmButton = {
+                                Button(onClick = {
+                                    loading = true
+                                    AttentionRepository(AttentionDB.getDB(this)).editUser(token = token,
+                                            username = newValue,
+                                            responseListener = { _, response, _ ->
+                                                loading = false
+                                                error = !response.isSuccessful
+                                                when (response.code()) {
+                                                    200 -> {
+                                                        usernameCaption = ""
+                                                        preference.value = newValue
+                                                        dismissDialog()
+                                                    }
+                                                    400 -> {
+                                                        usernameCaption = getString(R.string.username_in_use)
+                                                    }
+                                                    403 -> {
+                                                        usernameCaption = ""
+                                                        dismissDialog()
+                                                        launchLogin(this)
+                                                    }
+                                                    else -> {
+                                                        usernameCaption = getString(R.string.unknown_error)
+                                                    }
+                                                }
+                                            },
+                                            errorListener = { _, _ ->
+                                                loading = false
+                                                error = true
+                                                coroutineScope.launch {
+                                                    snackbarHostState.showSnackbar(
+                                                            context.getString(R.string.disconnected), duration = SnackbarDuration.Long
+                                                    )
+                                                }
+                                            })
+                                }, content = {
+                                    Text(text = if (loading) getString(R.string.saving) else
+                                        getString(android.R.string.ok))
+                                })
+
+                            }, title = {
+                                Text(text = title)
+                            }, text = {
+                                UsernameField(value = newValue, onValueChanged = {newValue = it},
+                                        newUsername = true, enabled = !loading, error = error,
+                                        caption = usernameCaption, this)
+                            })
+                        },
+            summary = { value ->
                 value.ifBlank { getString(R.string.no_username) }
+            }) }, smallPreference = {
+                IconButton(onClick = {
+                    val username = PreferenceManager.getDefaultSharedPreferences(this)
+                            .getString(MainViewModel.MY_ID, null)
+                    if (username != null) {
+                        val sharingIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            val shareBody = getString(R.string.share_text, username)
+                            putExtra(Intent.EXTRA_TEXT, shareBody)
+                        }
+                        startActivity(Intent.createChooser(sharingIntent, null))
+                    }}, modifier = Modifier.fillMaxSize()) {
+                    Icon(Icons.Default.Share, contentDescription = getString(R.string.share))
+                }
             })
+
             DialoguePreference(
                 preference = StringPreference(getString(R.string.email_key), this),
                 title = R.string.email,
@@ -174,7 +248,10 @@ class SettingsActivity : AppCompatActivity() {
             ),
                        title = R.string.link_account,
                        summary = null,
-                       onPreferenceClicked = { // TODO open login
+                       onPreferenceClicked = {
+                           val intent = Intent(this, LoginActivity::class.java)
+                           intent.action = getString(R.string.link_account_action)
+                           startActivity(intent)
                            true
                        },
                        enabled = BooleanPreference(getString(R.string.password_key), this)
@@ -411,8 +488,8 @@ class SettingsActivity : AppCompatActivity() {
         ) {
             LazyColumn(
                 modifier = Modifier
-                    .selectableGroup()
-                    .padding(it)
+                        .selectableGroup()
+                        .padding(it)
             ) {
                 items(items = preferences, key = { preference -> preference.first }) { preference ->
                     PreferenceGroup(
@@ -441,16 +518,16 @@ class SettingsActivity : AppCompatActivity() {
         if (tablet) {
             Box(
                 modifier = Modifier
-                    .padding(10.dp)
-                    .fillMaxWidth(0.9f)
-                    .height(73.dp)
-                    .clip(
-                        RoundedCornerShape(12.dp)
-                    )
-                    .background(
-                        if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
-                    )
-                    .selectable(selected = selected, onClick = onClick),
+                        .padding(10.dp)
+                        .fillMaxWidth(0.9f)
+                        .height(73.dp)
+                        .clip(
+                                RoundedCornerShape(12.dp)
+                        )
+                        .background(
+                                if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
+                        )
+                        .selectable(selected = selected, onClick = onClick),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -466,6 +543,36 @@ class SettingsActivity : AppCompatActivity() {
                 fontWeight = FontWeight.Bold
             )
             preferences()
+        }
+    }
+
+    @Composable
+    fun SplitPreference(
+            largePreference: @Composable () -> Unit,
+            smallPreference: @Composable () -> Unit,
+            modifier: Modifier = Modifier,
+    ) {
+        Row(
+                modifier = modifier
+                        .fillMaxWidth()
+                        .height(PREFERENCE_HEIGHT)
+        ) {
+            Box(modifier = modifier
+                    .padding(end = PREFERENCE_PADDING)
+                    .fillMaxSize(),
+                    contentAlignment = Alignment.CenterStart) {
+                largePreference()
+            }
+            Divider(modifier = Modifier
+                    .fillMaxHeight(0.95f)
+                    .width(Dp.Hairline), color =
+            MaterialTheme.colorScheme.onSurface.copy(alpha = ContentAlpha.medium))
+            Box(modifier = modifier
+                    .padding(start = PREFERENCE_PADDING)
+                    .size(PREFERENCE_HEIGHT),
+                    contentAlignment = Alignment.Center) {
+                smallPreference()
+            }
         }
     }
 
@@ -583,18 +690,18 @@ class SettingsActivity : AppCompatActivity() {
         val value = if (default != null) preference.getValue(default) else preference.value
         Row(
             modifier = modifier
-                .fillMaxWidth()
-                .height(73.dp)
-                .clickable(enabled = enabled, onClick = {
-                    onPreferenceClicked(preference)
-                })
+                    .fillMaxWidth()
+                    .height(73.dp)
+                    .clickable(enabled = enabled, onClick = {
+                        onPreferenceClicked(preference)
+                    })
         ) {
             if (icon != null || reserveIconSpace) {
                 val iconSpot: @Composable BoxScope.() -> Unit = icon ?: { }
                 Box(
                     modifier = Modifier
-                        .size(24.dp)
-                        .padding(16.dp),
+                            .size(24.dp)
+                            .padding(16.dp),
                     contentAlignment = Alignment.Center,
                     content = iconSpot
                 )
@@ -609,7 +716,7 @@ class SettingsActivity : AppCompatActivity() {
                 )
             }
             if (action != null) Box(
-                modifier = Modifier.size(73.dp), contentAlignment = Alignment.Center
+                modifier = Modifier.size(PREFERENCE_HEIGHT), contentAlignment = Alignment.Center
             ) { action(value) }
         }
     }
@@ -637,7 +744,7 @@ class SettingsActivity : AppCompatActivity() {
                     R.string.invalid_email
                 }
                 403 -> {
-                    launchLogin()
+                    launchLogin(context)
                     R.string.confirm_logout_title
                 }
                 else -> {
@@ -723,16 +830,21 @@ class SettingsActivity : AppCompatActivity() {
                     }
                 }
             } else {
-                launchLogin()
+                launchLogin(context)
             }
             return false
         }
 
-        private fun launchLogin() {
+    }
+
+    companion object {
+        val PREFERENCE_HEIGHT = 73.dp
+        val PREFERENCE_PADDING = 5.dp
+
+        private fun launchLogin(context: Context) {
             val loginIntent = Intent(context, LoginActivity::class.java)
             context.startActivity(loginIntent)
         }
-
     }
 
     /**

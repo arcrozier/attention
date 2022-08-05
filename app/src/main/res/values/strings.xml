@@ -59,6 +59,7 @@
     <string name="sharing">Sharing data; tap \"add message\" on a friend to edit and send</string>
     <string name="saving">Saving…</string>
     <string name="saved">Saved</string>
+    <string name="share">Share</string>
     <string name="share_text">Add me on Attention!
         https://attention.aracroproducts.com/app/add?username=%s</string>
     <string name="name_dialog_title">Please enter your name</string>
@@ -185,6 +186,8 @@
     <string name="alert_title">Attention!</string>
     <string name="change_password_action"
         translatable="false">com.aracroproducts.attention.action.change_password</string>
+    <string name="link_account_action" translatable="false">com.aracroproducts.attention
+        .action.link_account</string>
     <string name="logout_key" translatable="false">com.aracroproducts.attention.key.logout</string>
     <string name="delay_key" translatable="false">com.aracroproducts.attention.key.delay</string>
     <string name="client_id" translatable="false">357995852275-tcfjuvtbrk3c57t5gsuc9a9jdfdn137s.apps.googleusercontent.com</string>
