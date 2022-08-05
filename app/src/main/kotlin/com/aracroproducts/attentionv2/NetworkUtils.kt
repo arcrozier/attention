@@ -26,6 +26,7 @@ class UserDataResult(
     @SerializedName("first_name") val firstName: String,
     @SerializedName("last_name") val lastName: String,
     @SerializedName("email") val email: String,
+    @SerializedName("password_login") val password: Boolean,
     @SerializedName("friends") val friends: List<Friend>
 )
 

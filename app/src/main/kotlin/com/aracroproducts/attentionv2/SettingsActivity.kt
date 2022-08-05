@@ -162,7 +162,7 @@ class SettingsActivity : AppCompatActivity() {
                 onPreferenceChanged = userInfoChangeListener
             )
             Preference(preference = EphemeralPreference(
-                getString(R.string.password_key), null
+                "", null
             ), title = R.string.password, summary = null, onPreferenceClicked = {
                 val intent = Intent(this, LoginActivity::class.java)
                 intent.action = getString(R.string.change_password_action)
@@ -176,7 +176,10 @@ class SettingsActivity : AppCompatActivity() {
                        summary = null,
                        onPreferenceClicked = { // TODO open login
                            true
-                       })
+                       },
+                       enabled = BooleanPreference(getString(R.string.password_key), this)
+                           .getValue(true)
+            )
             DialoguePreference(
                 preference = EphemeralPreference(getString(R.string.logout_key), null),
                 title = R.string.confirm_logout_title,

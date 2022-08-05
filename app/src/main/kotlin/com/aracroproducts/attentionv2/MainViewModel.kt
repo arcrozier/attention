@@ -146,25 +146,24 @@ class MainViewModel @Inject internal constructor(
             ).getString(MY_TOKEN, null) ?: return@launch
             val friends: List<CachedFriend> = attentionRepository.getCachedFriendsSnapshot()
             for (friend in friends) {
-                attentionRepository.getName(
-                    token,
-                    friend.username,
-                    responseListener = { _, response, _ ->
-                        if (response.isSuccessful) {
-                            response.body()?.data?.name?.let {
-                                attentionRepository.addFriend(friend.username,
-                                                              it,
-                                                              token,
-                                                              responseListener = { _, response, _ ->
-                                                                  if (response.isSuccessful || response.code() == 400) attentionRepository.deleteCachedFriend(
-                                                                      friend.username
-                                                                  )
-                                                              })
-                            }
-                        } else if (response.code() == 400) {
-                            attentionRepository.deleteCachedFriend(friend.username)
-                        }
-                    })
+                attentionRepository.getName(token,
+                                            friend.username,
+                                            responseListener = { _, response, _ ->
+                                                if (response.isSuccessful) {
+                                                    response.body()?.data?.name?.let {
+                                                        attentionRepository.addFriend(friend.username,
+                                                                                      it,
+                                                                                      token,
+                                                                                      responseListener = { _, response, _ ->
+                                                                                          if (response.isSuccessful || response.code() == 400) attentionRepository.deleteCachedFriend(
+                                                                                              friend.username
+                                                                                          )
+                                                                                      })
+                                                    }
+                                                } else if (response.code() == 400) {
+                                                    attentionRepository.deleteCachedFriend(friend.username)
+                                                }
+                                            })
             }
         }
     }
@@ -207,26 +206,26 @@ class MainViewModel @Inject internal constructor(
             return
         }
         addFriendException = false
-        attentionRepository.addFriend(friend.id,
-                                      friend.name,
-                                      token,
-                                      responseListener = { call, response, _ ->
-                                          when (response.code()) {
-                                              200 -> {
-                                                  responseListener?.invoke(call, response)
-                                              }
-                                              400 -> {
-                                                  usernameCaption =
-                                                      getApplication<Application>().getString(
-                                                          R.string.add_friend_failed
-                                                      )
-                                              }
-                                              403 -> {
-                                                  attentionRepository.cacheFriend(friend.id)
-                                                  launchLogin()
-                                              }
-                                          }
-                                      }) { _, _ ->
+        attentionRepository.addFriend(
+            friend.id,
+            friend.name,
+            token,
+            responseListener = { call, response, _ ->
+                when (response.code()) {
+                    200 -> {
+                        responseListener?.invoke(call, response)
+                    }
+                    400 -> {
+                        usernameCaption = getApplication<Application>().getString(
+                            R.string.add_friend_failed
+                        )
+                    }
+                    403 -> {
+                        attentionRepository.cacheFriend(friend.id)
+                        launchLogin()
+                    }
+                }
+            }) { _, _ ->
             attentionRepository.cacheFriend(friend.id)
             connectionState = getApplication<Application>().getString(R.string.disconnected)
         }
@@ -453,24 +452,29 @@ class MainViewModel @Inject internal constructor(
                         Log.e(sTAG, "Got user info but body was null!")
                         return@downloadUserInfo
                     }
-                    defaultPrefsEditor.putString(
-                        context.getString(R.string.username_key), data.username
-                    )
-                    defaultPrefsEditor.putString(
-                        context.getString(R.string.first_name_key), data.firstName
-                    )
-                    defaultPrefsEditor.putString(
-                        context.getString(R.string.last_name_key), data.lastName
-                    )
-                    defaultPrefsEditor.putString(
-                        context.getString(R.string.email_key), data.email
-                    )
-                    defaultPrefsEditor.apply()
-                    attentionRepository.updateUserInfo(
-                        data.friends
-                    )
-                    uploadCachedFriends()
-                    populateShareTargets()
+                    defaultPrefsEditor.apply {
+                        putString(
+                            context.getString(R.string.username_key), data.username
+                        )
+                        putString(
+                            context.getString(R.string.first_name_key), data.firstName
+                        )
+                        putString(
+                            context.getString(R.string.last_name_key), data.lastName
+                        )
+                        putString(
+                            context.getString(R.string.email_key), data.email
+                        )
+                        putBoolean(
+                            context.getString(R.string.password_key), data.password
+                        )
+                        apply()
+                    }
+                        attentionRepository.updateUserInfo(
+                            data.friends
+                        )
+                        uploadCachedFriends()
+                        populateShareTargets()
                 }
                 403 -> {
                     onAuthError()
@@ -498,8 +502,7 @@ class MainViewModel @Inject internal constructor(
         val token = userInfo.getString(MY_TOKEN, null)
 
         val fcmToken = fcmTokenPrefs.getString(
-            FCM_TOKEN,
-            null
+            FCM_TOKEN, null
         ) // Do we need to upload a token (note we don't want to upload if we don't have a token yet)
         if (fcmToken != null && !fcmTokenPrefs.getBoolean(TOKEN_UPLOADED, false) && token != null) {
             attentionRepository.registerDevice(
@@ -606,8 +609,7 @@ class MainViewModel @Inject internal constructor(
                                                         }
                                                         when {
                                                             errorBody.contains(
-                                                                "Could not find user",
-                                                                true
+                                                                "Could not find user", true
                                                             ) -> {
                                                                 notifyUser(
                                                                     context.getString(
@@ -637,9 +639,9 @@ class MainViewModel @Inject internal constructor(
                                                         }
                                                         when {
                                                             errorBody.contains(
-                                                                    "does not have you as a friend",
-                                                                    true
-                                                                ) -> {
+                                                                "does not have you as a friend",
+                                                                true
+                                                            ) -> {
                                                                 notifyUser(
                                                                     context.getString(
                                                                         R.string.alert_failed_not_friend,
@@ -664,8 +666,7 @@ class MainViewModel @Inject internal constructor(
                                             }, { _, _ ->
                                                 notifyUser(
                                                     context.getString(
-                                                        R.string.alert_failed_no_connection,
-                                                        name
+                                                        R.string.alert_failed_no_connection, name
                                                     )
                                                 )
                                                 onError?.invoke()
