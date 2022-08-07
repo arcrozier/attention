@@ -28,6 +28,8 @@
     <string name="create_user_title">Create Account</string>
     <string name="choose_username_title">Choose Username</string>
     <string name="change_password_title">Change Password</string>
+    <string name="link_account_title">Link Google Account</string>
+    <string name="link_account_warning">Warning: this cannot be undone</string>
     <string name="login_title">Log In</string>
     <string name="sign_in_w_google">Sign in with Google</string>
     <string name="first_name">First name</string>
@@ -184,10 +186,11 @@
     <string name="link_account_key" translatable="false">com.aracroproducts.attention.key
         .link_account</string>
     <string name="alert_title">Attention!</string>
-    <string name="change_password_action"
-        translatable="false">com.aracroproducts.attention.action.change_password</string>
+    <string name="change_password_action" translatable="false">com.aracroproducts.attention.action.change_password</string>
     <string name="link_account_action" translatable="false">com.aracroproducts.attention
         .action.link_account</string>
+    <string name="reopen_failed_alert_action" translatable="false">com.aracroproducts
+        .attention.action.resend_alert</string>
     <string name="logout_key" translatable="false">com.aracroproducts.attention.key.logout</string>
     <string name="delay_key" translatable="false">com.aracroproducts.attention.key.delay</string>
     <string name="client_id" translatable="false">357995852275-tcfjuvtbrk3c57t5gsuc9a9jdfdn137s.apps.googleusercontent.com</string>

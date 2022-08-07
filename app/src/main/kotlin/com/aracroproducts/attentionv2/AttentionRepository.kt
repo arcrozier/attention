@@ -24,10 +24,8 @@ class AttentionRepository(private val database: AttentionDB) {
     // By default Room runs suspend queries off the main thread, therefore, we don't need to
     // implement anything else to ensure we're not doing long running database work
     // off the main thread.
-    fun insert(vararg friend: Friend) {
-        MainScope().launch {
-            database.getFriendDAO().insert(*friend)
-        }
+    suspend fun insert(vararg friend: Friend) {
+        database.getFriendDAO().insert(*friend)
     }
 
     fun clearTables() {
@@ -113,12 +111,11 @@ class AttentionRepository(private val database: AttentionDB) {
 
     suspend fun getFriend(id: String): Friend = database.getFriendDAO().getFriend(id)
 
-    fun cacheFriend(username: String) {
-        MainScope().launch {
+    suspend fun cacheFriend(username: String) {
+
             database.getCachedFriendDAO().insert(
                     CachedFriend(username)
             )
-        }
     }
 
     fun getCachedFriends() = database.getCachedFriendDAO().getCachedFriends()
@@ -126,15 +123,15 @@ class AttentionRepository(private val database: AttentionDB) {
     suspend fun getCachedFriendsSnapshot(): List<CachedFriend> =
             database.getCachedFriendDAO().getCachedFriendsSnapshot()
 
-    fun deleteCachedFriend(username: String) {
-        MainScope().launch {
+    suspend fun deleteCachedFriend(username: String) {
+
             database.getCachedFriendDAO().delete(CachedFriend(username))
-        }
+
     }
 
     fun getMessages(friend: Friend) = database.getMessageDAO().getMessagesFromUser(friend.id)
 
-    fun appendMessage(message: Message, save: Boolean = false) {
+    suspend fun appendMessage(message: Message, save: Boolean = false) {
         if (save) {
             val mMessage = Message(
                     timestamp = Calendar.getInstance().timeInMillis,
@@ -142,16 +139,15 @@ class AttentionRepository(private val database: AttentionDB) {
                     otherId = message.otherId,
                     message = message.message
             )
-            MainScope().launch {
+
                 database.getMessageDAO().insertMessage(mMessage)
-            }
         }
-        MainScope().launch {
+
             when (message.direction) {
                 DIRECTION.Incoming -> database.getFriendDAO().incrementReceived(message.otherId)
                 DIRECTION.Outgoing -> database.getFriendDAO().incrementSent(message.otherId)
             }
-        }
+
     }
 
     fun getName(
@@ -192,7 +188,7 @@ class AttentionRepository(private val database: AttentionDB) {
         return call
     }
 
-    fun sendMessage(
+    suspend fun sendMessage(
             message: Message,
             token: String,
             responseListener: ((
@@ -244,9 +240,6 @@ class AttentionRepository(private val database: AttentionDB) {
             }
         })
     }
-
-    // todo add pass through for mute field
-    // todo add muted(friend, boolean) internet call
 
     fun registerDevice(
             token: String, fcmToken: String, responseListener: ((
@@ -399,14 +392,14 @@ class AttentionRepository(private val database: AttentionDB) {
         })
     }
 
-    fun updateUserInfo(friends: List<Friend>) {
-        MainScope().launch {
+    suspend fun updateUserInfo(friends: List<Friend>) {
+
             database.getFriendDAO().insert(*friends.toTypedArray())
             val keepIDs: Array<String> = Array(friends.size) { index ->
                 friends[index].id
             }
             database.getFriendDAO().keepOnly(*keepIDs)
-        }
+
     }
 
     fun addFriend(
@@ -430,7 +423,9 @@ class AttentionRepository(private val database: AttentionDB) {
                 val responseErrorBody = response.errorBody()?.string()
                 if (!response.isSuccessful) printNetworkError(response, call, responseErrorBody)
                 else {
-                    insert(Friend(username, name))
+                    MainScope().launch {
+                        insert(Friend(username, name))
+                    }
                 }
                 responseListener?.invoke(call, response, responseErrorBody)
             }
@@ -446,18 +441,18 @@ class AttentionRepository(private val database: AttentionDB) {
         })
     }
 
-    fun alertDelivered(username: String?, alertId: String?) {
-        MainScope().launch {
+    suspend fun alertDelivered(username: String?, alertId: String?) {
+
             database.getFriendDAO()
                     .setMessageStatus(MessageStatus.DELIVERED, alert_id = alertId, id = username)
-        }
+
     }
 
-    fun alertRead(username: String?, alertId: String?) {
-        MainScope().launch {
+    suspend fun alertRead(username: String?, alertId: String?) {
+
             database.getFriendDAO()
                     .setMessageStatus(MessageStatus.READ, alert_id = alertId, id = username)
-        }
+
     }
 
     fun sendDeliveredReceipt(

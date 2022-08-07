@@ -136,7 +136,6 @@ open class AlertHandler : FirebaseMessagingService() {
                     AttentionDB.getDB(applicationContext).getFriendDAO()
                         .incrementReceived(message.otherId)
 
-                    // todo check if a cached mute is in effect?
                     // Device should only show pop up if the device is off or if it has the ability to draw overlays (required to show pop up if screen is on)
                     if (!pm.isInteractive || Settings.canDrawOverlays(this@AlertHandler) || AttentionApplication.isActivityVisible()) {
                         val intent = Intent(this@AlertHandler, Alert::class.java).apply {
@@ -180,7 +179,7 @@ open class AlertHandler : FirebaseMessagingService() {
                             TAG, "Couldn't finish application"
                         )
                     }
-                } // todo handle user muted/un-muted alerts
+                }
                 else -> {
                     Log.w(TAG, "Unrecognized action: $remoteMessage")
                     return@launch

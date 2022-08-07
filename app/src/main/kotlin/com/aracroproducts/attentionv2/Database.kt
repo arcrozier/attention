@@ -55,7 +55,6 @@ data class CachedFriend(
     @PrimaryKey val username: String
 )
 
-// todo add user muted field - and maybe a cached field?
 @Entity
 data class Friend(
     @SerializedName("friend") @PrimaryKey val id: String,

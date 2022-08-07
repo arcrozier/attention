@@ -60,6 +60,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
 import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
@@ -168,6 +169,22 @@ class MainActivity : AppCompatActivity() {
                 friendModel.appendDialogState(Triple(
                         MainViewModel.DialogStatus.ADD_MESSAGE_TEXT, Friend(username, "")
                 ) {})
+            }
+        }
+
+        if (action == getString(R.string.reopen_failed_alert_action)) {
+            lifecycleScope.launch {
+                intent.getStringExtra(MainViewModel.EXTRA_RECIPIENT)?.let {
+                    val friend = friendModel.getFriend(it)
+                    friendModel.appendDialogState(
+                            Triple(MainViewModel.DialogStatus.ADD_MESSAGE_TEXT,
+                                    friend
+                            ) { message ->
+                                friendModel.sendAlert(friend,
+                                        body = message,
+                                        launchLogin = ::launchLogin)
+                            })
+                }
             }
         }
     }
@@ -640,8 +657,8 @@ class MainActivity : AppCompatActivity() {
             onLongPress: () -> Unit,
             onEditName: (friend: Friend) -> Unit,
             onDeletePrompt: (friend: Friend) -> Unit,
-            cached: Boolean = false,
-            modifier: Modifier = Modifier
+            modifier: Modifier = Modifier,
+            cached: Boolean = false
     ) {
         var state by remember { mutableStateOf(State.NORMAL) }
         var message: String? by remember { mutableStateOf(null) }
@@ -692,7 +709,7 @@ class MainActivity : AppCompatActivity() {
             Column(modifier = Modifier
                     .align(Alignment.CenterStart)
                     .semantics(
-                            mergeDescendants = true) {}) { // todo check if muted, append muted emoji if it is
+                            mergeDescendants = true) {}) {
                 Text(
                         text = friend.name,
                         style = MaterialTheme.typography.titleMedium,
@@ -852,8 +869,8 @@ class MainActivity : AppCompatActivity() {
                         if (progress >= delay && !triggered) {
                             @Suppress("UNUSED_VALUE")
                             triggered = true
-                            friendModel.sendAlert(friend.id,
-                                    message = message,
+                            friendModel.sendAlert(friend,
+                                    body = message,
                                     launchLogin = ::launchLogin,
                                     onError = {
                                         sendingStatus = getString(R.string.send_error)

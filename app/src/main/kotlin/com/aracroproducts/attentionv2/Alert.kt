@@ -42,9 +42,9 @@ class Alert : AppCompatActivity() {
     })
 
     inner class AlertViewModelFactory(
-        private val intent: Intent,
-        private val attentionRepository: AttentionRepository,
-        private val application: Application
+            private val intent: Intent,
+            private val attentionRepository: AttentionRepository,
+            private val application: Application
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -87,9 +87,9 @@ class Alert : AppCompatActivity() {
         AlertDialog(onDismissRequest = { }, dismissButton = {
             Row {
                 AnimatedVisibility(
-                    visible = !alertModel.silenced,
-                    enter = fadeIn(),
-                    exit = fadeOut()
+                        visible = !alertModel.silenced,
+                        enter = fadeIn(),
+                        exit = fadeOut()
                 ) {
                     TextButton(onClick = { alertModel.silence() }) {
                         Text(text = getString(R.string.silence))
@@ -97,14 +97,15 @@ class Alert : AppCompatActivity() {
                 }
 
                 AnimatedVisibility(
-                    visible = alertModel.showDNDButton && (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).isNotificationPolicyAccessGranted,
-                    enter = fadeIn(),
-                    exit = fadeOut()
+                        visible = alertModel.showDNDButton && (getSystemService(
+                                NOTIFICATION_SERVICE) as NotificationManager).isNotificationPolicyAccessGranted,
+                        enter = fadeIn(),
+                        exit = fadeOut()
                 ) {
                     TextButton(onClick = {
                         alertModel.silence()
                         val intent = Intent(
-                            Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS
+                                Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS
                         )
                         startActivity(intent)
                     }) {
@@ -121,13 +122,13 @@ class Alert : AppCompatActivity() {
             }
         }, title = { Text(getString(R.string.alert_title)) }, text = {
             Column {
-                Text(message)
+                Text(message)  // TODO handle rich text
                 Text(
-                    timeSince(since = Calendar.getInstance().apply {
-                        timeInMillis = alertModel.timestamp
-                    }), color = MaterialTheme.colorScheme.onSurface.copy(
+                        timeSince(since = Calendar.getInstance().apply {
+                            timeInMillis = alertModel.timestamp
+                        }), color = MaterialTheme.colorScheme.onSurface.copy(
                         alpha = ContentAlpha.medium
-                    )
+                )
                 )
             }
         })
@@ -167,41 +168,59 @@ class Alert : AppCompatActivity() {
      * this value will change and should be refreshed, in milliseconds
      */
     private fun durationToMinimalDisplay(since: Calendar): Pair<String, Long> {
-        val now = Instant.now()
-        val duration = Duration.between(since.toInstant(), now)
-        when {
-            duration.toSeconds() < 60 -> {
-                return Pair(
-                    getString(R.string.seconds_ago, duration.seconds),
-                    secondsToMillis(1) - duration.toMillisPart()
-                )
-            }
-            duration.toMinutes() < 60 -> {
-                return Pair(
-                    getString(R.string.minutes_ago, duration.toMinutes()),
-                    minutesToMillis() - duration.toSecondsPart()
-                )
-            }
-            since.toInstant().truncatedTo(ChronoUnit.DAYS) == now.truncatedTo(ChronoUnit.DAYS) -> {
-                return Pair(
-                    getString(
-                        R.string.sent_at, DateFormat.getTimeInstance().format(
-                            since.time
-                        )
-                    ), Duration.between(
-                        since.toInstant(),
-                        since.toInstant().truncatedTo(ChronoUnit.DAYS).plus(1, ChronoUnit.DAYS)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val now = Instant.now()
+            val duration = Duration.between(since.toInstant(), now)
+            when {
+                duration.seconds < 60 -> {
+                    return Pair(
+                            getString(R.string.seconds_ago, duration.seconds),
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) secondsToMillis(1) -
+                                    duration.toMillisPart() else secondsToMillis(
+                                    1) - duration.nano /
+                                    1e6.toLong()
+                    )
+                }
+                duration.toMinutes() < 60 -> {
+                    return Pair(
+                            getString(R.string.minutes_ago, duration.toMinutes()),
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) minutesToMillis() -
+                                    secondsToMillis(duration.toSecondsPart()
+                                            .toLong()) else duration.seconds % 60
+                    )
+                }
+                since.toInstant().truncatedTo(ChronoUnit.DAYS) == now.truncatedTo(
+                        ChronoUnit.DAYS) -> {
+                    return Pair(
+                            getString(
+                                    R.string.sent_at, DateFormat.getTimeInstance().format(
+                                    since.time
+                            )
+                            ), Duration.between(
+                            since.toInstant(),
+                            since.toInstant().truncatedTo(ChronoUnit.DAYS).plus(1, ChronoUnit.DAYS)
                     ).toMillis()
-                ) // This returns the amount of time (in milliseconds) until tomorrow
+                    ) // This returns the amount of time (in milliseconds) until tomorrow
+                }
+                else -> {
+                    return Pair(
+                            getString(
+                                    R.string.sent_on,
+                                    DateFormat.getDateTimeInstance().format(since.time)
+                            ), Long.MAX_VALUE
+                    ) // This value will never change (unless the user changes their timezone, which
+                    // probably wouldn't happen without the app getting recomposed?)
+                }
             }
-            else -> {
-                return Pair(
+        } else {
+            // Look I can't be bothered to figure out how to durations without the Duration class
+            // I'm sure there's a way but I'm not doing it sorry
+            // Besides, Android O is now 5 years old - basically everyone is running it or newer
+            return Pair(
                     getString(
-                        R.string.sent_on, DateFormat.getDateTimeInstance().format(since.time)
+                            R.string.sent_on, DateFormat.getDateTimeInstance().format(since.time)
                     ), Long.MAX_VALUE
-                ) // This value will never change (unless the user changes their timezone, which
-                // probably wouldn't happen without the app getting recomposed?)
-            }
+            )
         }
     }
 
