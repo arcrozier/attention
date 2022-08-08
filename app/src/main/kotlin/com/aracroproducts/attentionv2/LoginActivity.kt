@@ -138,6 +138,41 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
+    private val linkResultHandler = registerForActivityResult(
+            ActivityResultContracts.StartIntentSenderForResult()
+    ) { result: ActivityResult ->
+        loginViewModel.uiEnabled = true // handle intent result here
+        val credential: SignInCredential?
+        try {
+            credential = oneTapClient?.getSignInCredentialFromIntent(result.data)
+                    ?: return@registerForActivityResult
+            loginViewModel.idToken = credential.googleIdToken
+            if (loginViewModel.idToken != null) { // Got an ID token from Google. Use it to authenticate
+                // with your backend.
+                loginViewModel.loginWithGoogle(null, null) {
+                    completeSignIn()
+                }
+                Log.d(TAG, "Got ID token.")
+            }
+        } catch (e: ApiException) {
+            when (e.statusCode) {
+                CommonStatusCodes.CANCELED -> {
+                    Log.d(TAG, "One-tap dialog was closed.") // Don't re-prompt the user.
+                    loginViewModel.showOneTapUI = false
+                }
+                CommonStatusCodes.NETWORK_ERROR -> {
+                    Log.d(TAG, "One-tap encountered a network error.") // Try again or just ignore.
+                }
+                else -> {
+                    Log.d(
+                            TAG, "Couldn't get credential from result." + " (${e.localizedMessage})"
+                    )
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
     class LoginViewModelFactory(
             private val attentionRepository: AttentionRepository,
             private val application: Application
@@ -155,7 +190,8 @@ class LoginActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(
-                loginViewModel.login != LoginViewModel.State.CHANGE_PASSWORD
+                loginViewModel.login != LoginViewModel.State.CHANGE_PASSWORD ||
+                        loginViewModel.login != LoginViewModel.State.LINK_ACCOUNT
         ) {
             override fun handleOnBackPressed() {
                 if (loginViewModel.login == LoginViewModel.State.CHOOSE_USERNAME) {
@@ -166,10 +202,10 @@ class LoginActivity : AppCompatActivity() {
             }
 
         })
-        // TODO handle the link account action
+
         if (intent.action == getString(R.string.change_password_action)) {
             loginViewModel.login = LoginViewModel.State.CHANGE_PASSWORD
-        } else if (intent.action == getString(R.string.reopen_failed_alert_action)) {
+        } else if (intent.action == getString(R.string.link_account_action)) {
             loginViewModel.login = LoginViewModel.State.LINK_ACCOUNT
         } else if
                        (loginViewModel.showOneTapUI) {

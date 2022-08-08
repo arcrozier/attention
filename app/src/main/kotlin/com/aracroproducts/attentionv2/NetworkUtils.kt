@@ -149,4 +149,12 @@ interface APIV2 {
             @Field("from") from: String,
             @Header("Authorization") token: String
     ): Call<GenericResult<Void>>
+
+    @FormUrlEncoded
+    @POST("link_google_account/")
+    fun linkAccount(
+            @Field("password") password: String,
+            @Field("id_token") id_token: String,
+            @Header("Authorization") token: String
+    ) : Call<GenericResult<Void>>
 }

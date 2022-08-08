@@ -619,6 +619,38 @@ class AttentionRepository(private val database: AttentionDB) {
         })
     }
 
+    fun linkGoogleAccount(
+            password: String,
+            googleToken: String,
+            token: String,
+            responseListener: ((Call<TokenResult>, Response<TokenResult>, String?) -> Unit)? = null,
+            errorListener: ((Call<TokenResult>, Throwable) -> Unit)? = null
+    ) {
+        val call = apiInterface.linkAccount(password, googleToken, authHeader(token))
+        call.enqueue(object : Callback<GenericResult<Void>> {
+            /**
+             * Invoked for a received HTTP response.
+             *
+             *
+             * Note: An HTTP response may still indicate an application-level failure such as a 404 or 500.
+             * Call [Response.isSuccessful] to determine if the response indicates success.
+             */
+            override fun onResponse(call: Call<GenericResult<Void>>,
+                                    response: Response<GenericResult<Void>>) {
+                TODO("Not yet implemented")
+            }
+
+            /**
+             * Invoked when a network exception occurred talking to the server or when an unexpected exception
+             * occurred creating the request or processing the response.
+             */
+            override fun onFailure(call: Call<GenericResult<Void>>, t: Throwable) {
+                TODO("Not yet implemented")
+            }
+
+        })
+    }
+
     private fun printNetworkError(error: Response<*>, request: Call<*>, errorBody: String?) {
         Log.e(javaClass.name, "Response from ${request.request().url}")
         Log.e(
