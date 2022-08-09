@@ -11,6 +11,7 @@ import android.os.Bundle
 import android.text.Annotation
 import android.text.SpannedString
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResult
@@ -63,6 +64,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.text.getSpans
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.preference.PreferenceManager
 import com.aracroproducts.attentionv2.MainViewModel.Companion.TOKEN_UPLOADED
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
 import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
@@ -149,9 +151,12 @@ class LoginActivity : AppCompatActivity() {
             loginViewModel.idToken = credential.googleIdToken
             if (loginViewModel.idToken != null) { // Got an ID token from Google. Use it to authenticate
                 // with your backend.
-                loginViewModel.loginWithGoogle(null, null) {
-                    completeSignIn()
-                }
+                PreferenceManager.getDefaultSharedPreferences(this).edit()
+                        .apply {
+                            putBoolean(getString(R.string.password_key), false)
+                            apply()
+                        }
+                finish()
                 Log.d(TAG, "Got ID token.")
             }
         } catch (e: ApiException) {
@@ -162,6 +167,8 @@ class LoginActivity : AppCompatActivity() {
                 }
                 CommonStatusCodes.NETWORK_ERROR -> {
                     Log.d(TAG, "One-tap encountered a network error.") // Try again or just ignore.
+                    Toast.makeText(this, R.string.connection_error, Toast.LENGTH_LONG)
+                            .show()
                 }
                 else -> {
                     Log.d(
@@ -574,8 +581,7 @@ class LoginActivity : AppCompatActivity() {
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             OutlinedButton(onClick = {
                 signInWithGoogle(
-                        snackbarHostState, coroutineScope, loginResultHandler // todo use
-                        // different handler
+                        snackbarHostState, coroutineScope, linkResultHandler
                 )
             }, enabled = model.uiEnabled) {
                 Text(text = getString(R.string.sign_in_w_google))

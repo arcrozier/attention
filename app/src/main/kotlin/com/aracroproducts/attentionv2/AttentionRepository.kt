@@ -623,8 +623,11 @@ class AttentionRepository(private val database: AttentionDB) {
             password: String,
             googleToken: String,
             token: String,
-            responseListener: ((Call<TokenResult>, Response<TokenResult>, String?) -> Unit)? = null,
-            errorListener: ((Call<TokenResult>, Throwable) -> Unit)? = null
+            responseListener: ((Call<GenericResult<Void>>, Response<GenericResult<Void>>, String?)
+            ->
+            Unit)? =
+                    null,
+            errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
     ) {
         val call = apiInterface.linkAccount(password, googleToken, authHeader(token))
         call.enqueue(object : Callback<GenericResult<Void>> {
@@ -637,7 +640,9 @@ class AttentionRepository(private val database: AttentionDB) {
              */
             override fun onResponse(call: Call<GenericResult<Void>>,
                                     response: Response<GenericResult<Void>>) {
-                TODO("Not yet implemented")
+                val responseErrorBody = response.errorBody()?.string()
+                if (!response.isSuccessful) printNetworkError(response, call, responseErrorBody)
+                responseListener?.invoke(call, response, responseErrorBody)
             }
 
             /**
@@ -645,7 +650,8 @@ class AttentionRepository(private val database: AttentionDB) {
              * occurred creating the request or processing the response.
              */
             override fun onFailure(call: Call<GenericResult<Void>>, t: Throwable) {
-                TODO("Not yet implemented")
+                Log.e(javaClass.name, t.stackTraceToString())
+                errorListener?.invoke(call, t)
             }
 
         })
