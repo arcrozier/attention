@@ -110,6 +110,8 @@ class SettingsActivity : AppCompatActivity() {
                 DialoguePreference(preference = StringPreference(
                     getString(R.string.username_key), this
             ), title = R.string.username,
+                        // TODO display user's pfp
+                        // TODO allow user to upload new pfp
                         dialog = { preference, dismissDialog, context, title ->
                             var newValue by remember { mutableStateOf(preference.value) }
                             var loading by remember {mutableStateOf(false)}

@@ -224,6 +224,8 @@ class MainActivity : AppCompatActivity() {
                 if (!friendModel.addFriendException) launchLogin()
             }
             friendModel.registerDevice()
+            // TODO if on SDK Version 33 or higher, and we should show the notification
+            //  permission dialogue, request the permission
             return
         }
 
