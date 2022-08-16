@@ -63,7 +63,7 @@ android {
 dependencies {
     def lifecycle_version = "2.5.1"
 
-    implementation 'com.google.firebase:firebase-messaging-ktx:23.0.6'
+    implementation 'com.google.firebase:firebase-messaging-ktx:23.0.7'
     implementation 'com.google.firebase:firebase-analytics:21.1.0'
     implementation fileTree(dir: "libs", include: ["*.jar"])
     implementation 'androidx.appcompat:appcompat:1.4.2'
@@ -156,7 +156,7 @@ dependencies {
     // For sharing
     implementation "androidx.sharetarget:sharetarget:1.2.0-rc02"
 
-    implementation 'com.google.accompanist:accompanist-swiperefresh:0.24.9-beta'
+    implementation 'com.google.accompanist:accompanist-swiperefresh:0.25'
 
     // Sign in with Google
     implementation 'com.google.android.gms:play-services-auth:20.2.0'
