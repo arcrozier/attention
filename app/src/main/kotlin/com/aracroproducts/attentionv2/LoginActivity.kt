@@ -151,13 +151,11 @@ class LoginActivity : AppCompatActivity() {
             loginViewModel.idToken = credential.googleIdToken
             if (loginViewModel.idToken != null) { // Got an ID token from Google. Use it to authenticate
                 // with your backend.
-                PreferenceManager.getDefaultSharedPreferences(this).edit()
-                        .apply {
-                            putBoolean(getString(R.string.password_key), false)
-                            apply()
-                        }
-                finish()
                 Log.d(TAG, "Got ID token.")
+                loginViewModel.linkAccount(snackbarHostState = null, coroutineScope = null,
+                        onLoggedIn = {
+                            finish()
+                        })
             }
         } catch (e: ApiException) {
             when (e.statusCode) {

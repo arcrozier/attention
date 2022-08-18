@@ -115,6 +115,79 @@ class LoginViewModel @Inject constructor(
         passwordHidden = true
     }
 
+    fun linkAccount(
+            snackbarHostState: SnackbarHostState?, coroutineScope: CoroutineScope?,
+            onLoggedIn: () -> Unit
+    ) {
+        val localIdToken = idToken ?: throw IllegalStateException("idToken was null")
+        uiEnabled = false
+        val context = getApplication<Application>()
+
+        if (password.isBlank()) {
+            passwordCaption = context.getString(R.string.wrong_password)
+            return
+        }
+
+        val userInfo = context.getSharedPreferences(MainViewModel.USER_INFO, Context.MODE_PRIVATE)
+
+        // token is auth token
+        val token = userInfo.getString(MainViewModel.MY_TOKEN, null)
+        if (token == null) {
+            login = State.LOGIN
+            usernameCaption = context.getString(R.string.password_verification_failed)
+            uiEnabled = true
+            return
+        }
+        attentionRepository.linkGoogleAccount(googleToken = localIdToken,
+                password = password,
+                token = token,
+                responseListener = { _, response, _ ->
+                    uiEnabled = true
+                    when (response.code()) {
+                        200 -> {
+                            val body = response.body()
+                            if (body == null) {
+                                Log.e(
+                                        sTAG,
+                                        "Got response but body was null!"
+                                )
+                                return@linkGoogleAccount
+                            }
+                            PreferenceManager.getDefaultSharedPreferences(context).edit()
+                                    .apply {
+                                        putBoolean(context.getString(R.string.password_key), false)
+                                        apply()
+                                    }
+                            onLoggedIn()
+                        }
+                        400 -> {
+                            Log.e(
+                                    sTAG,
+                                    response.errorBody().toString()
+                            )
+                        }
+                        else -> {
+                            genericErrorHandling(
+                                    response.code(),
+                                    snackbarHostState,
+                                    coroutineScope,
+                                    context
+                            )
+                        }
+                    }
+                },
+                errorListener = { _, t ->
+                    genericErrorHandling(
+                            0,
+                            snackbarHostState,
+                            coroutineScope,
+                            context,
+                            t
+                    )
+                    uiEnabled = true
+                })
+    }
+
     fun login(
             snackbarHostState: SnackbarHostState?,
             scope: CoroutineScope?,
@@ -409,6 +482,7 @@ class LoginViewModel @Inject constructor(
         }
     }
 
+    // TODO handle 429 - rate limited
     private fun genericErrorHandling(
             code: Int,
             snackbarHostState: SnackbarHostState?,

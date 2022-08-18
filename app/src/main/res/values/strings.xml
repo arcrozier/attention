@@ -78,7 +78,8 @@
     <string name="alert_failed">Failed to send</string>
     <string name="alert_failed_not_friend">Could not send alert because you are not %s\'s
         friend</string>
-    <string name="alert_failed_no_user">Could not send alert to %s because the user does         not exist</string>
+    <string name="alert_failed_no_user">Could not send alert to %s because the user does not
+        exist (refresh and try again)</string>
     <string name="alert_failed_bad_request">An error occurred while sending an alert to %s</string>
     <string name="alert_failed_server_error">The server encountered an error while sending an alert to %s</string>
     <string name="alert_failed_no_connection">Could not send alert %s. Check your network

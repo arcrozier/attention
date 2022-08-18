@@ -35,6 +35,7 @@ import java.io.IOException
 import java.lang.Integer.min
 import javax.inject.Inject
 
+// TODO handle 429 - rate limited
 class MainViewModel @Inject internal constructor(
         private val attentionRepository: AttentionRepository, application: Application
 ) : AndroidViewModel(application) {
@@ -678,6 +679,7 @@ class MainViewModel @Inject internal constructor(
                         }
                         onError?.invoke()
                     }
+                    // TODO handle 429 - rate limited
                     else -> {
                         notifyUser(
                                 context.getString(

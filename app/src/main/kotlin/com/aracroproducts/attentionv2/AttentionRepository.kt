@@ -393,8 +393,6 @@ class AttentionRepository(private val database: AttentionDB) {
     }
 
     suspend fun updateUserInfo(friends: List<Friend>) {
-            // TODO investigate whether these return the number of rows updated
-            // if yes, return a boolean indicating that profile pictures should be downloaded?
             database.getFriendDAO().insert(*friends.toTypedArray())
             val keepIDs: Array<String> = Array(friends.size) { index ->
                 friends[index].id
