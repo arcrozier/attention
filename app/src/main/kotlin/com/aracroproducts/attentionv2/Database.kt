@@ -55,6 +55,7 @@ data class CachedFriend(
     @PrimaryKey val username: String
 )
 
+// TODO add pfp field
 @Entity
 data class Friend(
     @SerializedName("friend") @PrimaryKey val id: String,

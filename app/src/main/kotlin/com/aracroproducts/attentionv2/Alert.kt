@@ -122,7 +122,7 @@ class Alert : AppCompatActivity() {
             }
         }, title = { Text(getString(R.string.alert_title)) }, text = {
             Column {
-                Text(message)  // TODO handle rich text
+                Text(message)
                 Text(
                         timeSince(since = Calendar.getInstance().apply {
                             timeInMillis = alertModel.timestamp

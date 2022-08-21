@@ -712,6 +712,7 @@ class MainActivity : AppCompatActivity() {
                     .align(Alignment.CenterStart)
                     .semantics(
                             mergeDescendants = true) {}) {
+                // TODO add pfp space
                 Text(
                         text = friend.name,
                         style = MaterialTheme.typography.titleMedium,
