@@ -122,7 +122,7 @@ fun StringPreferenceChange(
     var newValue by remember { mutableStateOf(preference.value) }
     AlertDialog(onDismissRequest = { dismissDialog() }, dismissButton = {
         OutlinedButton(onClick = dismissDialog) {
-            Text(text = context.getString(R.string.cancel))
+            Text(text = context.getString(android.R.string.cancel))
         }
     }, confirmButton = {
         preference.value = newValue
@@ -148,7 +148,7 @@ fun FloatPreferenceChange(
     }
     AlertDialog(onDismissRequest = { dismissDialog() }, dismissButton = {
         OutlinedButton(onClick = dismissDialog) {
-            Text(text = context.getString(R.string.cancel))
+            Text(text = context.getString(android.R.string.cancel))
         }
     }, confirmButton = {
         try {
@@ -192,7 +192,7 @@ fun MultiSelectListPreferenceChange(
 
     AlertDialog(onDismissRequest = { dismissDialog() }, dismissButton = {
         OutlinedButton(onClick = dismissDialog) {
-            Text(text = context.getString(R.string.cancel))
+            Text(text = context.getString(android.R.string.cancel))
         }
     }, confirmButton = {
         preference.value = newValue.keys

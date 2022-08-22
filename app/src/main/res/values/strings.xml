@@ -3,6 +3,7 @@
     <string name="action_settings">Settings</string>
     <!-- Strings used for fragments for navigation -->
 
+    <string name="pfp_description">Profile photo for %1$s</string>
     <string name="username">Username</string>
     <string name="no_username">Not found</string>
     <string name="show_password">Show password</string>
@@ -112,7 +113,6 @@
     <string name="friend_card_click_label">choose from alert options</string>
     <string name="friend_card_long_click_label">edit or remove friend</string>
 
-    <string name="cancel">Cancel</string>
     <string name="delete">Delete</string>
     <string name="rename">Change name</string>
     <string name="new_name">Enter new name</string>
@@ -150,6 +150,12 @@
     <string name="app_preference_category">App</string>
 
     <!-- Notification Preferences -->
+    <string name="notification_rationale_title">Allow notification permissions?</string>
+    <string name="notification_rationale">This is allows Attention! to show notifications
+        when your friends want your attention. Without notification permission, the app
+        will not show pop-up dialogs when your friends message either. If you want just the
+        dialogs without the notifications, leave notification permissions disabled and enabled
+        "Override Do Not Disturb" in the app settings</string>
     <string name="override_dnd">Override Do Not Disturb</string>
     <string name="override_summary_off">Alerts won\'t be shown when Do Not Disturb is on</string>
     <string name="override_summary_on">Alerts will be shown even when Do Not Disturb is on</string>

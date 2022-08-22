@@ -40,9 +40,16 @@ class MainViewModel @Inject internal constructor(
         private val attentionRepository: AttentionRepository, application: Application
 ) : AndroidViewModel(application) {
 
-    enum class DialogStatus {
-        ADD_FRIEND, OVERLAY_PERMISSION, ADD_MESSAGE_TEXT, FRIEND_NAME, CONFIRM_DELETE,
-        CONFIRM_DELETE_CACHED, NONE
+    sealed class DialogStatus(val priority: Int) {
+        sealed class FriendStatus(val friend: Friend, priority: Int) : DialogStatus(priority)
+        object AddFriend : DialogStatus(0)
+        object OverlayPermission: DialogStatus(1)
+        class AddMessageText(friend: Friend, val onSend: (String) -> Unit): FriendStatus(friend,2)
+        class FriendName(friend: Friend) : FriendStatus(friend, 3)
+        class ConfirmDelete(friend: Friend): FriendStatus(friend, 4)
+        class ConfirmDeleteCached(friend: Friend): FriendStatus(friend, 5)
+        data class PermissionRationale(val permission: String): DialogStatus(6)
+        object None: DialogStatus(7)
     }
 
     val friends = attentionRepository.getFriends()
@@ -83,17 +90,17 @@ class MainViewModel @Inject internal constructor(
      * Used to determine which dialog to display (or none). If the dialog requires additional data,
      * like a user ID, this can be placed in the second part of the pair
      */
-    val dialogState = mutableStateOf(Triple<DialogStatus, Friend?, (String) -> Unit>(
-            DialogStatus.NONE, null
-    ) {})
+    val dialogState = mutableStateOf<DialogStatus>(DialogStatus.None)
 
     private val dialogQueue =
-            PriorityQueueSet<Triple<DialogStatus, Friend?, (String) -> Unit>> { t, t2 ->
-                val typeCompare = t.first.compareTo(t2.first)
+            PriorityQueueSet<DialogStatus> { t, t2 ->
+                val typeCompare = t.priority.compareTo(t2.priority)
                 if (typeCompare != 0) {
                     typeCompare
+                } else if (t is DialogStatus.FriendStatus) {
+                    t.friend.name.compareTo(t.friend.name)
                 } else {
-                    t.second?.name?.compareTo(t.first.name) ?: 0
+                    0
                 }
             }
 
@@ -111,7 +118,7 @@ class MainViewModel @Inject internal constructor(
         addFriendUsername = ""
         synchronized(this) {
             if (dialogQueue.isEmpty()) {
-                dialogState.value = Triple(DialogStatus.NONE, null) {}
+                dialogState.value = DialogStatus.None
             } else {
                 dialogState.value = dialogQueue.remove()
             }
@@ -121,18 +128,18 @@ class MainViewModel @Inject internal constructor(
     /**
      * Adds a new dialog state to the queue. If the queue is empty, updates dialogState immediately
      */
-    fun appendDialogState(state: Triple<DialogStatus, Friend?, (String) -> Unit>) {
-        if (state.first == DialogStatus.NONE) return
+    fun appendDialogState(state: DialogStatus) {
+        if (state is DialogStatus.None) return
         synchronized(this) {
-            if (dialogQueue.isEmpty() && dialogState.value.first == DialogStatus.NONE) dialogState.value =
-                    state
+            if (dialogQueue.isEmpty() && dialogState.value is DialogStatus.None)
+                dialogState.value = state
             else dialogQueue.add(state)
         }
     }
 
-    fun swapDialogState(state: Triple<DialogStatus, Friend?, (String) -> Unit>) {
+    fun swapDialogState(state: DialogStatus) {
         synchronized(this) {
-            if (dialogState.value.first == DialogStatus.NONE) {
+            if (dialogState.value is DialogStatus.None) {
                 dialogState.value = state
             } else {
                 dialogQueue.add(dialogState.value)
@@ -307,11 +314,11 @@ class MainViewModel @Inject internal constructor(
      * Updates `DialogState` to display the dialog to confirm deletion of the specified friend
      */
     fun onDeleteFriend(friend: Friend) {
-        appendDialogState(Triple(DialogStatus.CONFIRM_DELETE, friend) {})
+        appendDialogState(DialogStatus.ConfirmDelete(friend))
     }
 
     fun onDeleteCachedFriend(friend: Friend) {
-        appendDialogState(Triple(DialogStatus.CONFIRM_DELETE_CACHED, friend) {})
+        appendDialogState(DialogStatus.ConfirmDeleteCached(friend))
     }
 
     /**
@@ -338,7 +345,7 @@ class MainViewModel @Inject internal constructor(
      * Shows the edit name dialog (by updating `DialogState`)
      */
     fun onEditName(friend: Friend) {
-        appendDialogState(Triple(DialogStatus.FRIEND_NAME, friend) {})
+        appendDialogState(DialogStatus.FriendName(friend))
     }
 
     private fun errorListener() {

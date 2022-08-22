@@ -55,7 +55,6 @@ data class CachedFriend(
     @PrimaryKey val username: String
 )
 
-// TODO add pfp field
 @Entity
 data class Friend(
     @SerializedName("friend") @PrimaryKey val id: String,
@@ -64,7 +63,8 @@ data class Friend(
     @SerializedName("received") val received: Int = 0,
     @SerializedName("last_message_id_sent") val last_message_sent_id: String? = null,
     @SerializedName("last_message_status") @TypeConverters(Converters::class)
-    val last_message_status: MessageStatus? = null
+    val last_message_status: MessageStatus? = null,
+    @SerializedName("photo") val photo: String? = null,
 )
 
 @Entity

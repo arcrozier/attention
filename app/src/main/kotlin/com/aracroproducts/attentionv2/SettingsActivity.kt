@@ -130,7 +130,7 @@ class SettingsActivity : AppCompatActivity() {
                                 OutlinedButton(onClick = {
                                     if (!loading) dismissDialog()
                                 }, enabled = !loading) {
-                                    Text(text = context.getString(R.string.cancel))
+                                    Text(text = context.getString(android.R.string.cancel))
                                 }
                             }, confirmButton = {
                                 Button(onClick = {
@@ -308,7 +308,7 @@ class SettingsActivity : AppCompatActivity() {
                     }
                 }, dismissButton = {
                     FilledTonalButton(onClick = { dismissDialog() }) {
-                        Text(text = getString(R.string.cancel))
+                        Text(text = getString(android.R.string.cancel))
                     }
 
                 })
@@ -934,7 +934,7 @@ class SettingsActivity : AppCompatActivity() {
     )
     dialog.dismiss()
     }
-    setNegativeButton(R.string.cancel, null)
+    setNegativeButton(android.R.string.cancel, null)
     show()
     }
     true
@@ -998,7 +998,7 @@ class SettingsActivity : AppCompatActivity() {
     startActivity(intent)
     dialog.cancel()
     }
-    setNegativeButton(R.string.cancel) { dialog, _ ->
+    setNegativeButton(android.R.string.cancel) { dialog, _ ->
     dialog.cancel()
     }
     show()

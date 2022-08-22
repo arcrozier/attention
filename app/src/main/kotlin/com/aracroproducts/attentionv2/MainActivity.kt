@@ -1,15 +1,20 @@
 package com.aracroproducts.attentionv2
 
+import android.Manifest.permission.POST_NOTIFICATIONS
 import android.app.Application
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.util.Base64
 import android.util.TypedValue
 import android.widget.Toast
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.*
@@ -17,13 +22,11 @@ import androidx.compose.animation.core.animateDp
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.updateTransition
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -52,12 +55,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
@@ -92,6 +98,11 @@ class MainActivity : AppCompatActivity() {
 
     enum class State {
         NORMAL, CONFIRM, CANCEL, EDIT
+    }
+
+    private val requestPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+        // there isn't really anything we can do
     }
 
     private fun launchLogin() {
@@ -151,9 +162,8 @@ class MainActivity : AppCompatActivity() {
                                 "Should not attempt to log in while " + "addFriendException is true"
                         )
                     }
-                    friendModel.swapDialogState(Triple(
-                            MainViewModel.DialogStatus.ADD_FRIEND, null,
-                    ) {})
+                    friendModel.swapDialogState(
+                            MainViewModel.DialogStatus.AddFriend)
                 }
             }
         }
@@ -166,9 +176,11 @@ class MainActivity : AppCompatActivity() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && intent.hasExtra(
                             Intent.EXTRA_SHORTCUT_ID)) {
                 val username = intent.getStringExtra(Intent.EXTRA_SHORTCUT_ID) ?: ""
-                friendModel.appendDialogState(Triple(
-                        MainViewModel.DialogStatus.ADD_MESSAGE_TEXT, Friend(username, "")
-                ) {})
+                friendModel.appendDialogState(
+                        MainViewModel.DialogStatus.AddMessageText(Friend(username, "")
+                ) {
+                            // todo verify this works
+                        })
             }
         }
 
@@ -177,7 +189,7 @@ class MainActivity : AppCompatActivity() {
                 intent.getStringExtra(MainViewModel.EXTRA_RECIPIENT)?.let {
                     val friend = friendModel.getFriend(it)
                     friendModel.appendDialogState(
-                            Triple(MainViewModel.DialogStatus.ADD_MESSAGE_TEXT,
+                            MainViewModel.DialogStatus.AddMessageText(
                                     friend
                             ) { message ->
                                 friendModel.sendAlert(friend,
@@ -201,9 +213,35 @@ class MainActivity : AppCompatActivity() {
                         MainViewModel.OVERLAY_NO_PROMPT, false
                 )
         ) {
-            friendModel.appendDialogState(Triple(
-                    MainViewModel.DialogStatus.OVERLAY_PERMISSION, null
-            ) {})
+            friendModel.appendDialogState(MainViewModel.DialogStatus.OverlayPermission)
+        }
+    }
+
+    private fun getNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            when {
+                ContextCompat.checkSelfPermission(
+                    this,
+                    POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED -> {
+                    // You can use the API that requires the permission.
+                }
+                shouldShowRequestPermissionRationale(POST_NOTIFICATIONS) -> {
+                    // In an educational UI, explain to the user why your app requires this
+                    // permission for a specific feature to behave as expected. In this UI,
+                    // include a "cancel" or "no thanks" button that allows the user to
+                    // continue using your app without granting the permission.
+                    friendModel.appendDialogState(MainViewModel.DialogStatus.PermissionRationale
+                        (POST_NOTIFICATIONS))
+                }
+                else -> {
+                    // You can directly ask for the permission.
+                    // The registered ActivityResultCallback gets the result of this request.
+                    requestPermissionLauncher.launch(
+                        POST_NOTIFICATIONS
+                    )
+                }
+            }
         }
     }
 
@@ -224,8 +262,7 @@ class MainActivity : AppCompatActivity() {
                 if (!friendModel.addFriendException) launchLogin()
             }
             friendModel.registerDevice()
-            // TODO if on SDK Version 33 or higher, and we should show the notification
-            //  permission dialogue, request the permission
+            getNotificationPermission()
             return
         }
 
@@ -235,7 +272,7 @@ class MainActivity : AppCompatActivity() {
     @ExperimentalFoundationApi
     @Composable
     fun HomeWrapper(model: MainViewModel) {
-        val displayDialog: Triple<MainViewModel.DialogStatus, Friend?, (String) -> Unit> by model.dialogState
+        val displayDialog: MainViewModel.DialogStatus by model.dialogState
         val showSnackbar = model.isSnackBarShowing
 
         val friends by model.friends.observeAsState(listOf())
@@ -256,7 +293,7 @@ class MainActivity : AppCompatActivity() {
             onLongPress: () -> Unit,
             onEditName: (friend: Friend) -> Unit,
             onDeletePrompt: (friend: Friend) -> Unit,
-            dialogState: Triple<MainViewModel.DialogStatus, Friend?, (String) -> Unit>,
+            dialogState: MainViewModel.DialogStatus,
             showSnackbar: String
     ) {
         val cachedFriends by friendModel.cachedFriends.observeAsState(listOf())
@@ -276,32 +313,36 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        AnimatedContent(targetState = dialogState.first, transitionSpec = {
+        AnimatedContent(targetState = dialogState, transitionSpec = {
             slideIntoContainer(
                     towards = AnimatedContentScope.SlideDirection.Up) with slideOutOfContainer(
                     towards = AnimatedContentScope.SlideDirection.Down
             )
         }) { targetState ->
             when (targetState) {
-                MainViewModel.DialogStatus.ADD_FRIEND -> AddFriendDialog()
-                MainViewModel.DialogStatus.OVERLAY_PERMISSION -> OverlaySettingsDialog()
-                MainViewModel.DialogStatus.ADD_MESSAGE_TEXT -> dialogState.second?.let {
-                    AddMessageText(friend = it, onSend = dialogState.third)
+                is MainViewModel.DialogStatus.AddFriend -> AddFriendDialog()
+                is MainViewModel.DialogStatus.OverlayPermission -> OverlaySettingsDialog()
+                is MainViewModel.DialogStatus.AddMessageText -> {
+                    AddMessageText(friend = targetState.friend, onSend = targetState.onSend)
                 }
-                MainViewModel.DialogStatus.FRIEND_NAME -> dialogState.second?.let {
+                is MainViewModel.DialogStatus.FriendName -> {
                     EditFriendNameDialog(
-                            friend = it
+                            friend = targetState.friend
                     )
                 }
-                MainViewModel.DialogStatus.CONFIRM_DELETE -> dialogState.second?.let {
+                is MainViewModel.DialogStatus.ConfirmDelete -> {
                     DeleteFriendDialog(
-                            friend = it
+                            friend = targetState.friend
                     )
                 }
-                MainViewModel.DialogStatus.CONFIRM_DELETE_CACHED -> dialogState.second?.let {
-                    DeleteFriendDialog(friend = it)
+                is MainViewModel.DialogStatus.ConfirmDeleteCached ->  {
+                    DeleteFriendDialog(friend = targetState.friend)
                 }
-                MainViewModel.DialogStatus.NONE -> {}
+                is MainViewModel.DialogStatus.PermissionRationale -> {
+                    PermissionRationale(permission = targetState.permission) {
+                    }
+                }
+                is MainViewModel.DialogStatus.None -> {}
             }
         }
 
@@ -337,9 +378,8 @@ class MainActivity : AppCompatActivity() {
         }, backgroundColor = MaterialTheme.colorScheme.background, floatingActionButton = {
             FloatingActionButton(
                     onClick = {
-                        friendModel.appendDialogState(Triple(
-                                MainViewModel.DialogStatus.ADD_FRIEND, null
-                        ) {})
+                        friendModel.appendDialogState(
+                                MainViewModel.DialogStatus.AddFriend)
                     }, backgroundColor = MaterialTheme.colorScheme.secondary
             ) {
                 Icon(
@@ -355,9 +395,9 @@ class MainActivity : AppCompatActivity() {
                     modifier = Modifier.padding(it)
             ) {
                 LazyColumn(
-                        Modifier
-                                .background(MaterialTheme.colorScheme.background)
-                                .fillMaxSize()
+                    Modifier
+                        .background(MaterialTheme.colorScheme.background)
+                        .fillMaxSize()
                 ) {
                     items(items = friends,
                             key = { friend ->
@@ -413,7 +453,7 @@ class MainActivity : AppCompatActivity() {
             OutlinedButton(onClick = {
                 friendModel.popDialogState()
             }) {
-                Text(text = getString(R.string.cancel))
+                Text(text = getString(android.R.string.cancel))
             }
         }, title = {
             Text(
@@ -458,7 +498,7 @@ class MainActivity : AppCompatActivity() {
             OutlinedButton(onClick = {
                 friendModel.popDialogState()
             }) {
-                Text(text = getString(R.string.cancel))
+                Text(text = getString(android.R.string.cancel))
             }
         }, title = {
             Text(
@@ -496,7 +536,7 @@ class MainActivity : AppCompatActivity() {
             OutlinedButton(onClick = {
                 friendModel.popDialogState()
             }) {
-                Text(text = getString(R.string.cancel))
+                Text(text = getString(android.R.string.cancel))
             }
         }, title = {
             Text(
@@ -588,7 +628,7 @@ class MainActivity : AppCompatActivity() {
             OutlinedButton(onClick = {
                 friendModel.popDialogState()
             }) {
-                Text(getString(R.string.cancel))
+                Text(getString(android.R.string.cancel))
             }
         }, confirmButton = {
             Button(onClick = {
@@ -651,6 +691,33 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
+    @Composable
+    fun PermissionRationale(
+        permission: String,
+        popDialogState: () -> Unit
+    ) {
+        AlertDialog(onDismissRequest = {  popDialogState() }, confirmButton = {
+            Button(onClick = { popDialogState()
+                getNotificationPermission() }) {
+                Text(text = getString(android.R.string.ok))
+            }
+        }, dismissButton = {
+            OutlinedButton(onClick = { popDialogState() }) {
+                Text(text = getString(android.R.string.cancel))
+            }
+        }, title = {
+            Text(text = when (permission) {
+                POST_NOTIFICATIONS -> getString(R.string.notification_rationale_title)
+                else -> ""
+            })
+        }, text = {
+            Text(text = when (permission) {
+                POST_NOTIFICATIONS -> getString(R.string.notification_rationale)
+                else -> ""
+            })
+        })
+    }
+
     @OptIn(ExperimentalAnimationApi::class)
     @ExperimentalFoundationApi
     @Composable
@@ -690,54 +757,80 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        var imageBitmap: ImageBitmap? = null
+        if (friend.photo != null) {
+            val imageDecoded = rememberSaveable {
+                Base64.decode(friend.photo, Base64.DEFAULT)
+            }
+            imageBitmap = rememberSaveable {
+                BitmapFactory.decodeByteArray(imageDecoded, 0, imageDecoded.size).asImageBitmap()
+            }
+        }
+
         Box(modifier = modifier
-                .fillMaxWidth(1F)
-                .padding(10.dp)
-                .requiredHeight(48.dp)
-                .combinedClickable(onClick = {
-                    state = when (state) {
-                        State.NORMAL -> State.CONFIRM
-                        State.CONFIRM, State.CANCEL, State.EDIT -> State.NORMAL
-                    }
-                }, onClickLabel = getString(R.string.friend_card_click_label), onLongClick = {
-                    state = when (state) {
-                        State.NORMAL -> State.EDIT
-                        else -> state
-                    }
-                    onLongPress()
-                }, onLongClickLabel = getString(R.string.friend_card_long_click_label)
-                )
+            .fillMaxWidth(1F)
+            .padding(10.dp)
+            .requiredHeight(48.dp)
+            .combinedClickable(onClick = {
+                state = when (state) {
+                    State.NORMAL -> State.CONFIRM
+                    State.CONFIRM, State.CANCEL, State.EDIT -> State.NORMAL
+                }
+            }, onClickLabel = getString(R.string.friend_card_click_label), onLongClick = {
+                state = when (state) {
+                    State.NORMAL -> State.EDIT
+                    else -> state
+                }
+                onLongPress()
+            }, onLongClickLabel = getString(R.string.friend_card_long_click_label)
+            )
         ) {
-            Column(modifier = Modifier
-                    .align(Alignment.CenterStart)
+            Row(horizontalArrangement = Arrangement.Start, verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                .fillMaxSize()
+                .padding(all = 8.dp)
+                .align(Alignment.CenterStart)
+                .semantics(mergeDescendants = true) {}) {
+                if (imageBitmap != null) Image(
+                    bitmap = imageBitmap,
+                    contentDescription = getString(R.string.pfp_description, friend.name),
+                    modifier = Modifier.size(40.dp).clip(CircleShape)
+                ) else {
+                    Spacer(modifier = Modifier.width(40.dp))
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Column(verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.Start,
+                       modifier = Modifier
                     .semantics(
-                            mergeDescendants = true) {}) {
-                // TODO add pfp space
-                Text(
+                        mergeDescendants = true
+                    ) {}) {
+                    Text(
                         text = friend.name,
                         style = MaterialTheme.typography.titleMedium,
                         color = if (cached) MaterialTheme.colorScheme.onBackground.copy(
-                                alpha = ContentAlpha.medium
+                            alpha = ContentAlpha.medium
                         ) else MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier
-                                .alpha(alpha)
-                                .blur(blur)
-                )
-                Text(
+                            .alpha(alpha)
+                            .blur(blur)
+                    )
+                    Text(
                         text = subtitle,
                         color = if (subtitle == getString(
-                                        R.string.send_error)) MaterialTheme.colorScheme.error.copy(
-                                alpha = ContentAlpha.medium
+                                R.string.send_error)) MaterialTheme.colorScheme.error.copy(
+                            alpha = ContentAlpha.medium
                         )
                         else MaterialTheme.colorScheme.onBackground.copy(
-                                alpha = ContentAlpha.medium
+                            alpha = ContentAlpha.medium
                         ),
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier
-                                .alpha(alpha)
-                                .blur(blur)
-                )
+                            .alpha(alpha)
+                            .blur(blur)
+                    )
+                }
             }
+
             AnimatedContent(targetState = state, transitionSpec = {
                 val enterTransition = when (targetState) {
                     State.EDIT -> {
@@ -782,7 +875,7 @@ class MainActivity : AppCompatActivity() {
                                 Icon(
                                         Icons.Filled.Close,
                                         tint = MaterialTheme.colorScheme.onBackground,
-                                        contentDescription = getString(R.string.cancel)
+                                        contentDescription = getString(android.R.string.cancel)
                                 )
                             }
                             Button(
@@ -797,8 +890,8 @@ class MainActivity : AppCompatActivity() {
                                 Text(getString(R.string.confirm_alert))
                             }
                             OutlinedButton(onClick = {
-                                friendModel.appendDialogState(Triple(
-                                        MainViewModel.DialogStatus.ADD_MESSAGE_TEXT, friend
+                                friendModel.appendDialogState(MainViewModel.DialogStatus
+                                                                  .AddMessageText(friend
                                 ) {
                                     message = it
                                     state = State.CANCEL
@@ -817,7 +910,7 @@ class MainActivity : AppCompatActivity() {
                                 Icon(
                                         Icons.Filled.Close,
                                         tint = MaterialTheme.colorScheme.onBackground,
-                                        contentDescription = getString(R.string.cancel)
+                                        contentDescription = getString(android.R.string.cancel)
                                 )
                             }
                             Button(
@@ -886,12 +979,12 @@ class MainActivity : AppCompatActivity() {
                             sendingStatus = getString(R.string.sending)
                         }
                         CancelBar(progress = animatedProgress, modifier = Modifier
-                                .clickable {
-                                    progressEnabled = false
-                                    state = State.NORMAL
-                                    progress = 0
-                                }
-                                .fillMaxSize())
+                            .clickable {
+                                progressEnabled = false
+                                state = State.NORMAL
+                                progress = 0
+                            }
+                            .fillMaxSize())
                     }
                 }
             }
@@ -904,18 +997,18 @@ class MainActivity : AppCompatActivity() {
     ) {
         Box(
                 modifier = modifier
-                        .clip(shape = RoundedCornerShape(5.dp))
-                        .background(color = MaterialTheme.colorScheme.inversePrimary)
+                    .clip(shape = RoundedCornerShape(5.dp))
+                    .background(color = MaterialTheme.colorScheme.inversePrimary)
         ) {
 
             Box(
                     modifier = Modifier
-                            .fillMaxWidth(progress)
-                            .fillMaxHeight()
-                            .clip(shape = RoundedCornerShape(5.dp))
-                            .background(color = MaterialTheme.colorScheme.primary)
+                        .fillMaxWidth(progress)
+                        .fillMaxHeight()
+                        .clip(shape = RoundedCornerShape(5.dp))
+                        .background(color = MaterialTheme.colorScheme.primary)
             ) {}
-            Text(text = getString(R.string.cancel), modifier = Modifier.align(Alignment.Center))
+            Text(text = getString(android.R.string.cancel), modifier = Modifier.align(Alignment.Center))
         }
     }
 
