@@ -37,13 +37,12 @@ import java.io.IOException
 import java.lang.Integer.min
 import javax.inject.Inject
 
-// TODO handle 429 - rate limited
 class MainViewModel @Inject internal constructor(
         private val attentionRepository: AttentionRepository, application: Application
 ) : AndroidViewModel(application) {
 
     sealed class DialogStatus(val priority: Int) {
-        sealed class FriendStatus(val friend: Friend, priority: Int) : DialogStatus(priority)
+        abstract class FriendStatus(val friend: Friend, priority: Int) : DialogStatus(priority)
         object AddFriend : DialogStatus(0)
         object OverlayPermission: DialogStatus(1)
         class AddMessageText(friend: Friend, val onSend: (String) -> Unit): FriendStatus(friend,2)
@@ -689,7 +688,16 @@ class MainViewModel @Inject internal constructor(
                         }
                         onError?.invoke()
                     }
-                    // TODO handle 429 - rate limited
+                    429 -> {
+                        notifyUser(
+                                context.getString(
+                                        R.string.alert_rate_limited
+                                ),
+                                message
+                        )
+                        onError?.invoke()
+
+                    }
                     else -> {
                         notifyUser(
                                 context.getString(

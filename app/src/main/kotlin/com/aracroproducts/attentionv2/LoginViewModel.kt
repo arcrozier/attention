@@ -447,16 +447,12 @@ class LoginViewModel @Inject constructor(
                             passwordCaption =
                                     context.getString(R.string.password_validation_failed)
                         }
-                        403 -> {
-                            if (errorBody?.contains(
-                                            "incorrect old password",
-                                            true
-                                    ) == true
-                            ) passwordCaption =
+                        401 -> {
+                            oldPasswordCaption =
                                     context.getString(R.string.wrong_password)
-                            else {
-                                login = State.LOGIN
-                            }
+                        }
+                        403 -> {
+                            login = State.LOGIN
                         }
                         else -> {
                             genericErrorHandling(response.code(), snackbarHostState, scope,

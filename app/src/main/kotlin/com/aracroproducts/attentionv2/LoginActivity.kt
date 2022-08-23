@@ -194,15 +194,18 @@ class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(
-                loginViewModel.login != LoginViewModel.State.CHANGE_PASSWORD ||
-                        loginViewModel.login != LoginViewModel.State.LINK_ACCOUNT
-        ) {
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (loginViewModel.login == LoginViewModel.State.CHOOSE_USERNAME) {
-                    loginViewModel.login = LoginViewModel.State.LOGIN
-                } else {
-                    moveTaskToBack(true)
+                when (loginViewModel.login) {
+                    LoginViewModel.State.CHOOSE_USERNAME -> {
+                        loginViewModel.login = LoginViewModel.State.LOGIN
+                    }
+                    LoginViewModel.State.CHANGE_PASSWORD, LoginViewModel.State.LINK_ACCOUNT -> {
+                        finish()
+                    }
+                    else -> {
+                        moveTaskToBack(true)
+                    }
                 }
             }
 
@@ -376,11 +379,11 @@ class LoginActivity : AppCompatActivity() {
 
             Button(
                     onClick = {
-                        model.login(
-                                snackbarHostState = snackbarHostState,
-                                scope = coroutineScope,
-                                onLoggedIn = ::signInWithPassword
-                        )
+                        model.changePassword(
+                                snackbarHostState = snackbarHostState, scope = coroutineScope
+                        ) {
+                            finish()
+                        }
                     }, enabled = model.uiEnabled, modifier = Modifier.requiredHeight(56.dp)
             ) {
                 Box {
