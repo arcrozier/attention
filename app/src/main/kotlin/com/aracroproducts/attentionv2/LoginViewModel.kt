@@ -458,6 +458,10 @@ class LoginViewModel @Inject constructor(
                                 login = State.LOGIN
                             }
                         }
+                        else -> {
+                            genericErrorHandling(response.code(), snackbarHostState, scope,
+                                                 context)
+                        }
                     }
                 },
                 errorListener = { _, t ->
@@ -482,7 +486,6 @@ class LoginViewModel @Inject constructor(
         }
     }
 
-    // TODO handle 429 - rate limited
     private fun genericErrorHandling(
             code: Int,
             snackbarHostState: SnackbarHostState?,
@@ -491,33 +494,39 @@ class LoginViewModel @Inject constructor(
             t: Throwable? = null
     ) {
         when (code) {
-            500 -> {
-                if (snackbarHostState != null && scope != null) {
-                    displaySnackBar(
-                            snackbarHostState, scope, context.getString(
-                            R.string.server_error
-                    ), context.getString(android.R.string.ok)
-                    )
-                } else {
-                    Toast.makeText(context, R.string.server_error, Toast.LENGTH_LONG).show()
-                }
+            429 -> {
+                snackOrToast(context.getString(R.string.rate_limited), snackbarHostState, scope,
+                             context)
+            }
+            500, 502, 503, 504 -> {
+                snackOrToast(context.getString(
+                    R.string.server_error
+                ), snackbarHostState, scope, context)
             }
             else -> {
-                if (snackbarHostState != null && scope != null) {
-                    displaySnackBar(
-                            snackbarHostState, scope, context.getString(
-                            R.string.connection_error
-                    ), context.getString(android.R.string.ok)
-                    )
-                } else {
-                    Toast.makeText(context, R.string.connection_error, Toast.LENGTH_LONG).show()
-                }
+                snackOrToast(context.getString(
+                    R.string.connection_error
+                ), snackbarHostState, scope, context)
                 Log.e(sTAG, "An unexpected error occurred: ${t?.message}")
             }
+        }
+
+    }
+
+    private fun snackOrToast(message: String, snackbarHostState: SnackbarHostState?,
+                             coroutineScope: CoroutineScope?, context: Context) {
+        if (snackbarHostState != null && coroutineScope != null) {
+            displaySnackBar(
+                snackbarHostState, coroutineScope, message, context.getString(android.R.string.ok)
+            )
+        } else {
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
         }
     }
 
     companion object {
         private val sTAG = LoginViewModel::class.java.name
+
+
     }
 }

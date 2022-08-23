@@ -176,11 +176,15 @@ class MainActivity : AppCompatActivity() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && intent.hasExtra(
                             Intent.EXTRA_SHORTCUT_ID)) {
                 val username = intent.getStringExtra(Intent.EXTRA_SHORTCUT_ID) ?: ""
-                friendModel.appendDialogState(
-                        MainViewModel.DialogStatus.AddMessageText(Friend(username, "")
-                ) {
-                            // todo verify this works
+                lifecycleScope.launch {
+                    val friend = friendModel.getFriend(username)
+                    friendModel.appendDialogState(
+                        MainViewModel.DialogStatus.AddMessageText(friend) { message ->
+                            friendModel.message = message
+                            friendModel.cardStatus[friend.id] = State.CANCEL
                         })
+                }
+
             }
         }
 
@@ -192,9 +196,8 @@ class MainActivity : AppCompatActivity() {
                             MainViewModel.DialogStatus.AddMessageText(
                                     friend
                             ) { message ->
-                                friendModel.sendAlert(friend,
-                                        body = message,
-                                        launchLogin = ::launchLogin)
+                                friendModel.message = message
+                                friendModel.cardStatus[friend.id] = State.CANCEL
                             })
                 }
             }
@@ -409,7 +412,12 @@ class MainActivity : AppCompatActivity() {
                                 onLongPress = onLongPress,
                                 onEditName = onEditName,
                                 onDeletePrompt = onDeletePrompt,
-                                modifier = Modifier.animateItemPlacement()
+                                modifier = Modifier.animateItemPlacement(),
+                                state = friendModel.cardStatus.getOrDefault(friend.id, State
+                                    .NORMAL),
+                                onStateChange = {newState ->
+                                    friendModel.cardStatus[friend.id] = newState
+                                }
                         )
                         Divider(
                                 color = MaterialTheme.colorScheme.outline.copy(
@@ -421,7 +429,14 @@ class MainActivity : AppCompatActivity() {
                         FriendCard(friend = Friend(cachedFriend.username, cachedFriend.username),
                                 onLongPress = {},
                                 onEditName = {},
-                                onDeletePrompt = {})
+                                onDeletePrompt = {},
+                                   state = friendModel.cardStatus.getOrDefault(cachedFriend
+                                       .username, State.NORMAL),
+                                   onStateChange = { newState ->
+                                       friendModel.cardStatus[cachedFriend.username] = newState
+                                   }
+
+                        )
                         Divider(
                                 color = MaterialTheme.colorScheme.outline.copy(
                                         alpha = ContentAlpha.disabled
@@ -727,9 +742,10 @@ class MainActivity : AppCompatActivity() {
             onEditName: (friend: Friend) -> Unit,
             onDeletePrompt: (friend: Friend) -> Unit,
             modifier: Modifier = Modifier,
-            cached: Boolean = false
+            cached: Boolean = false,
+            state: State,
+            onStateChange: (State) -> Unit
     ) {
-        var state by remember { mutableStateOf(State.NORMAL) }
         var message: String? by remember { mutableStateOf(null) }
         val transition = updateTransition(state, label = "friend state transition")
 
@@ -772,15 +788,15 @@ class MainActivity : AppCompatActivity() {
             .padding(10.dp)
             .requiredHeight(48.dp)
             .combinedClickable(onClick = {
-                state = when (state) {
+                onStateChange(when (state) {
                     State.NORMAL -> State.CONFIRM
                     State.CONFIRM, State.CANCEL, State.EDIT -> State.NORMAL
-                }
+                })
             }, onClickLabel = getString(R.string.friend_card_click_label), onLongClick = {
-                state = when (state) {
+                onStateChange(when (state) {
                     State.NORMAL -> State.EDIT
                     else -> state
-                }
+                })
                 onLongPress()
             }, onLongClickLabel = getString(R.string.friend_card_long_click_label)
             )
@@ -871,7 +887,7 @@ class MainActivity : AppCompatActivity() {
                                 horizontalArrangement = Arrangement.SpaceEvenly,
                                 modifier = Modifier.fillMaxWidth()
                         ) {
-                            IconButton(onClick = { state = State.NORMAL }) {
+                            IconButton(onClick = { onStateChange(State.NORMAL) }) {
                                 Icon(
                                         Icons.Filled.Close,
                                         tint = MaterialTheme.colorScheme.onBackground,
@@ -880,7 +896,7 @@ class MainActivity : AppCompatActivity() {
                             }
                             Button(
                                     onClick = {
-                                        state = State.CANCEL
+                                        onStateChange(State.CANCEL)
                                         message = null
                                     }, colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.primary,
@@ -894,7 +910,7 @@ class MainActivity : AppCompatActivity() {
                                                                   .AddMessageText(friend
                                 ) {
                                     message = it
-                                    state = State.CANCEL
+                                    onStateChange(State.CANCEL)
                                 })
                             }) {
                                 Text(getString(R.string.add_message))
@@ -906,7 +922,7 @@ class MainActivity : AppCompatActivity() {
                                 horizontalArrangement = Arrangement.End,
                                 modifier = Modifier.fillMaxWidth()
                         ) {
-                            IconButton(onClick = { state = State.NORMAL }) {
+                            IconButton(onClick = { onStateChange(State.NORMAL) }) {
                                 Icon(
                                         Icons.Filled.Close,
                                         tint = MaterialTheme.colorScheme.onBackground,
@@ -917,7 +933,7 @@ class MainActivity : AppCompatActivity() {
                                     onClick = {
                                         if (cached) friendModel.onDeleteCachedFriend(friend)
                                         else onDeletePrompt(friend)
-                                        state = State.NORMAL
+                                        onStateChange(State.NORMAL)
                                     }, colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.error,
                                     contentColor = MaterialTheme.colorScheme.onError
@@ -928,7 +944,7 @@ class MainActivity : AppCompatActivity() {
                             Spacer(modifier = Modifier.width(LoginActivity.LIST_ELEMENT_PADDING))
                             OutlinedButton(onClick = {
                                 onEditName(friend)
-                                state = State.NORMAL
+                                onStateChange(State.NORMAL)
                             }) {
                                 Text(getString(R.string.rename))
                             }
@@ -974,14 +990,14 @@ class MainActivity : AppCompatActivity() {
                                     onSuccess = {
                                         sendingStatus = null
                                     })
-                            state = State.NORMAL
+                            onStateChange(State.NORMAL)
                             progressEnabled = false
                             sendingStatus = getString(R.string.sending)
                         }
                         CancelBar(progress = animatedProgress, modifier = Modifier
                             .clickable {
                                 progressEnabled = false
-                                state = State.NORMAL
+                                onStateChange(State.NORMAL)
                                 progress = 0
                             }
                             .fillMaxSize())

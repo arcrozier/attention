@@ -14,6 +14,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.app.NotificationCompat
@@ -22,6 +23,7 @@ import androidx.core.app.Person
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.map
 import androidx.lifecycle.viewModelScope
 import androidx.preference.PreferenceManager
 import com.google.android.gms.tasks.Task
@@ -53,6 +55,7 @@ class MainViewModel @Inject internal constructor(
     }
 
     val friends = attentionRepository.getFriends()
+    val cardStatus = mutableStateMapOf<String, MainActivity.State>()
 
     val cachedFriends = attentionRepository.getCachedFriends()
 
