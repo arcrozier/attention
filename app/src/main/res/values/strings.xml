@@ -4,6 +4,7 @@
     <!-- Strings used for fragments for navigation -->
 
     <string name="pfp_description">Profile photo for %1$s</string>
+    <string name="your_pfp_description">Your profile photo</string>
     <string name="username">Username</string>
     <string name="no_username">Not found</string>
     <string name="show_password">Show password</string>

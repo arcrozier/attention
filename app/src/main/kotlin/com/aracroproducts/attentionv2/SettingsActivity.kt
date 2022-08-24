@@ -16,6 +16,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.with
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -23,6 +24,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material.TopAppBar
@@ -44,6 +46,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
 import com.aracroproducts.attentionv2.LoginActivity.Companion.UsernameField
 import com.aracroproducts.attentionv2.MainViewModel.Companion.FCM_TOKEN
@@ -180,8 +183,18 @@ class SettingsActivity : AppCompatActivity() {
                             })
                         },
                         icon = {
-                            // TODO display user's pfp
-                            // TODO allow user to upload new pfp
+                               Box(modifier = Modifier
+                                   .fillMaxSize()
+                                   .clickable { // TODO allow user to upload new pfp
+                                   }) {
+                                   viewModel.photo?.let {
+                                       Image(bitmap = it,
+                                             contentDescription = getString(
+                                                 R.string.your_pfp_description),
+                                             modifier = Modifier.fillMaxSize().clip(CircleShape)
+                                                 .align(Alignment.Center))
+                                   }
+                               }
                         },
             summary = { value ->
                 value.ifBlank { getString(R.string.no_username) }
@@ -492,8 +505,8 @@ class SettingsActivity : AppCompatActivity() {
         ) {
             LazyColumn(
                 modifier = Modifier
-                        .selectableGroup()
-                        .padding(it)
+                    .selectableGroup()
+                    .padding(it)
             ) {
                 items(items = preferences, key = { preference -> preference.first }) { preference ->
                     PreferenceGroup(
@@ -522,16 +535,16 @@ class SettingsActivity : AppCompatActivity() {
         if (tablet) {
             Box(
                 modifier = Modifier
-                        .padding(10.dp)
-                        .fillMaxWidth(0.9f)
-                        .height(73.dp)
-                        .clip(
-                                RoundedCornerShape(12.dp)
-                        )
-                        .background(
-                                if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
-                        )
-                        .selectable(selected = selected, onClick = onClick),
+                    .padding(10.dp)
+                    .fillMaxWidth(0.9f)
+                    .height(73.dp)
+                    .clip(
+                        RoundedCornerShape(12.dp)
+                    )
+                    .background(
+                        if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
+                    )
+                    .selectable(selected = selected, onClick = onClick),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -558,22 +571,22 @@ class SettingsActivity : AppCompatActivity() {
     ) {
         Row(
                 modifier = modifier
-                        .fillMaxWidth()
-                        .height(PREFERENCE_HEIGHT)
+                    .fillMaxWidth()
+                    .height(PREFERENCE_HEIGHT)
         ) {
             Box(modifier = modifier
-                    .padding(end = PREFERENCE_PADDING)
-                    .fillMaxSize(),
+                .padding(end = PREFERENCE_PADDING)
+                .fillMaxSize(),
                     contentAlignment = Alignment.CenterStart) {
                 largePreference()
             }
             Divider(modifier = Modifier
-                    .fillMaxHeight(0.95f)
-                    .width(Dp.Hairline), color =
+                .fillMaxHeight(0.95f)
+                .width(Dp.Hairline), color =
             MaterialTheme.colorScheme.onSurface.copy(alpha = ContentAlpha.medium))
             Box(modifier = modifier
-                    .padding(start = PREFERENCE_PADDING)
-                    .size(PREFERENCE_HEIGHT),
+                .padding(start = PREFERENCE_PADDING)
+                .size(PREFERENCE_HEIGHT),
                     contentAlignment = Alignment.Center) {
                 smallPreference()
             }
@@ -694,18 +707,18 @@ class SettingsActivity : AppCompatActivity() {
         val value = if (default != null) preference.getValue(default) else preference.value
         Row(
             modifier = modifier
-                    .fillMaxWidth()
-                    .height(73.dp)
-                    .clickable(enabled = enabled, onClick = {
-                        onPreferenceClicked(preference)
-                    })
+                .fillMaxWidth()
+                .height(73.dp)
+                .clickable(enabled = enabled, onClick = {
+                    onPreferenceClicked(preference)
+                })
         ) {
             if (icon != null || reserveIconSpace) {
                 val iconSpot: @Composable BoxScope.() -> Unit = icon ?: { }
                 Box(
                     modifier = Modifier
-                            .size(24.dp)
-                            .padding(16.dp),
+                        .size(24.dp)
+                        .padding(16.dp),
                     contentAlignment = Alignment.Center,
                     content = iconSpot
                 )

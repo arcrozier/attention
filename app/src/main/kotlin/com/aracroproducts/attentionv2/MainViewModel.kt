@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.util.Base64
 import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -28,11 +29,10 @@ import androidx.lifecycle.viewModelScope
 import androidx.preference.PreferenceManager
 import com.google.android.gms.tasks.Task
 import com.google.firebase.messaging.FirebaseMessaging
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import retrofit2.Call
 import retrofit2.Response
+import java.io.File
 import java.io.IOException
 import java.lang.Integer.min
 import javax.inject.Inject
@@ -500,13 +500,22 @@ class MainViewModel @Inject internal constructor(
                         putBoolean(
                                 context.getString(R.string.password_key), data.password
                         )
-                        // TODO save pfp - see https://developer.android.com/guide/topics/graphics
                         apply()
                     }
                     viewModelScope.launch {
                         attentionRepository.updateUserInfo(
                                 data.friends
                         )
+                    }
+                    viewModelScope.launch {
+                        @Suppress("BlockingMethodInNonBlockingContext")
+                        withContext(Dispatchers.IO) {
+                            val file = File(context.filesDir, PFP_FILENAME)
+                                                   .apply { createNewFile() }
+
+                            data.photo?.let {file.writeBytes(Base64.decode(data.photo, Base64
+                                .DEFAULT))} ?: file.writeBytes(ByteArray(0))
+                        }
                     }
                     uploadCachedFriends()
                     populateShareTargets()
@@ -783,6 +792,7 @@ class MainViewModel @Inject internal constructor(
         const val MY_TOKEN = "token"
         const val FCM_TOKEN = "fcm_token"
         const val FAILED_ALERT_CHANNEL_ID = "Failed alert channel"
+        const val PFP_FILENAME = "profile.photo"
 
         const val EXTRA_RECIPIENT = "extra_recipient"
         const val EXTRA_BODY = "extra_body"

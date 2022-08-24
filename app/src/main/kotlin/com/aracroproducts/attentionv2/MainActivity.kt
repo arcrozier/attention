@@ -74,6 +74,7 @@ import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.min
@@ -773,13 +774,15 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        var imageBitmap: ImageBitmap? = null
-        if (friend.photo != null) {
-            val imageDecoded = rememberSaveable {
-                Base64.decode(friend.photo, Base64.DEFAULT)
-            }
-            imageBitmap = rememberSaveable {
-                BitmapFactory.decodeByteArray(imageDecoded, 0, imageDecoded.size).asImageBitmap()
+        var imageBitmap: ImageBitmap? by rememberSaveable {
+            mutableStateOf(null)
+        }
+
+        LaunchedEffect(key1 = friend.photo) {
+            launch(context = Dispatchers.Default) {
+                val imageDecoded = Base64.decode(friend.photo, Base64.DEFAULT)
+                imageBitmap = BitmapFactory.decodeByteArray(imageDecoded, 0, imageDecoded.size)
+                    .asImageBitmap()
             }
         }
 
@@ -788,32 +791,36 @@ class MainActivity : AppCompatActivity() {
             .padding(10.dp)
             .requiredHeight(48.dp)
             .combinedClickable(onClick = {
-                onStateChange(when (state) {
-                    State.NORMAL -> State.CONFIRM
-                    State.CONFIRM, State.CANCEL, State.EDIT -> State.NORMAL
-                })
+                onStateChange(
+                    when (state) {
+                        State.NORMAL -> State.CONFIRM
+                        State.CONFIRM, State.CANCEL, State.EDIT -> State.NORMAL
+                    }
+                )
             }, onClickLabel = getString(R.string.friend_card_click_label), onLongClick = {
-                onStateChange(when (state) {
-                    State.NORMAL -> State.EDIT
-                    else -> state
-                })
+                onStateChange(
+                    when (state) {
+                        State.NORMAL -> State.EDIT
+                        else -> state
+                    }
+                )
                 onLongPress()
             }, onLongClickLabel = getString(R.string.friend_card_long_click_label)
             )
         ) {
             Row(horizontalArrangement = Arrangement.Start, verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                .fillMaxSize()
-                .padding(all = 8.dp)
-                .align(Alignment.CenterStart)
-                .semantics(mergeDescendants = true) {}) {
-                if (imageBitmap != null) Image(
-                    bitmap = imageBitmap,
+                    .fillMaxSize()
+                    .padding(all = 8.dp)
+                    .align(Alignment.CenterStart)
+                    .semantics(mergeDescendants = true) {}) {
+                imageBitmap?.let { Image(
+                    bitmap = it,
                     contentDescription = getString(R.string.pfp_description, friend.name),
-                    modifier = Modifier.size(40.dp).clip(CircleShape)
-                ) else {
-                    Spacer(modifier = Modifier.width(40.dp))
-                }
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                ) } ?: Spacer(modifier = Modifier.width(40.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Column(verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.Start,
                        modifier = Modifier
