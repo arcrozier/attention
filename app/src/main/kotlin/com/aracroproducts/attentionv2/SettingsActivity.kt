@@ -110,8 +110,6 @@ class SettingsActivity : AppCompatActivity() {
                 DialoguePreference(preference = StringPreference(
                     getString(R.string.username_key), this
             ), title = R.string.username,
-                        // TODO display user's pfp
-                        // TODO allow user to upload new pfp
                         dialog = { preference, dismissDialog, context, title ->
                             var newValue by remember { mutableStateOf(preference.value) }
                             var loading by remember {mutableStateOf(false)}
@@ -180,6 +178,10 @@ class SettingsActivity : AppCompatActivity() {
                                         newUsername = true, enabled = !loading, error = error,
                                         caption = usernameCaption, this)
                             })
+                        },
+                        icon = {
+                            // TODO display user's pfp
+                            // TODO allow user to upload new pfp
                         },
             summary = { value ->
                 value.ifBlank { getString(R.string.no_username) }
@@ -748,6 +750,9 @@ class SettingsActivity : AppCompatActivity() {
                 403 -> {
                     launchLogin(context)
                     R.string.confirm_logout_title
+                }
+                429 -> {
+                    R.string.rate_limited
                 }
                 else -> {
                     R.string.unknown_error

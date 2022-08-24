@@ -500,6 +500,7 @@ class MainViewModel @Inject internal constructor(
                         putBoolean(
                                 context.getString(R.string.password_key), data.password
                         )
+                        // TODO save pfp - see https://developer.android.com/guide/topics/graphics
                         apply()
                     }
                     viewModelScope.launch {
