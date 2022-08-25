@@ -133,7 +133,7 @@ dependencies {
     // Integration with ViewModels
     implementation "androidx.lifecycle:lifecycle-viewmodel-compose:$lifecycle_version"
     // UI Tests
-    def compose_material_version = "1.0.0-alpha16"
+    def compose_material_version = "1.0.0-beta01"
     androidTestImplementation "androidx.compose.ui:ui-test-junit4:$jetpack_compose_version"
     implementation("androidx.compose.material3:material3:$compose_material_version")
     implementation("androidx.compose.material3:material3-window-size-class:$compose_material_version")
@@ -160,6 +160,11 @@ dependencies {
 
     // Sign in with Google
     implementation 'com.google.android.gms:play-services-auth:20.2.0'
+
+    implementation "androidx.activity:activity-ktx:1.6.0-rc01"
+
+    // image cropping library
+    implementation 'com.github.yalantis:ucrop:2.2.8'
 
 }
 repositories {

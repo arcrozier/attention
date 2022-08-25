@@ -98,6 +98,10 @@
                     android:pathPrefix="/app/add" />
             </intent-filter>
         </activity>
+        <activity
+            android:name="com.yalantis.ucrop.UCropActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.Material3.DayNight.NoActionBar"/>
     </application>
 
 </manifest>
