@@ -316,18 +316,19 @@ class AttentionRepository(private val database: AttentionDB) {
             username: String? = null,
             firstName: String? = null,
             lastName: String? = null,
-            photo: String? = null,
+            photo: ByteArray? = null,
             password: String? = null,
             oldPassword: String? = null,
             email: String? = null,
             responseListener: ((
                     Call<GenericResult<Void>>, Response<GenericResult<Void>>, String?
             ) -> Unit)? = null,
-            errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
-    ): Call<GenericResult<Void>> {
+            errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null,
+            uploadCallbacks: ProgressRequestBody.UploadCallbacks? = null
+    ) {
         val call = apiInterface.editUser(
                 username = username, firstName = firstName, lastName = lastName, email = email,
-                photo = photo,
+                photo = photo?.let { ProgressRequestBody(photo, "")},
                 password = password, oldPassword = oldPassword, token = authHeader(token)
         )
         call.enqueue(object : Callback<GenericResult<Void>> {

@@ -1,10 +1,21 @@
 package com.aracroproducts.attentionv2
 
+import android.os.Handler
+import android.os.Looper
 import com.google.gson.annotations.SerializedName
+import okhttp3.MediaType
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody
+import okhttp3.internal.http2.Http2Reader
+import okio.BufferedSink
 import retrofit2.Call
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.*
+import java.io.File
+import java.io.IOException
+import java.lang.Integer.min
+import kotlin.properties.Delegates
 
 const val BASE_URL: String = BuildConfig.BASE_URL
 
@@ -125,7 +136,7 @@ interface APIV2 {
             @Field("first_name") firstName: String?,
             @Field("last_name") lastName: String?,
             @Field("email") email: String?,
-            @Field("photo") photo: String?,
+            @Field("photo") photo: ProgressRequestBody?,
             @Field("password") password: String?,
             @Field("old_password") oldPassword: String?,
             @Header("Authorization") token: String
@@ -158,4 +169,49 @@ interface APIV2 {
             @Field("id_token") id_token: String,
             @Header("Authorization") token: String
     ) : Call<GenericResult<Void>>
+}
+
+class ProgressRequestBody(private val image: ByteArray, private val contentType: String, private val
+listener: UploadCallbacks) : RequestBody() {
+
+    interface UploadCallbacks {
+        fun onProgressUpdate(progress: Float)
+        fun onError()
+        fun onFinish()
+    }
+
+    override fun contentType(): MediaType? {
+        return "$contentType/*".toMediaTypeOrNull()
+    }
+
+    override fun contentLength() : Long {
+        return image.size.toLong()
+    }
+
+    override fun writeTo(sink: BufferedSink) {
+        var uploaded = 0
+
+        try {
+            for (i in 0..image.size step DEFAULT_BUFFER_SIZE) {
+                sink.write(image, i, DEFAULT_BUFFER_SIZE)
+                uploaded += min(DEFAULT_BUFFER_SIZE, image.size - i)
+                listener.onProgressUpdate((uploaded.toDouble() / image.size).toFloat())
+            }
+            listener.onFinish()
+        } catch (e: IOException) {
+            listener.onError()
+        }
+    }
+
+    inner class ProgressUpdater(private val uploaded: Long, private val total: Long) :
+    Runnable {
+
+        override fun run() {
+            listener.onProgressUpdate((uploaded.toDouble() / total).toFloat())
+        }
+    }
+
+    companion object {
+        private const val DEFAULT_BUFFER_SIZE = 2048
+    }
 }
