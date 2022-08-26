@@ -93,7 +93,7 @@ class SettingsActivity : AppCompatActivity() {
                 val fileBytes = File(filesDir, MainViewModel
                         .PFP_FILENAME).readBytes()
                 val attentionRepository = AttentionRepository(AttentionDB.getDB(this@SettingsActivity))
-
+                // TODO
                 //attentionRepository.edit()
             }
         }

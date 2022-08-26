@@ -126,6 +126,7 @@ interface APIV2 {
             @Field("first_name") firstName: String?,
             @Field("last_name") lastName: String?,
             @Field("email") email: String?,
+            @Field("photo") photo: String?,
             @Field("password") password: String?,
             @Field("old_password") oldPassword: String?,
             @Header("Authorization") token: String
