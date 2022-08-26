@@ -5,6 +5,7 @@ import android.app.Application
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
@@ -61,9 +62,12 @@ import com.aracroproducts.attentionv2.MainViewModel.Companion.MY_TOKEN
 import com.aracroproducts.attentionv2.MainViewModel.Companion.USER_INFO
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
 import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
+import com.yalantis.ucrop.UCrop
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.io.File
+import kotlin.io.path.Path
 
 /**
  * The class for the settings menu in the app
@@ -74,13 +78,11 @@ class SettingsActivity : AppCompatActivity() {
         SettingsViewModelFactory(AttentionRepository(AttentionDB.getDB(this)), application)
     })
 
-    // Registers a photo picker activity launcher in single-select mode.
-    private val pickMedia = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        // Callback is invoked after the user selects a media item or closes the
-        // photo picker.
-        if (uri != null) {
-            //TODO crop then upload https://github.com/Yalantis/uCrop
-            // https://stackoverflow.com/questions/3879992/how-to-get-bitmap-from-an-uri
+
+    private val cropResultHandler = registerForActivityResult(ActivityResultContracts
+            .StartActivityForResult()) { result ->
+        result.data?.let { data ->
+            val uri = UCrop.getOutput(data) ?: return@let
             lifecycleScope.launch(context = Dispatchers.IO) {
                 val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                     ImageDecoder.decodeBitmap(
@@ -88,8 +90,29 @@ class SettingsActivity : AppCompatActivity() {
                 } else {
                     MediaStore.Images.Media.getBitmap(contentResolver, uri)
                 }.asImageBitmap()
+                val fileBytes = File(filesDir, MainViewModel
+                        .PFP_FILENAME).readBytes()
+                val attentionRepository = AttentionRepository(AttentionDB.getDB(this@SettingsActivity))
 
+                //attentionRepository.edit()
             }
+        }
+    }
+
+    // Registers a photo picker activity launcher in single-select mode.
+    private val pickMedia = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        // Callback is invoked after the user selects a media item or closes the
+        // photo picker.
+        if (uri != null) {
+            //TODO crop then upload https://github.com/Yalantis/uCrop
+            // https://stackoverflow.com/questions/3879992/how-to-get-bitmap-from-an-uri
+            val cropIntent = UCrop.of(uri, Uri.fromFile(File(filesDir, MainViewModel.PFP_FILENAME)))
+                    .withAspectRatio(1f, 1f)
+                    .withOptions(UCrop.Options().apply {
+                        setCircleDimmedLayer(true)
+                        setCompressionFormat(Bitmap.CompressFormat.PNG)
+                    }).getIntent(this)
+            cropResultHandler.launch(cropIntent)
             Log.d("PhotoPicker", "Selected URI: $uri")
         } else {
             Log.d("PhotoPicker", "No media selected")
