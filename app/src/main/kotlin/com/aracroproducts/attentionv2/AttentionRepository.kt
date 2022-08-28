@@ -324,7 +324,7 @@ class AttentionRepository(private val database: AttentionDB) {
                     Call<GenericResult<Void>>, Response<GenericResult<Void>>, String?
             ) -> Unit)? = null,
             errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null
-    ) {
+    ): Call<GenericResult<Void>> {
         val call = apiInterface.editUser(
                 username = username, firstName = firstName, lastName = lastName, email = email,
                 photo = photo,
@@ -356,6 +356,7 @@ class AttentionRepository(private val database: AttentionDB) {
             }
 
         })
+        return call
     }
 
     fun downloadUserInfo(

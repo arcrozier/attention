@@ -61,9 +61,15 @@
     <string name="unknown_error">An unknown error occurred</string>
     <string name="server_error">The server encountered an error. Please be patient as we
         work to fix it</string>
+    <string name="upload_pfp">Upload Profile Photo</string>
     <string name="sharing">Sharing data; tap \"add message\" on a friend to edit and send</string>
     <string name="saving">Saving…</string>
+    <string name="uploading">Uploading…</string>
+    <string name="no_file">File not found. Please try again</string>
+    <string name="upload_failed">Unable to upload: %1$s</string>
+    <string name="retry">Retry</string>
     <string name="saved">Saved</string>
+    <string name="uploaded">Image was successfully uploaded</string>
     <string name="share">Share</string>
     <string name="share_text">Add me on Attention!
         https://attention.aracroproducts.com/app/add?username=%s</string>

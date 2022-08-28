@@ -50,6 +50,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalAutofill
@@ -596,13 +597,16 @@ class LoginActivity : AppCompatActivity() {
         val snackbarHostState = remember { SnackbarHostState() }
         val coroutineScope = rememberCoroutineScope()
 
+        val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
         Scaffold(
                 topBar = {
                     if (model.login == LoginViewModel.State.CHANGE_PASSWORD || model.login == LoginViewModel.State.CHOOSE_USERNAME) {
-                        TopAppBar(backgroundColor = MaterialTheme.colorScheme.primary, title = {
+                        SmallTopAppBar(colors = TopAppBarDefaults.smallTopAppBarColors
+                        (containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer), title
+                        = {
                             Text(
-                                    getString(R.string.app_name),
-                                    color = MaterialTheme.colorScheme.onPrimary
+                                    getString(R.string.app_name)
                             )
                         }, navigationIcon = {
                             IconButton(onClick = {
@@ -614,16 +618,19 @@ class LoginActivity : AppCompatActivity() {
                                 ), tint = MaterialTheme.colorScheme.onPrimary
                                 )
                             }
-                        })
+                        }, modifier = Modifier.nestedScroll(scrollBehavior
+                                .nestedScrollConnection), scrollBehavior = scrollBehavior)
                     } else {
-                        TopAppBar(
-                                backgroundColor = MaterialTheme.colorScheme.primary,
+                        SmallTopAppBar(
+                                colors = TopAppBarDefaults.smallTopAppBarColors(containerColor =
+                                MaterialTheme.colorScheme.primaryContainer, titleContentColor =
+                                MaterialTheme.colorScheme.onPrimaryContainer),
                                 title = {
                                     Text(
-                                            getString(R.string.app_name),
-                                            color = MaterialTheme.colorScheme.onPrimary
+                                            getString(R.string.app_name)
                                     )
-                                },
+                                }, modifier = Modifier.nestedScroll(scrollBehavior
+                                .nestedScrollConnection), scrollBehavior = scrollBehavior
                         )
                     }
                 }, snackbarHost = { SnackbarHost(snackbarHostState) },

@@ -33,7 +33,6 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ContentAlpha
-import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Share
@@ -46,12 +45,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
@@ -67,7 +66,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
-import kotlin.io.path.Path
 
 /**
  * The class for the settings menu in the app
@@ -83,19 +81,7 @@ class SettingsActivity : AppCompatActivity() {
             .StartActivityForResult()) { result ->
         result.data?.let { data ->
             val uri = UCrop.getOutput(data) ?: return@let
-            lifecycleScope.launch(context = Dispatchers.IO) {
-                val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    ImageDecoder.decodeBitmap(
-                            ImageDecoder.createSource(contentResolver, uri))
-                } else {
-                    MediaStore.Images.Media.getBitmap(contentResolver, uri)
-                }.asImageBitmap()
-                val fileBytes = File(filesDir, MainViewModel
-                        .PFP_FILENAME).readBytes()
-                val attentionRepository = AttentionRepository(AttentionDB.getDB(this@SettingsActivity))
-                // TODO
-                //attentionRepository.edit()
-            }
+            viewModel.uploadImage(uri, this) { launchLogin(this)}
         }
     }
 
@@ -104,9 +90,9 @@ class SettingsActivity : AppCompatActivity() {
         // Callback is invoked after the user selects a media item or closes the
         // photo picker.
         if (uri != null) {
-            //TODO crop then upload https://github.com/Yalantis/uCrop
+            // crop then upload https://github.com/Yalantis/uCrop
             // https://stackoverflow.com/questions/3879992/how-to-get-bitmap-from-an-uri
-            val cropIntent = UCrop.of(uri, Uri.fromFile(File(filesDir, MainViewModel.PFP_FILENAME)))
+            val cropIntent = UCrop.of(uri, Uri.fromFile(File(filesDir, TEMP_PFP)))
                     .withAspectRatio(1f, 1f)
                     .withOptions(UCrop.Options().apply {
                         setCircleDimmedLayer(true)
@@ -153,12 +139,20 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
-    @OptIn(ExperimentalMaterial3WindowSizeClassApi::class, ExperimentalMaterial3Api::class)
+    @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     @Composable
     fun PreferenceScreenWrapper() {
 
         val snackbarHostState = remember { SnackbarHostState() }
         val coroutineScope = rememberCoroutineScope()
+
+        if (viewModel.uploadDialog) {
+            UploadDialog(uploading = viewModel.uploading, uploadStatus = viewModel.uploadStatus,
+                    shouldRetry = viewModel.shouldRetryUpload,
+                    onCancel = viewModel.onCancel,
+                    dismissDialog = { viewModel.uploadDialog = false },
+                    retry = viewModel::uploadImage, uri = viewModel.uri)
+        }
 
         val userInfoChangeListener =
                 UserInfoChangeListener(this, viewModel, snackbarHostState, coroutineScope)
@@ -553,13 +547,18 @@ class SettingsActivity : AppCompatActivity() {
             onGroupSelected: (key: Int, preferences: @Composable () -> Unit) -> Unit,
             snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
     ) {
+        val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
         Scaffold(topBar = {
-            TopAppBar(backgroundColor = MaterialTheme.colorScheme.primary, title = {
+            LargeTopAppBar(colors = TopAppBarDefaults.largeTopAppBarColors(containerColor =
+            MaterialTheme.colorScheme.primaryContainer), title = {
                 Text(
                         getString(R.string.title_activity_settings),
                         color = MaterialTheme.colorScheme.onPrimary
                 )
-            }, navigationIcon = {
+            },
+                    modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+                    scrollBehavior = scrollBehavior,
+                            navigationIcon = {
                 IconButton(onClick = {
                     onBackPressedDispatcher.onBackPressed()
                 }) {
@@ -592,6 +591,75 @@ class SettingsActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    @Composable
+    fun UploadDialog(uploading: Boolean, uploadStatus: String, shouldRetry: Boolean, onCancel: (
+    () -> Unit)?, dismissDialog: () -> Unit, retry: (Uri, Context, () -> Unit) -> Unit, uri: Uri?) {
+        var bitmap: ImageBitmap? by remember{
+            mutableStateOf(null)
+        }
+        assert(uri != null)
+        LaunchedEffect(key1 = uri, block = {
+            if (uri == null) return@LaunchedEffect
+            lifecycleScope.launch(Dispatchers.IO) {
+                bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    ImageDecoder.decodeBitmap(
+                            ImageDecoder.createSource(contentResolver, uri))
+                } else {
+                    @Suppress("DEPRECATION")
+                    MediaStore.Images.Media.getBitmap(contentResolver, uri)
+                }.asImageBitmap()
+            }
+        })
+        AlertDialog(onDismissRequest = { /*Don't let people tap outside*/ }, dismissButton = {
+            TextButton(onClick = {
+                onCancel?.invoke()
+                dismissDialog()
+            }) {
+                Text(text = getString(android.R.string.cancel))
+            }
+        }, confirmButton = {
+            if (!uploading) {
+                if (shouldRetry && uri != null) {
+                    OutlinedButton(onClick = { retry(uri, this) {
+                        launchLogin(this)
+                    }
+                    }) {
+                        Text(text = getString(R.string.retry))
+                    }
+                } else {
+                    Button(onClick = { dismissDialog() }) {
+                        Text(text = getString(android.R.string.ok))
+                    }
+                }
+            }
+        }, title = {
+            Text(text = getString(R.string.upload_pfp))
+        }, text = {
+            Column(verticalArrangement = Arrangement.Top, horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(contentAlignment = Alignment.Center) {
+                    if (uploading) {
+                        bitmap?.let {
+                            Image(bitmap = it, contentDescription = getString(R.string
+                                    .your_pfp_description), modifier = Modifier.fillMaxSize(),
+                                    colorFilter =
+                                    ColorFilter.tint(Color
+                            (UPLOAD_GRAY_INTENSITY, UPLOAD_GRAY_INTENSITY, UPLOAD_GRAY_INTENSITY, 1f),
+                                    BlendMode.Screen))
+                        }
+                        CircularProgressIndicator()
+                    } else {
+                        bitmap?.let {
+                            Image(bitmap = it, contentDescription = getString(R.string
+                                    .your_pfp_description), modifier = Modifier.fillMaxSize())
+                        }
+                    }
+                }
+
+                Text(text = uploadStatus, textAlign = TextAlign.Center, style = MaterialTheme.typography.titleMedium)
+            }
+        })
     }
 
     @Composable
@@ -931,6 +999,8 @@ class SettingsActivity : AppCompatActivity() {
     companion object {
         val PREFERENCE_HEIGHT = 73.dp
         val PREFERENCE_PADDING = 5.dp
+        const val TEMP_PFP = "${MainViewModel.PFP_FILENAME}_temp"
+        const val UPLOAD_GRAY_INTENSITY = 0.5f
 
         private fun launchLogin(context: Context) {
             val loginIntent = Intent(context, LoginActivity::class.java)

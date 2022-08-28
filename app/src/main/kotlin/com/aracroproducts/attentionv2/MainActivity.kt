@@ -57,6 +57,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -289,7 +290,7 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    @OptIn(ExperimentalAnimationApi::class)
+    @OptIn(ExperimentalAnimationApi::class, ExperimentalMaterial3Api::class)
     @ExperimentalFoundationApi
     @Composable
     fun Home(
@@ -350,13 +351,15 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-
+        val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
         Scaffold(scaffoldState = scaffoldState, topBar = {
-            TopAppBar(backgroundColor = MaterialTheme.colorScheme.primary, title = {
+            LargeTopAppBar(colors = TopAppBarDefaults.largeTopAppBarColors(containerColor =
+            MaterialTheme.colorScheme.primaryContainer, titleContentColor = MaterialTheme
+                    .colorScheme.onPrimaryContainer),
+                    title = {
                 Column {
                     Text(
-                            getString(R.string.app_name),
-                            color = MaterialTheme.colorScheme.onPrimary
+                            getString(R.string.app_name)
                     )
                     if (friendModel.connectionState.isNotBlank()) Text(
                             friendModel.connectionState,
@@ -378,7 +381,8 @@ class MainActivity : AppCompatActivity() {
                     )
 
                 }
-            })
+            }, modifier = Modifier.nestedScroll(scrollBehavior
+                    .nestedScrollConnection), scrollBehavior = scrollBehavior)
         }, backgroundColor = MaterialTheme.colorScheme.background, floatingActionButton = {
             FloatingActionButton(
                     onClick = {
@@ -399,9 +403,9 @@ class MainActivity : AppCompatActivity() {
                     modifier = Modifier.padding(it)
             ) {
                 LazyColumn(
-                    Modifier
-                        .background(MaterialTheme.colorScheme.background)
-                        .fillMaxSize()
+                        Modifier
+                                .background(MaterialTheme.colorScheme.background)
+                                .fillMaxSize()
                 ) {
                     items(items = friends,
                             key = { friend ->
@@ -787,39 +791,39 @@ class MainActivity : AppCompatActivity() {
         }
 
         Box(modifier = modifier
-            .fillMaxWidth(1F)
-            .padding(10.dp)
-            .requiredHeight(48.dp)
-            .combinedClickable(onClick = {
-                onStateChange(
-                    when (state) {
-                        State.NORMAL -> State.CONFIRM
-                        State.CONFIRM, State.CANCEL, State.EDIT -> State.NORMAL
-                    }
+                .fillMaxWidth(1F)
+                .padding(10.dp)
+                .requiredHeight(48.dp)
+                .combinedClickable(onClick = {
+                    onStateChange(
+                            when (state) {
+                                State.NORMAL -> State.CONFIRM
+                                State.CONFIRM, State.CANCEL, State.EDIT -> State.NORMAL
+                            }
+                    )
+                }, onClickLabel = getString(R.string.friend_card_click_label), onLongClick = {
+                    onStateChange(
+                            when (state) {
+                                State.NORMAL -> State.EDIT
+                                else -> state
+                            }
+                    )
+                    onLongPress()
+                }, onLongClickLabel = getString(R.string.friend_card_long_click_label)
                 )
-            }, onClickLabel = getString(R.string.friend_card_click_label), onLongClick = {
-                onStateChange(
-                    when (state) {
-                        State.NORMAL -> State.EDIT
-                        else -> state
-                    }
-                )
-                onLongPress()
-            }, onLongClickLabel = getString(R.string.friend_card_long_click_label)
-            )
         ) {
             Row(horizontalArrangement = Arrangement.Start, verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(all = 8.dp)
-                    .align(Alignment.CenterStart)
-                    .semantics(mergeDescendants = true) {}) {
+                        .fillMaxSize()
+                        .padding(all = 8.dp)
+                        .align(Alignment.CenterStart)
+                        .semantics(mergeDescendants = true) {}) {
                 imageBitmap?.let { Image(
                     bitmap = it,
                     contentDescription = getString(R.string.pfp_description, friend.name),
                     modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
+                            .size(40.dp)
+                            .clip(CircleShape)
                 ) } ?: Spacer(modifier = Modifier.width(40.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Column(verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.Start,
@@ -834,8 +838,8 @@ class MainActivity : AppCompatActivity() {
                             alpha = ContentAlpha.medium
                         ) else MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier
-                            .alpha(alpha)
-                            .blur(blur)
+                                .alpha(alpha)
+                                .blur(blur)
                     )
                     Text(
                         text = subtitle,
@@ -848,8 +852,8 @@ class MainActivity : AppCompatActivity() {
                         ),
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier
-                            .alpha(alpha)
-                            .blur(blur)
+                                .alpha(alpha)
+                                .blur(blur)
                     )
                 }
             }
@@ -1002,12 +1006,12 @@ class MainActivity : AppCompatActivity() {
                             sendingStatus = getString(R.string.sending)
                         }
                         CancelBar(progress = animatedProgress, modifier = Modifier
-                            .clickable {
-                                progressEnabled = false
-                                onStateChange(State.NORMAL)
-                                progress = 0
-                            }
-                            .fillMaxSize())
+                                .clickable {
+                                    progressEnabled = false
+                                    onStateChange(State.NORMAL)
+                                    progress = 0
+                                }
+                                .fillMaxSize())
                     }
                 }
             }
@@ -1020,16 +1024,16 @@ class MainActivity : AppCompatActivity() {
     ) {
         Box(
                 modifier = modifier
-                    .clip(shape = RoundedCornerShape(5.dp))
-                    .background(color = MaterialTheme.colorScheme.inversePrimary)
+                        .clip(shape = RoundedCornerShape(5.dp))
+                        .background(color = MaterialTheme.colorScheme.inversePrimary)
         ) {
 
             Box(
                     modifier = Modifier
-                        .fillMaxWidth(progress)
-                        .fillMaxHeight()
-                        .clip(shape = RoundedCornerShape(5.dp))
-                        .background(color = MaterialTheme.colorScheme.primary)
+                            .fillMaxWidth(progress)
+                            .fillMaxHeight()
+                            .clip(shape = RoundedCornerShape(5.dp))
+                            .background(color = MaterialTheme.colorScheme.primary)
             ) {}
             Text(text = getString(android.R.string.cancel), modifier = Modifier.align(Alignment.Center))
         }
