@@ -65,6 +65,7 @@
     <string name="sharing">Sharing data; tap \"add message\" on a friend to edit and send</string>
     <string name="saving">Saving…</string>
     <string name="uploading">Uploading…</string>
+    <string name="processing">Processing file…</string>
     <string name="no_file">File not found. Please try again</string>
     <string name="upload_failed">Unable to upload: %1$s</string>
     <string name="retry">Retry</string>
