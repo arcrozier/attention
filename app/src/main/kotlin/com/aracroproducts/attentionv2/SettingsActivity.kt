@@ -6,11 +6,11 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.provider.MediaStore
 import android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS
 import android.util.Log
 import androidx.activity.compose.setContent
@@ -47,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -600,18 +601,6 @@ class SettingsActivity : AppCompatActivity() {
             mutableStateOf(null)
         }
         assert(uri != null)
-        LaunchedEffect(key1 = uri, block = {
-            if (uri == null) return@LaunchedEffect
-            lifecycleScope.launch(Dispatchers.IO) {
-                bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    ImageDecoder.decodeBitmap(
-                            ImageDecoder.createSource(contentResolver, uri))
-                } else {
-                    @Suppress("DEPRECATION")
-                    MediaStore.Images.Media.getBitmap(contentResolver, uri)
-                }.asImageBitmap()
-            }
-        })
         AlertDialog(onDismissRequest = { /*Don't let people tap outside*/ }, dismissButton = {
             TextButton(onClick = {
                 onCancel?.invoke()
@@ -638,7 +627,46 @@ class SettingsActivity : AppCompatActivity() {
             Text(text = getString(R.string.upload_pfp))
         }, text = {
             Column(verticalArrangement = Arrangement.Top, horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(contentAlignment = Alignment.Center) {
+                Box(contentAlignment = Alignment.Center,
+                    modifier = Modifier.weight(1f, fill = false).onGloballyPositioned {
+                        if (uri == null) return@onGloballyPositioned
+                        lifecycleScope.launch(Dispatchers.IO) {
+                            bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                                ImageDecoder.decodeBitmap(
+                                    ImageDecoder.createSource(contentResolver, uri)
+                                ) { decoder, _, _ ->
+                                    decoder.setTargetSize(it.size.width, it.size.height) }
+                            } else {
+                                BitmapFactory.Options().run {
+                                    var input = contentResolver.openInputStream(uri)
+                                    inJustDecodeBounds = true
+                                    BitmapFactory.decodeStream(input, null, this)
+                                    input?.close()
+                                    // Calculate inSampleSize
+                                    val (height: Int, width: Int) = run { outHeight to outWidth }
+                                    var inSampleSize = 1
+
+                                    if (height > it.size.height || width > it.size.width) {
+
+                                        val halfHeight: Int = height / 2
+                                        val halfWidth: Int = width / 2
+
+                                        // Calculate the largest inSampleSize value that is a power of 2 and keeps both
+                                        // height and width larger than the requested height and width.
+                                        while (halfHeight / inSampleSize >= it.size.height && halfWidth / inSampleSize >= it.size.width) {
+                                            inSampleSize *= 2
+                                        }
+                                    }
+
+                                    // Decode bitmap with inSampleSize set
+                                    inJustDecodeBounds = false
+                                    input = contentResolver.openInputStream(uri)
+
+                                    BitmapFactory.decodeStream(input, null, this)
+                                }
+                            }?.asImageBitmap()
+                        }
+                }) {
                     if (uploading) {
                         bitmap?.let {
                             Image(bitmap = it, contentDescription = getString(R.string
