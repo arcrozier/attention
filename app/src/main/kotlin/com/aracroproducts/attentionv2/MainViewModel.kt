@@ -42,7 +42,7 @@ class MainViewModel @Inject internal constructor(
 ) : AndroidViewModel(application) {
 
     sealed class DialogStatus(val priority: Int) {
-        abstract class FriendStatus(val friend: Friend, priority: Int) : DialogStatus(priority)
+        sealed class FriendStatus(val friend: Friend, priority: Int) : DialogStatus(priority)
         object AddFriend : DialogStatus(0)
         object OverlayPermission: DialogStatus(1)
         class AddMessageText(friend: Friend, val onSend: (String) -> Unit): FriendStatus(friend,2)

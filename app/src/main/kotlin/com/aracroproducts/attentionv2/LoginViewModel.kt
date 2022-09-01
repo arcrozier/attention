@@ -383,7 +383,7 @@ class LoginViewModel @Inject constructor(
         attentionRepository.editUser(token,
                 password = password,
                 oldPassword = oldPassword,
-                responseListener = { _, response, errorBody ->
+                responseListener = { _, response, _ ->
                     when (response.code()) {
                         200 -> {
                             attentionRepository.getAuthToken(savedUsername,
