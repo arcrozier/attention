@@ -34,6 +34,7 @@
     <string name="link_account_warning">Warning: this cannot be undone</string>
     <string name="login_title">Log In</string>
     <string name="sign_in_w_google">Sign in with Google</string>
+    <string name="google_logo">Google logo</string>
     <string name="first_name">First name</string>
     <string name="last_name">Last name</string>
     <string name="email">Email</string>

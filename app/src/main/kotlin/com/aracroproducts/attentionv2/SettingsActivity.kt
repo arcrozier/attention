@@ -23,6 +23,7 @@ import androidx.compose.animation.with
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -46,6 +47,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -354,6 +356,12 @@ class SettingsActivity : AppCompatActivity() {
                 preference = EphemeralPreference(
                     getString(R.string.link_account_key), null
                 ),
+                    icon = {
+                        Image(painter = painterResource(id = if (isSystemInDarkTheme()) R.drawable
+                                .ic_btn_google_dark else R.drawable.ic_btn_google_light),
+                                contentDescription = getString(R.string.google_logo),
+                                modifier = Modifier.fillMaxSize())
+                    },
                 title = R.string.link_account,
                 summary = null,
                 onPreferenceClicked = {

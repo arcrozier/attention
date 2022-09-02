@@ -20,10 +20,13 @@ import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.with
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.ClickableText
@@ -55,6 +58,7 @@ import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalAutofill
 import androidx.compose.ui.platform.LocalAutofillTree
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -460,6 +464,10 @@ class LoginActivity : AppCompatActivity() {
                         snackbarHostState, coroutineScope, loginResultHandler
                 )
             }, enabled = model.uiEnabled) {
+                Image(painter = painterResource(id = if (isSystemInDarkTheme()) R.drawable
+                        .ic_btn_google_dark else R.drawable.ic_btn_google_light),
+                        contentDescription = getString(R.string.google_logo))
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(text = getString(R.string.sign_in_w_google))
             }
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
