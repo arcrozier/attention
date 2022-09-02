@@ -354,8 +354,8 @@ class MainActivity : AppCompatActivity() {
         val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
         Scaffold(scaffoldState = scaffoldState, topBar = {
             LargeTopAppBar(colors = TopAppBarDefaults.largeTopAppBarColors(containerColor =
-            MaterialTheme.colorScheme.primaryContainer, titleContentColor = MaterialTheme
-                    .colorScheme.onPrimaryContainer),
+            MaterialTheme.colorScheme.primary, titleContentColor = MaterialTheme
+                    .colorScheme.onPrimary),
                     title = {
                 Column {
                     Text(

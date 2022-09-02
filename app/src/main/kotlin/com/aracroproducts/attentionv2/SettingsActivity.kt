@@ -579,12 +579,12 @@ class SettingsActivity : AppCompatActivity() {
         val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
         Scaffold(topBar = {
             LargeTopAppBar(colors = TopAppBarDefaults.largeTopAppBarColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
+                containerColor = MaterialTheme.colorScheme.primary,
+                titleContentColor = MaterialTheme.colorScheme.onPrimary
             ),
                            title = {
                                Text(
-                                   getString(R.string.title_activity_settings),
-                                   color = MaterialTheme.colorScheme.onPrimary
+                                   getString(R.string.title_activity_settings)
                                )
                            },
                            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),

@@ -602,8 +602,8 @@ class LoginActivity : AppCompatActivity() {
                 topBar = {
                     if (model.login == LoginViewModel.State.CHANGE_PASSWORD || model.login == LoginViewModel.State.CHOOSE_USERNAME) {
                         SmallTopAppBar(colors = TopAppBarDefaults.smallTopAppBarColors
-                        (containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer), title
+                        (containerColor = MaterialTheme.colorScheme.primary,
+                                titleContentColor = MaterialTheme.colorScheme.onPrimary), title
                         = {
                             Text(
                                     getString(R.string.app_name)
@@ -623,8 +623,8 @@ class LoginActivity : AppCompatActivity() {
                     } else {
                         SmallTopAppBar(
                                 colors = TopAppBarDefaults.smallTopAppBarColors(containerColor =
-                                MaterialTheme.colorScheme.primaryContainer, titleContentColor =
-                                MaterialTheme.colorScheme.onPrimaryContainer),
+                                MaterialTheme.colorScheme.primary, titleContentColor =
+                                MaterialTheme.colorScheme.onPrimary),
                                 title = {
                                     Text(
                                             getString(R.string.app_name)
