@@ -99,12 +99,12 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp")
     implementation("com.squareup.okhttp3:logging-interceptor")
 
-    val gson_version = "2.9.0"
-    implementation("com.squareup.retrofit2:converter-gson:$gson_version")
-    implementation("com.google.code.gson:gson:$gson_version")
+    val gsonVersion = "2.9.0"
+    implementation("com.squareup.retrofit2:converter-gson:$gsonVersion")
+    implementation("com.google.code.gson:gson:$gsonVersion")
 
 
-    val arch_version = "2.1.0"
+    val archVersion = "2.1.0"
 
     // ViewModel
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycleVersion")
@@ -131,51 +131,51 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-reactivestreams-ktx:$lifecycleVersion")
 
     // optional - Test helpers for LiveData
-    testImplementation("androidx.arch.core:core-testing:$arch_version")
+    testImplementation("androidx.arch.core:core-testing:$archVersion")
 
-    val jetpack_compose_version = "1.2.1"
+    val jetpackComposeVersion = "1.2.1"
     // Integration with activities
     implementation("androidx.activity:activity-compose:1.5.1")
     // Compose Material Design
-    implementation("androidx.compose.runtime:runtime-livedata:$jetpack_compose_version")
-    implementation("androidx.compose.material:material:$jetpack_compose_version")
+    implementation("androidx.compose.runtime:runtime-livedata:$jetpackComposeVersion")
+    implementation("androidx.compose.material:material:$jetpackComposeVersion")
     // Animations
-    implementation("androidx.compose.animation:animation:$jetpack_compose_version")
-    implementation("androidx.compose.material:material-icons-extended:$jetpack_compose_version")
+    implementation("androidx.compose.animation:animation:$jetpackComposeVersion")
+    implementation("androidx.compose.material:material-icons-extended:$jetpackComposeVersion")
     // Tooling support (Previews, etc.)
-    implementation("androidx.compose.ui:ui-tooling:$jetpack_compose_version")
+    implementation("androidx.compose.ui:ui-tooling:$jetpackComposeVersion")
     // Integration with ViewModels
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:$lifecycleVersion")
     // UI Tests
 
 
-    val compose_material_version = "1.0.0-beta01"
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4:$jetpack_compose_version")
-    implementation("androidx.compose.material3:material3:$compose_material_version")
-    implementation("androidx.compose.material3:material3-window-size-class:$compose_material_version")
+    val composeMaterialVersion = "1.0.0-beta01"
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4:$jetpackComposeVersion")
+    implementation("androidx.compose.material3:material3:$composeMaterialVersion")
+    implementation("androidx.compose.material3:material3-window-size-class:$composeMaterialVersion")
 
-    val room_version = "2.4.3"
+    val roomVersion = "2.4.3"
 
-    implementation("androidx.room:room-runtime:$room_version")
-    implementation("androidx.room:room-ktx:$room_version")
+    implementation("androidx.room:room-runtime:$roomVersion")
+    implementation("androidx.room:room-ktx:$roomVersion")
     // To use Kotlin annotation processing tool (kapt)
-    kapt("androidx.room:room-compiler:$room_version")
+    kapt("androidx.room:room-compiler:$roomVersion")
 
     // optional - Guava support for Room, including Optional and ListenableFuture
-    implementation("androidx.room:room-guava:$room_version")
+    implementation("androidx.room:room-guava:$roomVersion")
 
     // optional - Test helpers
-    testImplementation("androidx.room:room-testing:$room_version")
+    testImplementation("androidx.room:room-testing:$roomVersion")
 
     // optional - Paging 3 Integration
-    implementation("androidx.room:room-paging:$room_version")
+    implementation("androidx.room:room-paging:$roomVersion")
 
     // For sharing
     implementation("androidx.sharetarget:sharetarget:1.2.0-rc02")
 
-    val accompanist_ver = "0.25.1"
-    implementation("com.google.accompanist:accompanist-swiperefresh:$accompanist_ver")
-    implementation("com.google.accompanist:accompanist-systemuicontroller:$accompanist_ver")
+    val accompanistVersion = "0.25.1"
+    implementation("com.google.accompanist:accompanist-swiperefresh:$accompanistVersion")
+    implementation("com.google.accompanist:accompanist-systemuicontroller:$accompanistVersion")
 
     // Sign in with Google
     implementation("com.google.android.gms:play-services-auth:20.3.0")
