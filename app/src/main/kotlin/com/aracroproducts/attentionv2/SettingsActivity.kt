@@ -62,6 +62,7 @@ import com.aracroproducts.attentionv2.MainViewModel.Companion.MY_TOKEN
 import com.aracroproducts.attentionv2.MainViewModel.Companion.USER_INFO
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
 import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
+import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.yalantis.ucrop.UCrop
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -584,6 +585,24 @@ class SettingsActivity : AppCompatActivity() {
         onGroupSelected: (key: Int, preferences: @Composable () -> Unit) -> Unit,
         snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
     ) {
+
+        // Remember a SystemUiController
+        val systemUiController = rememberSystemUiController()
+        val useDarkIcons = !isSystemInDarkTheme()
+
+        DisposableEffect(systemUiController, useDarkIcons) {
+            // Update all of the system bar colors to be transparent, and use
+            // dark icons if we're in light theme
+            systemUiController.setNavigationBarColor(
+                    color = Color.Transparent,
+                    darkIcons = useDarkIcons
+            )
+
+            // setStatusBarColor() and setNavigationBarColor() also exist
+
+            onDispose {}
+        }
+
         val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
         Scaffold(topBar = {
             LargeTopAppBar(colors = TopAppBarDefaults.largeTopAppBarColors(

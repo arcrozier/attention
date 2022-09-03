@@ -55,6 +55,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -73,6 +74,7 @@ import com.aracroproducts.attentionv2.ui.theme.AppTheme
 import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
+import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import kotlinx.coroutines.Dispatchers
@@ -316,6 +318,23 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
+        }
+
+        // Remember a SystemUiController
+        val systemUiController = rememberSystemUiController()
+        val useDarkIcons = !isSystemInDarkTheme()
+
+        DisposableEffect(systemUiController, useDarkIcons) {
+            // Update all of the system bar colors to be transparent, and use
+            // dark icons if we're in light theme
+            systemUiController.setNavigationBarColor(
+                    color = Color.Transparent,
+                    darkIcons = useDarkIcons
+            )
+
+            // setStatusBarColor() and setNavigationBarColor() also exist
+
+            onDispose {}
         }
 
         AnimatedContent(targetState = dialogState, transitionSpec = {
