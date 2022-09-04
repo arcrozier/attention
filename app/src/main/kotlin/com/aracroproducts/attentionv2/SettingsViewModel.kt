@@ -56,7 +56,7 @@ class SettingsViewModel(private val repository: AttentionRepository, application
                 ).readBytes()
             }
             withContext(Dispatchers.Default) {
-                photo = BitmapFactory.decodeByteArray(data, 0, data.size).asImageBitmap()
+                photo = BitmapFactory.decodeByteArray(data, 0, data.size)?.asImageBitmap()
             }
         }
     }

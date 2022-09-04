@@ -34,8 +34,7 @@ android {
         getByName("debug") {
             versionNameSuffix = ".debug"
             resValue("string", "version_name", "${defaultConfig.versionName}${versionNameSuffix}")
-            buildConfigField("String", "BASE_URL", "\"https://attention.aracroproducts" +
-            ".com/api/v2/\"")
+            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8000/v2/\"")
         }
         getByName("release") {
             isMinifyEnabled = true
