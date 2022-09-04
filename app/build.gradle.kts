@@ -22,6 +22,8 @@ android {
                 arguments["room.schemaLocation"] = "$projectDir/schemas"
             }
         }
+
+        signingConfig = signingConfigs.getByName("debug")
     }
 
     buildFeatures {
@@ -32,8 +34,8 @@ android {
         getByName("debug") {
             versionNameSuffix = ".debug"
             resValue("string", "version_name", "${defaultConfig.versionName}${versionNameSuffix}")
-            buildConfigField("String", "BASE_URL", "\"http://attention.aracroproducts" +
-            ".com:1080/api/v2/\"")
+            buildConfigField("String", "BASE_URL", "\"https://attention.aracroproducts" +
+            ".com/api/v2/\"")
         }
         getByName("release") {
             isMinifyEnabled = true
@@ -56,17 +58,7 @@ android {
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.1.1"
-    }
-
-    signingConfigs {
-        // We need to sign debug builds with a debug key to make firebase auth happy
-        getByName("debug") {
-            storeFile = file("../debug.keystore")
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
-            storePassword = "android"
-        }
+        kotlinCompilerExtensionVersion = "1.3.0"
     }
 
     namespace = "com.aracroproducts.attentionv2"

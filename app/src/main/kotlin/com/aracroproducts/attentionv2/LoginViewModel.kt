@@ -52,8 +52,8 @@ class LoginViewModel @Inject constructor(
         uiEnabled = false
         val context = getApplication<Application>()
         attentionRepository.signInWithGoogle(userIdToken = localIdToken,
-                username = username,
-                responseListener = { _, response, _ ->
+                                             username = username.ifBlank { null },
+                                             responseListener = { _, response, _ ->
                     uiEnabled = true
                     when (response.code()) {
                         200 -> {
@@ -89,7 +89,7 @@ class LoginViewModel @Inject constructor(
                         }
                     }
                 },
-                errorListener = { _, t ->
+                                             errorListener = { _, t ->
                     genericErrorHandling(
                             0,
                             snackbarHostState,

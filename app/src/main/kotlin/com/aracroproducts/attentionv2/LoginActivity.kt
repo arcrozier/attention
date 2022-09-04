@@ -20,7 +20,6 @@ import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.ExperimentalAnimationApi
@@ -36,7 +35,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material.Divider
-import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -71,7 +69,6 @@ import androidx.compose.ui.unit.dp
 import androidx.core.text.getSpans
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.preference.PreferenceManager
 import com.aracroproducts.attentionv2.MainViewModel.Companion.TOKEN_UPLOADED
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
 import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
@@ -223,8 +220,7 @@ class LoginActivity : AppCompatActivity() {
             loginViewModel.login = LoginViewModel.State.CHANGE_PASSWORD
         } else if (intent.action == getString(R.string.link_account_action)) {
             loginViewModel.login = LoginViewModel.State.LINK_ACCOUNT
-        } else if
-                       (loginViewModel.showOneTapUI) {
+        } else if (loginViewModel.showOneTapUI) {
             oneTapClient = Identity.getSignInClient(this)
             val signInRequest = BeginSignInRequest.builder().setPasswordRequestOptions(
                     BeginSignInRequest.PasswordRequestOptions.builder().setSupported(true).build()
@@ -316,9 +312,19 @@ class LoginActivity : AppCompatActivity() {
                     color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING * 2))
-            UsernameField(value = model.username, onValueChanged = { onUsernameChanged(model, it) },
-                    newUsername = true, error = model.passwordCaption.isNotBlank(), caption =
-            model.usernameCaption, enabled = model.uiEnabled, context = this@LoginActivity)
+            UsernameField(value = model.username,
+                          onValueChanged = { onUsernameChanged(model, it) },
+                          newUsername = true,
+                          error = model.passwordCaption.isNotBlank(),
+                          caption = model.usernameCaption,
+                          enabled = model.uiEnabled,
+                          context = this@LoginActivity,
+                          imeAction = ImeAction.Done,
+                          onDone = {
+                    model.loginWithGoogle(snackbarHostState, coroutineScope) {
+                        finish()
+                    }
+                })
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             Button(
                     onClick = {
@@ -329,7 +335,7 @@ class LoginActivity : AppCompatActivity() {
             ) {
                 Box {
                     Text(
-                            text = getString(R.string.change_password),
+                            text = getString(R.string.choose_username),
                             modifier = Modifier.align(Alignment.Center)
                     )
                     if (!model.uiEnabled) {
@@ -986,7 +992,6 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun ToSCheckbox(model: LoginViewModel) {
         Row {
@@ -1160,7 +1165,9 @@ class LoginActivity : AppCompatActivity() {
         fun UsernameField(
                 value: String, onValueChanged: (newValue: String) -> Unit, newUsername: Boolean,
                 enabled:
-                Boolean, error: Boolean, caption: String, context: Context
+                Boolean, error: Boolean, caption: String, context: Context,
+                imeAction: ImeAction = ImeAction.Next, onDone: ((KeyboardActionScope) -> Unit)? =
+                    null
         ) {
             TextField(
                     value = value,
@@ -1171,8 +1178,9 @@ class LoginActivity : AppCompatActivity() {
                             onFill = { onValueChanged(filterUsername(it)) }),
                     label = { Text(text = context.getString(R.string.username)) },
                     keyboardOptions = KeyboardOptions(
-                            autoCorrect = false, imeAction = ImeAction.Next
+                            autoCorrect = false, imeAction = imeAction
                     ),
+                    keyboardActions = KeyboardActions(onDone = onDone),
                     enabled = enabled,
                     isError = error,
             )
