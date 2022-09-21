@@ -376,7 +376,8 @@ class SettingsActivity : AppCompatActivity() {
             DialoguePreference(
                 preference = EphemeralPreference(getString(R.string.logout_key), null),
                 title = R.string.confirm_logout_title,
-                titleColor = MaterialTheme.colorScheme.error
+                titleColor = MaterialTheme.colorScheme.error,
+                    summary = null,
             ) { _, dismissDialog, context, title ->
                 AlertDialog(onDismissRequest = { dismissDialog() }, title = {
                     Text(text = title)
@@ -607,6 +608,7 @@ class SettingsActivity : AppCompatActivity() {
         Scaffold(topBar = {
             LargeTopAppBar(colors = TopAppBarDefaults.largeTopAppBarColors(
                 containerColor = MaterialTheme.colorScheme.primary,
+                    scrolledContainerColor = MaterialTheme.colorScheme.primary,
                 titleContentColor = MaterialTheme.colorScheme.onPrimary
             ),
                            title = {
@@ -779,7 +781,8 @@ class SettingsActivity : AppCompatActivity() {
             Text(
                 text = getString(title),
                 style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(start = 8.dp)
             )
             preferences()
         }
@@ -799,7 +802,7 @@ class SettingsActivity : AppCompatActivity() {
             Box(
                 modifier = modifier
                     .padding(end = PREFERENCE_PADDING)
-                    .fillMaxSize(),
+                    .fillMaxHeight().weight(1f, fill = true),
                 contentAlignment = Alignment.CenterStart
             ) {
                 largePreference()
@@ -838,11 +841,11 @@ class SettingsActivity : AppCompatActivity() {
         disabledTitleColor: Color = MaterialTheme.colorScheme.onSurface.copy(
             alpha = ContentAlpha.medium
         ),
-        titleStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.labelMedium,
+        titleStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.bodyLarge,
         summaryColor: Color = MaterialTheme.colorScheme.onSurface.copy(
             alpha = ContentAlpha.medium
         ),
-        summaryStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.labelSmall,
+        summaryStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.labelLarge,
         onPreferenceChanged: ComposablePreferenceChangeListener<T> = object :
             ComposablePreferenceChangeListener<T> {
             override fun onPreferenceChange(
@@ -912,11 +915,11 @@ class SettingsActivity : AppCompatActivity() {
         disabledTitleColor: Color = MaterialTheme.colorScheme.onSurface.copy(
             alpha = ContentAlpha.medium
         ),
-        titleStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.labelMedium,
+        titleStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.bodyLarge,
         summaryColor: Color = MaterialTheme.colorScheme.onSurface.copy(
             alpha = ContentAlpha.medium
         ),
-        summaryStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.labelSmall,
+        summaryStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.labelLarge,
         onPreferenceClicked: (preference: ComposablePreference<T>) -> Boolean = {
             false
         },
@@ -951,7 +954,9 @@ class SettingsActivity : AppCompatActivity() {
                     content = iconSpot
                 )
             }
-            Column(modifier = modifier.fillMaxHeight(), verticalArrangement = Arrangement.Center) {
+            Column(modifier = modifier.fillMaxHeight().weight(1f, fill = true),
+                    verticalArrangement = Arrangement
+                    .Center) {
                 Text(
                     text = getString(title), style = titleStyle, color = if (enabled) titleColor
                     else disabledTitleColor
