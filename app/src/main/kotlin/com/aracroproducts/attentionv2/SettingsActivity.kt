@@ -595,7 +595,7 @@ class SettingsActivity : AppCompatActivity() {
             // Update all of the system bar colors to be transparent, and use
             // dark icons if we're in light theme
             systemUiController.setNavigationBarColor(
-                    color = Color.Transparent,
+                    color = Color.Transparent, // TODO doesn't work
                     darkIcons = useDarkIcons
             )
 
@@ -809,8 +809,8 @@ class SettingsActivity : AppCompatActivity() {
             }
             Divider(
                 modifier = Modifier
-                    .fillMaxHeight(0.95f)
-                    .width(Dp.Hairline),
+                    .fillMaxHeight(0.9f)
+                    .width(1.dp),
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = ContentAlpha.medium)
             )
             Box(
@@ -860,7 +860,7 @@ class SettingsActivity : AppCompatActivity() {
             preference: ComposablePreference<T>, dismissDialog: () -> Unit, context: Context, title: String
         ) -> Unit
     ) {
-        val editing = rememberSaveable {
+        val editing = rememberSaveable {  // TODO dialog disappears immediately after appearing
             mutableStateOf(false)
         }
         AnimatedContent(targetState = editing, transitionSpec = {
@@ -944,6 +944,7 @@ class SettingsActivity : AppCompatActivity() {
                     onPreferenceClicked(preference)
                 })
         ) {
+            // TODO icon doesn't work
             if (icon != null || reserveIconSpace) {
                 val iconSpot: @Composable BoxScope.() -> Unit = icon ?: { }
                 Box(
