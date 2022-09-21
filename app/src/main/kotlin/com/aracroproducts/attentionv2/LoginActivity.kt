@@ -635,7 +635,7 @@ class LoginActivity : AppCompatActivity() {
         Scaffold(
                 topBar = {
                     if (model.login == LoginViewModel.State.CHANGE_PASSWORD || model.login == LoginViewModel.State.CHOOSE_USERNAME) {
-                        SmallTopAppBar(colors = TopAppBarDefaults.smallTopAppBarColors
+                        TopAppBar(colors = TopAppBarDefaults.smallTopAppBarColors
                         (containerColor = MaterialTheme.colorScheme.primary,
                                 titleContentColor = MaterialTheme.colorScheme.onPrimary), title
                         = {
@@ -655,7 +655,7 @@ class LoginActivity : AppCompatActivity() {
                         }, modifier = Modifier.nestedScroll(scrollBehavior
                                 .nestedScrollConnection), scrollBehavior = scrollBehavior)
                     } else {
-                        SmallTopAppBar(
+                        TopAppBar(
                                 colors = TopAppBarDefaults.smallTopAppBarColors(containerColor =
                                 MaterialTheme.colorScheme.primary, titleContentColor =
                                 MaterialTheme.colorScheme.onPrimary),

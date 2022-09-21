@@ -57,7 +57,7 @@ android {
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.3.0"
+        kotlinCompilerExtensionVersion = "1.3.1"
     }
 
     namespace = "com.aracroproducts.attentionv2"
@@ -69,7 +69,7 @@ dependencies {
     implementation("com.google.firebase:firebase-messaging-ktx:23.0.8")
     implementation("com.google.firebase:firebase-analytics:21.1.1")
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
-    implementation("androidx.appcompat:appcompat:1.5.0")
+    implementation("androidx.appcompat:appcompat:1.5.1")
     implementation("com.google.android.material:material:1.6.1")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.navigation:navigation-fragment-ktx:$lifecycleVersion")
@@ -78,7 +78,7 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.3")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.4.0")
-    implementation("androidx.core:core-ktx:1.8.0")
+    implementation("androidx.core:core-ktx:1.9.0")
     implementation("androidx.work:work-runtime-ktx:2.7.1")
 
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
@@ -126,7 +126,7 @@ dependencies {
 
     val jetpackComposeVersion = "1.2.1"
     // Integration with activities
-    implementation("androidx.activity:activity-compose:1.5.1")
+    implementation("androidx.activity:activity-compose:1.6.0")
     // Compose Material Design
     implementation("androidx.compose.runtime:runtime-livedata:$jetpackComposeVersion")
     implementation("androidx.compose.material:material:$jetpackComposeVersion")
@@ -140,7 +140,7 @@ dependencies {
     // UI Tests
 
 
-    val composeMaterialVersion = "1.0.0-beta01"
+    val composeMaterialVersion = "1.0.0-beta02"
     androidTestImplementation("androidx.compose.ui:ui-test-junit4:$jetpackComposeVersion")
     implementation("androidx.compose.material3:material3:$composeMaterialVersion")
     implementation("androidx.compose.material3:material3-window-size-class:$composeMaterialVersion")
@@ -171,7 +171,7 @@ dependencies {
     // Sign in with Google
     implementation("com.google.android.gms:play-services-auth:20.3.0")
 
-    implementation("androidx.activity:activity-ktx:1.6.0-rc01")
+    implementation("androidx.activity:activity-ktx:1.6.0")
 
     // image cropping library
     implementation("com.github.yalantis:ucrop:2.2.8")
