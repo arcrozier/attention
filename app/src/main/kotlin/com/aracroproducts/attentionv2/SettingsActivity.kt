@@ -47,11 +47,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
@@ -127,6 +128,8 @@ class SettingsActivity : AppCompatActivity() {
                 key = getString(R.string.override_dnd_key), context = this
             ).value = false
         }
+
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 HarmonizedTheme {
@@ -264,15 +267,15 @@ class SettingsActivity : AppCompatActivity() {
                                    },
                                    icon = {
                                        Box(modifier = Modifier
-                                           .fillMaxSize()
-                                           .clickable { // Launch the photo picker and allow the user to choose only images.
-                                               // https://developer.android.com/training/data-storage/shared/photopicker
-                                               pickMedia.launch(
-                                                   PickVisualMediaRequest(
-                                                       ActivityResultContracts.PickVisualMedia.ImageOnly
+                                               .fillMaxSize()
+                                               .clickable { // Launch the photo picker and allow the user to choose only images.
+                                                   // https://developer.android.com/training/data-storage/shared/photopicker
+                                                   pickMedia.launch(
+                                                           PickVisualMediaRequest(
+                                                                   ActivityResultContracts.PickVisualMedia.ImageOnly
+                                                           )
                                                    )
-                                               )
-                                           }) {
+                                               }) {
                                            viewModel.photo?.let {
                                                Image(
                                                    bitmap = it,
@@ -280,9 +283,9 @@ class SettingsActivity : AppCompatActivity() {
                                                        R.string.your_pfp_description
                                                    ),
                                                    modifier = Modifier
-                                                       .fillMaxSize()
-                                                       .clip(CircleShape)
-                                                       .align(Alignment.Center)
+                                                           .fillMaxSize()
+                                                           .clip(CircleShape)
+                                                           .align(Alignment.Center)
                                                )
                                            }
                                        }
@@ -590,12 +593,14 @@ class SettingsActivity : AppCompatActivity() {
         // Remember a SystemUiController
         val systemUiController = rememberSystemUiController()
         val useDarkIcons = !isSystemInDarkTheme()
+        val scrim = MaterialTheme.colorScheme.scrim
 
         DisposableEffect(systemUiController, useDarkIcons) {
             // Update all of the system bar colors to be transparent, and use
             // dark icons if we're in light theme
             systemUiController.setNavigationBarColor(
-                    color = Color.Transparent, // TODO doesn't work
+                    color = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) Color.Transparent
+                            else scrim,
                     darkIcons = useDarkIcons
             )
 
@@ -635,8 +640,9 @@ class SettingsActivity : AppCompatActivity() {
         ) {
             LazyColumn(
                 modifier = Modifier
-                    .selectableGroup()
-                    .padding(it)
+                        .selectableGroup()
+                        .waterfallPadding()
+                        .padding(it)
             ) {
                 items(items = preferences, key = { preference -> preference.first }) { preference ->
                     PreferenceGroup(
@@ -648,6 +654,9 @@ class SettingsActivity : AppCompatActivity() {
                         tablet = screenClass != WindowWidthSizeClass.Compact,
                         preferences = preference.second,
                     )
+                }
+                item {Spacer(modifier = Modifier.height(WindowInsets.Companion.navigationBars
+                        .getBottom(LocalDensity.current).dp))
                 }
             }
         }
@@ -699,15 +708,16 @@ class SettingsActivity : AppCompatActivity() {
             ) {
                 Box(contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .weight(1f, fill = false)
-                        .onGloballyPositioned {
-                            if (uri == null) return@onGloballyPositioned
-                            lifecycleScope.launch {
-                                bitmap = viewModel
-                                    .getImageBitmap(uri, this@SettingsActivity, it.size, false)
-                                    ?.asImageBitmap()
-                            }
-                        }) {
+                            .weight(1f, fill = false)
+                            .onGloballyPositioned {
+                                if (uri == null) return@onGloballyPositioned
+                                lifecycleScope.launch {
+                                    bitmap = viewModel
+                                            .getImageBitmap(uri, this@SettingsActivity, it.size,
+                                                    false)
+                                            ?.asImageBitmap()
+                                }
+                            }) {
                     if (uploading) {
                         bitmap?.let {
                             Image(
@@ -759,16 +769,16 @@ class SettingsActivity : AppCompatActivity() {
         if (tablet) {
             Box(
                 modifier = Modifier
-                    .padding(10.dp)
-                    .fillMaxWidth(0.9f)
-                    .height(73.dp)
-                    .clip(
-                        RoundedCornerShape(12.dp)
-                    )
-                    .background(
-                        if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
-                    )
-                    .selectable(selected = selected, onClick = onClick),
+                        .padding(10.dp)
+                        .fillMaxWidth(0.9f)
+                        .height(73.dp)
+                        .clip(
+                                RoundedCornerShape(12.dp)
+                        )
+                        .background(
+                                if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
+                        )
+                        .selectable(selected = selected, onClick = onClick),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -796,27 +806,28 @@ class SettingsActivity : AppCompatActivity() {
     ) {
         Row(
             modifier = modifier
-                .fillMaxWidth()
-                .height(PREFERENCE_HEIGHT)
+                    .fillMaxWidth()
+                    .height(PREFERENCE_HEIGHT)
         ) {
             Box(
                 modifier = modifier
-                    .padding(end = PREFERENCE_PADDING)
-                    .fillMaxHeight().weight(1f, fill = true),
+                        .padding(end = PREFERENCE_PADDING)
+                        .fillMaxHeight()
+                        .weight(1f, fill = true),
                 contentAlignment = Alignment.CenterStart
             ) {
                 largePreference()
             }
             Divider(
                 modifier = Modifier
-                    .fillMaxHeight(0.9f)
-                    .width(1.dp),
+                        .fillMaxHeight(0.9f)
+                        .width(1.dp),
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = ContentAlpha.medium)
             )
             Box(
                 modifier = modifier
-                    .padding(start = PREFERENCE_PADDING)
-                    .size(PREFERENCE_HEIGHT),
+                        .padding(start = PREFERENCE_PADDING)
+                        .size(PREFERENCE_HEIGHT),
                 contentAlignment = Alignment.Center
             ) {
                 smallPreference()
@@ -938,24 +949,26 @@ class SettingsActivity : AppCompatActivity() {
         val value = if (default != null) preference.getValue(default) else preference.value
         Row(
             modifier = modifier
-                .fillMaxWidth()
-                .height(73.dp)
-                .clickable(enabled = enabled, onClick = {
-                    onPreferenceClicked(preference)
-                })
+                    .fillMaxWidth()
+                    .height(73.dp)
+                    .clickable(enabled = enabled, onClick = {
+                        onPreferenceClicked(preference)
+                    })
         ) {
             // TODO icon doesn't work
             if (icon != null || reserveIconSpace) {
                 val iconSpot: @Composable BoxScope.() -> Unit = icon ?: { }
                 Box(
                     modifier = Modifier
-                        .size(24.dp)
-                        .padding(16.dp),
+                            .size(24.dp)
+                            .padding(16.dp),
                     contentAlignment = Alignment.Center,
                     content = iconSpot
                 )
             }
-            Column(modifier = modifier.fillMaxHeight().weight(1f, fill = true),
+            Column(modifier = modifier
+                    .fillMaxHeight()
+                    .weight(1f, fill = true),
                     verticalArrangement = Arrangement
                     .Center) {
                 Text(

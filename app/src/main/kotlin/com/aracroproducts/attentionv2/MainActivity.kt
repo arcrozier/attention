@@ -59,6 +59,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -424,6 +425,8 @@ class MainActivity : AppCompatActivity() {
                 LazyColumn(
                         Modifier
                                 .background(MaterialTheme.colorScheme.background)
+                                .waterfallPadding()
+                                .padding(it)
                                 .fillMaxSize()
                 ) {
                     items(items = friends,
@@ -466,6 +469,9 @@ class MainActivity : AppCompatActivity() {
                                         alpha = ContentAlpha.disabled
                                 ), modifier = Modifier.padding(start = 16.dp, end = 16.dp)
                         )
+                    }
+                    item {Spacer(modifier = Modifier.height(WindowInsets.Companion.navigationBars
+                            .getBottom(LocalDensity.current).dp))
                     }
                 }
             }
