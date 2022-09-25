@@ -233,7 +233,11 @@ fun MultiSelectListPreferenceChange(
 fun multiselectListPreferenceSummary(
     value: Set<String>, entries: Array<String>, values: Array<String>
 ): String {
-    return entries.filter { value.contains(it) }.mapIndexed { index, _ -> values[index] }
+    val summaryList: MutableList<String> = ArrayList(value.size)
+    for (i in values.indices) {
+        if (value.contains(values[i])) summaryList.add(entries[i])
+    }
+    return summaryList
         .joinToString(", ")
 }
 

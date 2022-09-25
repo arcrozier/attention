@@ -20,10 +20,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.with
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -57,6 +54,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
+import com.aracroproducts.attentionv2.LoginActivity.Companion.LIST_ELEMENT_PADDING
 import com.aracroproducts.attentionv2.LoginActivity.Companion.UsernameField
 import com.aracroproducts.attentionv2.MainViewModel.Companion.FCM_TOKEN
 import com.aracroproducts.attentionv2.MainViewModel.Companion.MY_TOKEN
@@ -361,8 +359,7 @@ class SettingsActivity : AppCompatActivity() {
                     getString(R.string.link_account_key), null
                 ),
                     icon = {
-                        Image(painter = painterResource(id = if (isSystemInDarkTheme()) R.drawable
-                                .ic_btn_google_dark else R.drawable.ic_btn_google_light),
+                        Image(painter = painterResource(id = R.drawable.ic_btn_google),
                                 contentDescription = getString(R.string.google_logo),
                                 modifier = Modifier.fillMaxSize())
                     },
@@ -653,6 +650,7 @@ class SettingsActivity : AppCompatActivity() {
                         selected = preference.first == selected,
                         tablet = screenClass != WindowWidthSizeClass.Compact,
                         preferences = preference.second,
+                            first = preference.first == preferences.firstOrNull()?.first
                     )
                 }
                 item {Spacer(modifier = Modifier.height(WindowInsets.Companion.navigationBars
@@ -763,7 +761,8 @@ class SettingsActivity : AppCompatActivity() {
         selected: Boolean,
         tablet: Boolean,
         onClick: () -> Unit,
-        preferences: @Composable () -> Unit
+        preferences: @Composable () -> Unit,
+        first: Boolean = false
     ) {
         assert(!selected || tablet)
         if (tablet) {
@@ -788,11 +787,13 @@ class SettingsActivity : AppCompatActivity() {
                 )
             }
         } else {
+            if (!first) Divider(modifier = Modifier.fillMaxWidth(), thickness = 1.dp)
             Text(
                 text = getString(title),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(start = 8.dp)
+                    modifier = Modifier.padding(start = 8.dp, top = LIST_ELEMENT_PADDING, bottom
+                    = LIST_ELEMENT_PADDING)
             )
             preferences()
         }
@@ -953,15 +954,15 @@ class SettingsActivity : AppCompatActivity() {
                     .height(73.dp)
                     .clickable(enabled = enabled, onClick = {
                         onPreferenceClicked(preference)
-                    })
+                    }),
+                verticalAlignment = Alignment.CenterVertically
         ) {
-            // TODO icon doesn't work
             if (icon != null || reserveIconSpace) {
                 val iconSpot: @Composable BoxScope.() -> Unit = icon ?: { }
                 Box(
                     modifier = Modifier
-                            .size(24.dp)
-                            .padding(16.dp),
+                            .padding(16.dp)
+                            .size(24.dp),
                     contentAlignment = Alignment.Center,
                     content = iconSpot
                 )
@@ -1115,176 +1116,4 @@ class SettingsActivity : AppCompatActivity() {
             context.startActivity(loginIntent)
         }
     }
-
-    /**
-     * A fragment for individual settings panels
-     *
-    class SettingsFragment(private val viewModel: SettingsViewModel) : PreferenceFragmentCompat() {
-    override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
-    setPreferencesFromResource(R.xml.root_preferences, rootKey)
-    val localContext = activity ?: return
-    val userInfoChangeListener = UserInfoChangeListener(
-    localContext, this, viewModel, findPreference = this::findPreference
-    )
-    val firstName: EditTextPreference? = findPreference(getString(R.string.first_name_key))
-    if (firstName != null) {
-    firstName.onPreferenceChangeListener = userInfoChangeListener
-    }
-
-    val lastName: Preference? = findPreference(getString(R.string.last_name_key))
-    if (lastName != null) {
-    lastName.onPreferenceChangeListener = userInfoChangeListener
-    }
-
-    val email: Preference? = findPreference(getString(R.string.email_key))
-    if (email != null) {
-    email.onPreferenceChangeListener = userInfoChangeListener
-    }
-
-    val usernamePreference: Preference? = findPreference(getString(R.string.username_key))
-    if (usernamePreference != null) {
-    usernamePreference.onPreferenceClickListener =
-    Preference.OnPreferenceClickListener {
-    val username =
-    PreferenceManager.getDefaultSharedPreferences(localContext)
-    .getString(MainViewModel.MY_ID, null)
-    if (username != null) {
-    val sharingIntent = Intent(Intent.ACTION_SEND).apply {
-    type = "text/plain"
-    val shareBody = getString(R.string.share_text, username)
-    putExtra(Intent.EXTRA_TEXT, shareBody)
-    }
-    startActivity(Intent.createChooser(sharingIntent, null))
-    }
-    true
-    }
-    usernamePreference.summary =
-    PreferenceManager.getDefaultSharedPreferences(localContext).getString(
-    getString(R.string.username_key), getString(R.string.no_username)
-    )
-    }
-
-    val logoutPreference: Preference? = findPreference(getString(R.string.logout_key))
-    if (logoutPreference != null) {
-    logoutPreference.onPreferenceClickListener = Preference.OnPreferenceClickListener {
-    AlertDialog.Builder(localContext).apply {
-    setTitle(getString(R.string.confirm_logout_title))
-    setMessage(getString(R.string.confirm_logout_message))
-    setPositiveButton(R.string.confirm_logout_title) { dialog, _ ->
-    val userInfo = localContext.getSharedPreferences(
-    MainViewModel.USER_INFO, Context.MODE_PRIVATE
-    )
-    val fcmTokenPrefs =
-    context.getSharedPreferences(FCM_TOKEN, Context.MODE_PRIVATE)
-    viewModel.unregisterDevice(
-    userInfo.getString(MY_TOKEN, null) ?: "",
-    fcmTokenPrefs.getString(FCM_TOKEN, null) ?: ""
-    )
-    userInfo.edit().apply {
-    putString(MY_TOKEN, null)
-    apply()
-    }
-    PreferenceManager.getDefaultSharedPreferences(localContext).edit()
-    .apply {
-    putString(getString(R.string.username_key), null)
-    putString(getString(R.string.first_name_key), null)
-    putString(getString(R.string.last_name_key), null)
-    putString(getString(R.string.email_key), null)
-    apply()
-    }
-    viewModel.clearAllDatabaseTables()
-    activity?.finish()
-    localContext.startActivity(
-    Intent(
-    localContext, LoginActivity::class.java
-    )
-    )
-    dialog.dismiss()
-    }
-    setNegativeButton(android.R.string.cancel, null)
-    show()
-    }
-    true
-    }
-    }
-
-    val delayPreference =
-    findPreference(getString(R.string.delay_key)) as EditTextPreference?
-    delayPreference?.setOnBindEditTextListener {
-    it.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
-    }
-
-    val vibratePreference =
-    findPreference(getString(
-    R.string.vibrate_preference_key)) as MultiSelectListPreference?
-    if (vibratePreference != null) {
-    vibratePreference.onPreferenceChangeListener =
-    Preference.OnPreferenceChangeListener { _, newValue ->
-    vibratePreference.setSummaryFromValues(
-    (newValue as? Set<*>) ?: HashSet<String>()
-    )
-    true
-    }
-    vibratePreference.setSummaryFromValues(vibratePreference.values)
-    }
-
-    val ringPreference =
-    findPreference(
-    getString(R.string.ring_preference_key)) as MultiSelectListPreference?
-    if (ringPreference != null) {
-    ringPreference.onPreferenceChangeListener =
-    Preference.OnPreferenceChangeListener { _, newValue ->
-    ringPreference.setSummaryFromValues(
-    (newValue as? Set<*>) ?: HashSet<String>()
-    )
-    true
-    }
-    ringPreference.setSummaryFromValues(ringPreference.values)
-    }
-
-    val dndPreference =
-    findPreference(getString(R.string.override_dnd_key)) as SwitchPreference?
-    val manager = context?.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-    if (!manager.isNotificationPolicyAccessGranted) {
-    dndPreference?.isChecked = false
-    }
-    dndPreference?.onPreferenceChangeListener =
-    Preference.OnPreferenceChangeListener { _, newValue ->
-    if (newValue is Boolean) {
-    if (newValue) {
-    if (manager.isNotificationPolicyAccessGranted) {
-    return@OnPreferenceChangeListener true
-    } else {
-    AlertDialog.Builder(localContext).apply {
-    setTitle(R.string.allow_dnd_title)
-    setMessage(R.string.allow_dnd_message)
-    setPositiveButton(R.string.open_settings) { dialog, _ ->
-    val intent = Intent(
-    Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS
-    )
-    startActivity(intent)
-    dialog.cancel()
-    }
-    setNegativeButton(android.R.string.cancel) { dialog, _ ->
-    dialog.cancel()
-    }
-    show()
-    }
-    return@OnPreferenceChangeListener false
-    }
-    }
-    return@OnPreferenceChangeListener true
-    }
-    throw IllegalArgumentException(
-    "Non-boolean value provided to switch on-change " + "listener!"
-    )
-    } // on change - check whether we actually can override DND
-    // see https://developer.android.com/reference/android/app/NotificationManager#isNotificationPolicyAccessGranted()
-    // if not, display a prompt asking the user to go to settings
-    }
-
-    private fun MultiSelectListPreference.setSummaryFromValues(values: Set<*>) {
-    summary = values.joinToString(", ") { entries[findIndexOfValue(it as? String ?: "")] }
-    }
-    }*/
 }

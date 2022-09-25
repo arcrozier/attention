@@ -473,8 +473,7 @@ class LoginActivity : AppCompatActivity() {
                         snackbarHostState, coroutineScope, loginResultHandler
                 )
             }, enabled = model.uiEnabled) {
-                Image(painter = painterResource(id = if (isSystemInDarkTheme()) R.drawable
-                        .ic_btn_google_dark else R.drawable.ic_btn_google_light),
+                Image(painter = painterResource(id = R.drawable.ic_btn_google),
                         contentDescription = getString(R.string.google_logo))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(text = getString(R.string.sign_in_w_google))
