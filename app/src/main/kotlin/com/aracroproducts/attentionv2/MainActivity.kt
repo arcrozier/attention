@@ -60,6 +60,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -431,13 +432,17 @@ class MainActivity : AppCompatActivity() {
             SwipeRefresh(
                     state = rememberSwipeRefreshState(friendModel.isRefreshing),
                     onRefresh = { reload() },
-                    modifier = Modifier.padding(it)
+                    modifier = Modifier.padding(start = it.calculateStartPadding(
+                            LocalLayoutDirection.current), top
+                    = it
+                            .calculateTopPadding(), end = it.calculateEndPadding
+                    (LocalLayoutDirection.current),
+                            bottom = 0.dp)
             ) {
                 LazyColumn(
                         Modifier
                                 .background(MaterialTheme.colorScheme.background)
                                 .waterfallPadding()
-                                .padding(it)
                                 .fillMaxSize()
                 ) {
                     items(items = friends,

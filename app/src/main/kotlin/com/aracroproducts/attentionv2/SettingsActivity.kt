@@ -48,6 +48,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -699,7 +700,12 @@ class SettingsActivity : AppCompatActivity() {
                     modifier = Modifier
                             .selectableGroup()
                             .waterfallPadding()
-                            .padding(it)
+                            .padding(start = it.calculateStartPadding(LocalLayoutDirection.current),
+                                    top
+                                    = it
+                                            .calculateTopPadding(), end = it.calculateEndPadding
+                            (LocalLayoutDirection.current),
+                                    bottom = 0.dp)
             ) {
                 items(items = preferences,
                         key = { preference -> preference.first.first }) { preference ->
@@ -927,7 +933,8 @@ class SettingsActivity : AppCompatActivity() {
         Row(
                 modifier = modifier
                         .fillMaxWidth()
-                        .height(PREFERENCE_HEIGHT)
+                        .height(PREFERENCE_HEIGHT),
+                verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                     modifier = modifier
@@ -940,7 +947,7 @@ class SettingsActivity : AppCompatActivity() {
             }
             Divider(
                     modifier = Modifier
-                            .fillMaxHeight(0.8f)
+                            .fillMaxHeight(0.6f)
                             .width(1.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = ContentAlpha.medium)
             )
