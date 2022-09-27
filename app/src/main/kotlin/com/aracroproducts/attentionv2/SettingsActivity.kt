@@ -34,6 +34,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -174,7 +175,7 @@ class SettingsActivity : AppCompatActivity() {
                 UserInfoChangeListener(this, viewModel, snackbarHostState, coroutineScope)
         val preferences = listOf(Pair<Pair<Int, (@Composable () -> Unit)?>, @Composable () ->
         Unit>(Pair(R.string.account) @Composable {
-            Icon(Icons.Default.ManageAccounts, null)
+            Icon(Icons.Outlined.ManageAccounts, null)
         }) @Composable {
             SplitPreference(largePreference = {
                 DialoguePreference(preference = StringPreference(
@@ -301,7 +302,7 @@ class SettingsActivity : AppCompatActivity() {
                                                     .clip(CircleShape)
                                                     .align(Alignment.Center)
                                     )
-                                } ?: Icon(Icons.Default.AccountCircle, null)
+                                } ?: Icon(Icons.Outlined.AccountCircle, null)
                             }
                         },
                         summary = { value ->
@@ -320,14 +321,14 @@ class SettingsActivity : AppCompatActivity() {
                         startActivity(Intent.createChooser(sharingIntent, null))
                     }
                 }, modifier = Modifier.fillMaxSize()) {
-                    Icon(Icons.Default.Share, contentDescription = getString(R.string.share))
+                    Icon(Icons.Outlined.Share, contentDescription = getString(R.string.share))
                 }
             })
 
             DialoguePreference(
                     preference = StringPreference(getString(R.string.email_key), this),
                     icon = {
-                        Icon(Icons.Default.AlternateEmail, null)
+                        Icon(Icons.Outlined.AlternateEmail, null)
                     },
                     title = R.string.email,
                     dialog = { preference, dismissDialog, context, title ->
@@ -369,7 +370,7 @@ class SettingsActivity : AppCompatActivity() {
                     "", null
             ),
                     icon = {
-                        Icon(Icons.Default.Password, null)
+                        Icon(Icons.Outlined.Password, null)
                     },
                     title = R.string.password, summary = null, onPreferenceClicked = {
                 val intent = Intent(this, LoginActivity::class.java)
@@ -400,7 +401,7 @@ class SettingsActivity : AppCompatActivity() {
             DialoguePreference(
                     preference = EphemeralPreference(getString(R.string.logout_key), null),
                     icon = {
-                        Icon(Icons.Default.Logout, null, tint = MaterialTheme.colorScheme.error)
+                        Icon(Icons.Outlined.Logout, null, tint = MaterialTheme.colorScheme.error)
                     },
                     title = R.string.confirm_logout_title,
                     titleColor = MaterialTheme.colorScheme.error,
@@ -460,13 +461,13 @@ class SettingsActivity : AppCompatActivity() {
 
         }, Pair<Pair<Int, (@Composable () -> Unit)?>, @Composable () -> Unit>(
                 Pair(R.string.app_preference_category) @Composable {
-                    Icon(Icons.Default.Tune, null)
+                    Icon(Icons.Outlined.Tune, null)
                 })
         @Composable {
             DialoguePreference(
                     preference = FloatPreference(getString(R.string.delay_key), this),
                     icon = {
-                        Icon(Icons.Default.Timer, null)
+                        Icon(Icons.Outlined.Timer, null)
                     },
                     title = R.string.delay_title,
                     default = 3.5f
@@ -480,14 +481,14 @@ class SettingsActivity : AppCompatActivity() {
             }
         }, Pair<Pair<Int, (@Composable () -> Unit)?>, @Composable () -> Unit>(
                 Pair(R.string.notifications_title) @Composable {
-                    Icon(Icons.Default.Notifications, null)
+                    Icon(Icons.Outlined.Notifications, null)
                 })
         @Composable {
             DialoguePreference(preference = StringSetPreference(
                     key = getString(R.string.vibrate_preference_key), context = this
             ),
                     icon = {
-                        Icon(Icons.Default.Vibration, null)
+                        Icon(Icons.Outlined.Vibration, null)
                     },
                     title = R.string.vibrate_preference,
                     dialog = { preference, dismissDialog, context, title ->
@@ -511,7 +512,7 @@ class SettingsActivity : AppCompatActivity() {
                     key = getString(R.string.ring_preference_key), context = this
             ),
                     icon = {
-                        Icon(Icons.Default.NotificationsActive, null)
+                        Icon(Icons.Outlined.NotificationsActive, null)
                     },
                     title = R.string.ring_preference,
                     dialog = { preference, dismissDialog, context, title ->
@@ -555,7 +556,7 @@ class SettingsActivity : AppCompatActivity() {
                     key = getString(R.string.override_dnd_key), context = this
             ),
                     icon = {
-                        Icon(Icons.Default.DoNotDisturbOn, null)
+                        Icon(Icons.Outlined.DoNotDisturbOn, null)
                     },
                     title = R.string.override_dnd, default = false, summary = {
                 if (it) {
@@ -586,11 +587,11 @@ class SettingsActivity : AppCompatActivity() {
             })
         }, Pair<Pair<Int, (@Composable () -> Unit)?>, @Composable () -> Unit>(Pair(R.string
                 .legal_title) @Composable {
-            Icon(Icons.Default.Gavel, null)
+            Icon(Icons.Outlined.Gavel, null)
         })
         @Composable {
             Preference(preference = EphemeralPreference("", null),
-                    icon = { Icon(Icons.Default.Gavel, null) },
+                    icon = { Icon(Icons.Outlined.Gavel, null) },
                     title = R.string.terms_of_service,
                     summary = null,
                     onPreferenceClicked = {
@@ -602,7 +603,7 @@ class SettingsActivity : AppCompatActivity() {
                     })
             Preference(preference = EphemeralPreference("", null),
                     icon = {
-                        Icon(Icons.Default.Policy, null)
+                        Icon(Icons.Outlined.Policy, null)
                     },
                     title = R.string.privacy_policy,
                     summary = null,
