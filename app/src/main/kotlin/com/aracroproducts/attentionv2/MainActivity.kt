@@ -417,9 +417,6 @@ class MainActivity : AppCompatActivity() {
                                         MainViewModel.DialogStatus.AddFriend)
                             },
                             backgroundColor = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier
-                                    .navigationBarsPadding()
-                                    .waterfallPadding()
                     ) {
                         Icon(
                                 Icons.Filled.Add,
