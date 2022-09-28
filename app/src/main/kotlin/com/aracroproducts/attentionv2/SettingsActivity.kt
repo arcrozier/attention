@@ -33,7 +33,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
@@ -49,7 +49,6 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -680,7 +679,6 @@ class SettingsActivity : AppCompatActivity() {
                                 overflow = TextOverflow.Ellipsis
                         )
                     },
-                    modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
                     scrollBehavior = scrollBehavior,
                     navigationIcon = {
                         IconButton(onClick = {
@@ -695,18 +693,14 @@ class SettingsActivity : AppCompatActivity() {
                     })
         },
                 snackbarHost = { SnackbarHost(snackbarHostState) },
+                modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
                 containerColor = MaterialTheme.colorScheme.background
         ) {
             LazyColumn(
                     modifier = Modifier
                             .selectableGroup()
-                            .waterfallPadding()
-                            .padding(start = it.calculateStartPadding(LocalLayoutDirection.current),
-                                    top
-                                    = it
-                                            .calculateTopPadding(), end = it.calculateEndPadding
-                            (LocalLayoutDirection.current),
-                                    bottom = 0.dp)
+                            .waterfallPadding(),
+                    contentPadding = it
             ) {
                 items(items = preferences,
                         key = { preference -> preference.first.first }) { preference ->
@@ -721,9 +715,6 @@ class SettingsActivity : AppCompatActivity() {
                             preferences = preference.second,
                             first = preference.first.first == preferences.firstOrNull()?.first?.first
                     )
-                }
-                item {
-                    Spacer(modifier = Modifier.navigationBarsPadding())
                 }
             }
         }

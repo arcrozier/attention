@@ -60,7 +60,6 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -388,7 +387,6 @@ class MainActivity : AppCompatActivity() {
                                     if (friendModel.connectionState.isNotBlank()) Text(
                                             friendModel.connectionState,
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onPrimary
                                     )
                                 }
                             },
@@ -407,10 +405,11 @@ class MainActivity : AppCompatActivity() {
 
                                 }
                             },
-                            modifier = Modifier.nestedScroll(scrollBehavior
-                                    .nestedScrollConnection), scrollBehavior = scrollBehavior)
+                             scrollBehavior = scrollBehavior)
                 },
                 backgroundColor = MaterialTheme.colorScheme.background,
+                modifier = Modifier.nestedScroll(scrollBehavior
+                        .nestedScrollConnection),
                 floatingActionButton = {
                     FloatingActionButton(
                             onClick = {
@@ -432,18 +431,13 @@ class MainActivity : AppCompatActivity() {
             SwipeRefresh(
                     state = rememberSwipeRefreshState(friendModel.isRefreshing),
                     onRefresh = { reload() },
-                    modifier = Modifier.padding(start = it.calculateStartPadding(
-                            LocalLayoutDirection.current), top
-                    = it
-                            .calculateTopPadding(), end = it.calculateEndPadding
-                    (LocalLayoutDirection.current),
-                            bottom = 0.dp)
             ) {
                 LazyColumn(
-                        Modifier
+                        modifier = Modifier
                                 .background(MaterialTheme.colorScheme.background)
                                 .waterfallPadding()
-                                .fillMaxSize()
+                                .fillMaxSize(),
+                        contentPadding = it
                 ) {
                     items(items = friends,
                             key = { friend ->
