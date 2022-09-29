@@ -332,7 +332,14 @@ class SettingsActivity : AppCompatActivity() {
                     },
                     title = R.string.email,
                     dialog = { preference, dismissDialog, context, title ->
-                        StringPreferenceChange(preference, dismissDialog, context, title)
+                        StringPreferenceChange(preference, dismissDialog, context, title) {
+                            if (!(it.isEmpty() || android.util.Patterns.EMAIL_ADDRESS
+                                    .matcher(it).matches())) {
+                                getString(R.string.invalid_email)
+                            } else {
+                                ""
+                            }
+                        }
                     },
                     onPreferenceChanged = userInfoChangeListener
             )
@@ -993,7 +1000,7 @@ class SettingsActivity : AppCompatActivity() {
                     preference: ComposablePreference<T>, dismissDialog: () -> Unit, context: Context, title: String
             ) -> Unit
     ) {
-        val editing = rememberSaveable {  // TODO dialog disappears immediately after appearing
+        val editing = rememberSaveable {
             mutableStateOf(false)
         }
         AnimatedContent(targetState = editing, transitionSpec = {

@@ -117,20 +117,40 @@ fun StringPreferenceChange(
     preference: ComposablePreference<String>,
     dismissDialog: () -> Unit,
     context: Context,
-    title: String
+    title: String,
+    validate: ((String) -> String)? = null
 ) {
     var newValue by remember { mutableStateOf(preference.value) }
+    var message by remember { mutableStateOf( "" )}
     AlertDialog(onDismissRequest = { dismissDialog() }, dismissButton = {
         OutlinedButton(onClick = dismissDialog) {
             Text(text = context.getString(android.R.string.cancel))
         }
     }, confirmButton = {
-        preference.value = newValue
-        dismissDialog()
+        Button(onClick = {
+            message = validate?.invoke(newValue) ?: ""
+            if (message.isBlank()) {
+                return@Button
+            }
+            preference.value = newValue
+            dismissDialog()
+        }) {
+            Text(text = context.getString(android.R.string.ok))
+        }
+
     }, title = {
         Text(text = title)
     }, text = {
-        OutlinedTextField(value = newValue, onValueChange = { newValue = it })
+        Column {
+            OutlinedTextField(value = newValue, onValueChange = { newValue = it })
+            Text(
+                    text = message,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(
+                            alpha = ContentAlpha.medium)
+            )
+        }
+
     })
 }
 
@@ -140,35 +160,48 @@ fun FloatPreferenceChange(
     preference: ComposablePreference<Float>,
     dismissDialog: () -> Unit,
     context: Context,
-    title: String
+    title: String,
+    validate: ((Float) -> String)? = null
 ) {
     var newValue by remember { mutableStateOf(preference.value.toString()) }
-    var valid by remember {
-        mutableStateOf(true)
+    var message by remember {
+        mutableStateOf("")
     }
     AlertDialog(onDismissRequest = { dismissDialog() }, dismissButton = {
         OutlinedButton(onClick = dismissDialog) {
             Text(text = context.getString(android.R.string.cancel))
         }
     }, confirmButton = {
-        try {
-            preference.value = newValue.toFloat()
-            dismissDialog()
-        } catch (e: NumberFormatException) {
-            valid = false
+        Button(onClick = {
+            try {
+                val temp = newValue.toFloat()
+                message = validate?.invoke(temp) ?: ""
+                if (message.isNotBlank()) {
+                    return@Button
+                }
+                preference.value = newValue.toFloat()
+                dismissDialog()
+            } catch (e: NumberFormatException) {
+                message = context.getString(R.string.invalid_float)
+            }
+        }) {
+            Text(text = context.getString(android.R.string.ok))
         }
+
     }, title = {
         Text(text = title)
     }, text = {
-        OutlinedTextField(value = newValue, onValueChange = { newValue = it }, isError = !valid)
-        if (!valid) {
-            Text(
-                text = context.getString(R.string.invalid_float),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = ContentAlpha.medium)
-            )
-        }
-    })
+        Column {
+            OutlinedTextField(value = newValue, onValueChange = { newValue = it }, isError =
+            message.isNotBlank())
+                Text(
+                        text = message,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(
+                                alpha = ContentAlpha.medium)
+                )
+            }
+        })
 }
 
 @Composable
@@ -195,8 +228,12 @@ fun MultiSelectListPreferenceChange(
             Text(text = context.getString(android.R.string.cancel))
         }
     }, confirmButton = {
-        preference.value = newValue.keys
-        dismissDialog()
+        Button(onClick = {
+            preference.value = newValue.keys
+            dismissDialog()
+        }) {
+            Text(text = context.getString(android.R.string.ok))
+        }
 
     }, title = {
         Text(text = title)
