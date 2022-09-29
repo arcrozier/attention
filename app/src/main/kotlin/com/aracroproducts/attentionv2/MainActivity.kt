@@ -1004,14 +1004,14 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
                     State.CANCEL -> {
-                        val typedValue = TypedValue()
-                        resources.getValue(R.integer.default_delay, typedValue, false)
+                        val defaultDelay = TypedValue()
+                        resources.getValue(R.integer.default_delay, defaultDelay, false)
                         val delay: Long by remember {
                             mutableStateOf((PreferenceManager.getDefaultSharedPreferences(
                                     this@MainActivity)
                                     .getString(getString(R.string.delay_key), null)
                                     .let {
-                                        it?.toFloatOrNull() ?: typedValue.float
+                                        it?.toFloatOrNull() ?: defaultDelay.float
                                     } * 1000).toLong())
                         }
                         var progress by remember { mutableStateOf(0L) }

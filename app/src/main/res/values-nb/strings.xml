@@ -13,7 +13,7 @@
     <string name="general_error">Feil: Kun ikke sendte varsel</string>
     <string name="user_registered">Din konto har blit registret!</string>
     <string name="default_message">%s vil ha opmerksomheten din</string>
-    <string name="message_prefix">%s sier: %s</string>
+    <string name="message_prefix">%1$s sier: %2$s</string>
     <string name="confirm_delete_title">Slett venn</string>
     <string name="confirm_delete_message">Er du sikker du vil fjerne %s som en venn?</string>
     <string name="yes">Ja</string>
@@ -97,7 +97,6 @@
     <string name="bad_add_link">Ugyldig lenk</string>
     <string name="confirm_logout_title">Logg av</string>
     <string name="confirm_logout_message">Er du sikker du vil logg av?</string>
-    <string name="cancel">Avbryt</string>
     <string name="save">Lagre</string>
     <string name="send">Send</string>
     <string name="back">Tilbake</string>

@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS
 import android.util.Log
+import android.util.TypedValue
 import androidx.activity.compose.setContent
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -463,13 +464,15 @@ class SettingsActivity : AppCompatActivity() {
                     Icon(Icons.Outlined.Tune, null)
                 })
         @Composable {
+            val defaultDelay = TypedValue()
+            resources.getValue(R.integer.default_delay, defaultDelay, false)
             DialoguePreference(
                     preference = FloatPreference(getString(R.string.delay_key), this),
                     icon = {
                         Icon(Icons.Outlined.Timer, null)
                     },
                     title = R.string.delay_title,
-                    default = 3.5f
+                    default = defaultDelay.float
             ) { preference, dismissDialog, context, title ->
                 FloatPreferenceChange(
                         preference = preference,
