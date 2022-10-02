@@ -64,7 +64,7 @@ android {
 }
 
 dependencies {
-    val lifecycleVersion = "2.5.1"
+    val lifecycleVersion = "2.5.2"
 
     implementation("com.google.firebase:firebase-messaging-ktx:23.0.8")
     implementation("com.google.firebase:firebase-analytics:21.1.1")
@@ -84,13 +84,13 @@ dependencies {
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
 
     // define a BOM and its version
-    implementation(platform("com.squareup.okhttp3:okhttp-bom:4.9.3"))
+    implementation(platform("com.squareup.okhttp3:okhttp-bom:4.10.0"))
 
     // define any required OkHttp artifacts without version
     implementation("com.squareup.okhttp3:okhttp")
     implementation("com.squareup.okhttp3:logging-interceptor")
 
-    val gsonVersion = "2.9.0"
+    val gsonVersion = "2.9.1"
     implementation("com.squareup.retrofit2:converter-gson:$gsonVersion")
     implementation("com.google.code.gson:gson:$gsonVersion")
 
