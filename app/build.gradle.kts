@@ -90,7 +90,7 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp")
     implementation("com.squareup.okhttp3:logging-interceptor")
 
-    val gsonVersion = "2.9.1"
+    val gsonVersion = "2.9.0"
     implementation("com.squareup.retrofit2:converter-gson:$gsonVersion")
     implementation("com.google.code.gson:gson:$gsonVersion")
 

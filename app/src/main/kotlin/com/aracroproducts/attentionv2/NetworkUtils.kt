@@ -1,21 +1,16 @@
 package com.aracroproducts.attentionv2
 
-import android.os.Handler
-import android.os.Looper
 import com.google.gson.annotations.SerializedName
 import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody
-import okhttp3.internal.http2.Http2Reader
 import okio.BufferedSink
 import retrofit2.Call
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.*
-import java.io.File
 import java.io.IOException
 import java.lang.Integer.min
-import kotlin.properties.Delegates
 
 const val BASE_URL: String = BuildConfig.BASE_URL
 

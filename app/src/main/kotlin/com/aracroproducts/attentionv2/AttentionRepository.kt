@@ -140,7 +140,7 @@ class AttentionRepository(private val database: AttentionDB) {
                     message = message.message
             )
 
-                database.getMessageDAO().insertMessage(mMessage)
+            database.getMessageDAO().insertMessage(mMessage)
         }
 
             when (message.direction) {
@@ -325,10 +325,24 @@ class AttentionRepository(private val database: AttentionDB) {
             ) -> Unit)? = null,
             errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null,
             uploadCallbacks: ProgressRequestBody.UploadCallbacks? = null
-    ) {
+    ): Call<GenericResult<Void>> {
         val call = apiInterface.editUser(
                 username = username, firstName = firstName, lastName = lastName, email = email,
-                photo = photo?.let { ProgressRequestBody(photo, "")},
+                photo = photo?.let { ProgressRequestBody(photo, "", object : ProgressRequestBody
+                .UploadCallbacks {
+                    override fun onProgressUpdate(progress: Float) {
+                        TODO("Not yet implemented")
+                    }
+
+                    override fun onError() {
+                        TODO("Not yet implemented")
+                    }
+
+                    override fun onFinish() {
+                        TODO("Not yet implemented")
+                    }
+
+                })},
                 password = password, oldPassword = oldPassword, token = authHeader(token)
         )
         call.enqueue(object : Callback<GenericResult<Void>> {
