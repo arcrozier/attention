@@ -3,6 +3,7 @@ package com.aracroproducts.attentionv2
 import com.google.gson.annotations.SerializedName
 import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import okio.BufferedSink
 import retrofit2.Call
@@ -136,6 +137,13 @@ interface APIV2 {
             @Field("old_password") oldPassword: String?,
             @Header("Authorization") token: String
     ): Call<GenericResult<Void>>
+
+    @Multipart
+    @PUT("edit/")
+    fun uploadPhoto(
+        @Body requestBody: MultipartBody,
+        @Header("Authorization") token: String
+    )
 
     @GET("get_info/")
     fun getUserInfo(@Header("Authorization") token: String): Call<GenericResult<UserDataResult>>
