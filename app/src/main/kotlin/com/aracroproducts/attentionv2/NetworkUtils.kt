@@ -125,25 +125,18 @@ interface APIV2 {
             @Header("Authorization") token: String
     ): Call<GenericResult<Void>>
 
-    @FormUrlEncoded
-    @PUT("edit/")
-    fun editUser(
-            @Field("username") username: String?,
-            @Field("first_name") firstName: String?,
-            @Field("last_name") lastName: String?,
-            @Field("email") email: String?,
-            @Field("photo") photo: ProgressRequestBody?,
-            @Field("password") password: String?,
-            @Field("old_password") oldPassword: String?,
-            @Header("Authorization") token: String
-    ): Call<GenericResult<Void>>
-
     @Multipart
     @PUT("edit/")
-    fun uploadPhoto(
-        @Body requestBody: MultipartBody,
-        @Header("Authorization") token: String
-    )
+    fun editUser(
+            @Part("username") username: MultipartBody.Part?,
+            @Part("first_name") firstName: MultipartBody.Part?,
+            @Part("last_name") lastName: MultipartBody.Part?,
+            @Part("email") email: MultipartBody.Part?,
+            @Part("photo") photo: MultipartBody.Part?,
+            @Part("password") password: MultipartBody.Part?,
+            @Part("old_password") oldPassword: MultipartBody.Part?,
+            @Header("Authorization") token: String
+    ): Call<GenericResult<Void>>
 
     @GET("get_info/")
     fun getUserInfo(@Header("Authorization") token: String): Call<GenericResult<UserDataResult>>
@@ -175,13 +168,8 @@ interface APIV2 {
 }
 
 class ProgressRequestBody(private val image: ByteArray, private val contentType: String, private val
-listener: UploadCallbacks) : RequestBody() {
+progressUpdate: ((Float) -> Unit)?) : RequestBody() {
 
-    interface UploadCallbacks {
-        fun onProgressUpdate(progress: Float)
-        fun onError()
-        fun onFinish()
-    }
 
     override fun contentType(): MediaType? {
         return "$contentType/*".toMediaTypeOrNull()
@@ -198,19 +186,9 @@ listener: UploadCallbacks) : RequestBody() {
             for (i in 0..image.size step DEFAULT_BUFFER_SIZE) {
                 sink.write(image, i, DEFAULT_BUFFER_SIZE)
                 uploaded += min(DEFAULT_BUFFER_SIZE, image.size - i)
-                listener.onProgressUpdate((uploaded.toDouble() / image.size).toFloat())
+                progressUpdate?.invoke((uploaded.toDouble() / image.size).toFloat())
             }
-            listener.onFinish()
-        } catch (e: IOException) {
-            listener.onError()
-        }
-    }
-
-    inner class ProgressUpdater(private val uploaded: Long, private val total: Long) :
-    Runnable {
-
-        override fun run() {
-            listener.onProgressUpdate((uploaded.toDouble() / total).toFloat())
+        } catch (_: IOException) {
         }
     }
 

@@ -17,10 +17,9 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedContentScope
-import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.animation.with
+import androidx.compose.animation.*
+import androidx.compose.animation.core.EaseInOutCubic
+import androidx.compose.animation.core.TweenSpec
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -164,6 +163,7 @@ class SettingsActivity : AppCompatActivity() {
                     uploading = viewModel.uploading,
                     uploadStatus = viewModel.uploadStatus,
                     shouldRetry = viewModel.shouldRetryUpload,
+                    uploadProgress = viewModel.uploadProgress,
                     onCancel = viewModel.onCancel,
                     dismissDialog = { viewModel.uploadDialog = false },
                     retry = viewModel::uploadImage,
@@ -282,15 +282,15 @@ class SettingsActivity : AppCompatActivity() {
                         },
                         icon = {
                             Box(modifier = Modifier
-                                    .fillMaxSize()
-                                    .clickable { // Launch the photo picker and allow the user to choose only images.
-                                        // https://developer.android.com/training/data-storage/shared/photopicker
-                                        pickMedia.launch(
-                                                PickVisualMediaRequest(
-                                                        ActivityResultContracts.PickVisualMedia.ImageOnly
-                                                )
+                                .fillMaxSize()
+                                .clickable { // Launch the photo picker and allow the user to choose only images.
+                                    // https://developer.android.com/training/data-storage/shared/photopicker
+                                    pickMedia.launch(
+                                        PickVisualMediaRequest(
+                                            ActivityResultContracts.PickVisualMedia.ImageOnly
                                         )
-                                    }) {
+                                    )
+                                }) {
                                 viewModel.photo?.let {
                                     Image(
                                             bitmap = it,
@@ -298,9 +298,9 @@ class SettingsActivity : AppCompatActivity() {
                                                     R.string.your_pfp_description
                                             ),
                                             modifier = Modifier
-                                                    .fillMaxSize()
-                                                    .clip(CircleShape)
-                                                    .align(Alignment.Center)
+                                                .fillMaxSize()
+                                                .clip(CircleShape)
+                                                .align(Alignment.Center)
                                     )
                                 } ?: Icon(Icons.Outlined.AccountCircle, null)
                             }
@@ -708,8 +708,8 @@ class SettingsActivity : AppCompatActivity() {
         ) {
             LazyColumn(
                     modifier = Modifier
-                            .selectableGroup()
-                            .waterfallPadding(),
+                        .selectableGroup()
+                        .waterfallPadding(),
                     contentPadding = it
             ) {
                 items(items = preferences,
@@ -735,6 +735,7 @@ class SettingsActivity : AppCompatActivity() {
             uploading: Boolean,
             uploadStatus: String,
             shouldRetry: Boolean,
+            uploadProgress: Float,
             onCancel: (() -> Unit)?,
             dismissDialog: () -> Unit,
             retry: (Uri, Context, () -> Unit) -> Unit,
@@ -776,42 +777,51 @@ class SettingsActivity : AppCompatActivity() {
             ) {
                 Box(contentAlignment = Alignment.Center,
                         modifier = Modifier
-                                .weight(1f, fill = false)
-                                .onGloballyPositioned {
-                                    if (uri == null) return@onGloballyPositioned
-                                    lifecycleScope.launch {
-                                        bitmap = viewModel
-                                                .getImageBitmap(uri, this@SettingsActivity, it.size,
-                                                        false)
-                                                ?.asImageBitmap()
-                                    }
-                                }) {
-                    if (uploading) {
-                        bitmap?.let {
-                            Image(
-                                    bitmap = it,
-                                    contentDescription = getString(
+                            .weight(1f, fill = false)
+                            .onGloballyPositioned {
+                                if (uri == null) return@onGloballyPositioned
+                                lifecycleScope.launch {
+                                    bitmap = viewModel
+                                        .getImageBitmap(
+                                            uri, this@SettingsActivity, it.size, false
+                                        )
+                                        ?.asImageBitmap()
+                                }
+                            }) {
+                    Crossfade(targetState = uploading,
+                              animationSpec = TweenSpec(FADE_DURATION, 0, EaseInOutCubic)) {
+                            targetState ->
+                        when (targetState) {
+                            true -> {
+                                bitmap?.let {
+                                    Image(
+                                        bitmap = it,
+                                        contentDescription = getString(
                                             R.string.your_pfp_description
-                                    ),
-                                    modifier = Modifier.fillMaxSize(),
-                                    colorFilter = ColorFilter.tint(
+                                        ),
+                                        modifier = Modifier.fillMaxSize(),
+                                        colorFilter = ColorFilter.tint(
                                             Color(
-                                                    UPLOAD_GRAY_INTENSITY,
-                                                    UPLOAD_GRAY_INTENSITY,
-                                                    UPLOAD_GRAY_INTENSITY,
-                                                    1f
+                                                UPLOAD_GRAY_INTENSITY,
+                                                UPLOAD_GRAY_INTENSITY,
+                                                UPLOAD_GRAY_INTENSITY,
+                                                1f
                                             ), BlendMode.Screen
+                                        )
                                     )
-                            )
-                        }
-                        CircularProgressIndicator()
-                    } else {
-                        bitmap?.let {
-                            Image(
-                                    bitmap = it, contentDescription = getString(
-                                    R.string.your_pfp_description
-                            ), modifier = Modifier.fillMaxSize()
-                            )
+                                }
+
+                                CircularProgressIndicator(progress = uploadProgress)
+                            }
+                            false -> {
+                                bitmap?.let {
+                                    Image(
+                                        bitmap = it, contentDescription = getString(
+                                            R.string.your_pfp_description
+                                        ), modifier = Modifier.fillMaxSize()
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -1240,6 +1250,7 @@ class SettingsActivity : AppCompatActivity() {
         val ICON_PADDING = 16.dp
         const val TEMP_PFP = "${MainViewModel.PFP_FILENAME}_temp"
         const val UPLOAD_GRAY_INTENSITY = 0.5f
+        const val FADE_DURATION = 500
 
         private fun launchLogin(context: Context) {
             val loginIntent = Intent(context, LoginActivity::class.java)

@@ -7,7 +7,6 @@ import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
-import android.util.Base64
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,6 +46,7 @@ class SettingsViewModel(private val repository: AttentionRepository, application
     var uri: Uri? by mutableStateOf(null)
     private val uploadLock = ReentrantLock()
     var uploading by mutableStateOf(false)
+    var uploadProgress by mutableStateOf(0f)
 
     init {
         viewModelScope.launch {
@@ -156,9 +156,8 @@ class SettingsViewModel(private val repository: AttentionRepository, application
                 } else {
                     uploadStatus = context.getString(R.string.uploading)
                 }
-                val call = repository.editUser(photo = Base64.encodeToString(
-                    bytes, Base64.DEFAULT
-                ), token = token, responseListener = { _, response, _ ->
+                val call = repository.editUser(photo = bytes, token = token, responseListener = {
+                        _, response, _ ->
                     onCancel = null
                     uploading = false
                     if (response.isSuccessful) {
@@ -204,6 +203,8 @@ class SettingsViewModel(private val repository: AttentionRepository, application
                     )
                     onCancel = null
                     uploadLock.unlock()
+                }, uploadCallbacks = {
+                    uploadProgress = it
                 })
                 onCancel = {
                     call.cancel()
