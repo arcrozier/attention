@@ -64,7 +64,7 @@ android {
 }
 
 dependencies {
-    val lifecycleVersion = "2.5.2"
+    val lifecycleVersion = "2.5.1"
 
     implementation("com.google.firebase:firebase-messaging-ktx:23.0.8")
     implementation("com.google.firebase:firebase-analytics:21.1.1")
