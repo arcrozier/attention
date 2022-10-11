@@ -451,7 +451,7 @@ class LoginActivity : AppCompatActivity() {
                         )
                     }, enabled = model.uiEnabled, modifier = Modifier.requiredHeight(56.dp)
             ) {
-                Box {
+                Box(modifier = Modifier.fillMaxHeight()) {
                     Text(
                             text = getString(R.string.login),
                             modifier = Modifier.align(Alignment.Center)
@@ -474,7 +474,8 @@ class LoginActivity : AppCompatActivity() {
                 )
             }, enabled = model.uiEnabled) {
                 Image(painter = painterResource(id = R.drawable.ic_btn_google),
-                        contentDescription = getString(R.string.google_logo))
+                        contentDescription = getString(R.string.google_logo), modifier = Modifier
+                        .height(24.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(text = getString(R.string.sign_in_w_google))
             }

@@ -140,7 +140,7 @@ dependencies {
     // UI Tests
 
 
-    val composeMaterialVersion = "1.0.0-beta03"
+    val composeMaterialVersion = "1.0.0-rc01"
     androidTestImplementation("androidx.compose.ui:ui-test-junit4:$jetpackComposeVersion")
     implementation("androidx.compose.material3:material3:$composeMaterialVersion")
     implementation("androidx.compose.material3:material3-window-size-class:$composeMaterialVersion")
@@ -162,7 +162,7 @@ dependencies {
     implementation("androidx.room:room-paging:$roomVersion")
 
     // For sharing
-    implementation("androidx.sharetarget:sharetarget:1.2.0-rc02")
+    implementation("androidx.sharetarget:sharetarget:1.2.0")
 
     val accompanistVersion = "0.25.1"
     implementation("com.google.accompanist:accompanist-swiperefresh:$accompanistVersion")
