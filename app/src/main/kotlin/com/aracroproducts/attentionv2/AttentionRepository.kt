@@ -589,10 +589,11 @@ class AttentionRepository(private val database: AttentionDB) {
     fun signInWithGoogle(
         userIdToken: String,
         username: String? = null,
+        agree: String? = null,
         responseListener: ((Call<TokenResult>, Response<TokenResult>, String?) -> Unit)? = null,
         errorListener: ((Call<TokenResult>, Throwable) -> Unit)? = null
     ) {
-        val call = apiInterface.googleSignIn(userIdToken, username)
+        val call = apiInterface.googleSignIn(userIdToken, username, agree)
         call.enqueue(object : Callback<TokenResult> {
             override fun onResponse(call: Call<TokenResult>, response: Response<TokenResult>) {
                 val responseErrorBody = response.errorBody()?.string()

@@ -57,7 +57,8 @@ interface APIV2 {
     @POST("google_auth/")
     fun googleSignIn(
             @Field("id_token") userId: String,
-            @Field("username") username: String?
+            @Field("username") username: String?,
+            @Field("tos_agree") agree: String?,
     ): Call<TokenResult>
 
     @FormUrlEncoded

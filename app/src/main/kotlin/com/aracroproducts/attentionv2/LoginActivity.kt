@@ -301,8 +301,8 @@ class LoginActivity : AppCompatActivity() {
         Column(
                 verticalArrangement = Arrangement.Center,
                 modifier = Modifier
-                        .padding(paddingValues)
-                        .fillMaxSize(),
+                    .padding(paddingValues)
+                    .fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
@@ -325,6 +325,8 @@ class LoginActivity : AppCompatActivity() {
                         finish()
                     }
                 })
+            Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
+            ToSCheckbox(model = model)
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             Button(
                     onClick = {
@@ -358,8 +360,8 @@ class LoginActivity : AppCompatActivity() {
         Column(
                 verticalArrangement = Arrangement.Center,
                 modifier = Modifier
-                        .padding(paddingValues)
-                        .fillMaxSize(),
+                    .padding(paddingValues)
+                    .fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
@@ -425,9 +427,9 @@ class LoginActivity : AppCompatActivity() {
                 verticalArrangement = centerWithBottomElement,
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
-                        .padding(paddingValues)
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState()),
+                    .padding(paddingValues)
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState()),
         ) {
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             Text(

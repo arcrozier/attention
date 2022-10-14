@@ -50,9 +50,17 @@ class LoginViewModel @Inject constructor(
     ) {
         val localIdToken = idToken ?: throw IllegalStateException("idToken was null")
         uiEnabled = false
+
+        if (username.isNotBlank() && !agreedToToS) {
+            checkboxError = true
+            uiEnabled = true
+            return
+        }
+
         val context = getApplication<Application>()
         attentionRepository.signInWithGoogle(userIdToken = localIdToken,
                                              username = username.ifBlank { null },
+                                             agree = if (agreedToToS) "yes" else null,
                                              responseListener = { _, response, _ ->
                     uiEnabled = true
                     when (response.code()) {
@@ -73,7 +81,10 @@ class LoginViewModel @Inject constructor(
                                     sTAG,
                                     response.errorBody().toString()
                             )
-                            usernameCaption =
+                            if (response.errorBody().toString().contains("terms of service")) {
+                                checkboxError = true
+                            }
+                            else usernameCaption =
                                     context.getString(R.string.username_in_use)
                         }
                         401 -> { // need to provide a username
