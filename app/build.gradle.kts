@@ -62,16 +62,16 @@ android {
 }
 
 dependencies {
-    val lifecycleVersion = "2.5.1"
 
+    val fragmentVersion = "2.5.2"
     implementation("com.google.firebase:firebase-messaging-ktx:23.0.8")
     implementation("com.google.firebase:firebase-analytics:21.1.1")
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     implementation("androidx.appcompat:appcompat:1.5.1")
     implementation("com.google.android.material:material:1.6.1")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
-    implementation("androidx.navigation:navigation-fragment-ktx:$lifecycleVersion")
-    implementation("androidx.navigation:navigation-ui-ktx:$lifecycleVersion")
+    implementation("androidx.navigation:navigation-fragment-ktx:$fragmentVersion")
+    implementation("androidx.navigation:navigation-ui-ktx:$fragmentVersion")
     implementation("androidx.preference:preference-ktx:1.2.0")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.3")
@@ -95,6 +95,7 @@ dependencies {
 
     val archVersion = "2.1.0"
 
+    val lifecycleVersion = "2.5.1"
     // ViewModel
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycleVersion")
     // ViewModel utilities for Compose
@@ -174,7 +175,7 @@ dependencies {
     // image cropping library
     implementation("com.github.yalantis:ucrop:2.2.8")
 
-    implementation("com.google.devtools.ksp:symbol-processing-api:1.7.20-1.0.6")
+    implementation("com.google.devtools.ksp:symbol-processing-api:1.7.20-1.0.7")
 }
 repositories {
     mavenCentral()
