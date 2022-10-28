@@ -66,14 +66,14 @@ android {
 dependencies {
     val lifecycleVersion = "2.5.1"
 
-    implementation("com.google.firebase:firebase-messaging-ktx:23.0.8")
-    implementation("com.google.firebase:firebase-analytics:21.1.1")
+    implementation("com.google.firebase:firebase-messaging-ktx:23.1.0")
+    implementation("com.google.firebase:firebase-analytics:21.2.0")
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     implementation("androidx.appcompat:appcompat:1.5.1")
-    implementation("com.google.android.material:material:1.6.1")
+    implementation("com.google.android.material:material:1.7.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
-    implementation("androidx.navigation:navigation-fragment-ktx:$lifecycleVersion")
-    implementation("androidx.navigation:navigation-ui-ktx:$lifecycleVersion")
+    implementation("androidx.navigation:navigation-fragment-ktx:2.5.3")
+    implementation("androidx.navigation:navigation-ui-ktx:2.5.3")
     implementation("androidx.preference:preference-ktx:1.2.0")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.3")
@@ -124,9 +124,9 @@ dependencies {
     // optional - Test helpers for LiveData
     testImplementation("androidx.arch.core:core-testing:$archVersion")
 
-    val jetpackComposeVersion = "1.2.1"
+    val jetpackComposeVersion = "1.3.0"
     // Integration with activities
-    implementation("androidx.activity:activity-compose:1.6.0")
+    implementation("androidx.activity:activity-compose:1.6.1")
     // Compose Material Design
     implementation("androidx.compose.runtime:runtime-livedata:$jetpackComposeVersion")
     implementation("androidx.compose.material:material:$jetpackComposeVersion")
@@ -140,7 +140,7 @@ dependencies {
     // UI Tests
 
 
-    val composeMaterialVersion = "1.0.0-rc01"
+    val composeMaterialVersion = "1.0.0"
     androidTestImplementation("androidx.compose.ui:ui-test-junit4:$jetpackComposeVersion")
     implementation("androidx.compose.material3:material3:$composeMaterialVersion")
     implementation("androidx.compose.material3:material3-window-size-class:$composeMaterialVersion")
@@ -164,14 +164,14 @@ dependencies {
     // For sharing
     implementation("androidx.sharetarget:sharetarget:1.2.0")
 
-    val accompanistVersion = "0.25.1"
+    val accompanistVersion = "0.27.0"
     implementation("com.google.accompanist:accompanist-swiperefresh:$accompanistVersion")
     implementation("com.google.accompanist:accompanist-systemuicontroller:$accompanistVersion")
 
     // Sign in with Google
     implementation("com.google.android.gms:play-services-auth:20.3.0")
 
-    implementation("androidx.activity:activity-ktx:1.6.0")
+    implementation("androidx.activity:activity-ktx:1.6.1")
 
     // image cropping library
     implementation("com.github.yalantis:ucrop:2.2.8")
