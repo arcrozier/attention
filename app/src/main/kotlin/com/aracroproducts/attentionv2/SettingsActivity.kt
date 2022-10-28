@@ -68,6 +68,7 @@ import com.aracroproducts.attentionv2.MainViewModel.Companion.USER_INFO
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
 import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
+import com.google.android.gms.auth.api.identity.Identity
 import com.yalantis.ucrop.UCrop
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -444,6 +445,8 @@ class SettingsActivity : AppCompatActivity() {
                                             apply()
                                         }
                                 viewModel.clearAllDatabaseTables()
+                                val oneTapClient = Identity.getSignInClient(this)
+                                oneTapClient.signOut()
                                 finish()
                                 context.startActivity(
                                         Intent(

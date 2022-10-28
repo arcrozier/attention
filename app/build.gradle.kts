@@ -1,7 +1,7 @@
 plugins {
     id("com.android.application")
     id("kotlin-android")
-    id("kotlin-kapt")
+    id("com.google.devtools.ksp") version "1.7.20-1.0.6"
     id("com.google.gms.google-services")
 }
 
@@ -17,10 +17,8 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        javaCompileOptions {
-            annotationProcessorOptions {
-                arguments["room.schemaLocation"] = "$projectDir/schemas"
-            }
+        ksp {
+            arg("room.schemaLocation", "$projectDir/schemas")
         }
 
         signingConfig = signingConfigs.getByName("debug")
@@ -57,7 +55,7 @@ android {
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.3.1"
+        kotlinCompilerExtensionVersion = "1.3.2"
     }
 
     namespace = "com.aracroproducts.attentionv2"
@@ -150,7 +148,7 @@ dependencies {
     implementation("androidx.room:room-runtime:$roomVersion")
     implementation("androidx.room:room-ktx:$roomVersion")
     // To use Kotlin annotation processing tool (kapt)
-    kapt("androidx.room:room-compiler:$roomVersion")
+    ksp("androidx.room:room-compiler:$roomVersion")
 
     // optional - Guava support for Room, including Optional and ListenableFuture
     implementation("androidx.room:room-guava:$roomVersion")
@@ -176,6 +174,7 @@ dependencies {
     // image cropping library
     implementation("com.github.yalantis:ucrop:2.2.8")
 
+    implementation("com.google.devtools.ksp:symbol-processing-api:1.7.20-1.0.7")
 }
 repositories {
     mavenCentral()
