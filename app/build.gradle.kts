@@ -1,7 +1,8 @@
 plugins {
     id("com.android.application")
     id("kotlin-android")
-    id("com.google.devtools.ksp") version "1.7.20-1.0.6"
+    // https://mvnrepository.com/artifact/com.google.devtools.ksp/symbol-processing-api
+    id("com.google.devtools.ksp") version "1.7.20-1.0.7"
     id("com.google.gms.google-services")
 }
 
@@ -55,6 +56,7 @@ android {
     }
 
     composeOptions {
+        // https://developer.android.com/jetpack/androidx/releases/compose-compiler
         kotlinCompilerExtensionVersion = "1.3.2"
     }
 
