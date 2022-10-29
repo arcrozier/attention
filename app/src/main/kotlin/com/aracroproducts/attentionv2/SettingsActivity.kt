@@ -43,6 +43,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -390,10 +391,12 @@ class SettingsActivity : AppCompatActivity() {
                     preference = EphemeralPreference(
                             getString(R.string.link_account_key), null
                     ),
-                    icon = {
+                    icon = { enabled ->
                         Image(painter = painterResource(id = R.drawable.ic_btn_google),
                                 contentDescription = getString(R.string.google_logo),
-                                modifier = Modifier.fillMaxSize())
+                                modifier = Modifier.fillMaxSize(),
+                              colorFilter = if (enabled) null
+                              else grayScaleFilter())
                     },
                     title = R.string.link_account,
                     summary = null,
@@ -988,7 +991,7 @@ class SettingsActivity : AppCompatActivity() {
                 value.toString()
             },
             icon: (@Composable BoxScope
-            .() -> Unit)? = null,
+            .(enabled: Boolean) -> Unit)? = null,
             reserveIconSpace: Boolean = true,
             titleColor: Color = MaterialTheme.colorScheme.onSurface,
             disabledTitleColor: Color = MaterialTheme.colorScheme.onSurface.copy(
@@ -1062,7 +1065,7 @@ class SettingsActivity : AppCompatActivity() {
                 value.toString()
             },
             icon: (@Composable BoxScope
-            .() -> Unit)? = null,
+            .(enabled: Boolean) -> Unit)? = null,
             reserveIconSpace: Boolean = true,
             titleColor: Color = MaterialTheme.colorScheme.onSurface,
             disabledTitleColor: Color = MaterialTheme.colorScheme.onSurface.copy(
@@ -1099,13 +1102,16 @@ class SettingsActivity : AppCompatActivity() {
                 verticalAlignment = Alignment.CenterVertically
         ) {
             if (icon != null || reserveIconSpace) {
-                val iconSpot: @Composable BoxScope.() -> Unit = icon ?: { }
+                val iconSpot: @Composable BoxScope.(enabled: Boolean) -> Unit = icon ?: { }
                 Box(
                         modifier = Modifier
                                 .padding(ICON_PADDING)
-                                .size(ICON_SIZE),
+                                .size(ICON_SIZE)
+                            .alpha(if (enabled) ContentAlpha.high else ContentAlpha.disabled),
                         contentAlignment = Alignment.Center,
-                        content = iconSpot
+                        content = {
+                            iconSpot(enabled)
+                        }
                 )
             }
             Column(modifier = modifier
@@ -1258,6 +1264,18 @@ class SettingsActivity : AppCompatActivity() {
         private fun launchLogin(context: Context) {
             val loginIntent = Intent(context, LoginActivity::class.java)
             context.startActivity(loginIntent)
+        }
+
+        private fun grayScaleFilter(): ColorFilter {
+            val grayScaleMatrix = ColorMatrix(
+                floatArrayOf(
+                    0.33f, 0.33f, 0.33f, 0f, 0f,
+                    0.33f, 0.33f, 0.33f, 0f, 0f,
+                    0.33f, 0.33f, 0.33f, 0f, 0f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+            )
+            return ColorFilter.colorMatrix(grayScaleMatrix)
         }
     }
 }

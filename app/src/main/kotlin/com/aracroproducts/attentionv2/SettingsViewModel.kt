@@ -55,8 +55,8 @@ class SettingsViewModel(private val repository: AttentionRepository, application
                     getApplication<Application>().filesDir, PFP_FILENAME
                 ).readBytes()
             }
-            withContext(Dispatchers.Default) {
-                photo = BitmapFactory.decodeByteArray(data, 0, data.size)?.asImageBitmap()
+            photo = withContext(Dispatchers.Default) {
+                BitmapFactory.decodeByteArray(data, 0, data.size)?.asImageBitmap()
             }
         }
     }

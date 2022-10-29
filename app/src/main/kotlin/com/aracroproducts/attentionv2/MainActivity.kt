@@ -89,8 +89,7 @@ class MainActivity : AppCompatActivity() {
     })
 
     class MainViewModelFactory(
-            private val attentionRepository: AttentionRepository,
-            private val application: Application
+        private val attentionRepository: AttentionRepository, private val application: Application
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -106,9 +105,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private val requestPermissionLauncher =
-            registerForActivityResult(ActivityResultContracts.RequestPermission()) {
-                // there isn't really anything we can do
-            }
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { // there isn't really anything we can do
+        }
 
     private fun launchLogin() {
         val loginIntent = Intent(this, LoginActivity::class.java)
@@ -164,11 +162,12 @@ class MainActivity : AppCompatActivity() {
                     friendModel.addFriendUsername = tempId
                     friendModel.getFriendName(tempId) {
                         throw IllegalStateException(
-                                "Should not attempt to log in while " + "addFriendException is true"
+                            "Should not attempt to log in while " + "addFriendException is true"
                         )
                     }
                     friendModel.swapDialogState(
-                            MainViewModel.DialogStatus.AddFriend)
+                        MainViewModel.DialogStatus.AddFriend
+                    )
                 }
             }
         }
@@ -179,15 +178,16 @@ class MainActivity : AppCompatActivity() {
             friendModel.message = intent.getStringExtra(Intent.EXTRA_TEXT) ?: ""
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && intent.hasExtra(
-                            Intent.EXTRA_SHORTCUT_ID)) {
+                    Intent.EXTRA_SHORTCUT_ID
+                )
+            ) {
                 val username = intent.getStringExtra(Intent.EXTRA_SHORTCUT_ID) ?: ""
                 lifecycleScope.launch {
                     val friend = friendModel.getFriend(username)
-                    friendModel.appendDialogState(
-                            MainViewModel.DialogStatus.AddMessageText(friend) { message ->
-                                friendModel.message = message
-                                friendModel.cardStatus[friend.id] = State.CANCEL
-                            })
+                    friendModel.appendDialogState(MainViewModel.DialogStatus.AddMessageText(friend) { message ->
+                        friendModel.message = message
+                        friendModel.cardStatus[friend.id] = State.CANCEL
+                    })
                 }
 
             }
@@ -197,13 +197,12 @@ class MainActivity : AppCompatActivity() {
             lifecycleScope.launch {
                 intent.getStringExtra(MainViewModel.EXTRA_RECIPIENT)?.let {
                     val friend = friendModel.getFriend(it)
-                    friendModel.appendDialogState(
-                            MainViewModel.DialogStatus.AddMessageText(
-                                    friend
-                            ) { message ->
-                                friendModel.message = message
-                                friendModel.cardStatus[friend.id] = State.CANCEL
-                            })
+                    friendModel.appendDialogState(MainViewModel.DialogStatus.AddMessageText(
+                        friend
+                    ) { message ->
+                        friendModel.message = message
+                        friendModel.cardStatus[friend.id] = State.CANCEL
+                    })
                 }
             }
         }
@@ -218,8 +217,8 @@ class MainActivity : AppCompatActivity() {
         val userInfo = getSharedPreferences(MainViewModel.USER_INFO, Context.MODE_PRIVATE)
 
         if (!Settings.canDrawOverlays(application) && !userInfo.getBoolean(
-                        MainViewModel.OVERLAY_NO_PROMPT, false
-                )
+                MainViewModel.OVERLAY_NO_PROMPT, false
+            )
         ) {
             friendModel.appendDialogState(MainViewModel.DialogStatus.OverlayPermission)
         }
@@ -229,24 +228,21 @@ class MainActivity : AppCompatActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             when {
                 ContextCompat.checkSelfPermission(
-                        this,
-                        POST_NOTIFICATIONS
-                ) == PackageManager.PERMISSION_GRANTED -> {
-                    // You can use the API that requires the permission.
+                    this, POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED -> { // You can use the API that requires the permission.
                 }
-                shouldShowRequestPermissionRationale(POST_NOTIFICATIONS) -> {
-                    // In an educational UI, explain to the user why your app requires this
+                shouldShowRequestPermissionRationale(POST_NOTIFICATIONS) -> { // In an educational UI, explain to the user why your app requires this
                     // permission for a specific feature to behave as expected. In this UI,
                     // include a "cancel" or "no thanks" button that allows the user to
                     // continue using your app without granting the permission.
-                    friendModel.appendDialogState(MainViewModel.DialogStatus.PermissionRationale
-                    (POST_NOTIFICATIONS))
+                    friendModel.appendDialogState(
+                        MainViewModel.DialogStatus.PermissionRationale(POST_NOTIFICATIONS)
+                    )
                 }
-                else -> {
-                    // You can directly ask for the permission.
+                else -> { // You can directly ask for the permission.
                     // The registered ActivityResultCallback gets the result of this request.
                     requestPermissionLauncher.launch(
-                            POST_NOTIFICATIONS
+                        POST_NOTIFICATIONS
                     )
                 }
             }
@@ -285,11 +281,11 @@ class MainActivity : AppCompatActivity() {
 
         val friends by model.friends.observeAsState(listOf())
         Home(friends = friends,
-                onLongPress = { model.onLongPress() },
-                onEditName = { model.onEditName(it) },
-                onDeletePrompt = { model.onDeleteFriend(it) },
-                dialogState = displayDialog,
-                showSnackbar = showSnackbar
+             onLongPress = { model.onLongPress() },
+             onEditName = { model.onEditName(it) },
+             onDeletePrompt = { model.onDeleteFriend(it) },
+             dialogState = displayDialog,
+             showSnackbar = showSnackbar
         )
     }
 
@@ -297,12 +293,12 @@ class MainActivity : AppCompatActivity() {
     @ExperimentalFoundationApi
     @Composable
     fun Home(
-            friends: List<Friend>,
-            onLongPress: () -> Unit,
-            onEditName: (friend: Friend) -> Unit,
-            onDeletePrompt: (friend: Friend) -> Unit,
-            dialogState: MainViewModel.DialogStatus,
-            showSnackbar: String
+        friends: List<Friend>,
+        onLongPress: () -> Unit,
+        onEditName: (friend: Friend) -> Unit,
+        onDeletePrompt: (friend: Friend) -> Unit,
+        dialogState: MainViewModel.DialogStatus,
+        showSnackbar: String
     ) {
         val cachedFriends by friendModel.cachedFriends.observeAsState(listOf())
         val scaffoldState = rememberScaffoldState()
@@ -325,12 +321,13 @@ class MainActivity : AppCompatActivity() {
         val systemUiController = rememberSystemUiController()
         val useDarkIcons = !isSystemInDarkTheme()
 
-        DisposableEffect(systemUiController, useDarkIcons) {
-            // Update all of the system bar colors to be transparent, and use
+        DisposableEffect(
+            systemUiController,
+            useDarkIcons
+        ) { // Update all of the system bar colors to be transparent, and use
             // dark icons if we're in light theme
             systemUiController.setNavigationBarColor(
-                    color = Color.Transparent,
-                    darkIcons = useDarkIcons
+                color = Color.Transparent, darkIcons = useDarkIcons
             )
 
             // setStatusBarColor() and setNavigationBarColor() also exist
@@ -340,8 +337,9 @@ class MainActivity : AppCompatActivity() {
 
         AnimatedContent(targetState = dialogState, transitionSpec = {
             slideIntoContainer(
-                    towards = AnimatedContentScope.SlideDirection.Up) with slideOutOfContainer(
-                    towards = AnimatedContentScope.SlideDirection.Down
+                towards = AnimatedContentScope.SlideDirection.Up
+            ) with slideOutOfContainer(
+                towards = AnimatedContentScope.SlideDirection.Down
             )
         }) { targetState ->
             when (targetState) {
@@ -352,136 +350,168 @@ class MainActivity : AppCompatActivity() {
                 }
                 is MainViewModel.DialogStatus.FriendName -> {
                     EditFriendNameDialog(
-                            friend = targetState.friend
+                        friend = targetState.friend
                     )
                 }
                 is MainViewModel.DialogStatus.ConfirmDelete -> {
                     DeleteFriendDialog(
-                            friend = targetState.friend
+                        friend = targetState.friend
                     )
                 }
                 is MainViewModel.DialogStatus.ConfirmDeleteCached -> {
                     DeleteFriendDialog(friend = targetState.friend)
                 }
                 is MainViewModel.DialogStatus.PermissionRationale -> {
-                    PermissionRationale(permission = targetState.permission) {
-                    }
+                    PermissionRationale(permission = targetState.permission) {}
                 }
                 is MainViewModel.DialogStatus.None -> {}
             }
         }
 
         val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-        Scaffold(
-                scaffoldState = scaffoldState,
-                topBar = {
-                    LargeTopAppBar(colors = TopAppBarDefaults.largeTopAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                            scrolledContainerColor = MaterialTheme.colorScheme.primary),
-                            title = {
-                                Column {
-                                    Text(
-                                            getString(R.string.app_name)
-                                    )
-                                    if (friendModel.connectionState.isNotBlank()) Text(
-                                            friendModel.connectionState,
-                                            style = MaterialTheme.typography.labelSmall,
-                                    )
-                                }
-                            },
-                            actions = {
-                                IconButton(onClick = {
-                                    val intent = Intent(
-                                            applicationContext, SettingsActivity::class.java
-                                    )
-                                    startActivity(intent)
-                                }) {
-                                    Icon(
-                                            Icons.Filled.Settings, contentDescription = getString(
-                                            R.string.action_settings
-                                    ), tint = MaterialTheme.colorScheme.onPrimary
-                                    )
+        Scaffold(scaffoldState = scaffoldState,
+                 topBar = {
+                     LargeTopAppBar(colors = TopAppBarDefaults.largeTopAppBarColors(
+                         containerColor = MaterialTheme.colorScheme.primary,
+                         titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                         scrolledContainerColor = MaterialTheme.colorScheme.primary
+                     ), title = {
+                         Column {
+                             Text(
+                                 getString(R.string.app_name)
+                             )
+                             if (friendModel.connectionState.isNotBlank()) Text(
+                                 friendModel.connectionState,
+                                 style = MaterialTheme.typography.labelSmall,
+                             )
+                         }
+                     }, actions = {
+                         IconButton(onClick = {
+                             val intent = Intent(
+                                 applicationContext, SettingsActivity::class.java
+                             )
+                             startActivity(intent)
+                         }) {
+                             Icon(
+                                 Icons.Filled.Settings, contentDescription = getString(
+                                     R.string.action_settings
+                                 ), tint = MaterialTheme.colorScheme.onPrimary
+                             )
 
-                                }
-                            },
-                             scrollBehavior = scrollBehavior)
-                },
-                backgroundColor = MaterialTheme.colorScheme.background,
-                modifier = Modifier.nestedScroll(scrollBehavior
-                        .nestedScrollConnection),
-                floatingActionButton = {
-                    FloatingActionButton(
-                            onClick = {
-                                friendModel.appendDialogState(
-                                        MainViewModel.DialogStatus.AddFriend)
-                            },
-                            backgroundColor = MaterialTheme.colorScheme.secondary,
-                    ) {
-                        Icon(
-                                Icons.Filled.Add,
-                                contentDescription = getString(R.string.add_friend),
-                                tint = MaterialTheme.colorScheme.onSecondary
-                        )
-                    }
-                }) {
+                         }
+                     }, scrollBehavior = scrollBehavior
+                     )
+                 },
+                 backgroundColor = MaterialTheme.colorScheme.background,
+                 modifier = Modifier.nestedScroll(
+                     scrollBehavior.nestedScrollConnection
+                 ),
+                 floatingActionButton = {
+                     FloatingActionButton(
+                         onClick = {
+                             friendModel.appendDialogState(
+                                 MainViewModel.DialogStatus.AddFriend
+                             )
+                         },
+                         backgroundColor = MaterialTheme.colorScheme.secondary,
+                     ) {
+                         Icon(
+                             Icons.Filled.Add,
+                             contentDescription = getString(R.string.add_friend),
+                             tint = MaterialTheme.colorScheme.onSecondary
+                         )
+                     }
+                 }) {
             SwipeRefresh(
-                    state = rememberSwipeRefreshState(friendModel.isRefreshing),
-                    onRefresh = { reload() },
+                state = rememberSwipeRefreshState(friendModel.isRefreshing),
+                onRefresh = { reload() },
             ) {
-                LazyColumn(
-                        modifier = Modifier
-                                .background(MaterialTheme.colorScheme.background)
-                                .waterfallPadding()
-                                .fillMaxSize(),
-                        contentPadding = it
-                ) {
-                    items(items = friends,
-                            key = { friend ->
-                                friend.id
+                AnimatedContent(targetState = friends.isEmpty() && !friendModel.isRefreshing && friendModel.connected,
+                                transitionSpec = {
+                                    fadeIn() with fadeOut()
+                                }) { targetState ->
+                    when (targetState) {
+                        true -> {
+                            Column(verticalArrangement = Arrangement.Top, horizontalAlignment =
+                            Alignment.CenterHorizontally, modifier = Modifier
+                                .fillMaxSize()
+                                .verticalScroll(rememberScrollState())) {
+                                Text(
+                                    text = getString(R.string.no_friends),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp)
+                                        .alpha(ContentAlpha.disabled),
+                                    textAlign = TextAlign.Center,
+                                )
                             }
-                    ) { friend ->
-                        FriendCard(
-                                friend = friend,
-                                onLongPress = onLongPress,
-                                onEditName = onEditName,
-                                onDeletePrompt = onDeletePrompt,
-                                modifier = Modifier.animateItemPlacement(),
-                                state = friendModel.cardStatus.getOrDefault(friend.id, State
-                                        .NORMAL),
-                                onStateChange = { newState ->
-                                    friendModel.cardStatus[friend.id] = newState
-                                }
-                        )
-                        Divider(
-                                color = MaterialTheme.colorScheme.outline.copy(
-                                        alpha = ContentAlpha.disabled
-                                ), modifier = Modifier.padding(start = 16.dp, end = 16.dp)
-                        )
-                    }
-                    items(cachedFriends) { cachedFriend ->
-                        FriendCard(friend = Friend(cachedFriend.username, cachedFriend.username),
-                                onLongPress = {},
-                                onEditName = {},
-                                onDeletePrompt = {},
-                                state = friendModel.cardStatus.getOrDefault(cachedFriend
-                                        .username, State.NORMAL),
-                                onStateChange = { newState ->
-                                    friendModel.cardStatus[cachedFriend.username] = newState
-                                }
 
-                        )
-                        Divider(
-                                color = MaterialTheme.colorScheme.outline.copy(
-                                        alpha = ContentAlpha.disabled
-                                ), modifier = Modifier.padding(start = 16.dp, end = 16.dp)
-                        )
-                    }
-                    item {
-                        Spacer(modifier = Modifier.height(WindowInsets.Companion.navigationBars
-                                .getBottom(LocalDensity.current).dp))
+                        }
+                        false -> {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .background(MaterialTheme.colorScheme.background)
+                                    .waterfallPadding()
+                                    .fillMaxSize(),
+                                contentPadding = it
+                            ) {
+                                items(items = friends, key = { friend ->
+                                    friend.id
+                                }) { friend ->
+                                    FriendCard(friend = friend,
+                                               onLongPress = onLongPress,
+                                               onEditName = onEditName,
+                                               onDeletePrompt = onDeletePrompt,
+                                               modifier = Modifier.animateItemPlacement(),
+                                               state = friendModel.cardStatus.getOrDefault(
+                                                   friend.id, State.NORMAL
+                                               ),
+                                               onStateChange = { newState ->
+                                                   friendModel.cardStatus[friend.id] = newState
+                                               })
+                                    Divider(
+                                        color = MaterialTheme.colorScheme.outline.copy(
+                                            alpha = ContentAlpha.disabled
+                                        ), modifier = Modifier.padding(start = 16.dp, end = 16.dp)
+                                    )
+                                }
+                                items(cachedFriends) { cachedFriend ->
+                                    FriendCard(friend = Friend(
+                                        cachedFriend.username,
+                                        cachedFriend.username
+                                    ),
+                                               onLongPress = {},
+                                               onEditName = {},
+                                               onDeletePrompt = {},
+                                               state = friendModel.cardStatus.getOrDefault(
+                                                   cachedFriend.username, State.NORMAL
+                                               ),
+                                               onStateChange = { newState ->
+                                                   friendModel.cardStatus[cachedFriend.username] =
+                                                       newState
+                                               }
+
+                                    )
+                                    Divider(
+                                        color = MaterialTheme.colorScheme.outline.copy(
+                                            alpha = ContentAlpha.disabled
+                                        ), modifier = Modifier.padding(start = 16.dp, end = 16.dp)
+                                    )
+                                }
+                                item {
+                                    Spacer(
+                                        modifier = Modifier.height(
+                                            WindowInsets.Companion.navigationBars.getBottom(
+                                                    LocalDensity.current
+                                                ).dp
+                                        )
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
+
             }
         }
     }
@@ -510,30 +540,29 @@ class MainActivity : AppCompatActivity() {
             }
         }, title = {
             Text(
-                    text = getString(R.string.add_message),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = getString(R.string.add_message),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }, text = {
             OutlinedTextField(colors = TextFieldDefaults.outlinedTextFieldColors(
-                    textColor = MaterialTheme.colorScheme.onSurfaceVariant
+                textColor = MaterialTheme.colorScheme.onSurfaceVariant
             ),
-                    value = friendModel.message,
-                    onValueChange = { friendModel.message = it },
-                    keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Text,
-                            capitalization = KeyboardCapitalization.Sentences
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = false,
-                    label = {
-                        Text(
-                                text = getString(
-                                        R.string.message_label,
-                                        friend.name
-                                )
-                        )
-                    },
-                    placeholder = { Text(text = getString(R.string.message_hint)) })
+                              value = friendModel.message,
+                              onValueChange = { friendModel.message = it },
+                              keyboardOptions = KeyboardOptions(
+                                  keyboardType = KeyboardType.Text,
+                                  capitalization = KeyboardCapitalization.Sentences
+                              ),
+                              modifier = Modifier.fillMaxWidth(),
+                              singleLine = false,
+                              label = {
+                                  Text(
+                                      text = getString(
+                                          R.string.message_label, friend.name
+                                      )
+                                  )
+                              },
+                              placeholder = { Text(text = getString(R.string.message_hint)) })
         })
     }
 
@@ -555,13 +584,13 @@ class MainActivity : AppCompatActivity() {
             }
         }, title = {
             Text(
-                    text = getString(R.string.confirm_delete_title),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = getString(R.string.confirm_delete_title),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }, text = {
             Text(
-                    text = getString(R.string.confirm_delete_message, friend.name),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = getString(R.string.confirm_delete_message, friend.name),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         })
     }
@@ -593,24 +622,24 @@ class MainActivity : AppCompatActivity() {
             }
         }, title = {
             Text(
-                    text = getString(R.string.rename),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = getString(R.string.rename),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }, text = {
             OutlinedTextField(colors = TextFieldDefaults.outlinedTextFieldColors(
-                    textColor = MaterialTheme.colorScheme.onSurfaceVariant
+                textColor = MaterialTheme.colorScheme.onSurfaceVariant
             ),
-                    value = name,
-                    onValueChange = { name = it },
-                    keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Text,
-                            capitalization = KeyboardCapitalization.Words
-                    ),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text(text = getString(R.string.name)) },
-                    isError = error,
-                    placeholder = { Text(text = getString(R.string.new_name)) })
+                              value = name,
+                              onValueChange = { name = it },
+                              keyboardOptions = KeyboardOptions(
+                                  keyboardType = KeyboardType.Text,
+                                  capitalization = KeyboardCapitalization.Words
+                              ),
+                              singleLine = true,
+                              modifier = Modifier.fillMaxWidth(),
+                              label = { Text(text = getString(R.string.name)) },
+                              isError = error,
+                              placeholder = { Text(text = getString(R.string.new_name)) })
         })
     }
 
@@ -619,8 +648,8 @@ class MainActivity : AppCompatActivity() {
         AlertDialog(onDismissRequest = { friendModel.popDialogState() }, confirmButton = {
             Button(onClick = {
                 val intent = Intent(
-                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                        Uri.parse("package:" + applicationContext.packageName)
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:" + applicationContext.packageName)
                 )
                 friendModel.popDialogState()
                 startActivity(intent)
@@ -630,7 +659,7 @@ class MainActivity : AppCompatActivity() {
         }, dismissButton = {
             OutlinedButton(onClick = {
                 val editor = getSharedPreferences(
-                        MainViewModel.USER_INFO, MODE_PRIVATE
+                    MainViewModel.USER_INFO, MODE_PRIVATE
                 ).edit()
                 editor.putBoolean(MainViewModel.OVERLAY_NO_PROMPT, true)
                 editor.apply()
@@ -640,13 +669,13 @@ class MainActivity : AppCompatActivity() {
             }
         }, title = {
             Text(
-                    text = getString(R.string.draw_title),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = getString(R.string.draw_title),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }, text = {
             Text(
-                    text = getString(R.string.draw_message),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = getString(R.string.draw_message),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         })
     }
@@ -658,11 +687,11 @@ class MainActivity : AppCompatActivity() {
         } else {
             friendModel.getFriendName(username, responseListener = {
                 friendModel.onAddFriend(
-                        Friend(
-                                username, it
-                        ), responseListener = { _, response ->
-                    if (response.isSuccessful) friendModel.popDialogState()
-                }, launchLogin = this::launchLogin
+                    Friend(
+                        username, it
+                    ), responseListener = { _, response ->
+                        if (response.isSuccessful) friendModel.popDialogState()
+                    }, launchLogin = this::launchLogin
                 )
             }, launchLogin = ::launchLogin)
         }
@@ -691,54 +720,54 @@ class MainActivity : AppCompatActivity() {
             }
         }, title = {
             Text(
-                    text = getString(R.string.add_friend),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = getString(R.string.add_friend),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }, text = {
             Column(
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.fillMaxWidth()
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                        modifier = Modifier.fillMaxWidth(),
-                        text = friendModel.newFriendName,
-                        color = if (friendModel.friendNameLoading) MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                                alpha = ContentAlpha.medium
-                        )
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
+                    modifier = Modifier.fillMaxWidth(),
+                    text = friendModel.newFriendName,
+                    color = if (friendModel.friendNameLoading) MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                        alpha = ContentAlpha.medium
+                    )
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
                 )
                 OutlinedTextField(colors = TextFieldDefaults.outlinedTextFieldColors(
-                        textColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    textColor = MaterialTheme.colorScheme.onSurfaceVariant
                 ),
-                        value = friendModel.addFriendUsername,
-                        onValueChange = {
-                            friendModel.addFriendUsername = it
-                            friendModel.getFriendName(
-                                    it, launchLogin = ::launchLogin
-                            )
-                        },
-                        keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Text,
-                                autoCorrect = false,
-                                capitalization = KeyboardCapitalization.None,
-                                imeAction = ImeAction.Done
-                        ),
-                        keyboardActions = KeyboardActions(onDone = {
-                            onAddFriend(username = friendModel.addFriendUsername)
-                        }),
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        label = { Text(text = getString(R.string.username)) },
-                        isError = friendModel.usernameCaption.isNotBlank(),
-                        placeholder = { Text(text = getString(R.string.placeholder_name)) })
+                                  value = friendModel.addFriendUsername,
+                                  onValueChange = {
+                                      friendModel.addFriendUsername = it
+                                      friendModel.getFriendName(
+                                          it, launchLogin = ::launchLogin
+                                      )
+                                  },
+                                  keyboardOptions = KeyboardOptions(
+                                      keyboardType = KeyboardType.Text,
+                                      autoCorrect = false,
+                                      capitalization = KeyboardCapitalization.None,
+                                      imeAction = ImeAction.Done
+                                  ),
+                                  keyboardActions = KeyboardActions(onDone = {
+                                      onAddFriend(username = friendModel.addFriendUsername)
+                                  }),
+                                  modifier = Modifier.fillMaxWidth(),
+                                  singleLine = true,
+                                  label = { Text(text = getString(R.string.username)) },
+                                  isError = friendModel.usernameCaption.isNotBlank(),
+                                  placeholder = { Text(text = getString(R.string.placeholder_name)) })
                 Text(
-                        text = friendModel.usernameCaption,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                                alpha = ContentAlpha.medium
-                        ),
-                        style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier.padding(start = 16.dp)
+                    text = friendModel.usernameCaption,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                        alpha = ContentAlpha.medium
+                    ),
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(start = 16.dp)
                 )
             }
         })
@@ -746,8 +775,7 @@ class MainActivity : AppCompatActivity() {
 
     @Composable
     fun PermissionRationale(
-            permission: String,
-            popDialogState: () -> Unit
+        permission: String, popDialogState: () -> Unit
     ) {
         AlertDialog(onDismissRequest = { popDialogState() }, confirmButton = {
             Button(onClick = {
@@ -761,15 +789,19 @@ class MainActivity : AppCompatActivity() {
                 Text(text = getString(android.R.string.cancel))
             }
         }, title = {
-            Text(text = when (permission) {
-                POST_NOTIFICATIONS -> getString(R.string.notification_rationale_title)
-                else -> ""
-            })
+            Text(
+                text = when (permission) {
+                    POST_NOTIFICATIONS -> getString(R.string.notification_rationale_title)
+                    else -> ""
+                }
+            )
         }, text = {
-            Text(text = when (permission) {
-                POST_NOTIFICATIONS -> getString(R.string.notification_rationale)
-                else -> ""
-            })
+            Text(
+                text = when (permission) {
+                    POST_NOTIFICATIONS -> getString(R.string.notification_rationale)
+                    else -> ""
+                }
+            )
         })
     }
 
@@ -777,14 +809,14 @@ class MainActivity : AppCompatActivity() {
     @ExperimentalFoundationApi
     @Composable
     fun FriendCard(
-            friend: Friend,
-            onLongPress: () -> Unit,
-            onEditName: (friend: Friend) -> Unit,
-            onDeletePrompt: (friend: Friend) -> Unit,
-            modifier: Modifier = Modifier,
-            cached: Boolean = false,
-            state: State,
-            onStateChange: (State) -> Unit
+        friend: Friend,
+        onLongPress: () -> Unit,
+        onEditName: (friend: Friend) -> Unit,
+        onDeletePrompt: (friend: Friend) -> Unit,
+        modifier: Modifier = Modifier,
+        cached: Boolean = false,
+        state: State,
+        onStateChange: (State) -> Unit
     ) {
         var message: String? by remember { mutableStateOf(null) }
         val transition = updateTransition(state, label = "friend state transition")
@@ -821,78 +853,79 @@ class MainActivity : AppCompatActivity() {
             launch(context = Dispatchers.Default) {
                 val imageDecoded = Base64.decode(friend.photo, Base64.DEFAULT)
                 imageBitmap = BitmapFactory.decodeByteArray(imageDecoded, 0, imageDecoded.size)
-                        .asImageBitmap()
+                    .asImageBitmap()
             }
         }
 
         Box(modifier = modifier
-                .fillMaxWidth(1F)
-                .padding(10.dp)
-                .requiredHeight(48.dp)
-                .combinedClickable(onClick = {
-                    onStateChange(
-                            when (state) {
-                                State.NORMAL -> State.CONFIRM
-                                State.CONFIRM, State.CANCEL, State.EDIT -> State.NORMAL
-                            }
-                    )
-                }, onClickLabel = getString(R.string.friend_card_click_label), onLongClick = {
-                    onStateChange(
-                            when (state) {
-                                State.NORMAL -> State.EDIT
-                                else -> state
-                            }
-                    )
-                    onLongPress()
-                }, onLongClickLabel = getString(R.string.friend_card_long_click_label)
+            .fillMaxWidth(1F)
+            .padding(10.dp)
+            .requiredHeight(48.dp)
+            .combinedClickable(onClick = {
+                onStateChange(
+                    when (state) {
+                        State.NORMAL -> State.CONFIRM
+                        State.CONFIRM, State.CANCEL, State.EDIT -> State.NORMAL
+                    }
                 )
+            }, onClickLabel = getString(R.string.friend_card_click_label), onLongClick = {
+                onStateChange(
+                    when (state) {
+                        State.NORMAL -> State.EDIT
+                        else -> state
+                    }
+                )
+                onLongPress()
+            }, onLongClickLabel = getString(R.string.friend_card_long_click_label)
+            )
         ) {
             Row(horizontalArrangement = Arrangement.Start,
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                            .fillMaxSize()
-                            .padding(all = 8.dp)
-                            .align(Alignment.CenterStart)
-                            .semantics(mergeDescendants = true) {}) {
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(all = 8.dp)
+                    .align(Alignment.CenterStart)
+                    .semantics(mergeDescendants = true) {}) {
                 imageBitmap?.let {
                     Image(
-                            bitmap = it,
-                            contentDescription = getString(R.string.pfp_description, friend.name),
-                            modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
+                        bitmap = it,
+                        contentDescription = getString(R.string.pfp_description, friend.name),
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
                     )
                 } ?: Spacer(modifier = Modifier.width(40.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Column(verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.Start,
-                        modifier = Modifier
-                                .semantics(
-                                        mergeDescendants = true
-                                ) {}) {
+                       horizontalAlignment = Alignment.Start,
+                       modifier = Modifier.semantics(
+                               mergeDescendants = true
+                           ) {}) {
                     Text(
-                            text = friend.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = if (cached) MaterialTheme.colorScheme.onBackground.copy(
-                                    alpha = ContentAlpha.medium
-                            ) else MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier
-                                    .alpha(alpha)
-                                    .blur(blur)
+                        text = friend.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = if (cached) MaterialTheme.colorScheme.onBackground.copy(
+                            alpha = ContentAlpha.medium
+                        ) else MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier
+                            .alpha(alpha)
+                            .blur(blur)
                     )
                     Text(
-                            text = subtitle,
-                            color = if (subtitle == getString(
-                                            R.string.send_error)) MaterialTheme.colorScheme.error.copy(
-                                    alpha = ContentAlpha.medium
+                        text = subtitle,
+                        color = if (subtitle == getString(
+                                R.string.send_error
                             )
-                            else MaterialTheme.colorScheme.onBackground.copy(
-                                    alpha = ContentAlpha.medium
-                            ),
-                            style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier
-                                    .alpha(alpha)
-                                    .blur(blur)
+                        ) MaterialTheme.colorScheme.error.copy(
+                            alpha = ContentAlpha.medium
+                        )
+                        else MaterialTheme.colorScheme.onBackground.copy(
+                            alpha = ContentAlpha.medium
+                        ),
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier
+                            .alpha(alpha)
+                            .blur(blur)
                     )
                 }
             }
@@ -901,7 +934,8 @@ class MainActivity : AppCompatActivity() {
                 val enterTransition = when (targetState) {
                     State.EDIT -> {
                         slideIntoContainer(
-                                towards = AnimatedContentScope.SlideDirection.Right) + fadeIn()
+                            towards = AnimatedContentScope.SlideDirection.Right
+                        ) + fadeIn()
                     }
                     State.CONFIRM -> {
                         scaleIn() + fadeIn()
@@ -916,7 +950,8 @@ class MainActivity : AppCompatActivity() {
                 val exitTransition = when (initialState) {
                     State.EDIT -> {
                         slideOutOfContainer(
-                                towards = AnimatedContentScope.SlideDirection.Left) + fadeOut()
+                            towards = AnimatedContentScope.SlideDirection.Left
+                        ) + fadeOut()
                     }
                     State.CONFIRM -> {
                         scaleOut() + fadeOut()
@@ -934,34 +969,34 @@ class MainActivity : AppCompatActivity() {
                     State.NORMAL -> {}
                     State.CONFIRM -> {
                         Row(
-                                horizontalArrangement = Arrangement.SpaceEvenly,
-                                modifier = Modifier.fillMaxWidth()
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             IconButton(onClick = { onStateChange(State.NORMAL) }) {
                                 Icon(
-                                        Icons.Filled.Close,
-                                        tint = MaterialTheme.colorScheme.onBackground,
-                                        contentDescription = getString(android.R.string.cancel)
+                                    Icons.Filled.Close,
+                                    tint = MaterialTheme.colorScheme.onBackground,
+                                    contentDescription = getString(android.R.string.cancel)
                                 )
                             }
                             Button(
-                                    onClick = {
-                                        onStateChange(State.CANCEL)
-                                        message = null
-                                    }, colors = ButtonDefaults.buttonColors(
+                                onClick = {
+                                    onStateChange(State.CANCEL)
+                                    message = null
+                                }, colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.primary,
                                     contentColor = MaterialTheme.colorScheme.onPrimary
-                            )
+                                )
                             ) {
                                 Text(getString(R.string.confirm_alert))
                             }
                             OutlinedButton(onClick = {
-                                friendModel.appendDialogState(MainViewModel.DialogStatus
-                                        .AddMessageText(friend
-                                        ) {
-                                            message = it
-                                            onStateChange(State.CANCEL)
-                                        })
+                                friendModel.appendDialogState(MainViewModel.DialogStatus.AddMessageText(
+                                        friend
+                                    ) {
+                                        message = it
+                                        onStateChange(State.CANCEL)
+                                    })
                             }) {
                                 Text(getString(R.string.add_message))
                             }
@@ -969,25 +1004,25 @@ class MainActivity : AppCompatActivity() {
                     }
                     State.EDIT -> {
                         Row(
-                                horizontalArrangement = Arrangement.End,
-                                modifier = Modifier.fillMaxWidth()
+                            horizontalArrangement = Arrangement.End,
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             IconButton(onClick = { onStateChange(State.NORMAL) }) {
                                 Icon(
-                                        Icons.Filled.Close,
-                                        tint = MaterialTheme.colorScheme.onBackground,
-                                        contentDescription = getString(android.R.string.cancel)
+                                    Icons.Filled.Close,
+                                    tint = MaterialTheme.colorScheme.onBackground,
+                                    contentDescription = getString(android.R.string.cancel)
                                 )
                             }
                             Button(
-                                    onClick = {
-                                        if (cached) friendModel.onDeleteCachedFriend(friend)
-                                        else onDeletePrompt(friend)
-                                        onStateChange(State.NORMAL)
-                                    }, colors = ButtonDefaults.buttonColors(
+                                onClick = {
+                                    if (cached) friendModel.onDeleteCachedFriend(friend)
+                                    else onDeletePrompt(friend)
+                                    onStateChange(State.NORMAL)
+                                }, colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.error,
                                     contentColor = MaterialTheme.colorScheme.onError
-                            )
+                                )
                             ) {
                                 Text(getString(R.string.delete))
                             }
@@ -1005,18 +1040,17 @@ class MainActivity : AppCompatActivity() {
                         resources.getValue(R.integer.default_delay, defaultDelay, false)
                         val delay: Long by remember {
                             mutableStateOf((PreferenceManager.getDefaultSharedPreferences(
-                                    this@MainActivity)
-                                    .getString(getString(R.string.delay_key), null)
-                                    .let {
-                                        it?.toFloatOrNull() ?: defaultDelay.float
-                                    } * 1000).toLong())
+                                this@MainActivity
+                            ).getString(getString(R.string.delay_key), null).let {
+                                    it?.toFloatOrNull() ?: defaultDelay.float
+                                } * 1000).toLong())
                         }
                         var progress by remember { mutableStateOf(0L) }
                         val animatedProgress by animateFloatAsState(
-                                targetValue = min(progress.toFloat() / delay, 1f).let {
-                                    if (it.isNaN()) 1f
-                                    else it
-                                }, animationSpec = ProgressIndicatorDefaults.ProgressAnimationSpec
+                            targetValue = min(progress.toFloat() / delay, 1f).let {
+                                if (it.isNaN()) 1f
+                                else it
+                            }, animationSpec = ProgressIndicatorDefaults.ProgressAnimationSpec
                         )
                         var progressEnabled by remember { mutableStateOf(true) }
                         var triggered by remember { mutableStateOf(false) }
@@ -1031,26 +1065,27 @@ class MainActivity : AppCompatActivity() {
                         if (progress >= delay && !triggered) {
                             @Suppress("UNUSED_VALUE")
                             triggered = true
+
                             friendModel.sendAlert(friend,
-                                    body = message,
-                                    launchLogin = ::launchLogin,
-                                    onError = {
-                                        sendingStatus = getString(R.string.send_error)
-                                    },
-                                    onSuccess = {
-                                        sendingStatus = null
-                                    })
+                                                  body = message,
+                                                  launchLogin = ::launchLogin,
+                                                  onError = {
+                                                      sendingStatus = getString(R.string.send_error)
+                                                  },
+                                                  onSuccess = {
+                                                      sendingStatus = null
+                                                  })
                             onStateChange(State.NORMAL)
                             progressEnabled = false
                             sendingStatus = getString(R.string.sending)
                         }
                         CancelBar(progress = animatedProgress, modifier = Modifier
-                                .clickable {
-                                    progressEnabled = false
-                                    onStateChange(State.NORMAL)
-                                    progress = 0
-                                }
-                                .fillMaxSize())
+                            .clickable {
+                                progressEnabled = false
+                                onStateChange(State.NORMAL)
+                                progress = 0
+                            }
+                            .fillMaxSize())
                     }
                 }
             }
@@ -1059,23 +1094,25 @@ class MainActivity : AppCompatActivity() {
 
     @Composable
     fun CancelBar(
-            progress: Float, modifier: Modifier = Modifier
+        progress: Float, modifier: Modifier = Modifier
     ) {
         Box(
-                modifier = modifier
-                        .clip(shape = RoundedCornerShape(5.dp))
-                        .background(color = MaterialTheme.colorScheme.inversePrimary)
+            modifier = modifier
+                .clip(shape = RoundedCornerShape(5.dp))
+                .background(color = MaterialTheme.colorScheme.inversePrimary)
         ) {
 
             Box(
-                    modifier = Modifier
-                            .fillMaxWidth(progress)
-                            .fillMaxHeight()
-                            .clip(shape = RoundedCornerShape(5.dp))
-                            .background(color = MaterialTheme.colorScheme.primary)
+                modifier = Modifier
+                    .fillMaxWidth(progress)
+                    .fillMaxHeight()
+                    .clip(shape = RoundedCornerShape(5.dp))
+                    .background(color = MaterialTheme.colorScheme.primary)
             ) {}
-            Text(text = getString(android.R.string.cancel),
-                    modifier = Modifier.align(Alignment.Center))
+            Text(
+                text = getString(android.R.string.cancel),
+                modifier = Modifier.align(Alignment.Center)
+            )
         }
     }
 
@@ -1090,7 +1127,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkPlayServices(): Boolean {
         if (GoogleApiAvailability.getInstance()
-                        .isGooglePlayServicesAvailable(this) != ConnectionResult.SUCCESS
+                .isGooglePlayServicesAvailable(this) != ConnectionResult.SUCCESS
         ) { // check for Google Play Services
             Toast.makeText(this, getString(R.string.no_play_services), Toast.LENGTH_LONG).show()
             GoogleApiAvailability.getInstance().makeGooglePlayServicesAvailable(this)

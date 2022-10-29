@@ -247,7 +247,7 @@ open class AlertHandler : FirebaseMessagingService() {
                 .setPriority(NotificationCompat.PRIORITY_MAX).setContentIntent(pendingIntent)
                 .setAutoCancel(true)
         }
-        val notificationID = (System.currentTimeMillis() % 1000000000L).toInt() + 1
+        val notificationID = System.currentTimeMillis().toInt()
         val notificationManagerCompat = NotificationManagerCompat.from(this)
         notificationManagerCompat.notify(notificationID, builder.build())
         return notificationID

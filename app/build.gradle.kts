@@ -140,7 +140,7 @@ dependencies {
     // UI Tests
 
 
-    val composeMaterialVersion = "1.0.0"
+    val composeMaterialVersion = "1.1.0-alpha01"
     androidTestImplementation("androidx.compose.ui:ui-test-junit4:$jetpackComposeVersion")
     implementation("androidx.compose.material3:material3:$composeMaterialVersion")
     implementation("androidx.compose.material3:material3-window-size-class:$composeMaterialVersion")
