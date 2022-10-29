@@ -322,8 +322,7 @@ class MainActivity : AppCompatActivity() {
         val useDarkIcons = !isSystemInDarkTheme()
 
         DisposableEffect(
-            systemUiController,
-            useDarkIcons
+            systemUiController, useDarkIcons
         ) { // Update all of the system bar colors to be transparent, and use
             // dark icons if we're in light theme
             systemUiController.setNavigationBarColor(
@@ -335,37 +334,29 @@ class MainActivity : AppCompatActivity() {
             onDispose {}
         }
 
-        AnimatedContent(targetState = dialogState, transitionSpec = {
-            slideIntoContainer(
-                towards = AnimatedContentScope.SlideDirection.Up
-            ) with slideOutOfContainer(
-                towards = AnimatedContentScope.SlideDirection.Down
-            )
-        }) { targetState ->
-            when (targetState) {
-                is MainViewModel.DialogStatus.AddFriend -> AddFriendDialog()
-                is MainViewModel.DialogStatus.OverlayPermission -> OverlaySettingsDialog()
-                is MainViewModel.DialogStatus.AddMessageText -> {
-                    AddMessageText(friend = targetState.friend, onSend = targetState.onSend)
-                }
-                is MainViewModel.DialogStatus.FriendName -> {
-                    EditFriendNameDialog(
-                        friend = targetState.friend
-                    )
-                }
-                is MainViewModel.DialogStatus.ConfirmDelete -> {
-                    DeleteFriendDialog(
-                        friend = targetState.friend
-                    )
-                }
-                is MainViewModel.DialogStatus.ConfirmDeleteCached -> {
-                    DeleteFriendDialog(friend = targetState.friend)
-                }
-                is MainViewModel.DialogStatus.PermissionRationale -> {
-                    PermissionRationale(permission = targetState.permission) {}
-                }
-                is MainViewModel.DialogStatus.None -> {}
+        when (dialogState) {
+            is MainViewModel.DialogStatus.AddFriend -> AddFriendDialog()
+            is MainViewModel.DialogStatus.OverlayPermission -> OverlaySettingsDialog()
+            is MainViewModel.DialogStatus.AddMessageText -> {
+                AddMessageText(friend = dialogState.friend, onSend = dialogState.onSend)
             }
+            is MainViewModel.DialogStatus.FriendName -> {
+                EditFriendNameDialog(
+                    friend = dialogState.friend
+                )
+            }
+            is MainViewModel.DialogStatus.ConfirmDelete -> {
+                DeleteFriendDialog(
+                    friend = dialogState.friend
+                )
+            }
+            is MainViewModel.DialogStatus.ConfirmDeleteCached -> {
+                DeleteFriendDialog(friend = dialogState.friend)
+            }
+            is MainViewModel.DialogStatus.PermissionRationale -> {
+                PermissionRationale(permission = dialogState.permission) {}
+            }
+            is MainViewModel.DialogStatus.None -> {}
         }
 
         val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -432,10 +423,14 @@ class MainActivity : AppCompatActivity() {
                                 }) { targetState ->
                     when (targetState) {
                         true -> {
-                            Column(verticalArrangement = Arrangement.Top, horizontalAlignment =
-                            Alignment.CenterHorizontally, modifier = Modifier
-                                .fillMaxSize()
-                                .verticalScroll(rememberScrollState())) {
+                            Column(
+                                verticalArrangement = Arrangement.Top,
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .nestedScroll(scrollBehavior.nestedScrollConnection)
+                                    .verticalScroll(rememberScrollState())
+                            ) {
                                 Text(
                                     text = getString(R.string.no_friends),
                                     modifier = Modifier
@@ -452,8 +447,7 @@ class MainActivity : AppCompatActivity() {
                                 modifier = Modifier
                                     .background(MaterialTheme.colorScheme.background)
                                     .waterfallPadding()
-                                    .fillMaxSize(),
-                                contentPadding = it
+                                    .fillMaxSize(), contentPadding = it
                             ) {
                                 items(items = friends, key = { friend ->
                                     friend.id
@@ -477,8 +471,7 @@ class MainActivity : AppCompatActivity() {
                                 }
                                 items(cachedFriends) { cachedFriend ->
                                     FriendCard(friend = Friend(
-                                        cachedFriend.username,
-                                        cachedFriend.username
+                                        cachedFriend.username, cachedFriend.username
                                     ),
                                                onLongPress = {},
                                                onEditName = {},
@@ -502,8 +495,8 @@ class MainActivity : AppCompatActivity() {
                                     Spacer(
                                         modifier = Modifier.height(
                                             WindowInsets.Companion.navigationBars.getBottom(
-                                                    LocalDensity.current
-                                                ).dp
+                                                LocalDensity.current
+                                            ).dp
                                         )
                                     )
                                 }
@@ -899,8 +892,8 @@ class MainActivity : AppCompatActivity() {
                 Column(verticalArrangement = Arrangement.Center,
                        horizontalAlignment = Alignment.Start,
                        modifier = Modifier.semantics(
-                               mergeDescendants = true
-                           ) {}) {
+                           mergeDescendants = true
+                       ) {}) {
                     Text(
                         text = friend.name,
                         style = MaterialTheme.typography.titleMedium,
@@ -992,11 +985,11 @@ class MainActivity : AppCompatActivity() {
                             }
                             OutlinedButton(onClick = {
                                 friendModel.appendDialogState(MainViewModel.DialogStatus.AddMessageText(
-                                        friend
-                                    ) {
-                                        message = it
-                                        onStateChange(State.CANCEL)
-                                    })
+                                    friend
+                                ) {
+                                    message = it
+                                    onStateChange(State.CANCEL)
+                                })
                             }) {
                                 Text(getString(R.string.add_message))
                             }
@@ -1042,8 +1035,8 @@ class MainActivity : AppCompatActivity() {
                             mutableStateOf((PreferenceManager.getDefaultSharedPreferences(
                                 this@MainActivity
                             ).getString(getString(R.string.delay_key), null).let {
-                                    it?.toFloatOrNull() ?: defaultDelay.float
-                                } * 1000).toLong())
+                                it?.toFloatOrNull() ?: defaultDelay.float
+                            } * 1000).toLong())
                         }
                         var progress by remember { mutableStateOf(0L) }
                         val animatedProgress by animateFloatAsState(
@@ -1064,6 +1057,7 @@ class MainActivity : AppCompatActivity() {
 
                         if (progress >= delay && !triggered) {
                             @Suppress("UNUSED_VALUE")
+
                             triggered = true
 
                             friendModel.sendAlert(friend,
@@ -1138,6 +1132,5 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val DELAY_INTERVAL: Long = 100
-
     }
 }
