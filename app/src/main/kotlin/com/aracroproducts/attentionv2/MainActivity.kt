@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Base64
+import android.util.Log
 import android.util.TypedValue
 import android.widget.Toast
 import androidx.activity.compose.setContent
@@ -57,7 +58,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -429,7 +429,7 @@ class MainActivity : AppCompatActivity() {
                     when (targetState) {
                         true -> {
                             Column(
-                                verticalArrangement = Arrangement.Top,
+                                verticalArrangement = Arrangement.Center,
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -851,23 +851,31 @@ class MainActivity : AppCompatActivity() {
         }
 
         LaunchedEffect(key1 = friend.photo) {
-            launch(context = Dispatchers.Default) {
-                val imageDecoded = Base64.decode(friend.photo, Base64.DEFAULT)
-                imageBitmap = BitmapFactory.decodeByteArray(imageDecoded, 0, imageDecoded.size)
-                    .asImageBitmap()
+            if (friend.photo != null) {
+                launch(context = Dispatchers.Default) {
+                    val imageDecoded = Base64.decode(friend.photo, Base64.DEFAULT)
+                    imageBitmap = BitmapFactory.decodeByteArray(imageDecoded, 0, imageDecoded.size)
+                        .asImageBitmap()
+                }
             }
         }
 
-        var loc: Offset by rememberSaveable {
-            mutableStateOf(Offset (0f, 0f))
+        var loc: Float by rememberSaveable {
+            mutableStateOf(0f)
         }
         val interactionSource = remember { MutableInteractionSource() }
+        var animating: Boolean by rememberSaveable {
+            mutableStateOf(false)
+        }
 
-        LaunchedEffect(interactionSource) {
+        LaunchedEffect(interactionSource, state) {
             interactionSource.interactions.collect { interaction ->
+                Log.d(this@MainActivity::class.java.name, state.name)
+                if (state != State.NORMAL || animating) return@collect
                 when (interaction) {
                     is PressInteraction.Press -> {
-                        loc = interaction.pressPosition
+                        loc = interaction.pressPosition.x
+                        animating = true
                     }
                 }
             }
@@ -900,8 +908,8 @@ class MainActivity : AppCompatActivity() {
             Row(horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
+                    .padding(start = 8.dp, end = 8.dp)
                     .fillMaxSize()
-                    .padding(all = 8.dp)
                     .align(Alignment.CenterStart)
                     .semantics(mergeDescendants = true) {}) {
                 imageBitmap?.let {
@@ -929,7 +937,7 @@ class MainActivity : AppCompatActivity() {
                             .alpha(alpha)
                             .blur(blur)
                     )
-                    Text(
+                    if (subtitle.isNotBlank()) Text(
                         text = subtitle,
                         color = if (subtitle == getString(
                                 R.string.send_error
@@ -982,23 +990,17 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 enterTransition with exitTransition
-            }) { targetState ->
+            },
+            modifier = Modifier.centerAt(x = loc)) { targetState ->
+                if (transition.currentState == transition.targetState) {
+                    animating = false
+                }
                 when (targetState) {
                     State.NORMAL -> {}
                     State.CONFIRM -> {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(BUTTON_SPACING),
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.layout { measurable, constraints ->
-                                val placeable = measurable.measure(constraints)
-
-                                layout(placeable.width, placeable.height) {
-                                    placeable.placeRelative(
-                                        max(0, min((loc.x - placeable.width.toFloat() / 2).toInt(),
-                                                   constraints.maxWidth - placeable.width)),
-                                        0)
-                                }
-                            }
                         ) {
                             IconButton(onClick = { onStateChange(State.NORMAL) }) {
                                 Icon(
@@ -1032,8 +1034,8 @@ class MainActivity : AppCompatActivity() {
                     }
                     State.EDIT -> {
                         Row(
-                            horizontalArrangement = Arrangement.End,
-                            modifier = Modifier.fillMaxWidth()
+                            horizontalArrangement = Arrangement.spacedBy(BUTTON_SPACING),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             IconButton(onClick = { onStateChange(State.NORMAL) }) {
                                 Icon(
@@ -1054,7 +1056,6 @@ class MainActivity : AppCompatActivity() {
                             ) {
                                 Text(getString(R.string.delete))
                             }
-                            Spacer(modifier = Modifier.width(LoginActivity.LIST_ELEMENT_PADDING))
                             OutlinedButton(onClick = {
                                 onEditName(friend)
                                 onStateChange(State.NORMAL)
@@ -1168,5 +1169,20 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val DELAY_INTERVAL: Long = 100
         private val BUTTON_SPACING = 16.dp
+
+        fun Modifier.centerAt(x: Float = Float.NaN, y: Float = Float.NaN) = layout { measurable,
+                                                                             constraints ->
+            val placeable = measurable.measure(constraints)
+            val xPos = if (x.isNaN()) (constraints.maxWidth - placeable.width) / 2
+            else max(0, min((x - placeable.width.toFloat() / 2).toInt(), constraints.maxWidth - placeable.width))
+            val yPos = if (y.isNaN()) ((constraints.maxHeight - placeable.height) / 2)
+            else max(0, min((y - placeable.height.toFloat() / 2).toInt(), constraints.maxHeight - placeable.height))
+            layout(placeable.width, placeable.height) {
+                placeable.placeRelative(
+                    xPos,
+                    yPos)
+            }
+
+        }
     }
 }

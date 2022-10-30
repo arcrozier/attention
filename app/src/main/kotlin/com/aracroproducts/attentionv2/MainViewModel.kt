@@ -755,10 +755,12 @@ class MainViewModel @Inject internal constructor(
     private fun setConnectStatus(responseCode: Int?) {
         val context = getApplication<Application>()
         when (responseCode) {
-            200 -> {
+            200, 400, 403, 415 -> { // even though some of these are errors, they represent the
+                // server working correctly and the calling code should handle these gracefully
                 if (connectionState != context.getString(R.string.sharing)) {
                     connectionState = ""
                 }
+                connected = true
             }
             null -> { // no internet
                 connected = false
