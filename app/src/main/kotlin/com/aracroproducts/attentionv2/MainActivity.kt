@@ -23,6 +23,8 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -55,10 +57,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
@@ -81,6 +85,7 @@ import com.google.android.gms.common.GoogleApiAvailability
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.lang.Integer.max
 import kotlin.math.min
 
 class MainActivity : AppCompatActivity() {
@@ -428,8 +433,9 @@ class MainActivity : AppCompatActivity() {
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier
                                     .fillMaxSize()
+                                    .waterfallPadding()
                                     .nestedScroll(scrollBehavior.nestedScrollConnection)
-                                    .verticalScroll(rememberScrollState())
+                                    .verticalScroll(rememberScrollState()),
                             ) {
                                 Text(
                                     text = getString(R.string.no_friends),
@@ -447,7 +453,9 @@ class MainActivity : AppCompatActivity() {
                                 modifier = Modifier
                                     .background(MaterialTheme.colorScheme.background)
                                     .waterfallPadding()
-                                    .fillMaxSize(), contentPadding = it
+                                    .fillMaxSize()
+                                    .nestedScroll(scrollBehavior.nestedScrollConnection),
+                                contentPadding = it
                             ) {
                                 items(items = friends, key = { friend ->
                                     friend.id
@@ -850,11 +858,26 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        var loc: Offset by rememberSaveable {
+            mutableStateOf(Offset (0f, 0f))
+        }
+        val interactionSource = remember { MutableInteractionSource() }
+
+        LaunchedEffect(interactionSource) {
+            interactionSource.interactions.collect { interaction ->
+                when (interaction) {
+                    is PressInteraction.Press -> {
+                        loc = interaction.pressPosition
+                    }
+                }
+            }
+        }
         Box(modifier = modifier
             .fillMaxWidth(1F)
             .padding(10.dp)
             .requiredHeight(48.dp)
-            .combinedClickable(onClick = {
+            .combinedClickable(
+                onClick = {
                 onStateChange(
                     when (state) {
                         State.NORMAL -> State.CONFIRM
@@ -869,7 +892,9 @@ class MainActivity : AppCompatActivity() {
                     }
                 )
                 onLongPress()
-            }, onLongClickLabel = getString(R.string.friend_card_long_click_label)
+            }, onLongClickLabel = getString(R.string.friend_card_long_click_label),
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
             )
         ) {
             Row(horizontalArrangement = Arrangement.Start,
@@ -962,8 +987,18 @@ class MainActivity : AppCompatActivity() {
                     State.NORMAL -> {}
                     State.CONFIRM -> {
                         Row(
-                            horizontalArrangement = Arrangement.SpaceEvenly,
-                            modifier = Modifier.fillMaxWidth()
+                            horizontalArrangement = Arrangement.spacedBy(BUTTON_SPACING),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.layout { measurable, constraints ->
+                                val placeable = measurable.measure(constraints)
+
+                                layout(placeable.width, placeable.height) {
+                                    placeable.placeRelative(
+                                        max(0, min((loc.x - placeable.width.toFloat() / 2).toInt(),
+                                                   constraints.maxWidth - placeable.width)),
+                                        0)
+                                }
+                            }
                         ) {
                             IconButton(onClick = { onStateChange(State.NORMAL) }) {
                                 Icon(
@@ -1132,5 +1167,6 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val DELAY_INTERVAL: Long = 100
+        private val BUTTON_SPACING = 16.dp
     }
 }
