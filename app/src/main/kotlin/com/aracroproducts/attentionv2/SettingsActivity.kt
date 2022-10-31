@@ -642,6 +642,7 @@ class SettingsActivity : AppCompatActivity() {
         PreferenceScreen(
                 preferences = preferences,
                 selected = viewModel.selectedPreferenceGroupIndex,
+                currentPreferenceGroup = viewModel.currentPreferenceGroup,
                 screenClass = calculateWindowSizeClass(activity = this).widthSizeClass,
                 onGroupSelected = { key, preferenceGroup ->
                     viewModel.selectedPreferenceGroupIndex = key
@@ -656,6 +657,7 @@ class SettingsActivity : AppCompatActivity() {
     fun PreferenceScreen(
             preferences: List<Pair<Pair<Int, (@Composable () -> Unit)?>, @Composable () -> Unit>>,
             selected: Int,
+            currentPreferenceGroup: @Composable () -> Unit,
             screenClass: WindowWidthSizeClass,
             onGroupSelected: (key: Int, preferences: @Composable () -> Unit) -> Unit,
             snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
@@ -665,6 +667,13 @@ class SettingsActivity : AppCompatActivity() {
         val systemUiController = rememberSystemUiController()
         val useDarkIcons = !isSystemInDarkTheme()
         val scrim = MaterialTheme.colorScheme.scrim
+
+        if (selected == 0) {
+            onGroupSelected(preferences.firstOrNull()?.first?.first ?: 0, preferences.firstOrNull()
+                ?.second ?: {})
+        }
+
+        val phone = screenClass == WindowWidthSizeClass.Compact
 
         DisposableEffect(systemUiController, useDarkIcons) {
             // Update all of the system bar colors to be transparent, and use
@@ -680,47 +689,72 @@ class SettingsActivity : AppCompatActivity() {
             onDispose {}
         }
 
-        val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+        val phoneScrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+        val tabletScrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
         Scaffold(topBar = {
-            LargeTopAppBar(colors = TopAppBarDefaults.largeTopAppBarColors(
+            if (phone) {
+                LargeTopAppBar(colors = TopAppBarDefaults.largeTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     scrolledContainerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary,
                     navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-            ),
-                    title = {
-                        Text(
-                                getString(R.string.title_activity_settings),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                ), title = {
+                    Text(
+                        getString(R.string.title_activity_settings),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }, scrollBehavior = phoneScrollBehavior, navigationIcon = {
+                    IconButton(onClick = {
+                        onBackPressedDispatcher.onBackPressed()
+                    }) {
+                        Icon(
+                            Icons.Default.ArrowBack, getString(
+                                R.string.back
+                            )
                         )
-                    },
-                    scrollBehavior = scrollBehavior,
-                    navigationIcon = {
-                        IconButton(onClick = {
-                            onBackPressedDispatcher.onBackPressed()
-                        }) {
-                            Icon(
-                                    Icons.Default.ArrowBack, getString(
-                                    R.string.back
+                    }
+                })
+            } else {
+                TopAppBar(colors = TopAppBarDefaults.smallTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    scrolledContainerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                ), title = {
+                    Text(
+                        getString(R.string.title_activity_settings),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }, scrollBehavior = tabletScrollBehavior, navigationIcon = {
+                    IconButton(onClick = {
+                        onBackPressedDispatcher.onBackPressed()
+                    }) {
+                        Icon(
+                            Icons.Default.ArrowBack, getString(
+                                R.string.back
                             )
-                            )
-                        }
-                    })
+                        )
+                    }
+                })
+            }
         },
-                snackbarHost = { SnackbarHost(snackbarHostState) },
-                modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-                containerColor = MaterialTheme.colorScheme.background
+                 snackbarHost = { SnackbarHost(snackbarHostState) },
+                 modifier = Modifier.nestedScroll(if (phone) phoneScrollBehavior
+                         .nestedScrollConnection else tabletScrollBehavior.nestedScrollConnection),
+                 containerColor = MaterialTheme.colorScheme.background
         ) {
-            LazyColumn(
+            if (screenClass == WindowWidthSizeClass.Compact) {
+                LazyColumn(
                     modifier = Modifier
                         .selectableGroup()
-                        .waterfallPadding(),
-                    contentPadding = it
-            ) {
-                items(items = preferences,
+                        .waterfallPadding(), contentPadding = it
+                ) {
+                    items(
+                        items = preferences,
                         key = { preference -> preference.first.first }) { preference ->
-                    PreferenceGroup(
+                        PreferenceGroup(
                             title = preference.first.first,
                             icon = preference.first.second,
                             onClick = {
@@ -730,7 +764,42 @@ class SettingsActivity : AppCompatActivity() {
                             tablet = screenClass != WindowWidthSizeClass.Compact,
                             preferences = preference.second,
                             first = preference.first.first == preferences.firstOrNull()?.first?.first
-                    )
+                        )
+                    }
+                }
+            } else {
+                Row(modifier = Modifier.fillMaxSize(), horizontalArrangement = Arrangement.Start,
+                    verticalAlignment = Alignment.Top) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .selectableGroup()
+                            .waterfallPadding()
+                            .fillMaxWidth(0.35f)
+                            .fillMaxHeight()
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentPadding = it,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        items(
+                            items = preferences,
+                            key = { preference -> preference.first.first }) { preference ->
+                            PreferenceGroup(
+                                title = preference.first.first,
+                                icon = preference.first.second,
+                                onClick = {
+                                    onGroupSelected(preference.first.first, preference.second)
+                                },
+                                selected = preference.first.first == selected,
+                                tablet = screenClass != WindowWidthSizeClass.Compact,
+                                preferences = preference.second,
+                                first = preference.first.first == preferences.firstOrNull()?.first?.first
+                            )
+                        }
+                    }
+                    Column(modifier = Modifier.weight(1f, true)) {
+                        Spacer(modifier = Modifier.height(it.calculateTopPadding()))
+                        currentPreferenceGroup()
+                    }
                 }
             }
         }
@@ -855,24 +924,25 @@ class SettingsActivity : AppCompatActivity() {
         if (tablet) {
             Box(
                     modifier = Modifier
-                            .padding(10.dp)
-                            .fillMaxWidth(0.9f)
-                            .height(73.dp)
-                            .clip(
-                                    RoundedCornerShape(12.dp)
-                            )
-                            .background(
-                                    if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
-                            )
-                            .selectable(selected = selected, onClick = onClick),
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth(0.9f)
+                        .padding(top = 10.dp, bottom = 10.dp)
+                        .height(100.dp)
+                        .clip(
+                            RoundedCornerShape(12.dp)
+                        )
+                        .background(
+                            if (selected) MaterialTheme.colorScheme.inversePrimary else Color.Transparent
+                        )
+                        .selectable(selected = selected, onClick = onClick)
+                        .padding(start = 8.dp, end = 8.dp),
+                    contentAlignment = Alignment.CenterStart
             ) {
                 Layout(content = {
                     icon?.invoke()
                     Text(
                             text = getString(title),
                             style = MaterialTheme.typography.headlineSmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             overflow = TextOverflow.Ellipsis,
                     )
                 }, modifier = Modifier.fillMaxSize(), measurePolicy = { measurables,
@@ -910,7 +980,7 @@ class SettingsActivity : AppCompatActivity() {
                                 0,
                                 constraints.maxHeight))
 
-                        totalWidth = if (constraints.hasBoundedWidth) constraints.maxHeight
+                        totalWidth = if (constraints.hasBoundedWidth) constraints.maxWidth
                         else iconPlaceable.width + paddingSize + text.width
                         totalHeight = if (constraints.hasBoundedHeight) constraints.maxHeight
                         else max(iconPlaceable.height, text.height)
@@ -950,29 +1020,29 @@ class SettingsActivity : AppCompatActivity() {
     ) {
         Row(
                 modifier = modifier
-                        .fillMaxWidth()
-                        .height(PREFERENCE_HEIGHT),
+                    .fillMaxWidth()
+                    .height(PREFERENCE_HEIGHT),
                 verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                     modifier = modifier
-                            .padding(end = SPLIT_PREFERENCE_PADDING)
-                            .fillMaxHeight()
-                            .weight(1f, fill = true),
+                        .padding(end = SPLIT_PREFERENCE_PADDING)
+                        .fillMaxHeight()
+                        .weight(1f, fill = true),
                     contentAlignment = Alignment.CenterStart
             ) {
                 largePreference()
             }
             Divider(
                     modifier = Modifier
-                            .fillMaxHeight(0.6f)
-                            .width(1.dp),
+                        .fillMaxHeight(0.6f)
+                        .width(1.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = ContentAlpha.medium)
             )
             Box(
                     modifier = modifier
-                            .padding(start = SPLIT_PREFERENCE_PADDING)
-                            .size(PREFERENCE_HEIGHT),
+                        .padding(start = SPLIT_PREFERENCE_PADDING)
+                        .size(PREFERENCE_HEIGHT),
                     contentAlignment = Alignment.Center
             ) {
                 smallPreference()
@@ -1094,19 +1164,19 @@ class SettingsActivity : AppCompatActivity() {
         val value = if (default != null) preference.getValue(default) else preference.value
         Row(
                 modifier = modifier
-                        .fillMaxWidth()
-                        .height(73.dp)
-                        .clickable(enabled = enabled, onClick = {
-                            onPreferenceClicked(preference)
-                        }),
+                    .fillMaxWidth()
+                    .height(73.dp)
+                    .clickable(enabled = enabled, onClick = {
+                        onPreferenceClicked(preference)
+                    }),
                 verticalAlignment = Alignment.CenterVertically
         ) {
             if (icon != null || reserveIconSpace) {
                 val iconSpot: @Composable BoxScope.(enabled: Boolean) -> Unit = icon ?: { }
                 Box(
                         modifier = Modifier
-                                .padding(ICON_PADDING)
-                                .size(ICON_SIZE)
+                            .padding(ICON_PADDING)
+                            .size(ICON_SIZE)
                             .alpha(if (enabled) ContentAlpha.high else ContentAlpha.disabled),
                         contentAlignment = Alignment.Center,
                         content = {
@@ -1115,8 +1185,8 @@ class SettingsActivity : AppCompatActivity() {
                 )
             }
             Column(modifier = modifier
-                    .fillMaxHeight()
-                    .weight(1f, fill = true),
+                .fillMaxHeight()
+                .weight(1f, fill = true),
                     verticalArrangement = Arrangement
                             .Center) {
                 Text(

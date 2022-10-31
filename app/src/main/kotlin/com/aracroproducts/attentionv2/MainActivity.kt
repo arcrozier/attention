@@ -1170,6 +1170,20 @@ class MainActivity : AppCompatActivity() {
         private const val DELAY_INTERVAL: Long = 100
         private val BUTTON_SPACING = 16.dp
 
+        /**
+         * Positions the element such that its center is at (x, y). If this would cause the
+         * element to extend outside the bounds of its constraints, positions the element the
+         * closest it can such that it does not overflow. If a parameter is not provided, the
+         * element is centered along that axis.
+         *
+         * @param x: the x-coordinate to position the object at (defaults to the composable being
+         * centered horizontally within its parent)
+         * @param y: the y-coordinate to position the object at (defaults to the composable being
+         * centered vertically within its parent)
+         *
+         * more about the layout modifier can be found here:
+         * https://developer.android.com/jetpack/compose/layouts/custom
+         */
         fun Modifier.centerAt(x: Float = Float.NaN, y: Float = Float.NaN) = layout { measurable,
                                                                              constraints ->
             val placeable = measurable.measure(constraints)
