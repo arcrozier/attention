@@ -284,15 +284,15 @@ class SettingsActivity : AppCompatActivity() {
                         },
                         icon = {
                             Box(modifier = Modifier
-                                .fillMaxSize()
-                                .clickable { // Launch the photo picker and allow the user to choose only images.
-                                    // https://developer.android.com/training/data-storage/shared/photopicker
-                                    pickMedia.launch(
-                                        PickVisualMediaRequest(
-                                            ActivityResultContracts.PickVisualMedia.ImageOnly
+                                    .fillMaxSize()
+                                    .clickable { // Launch the photo picker and allow the user to choose only images.
+                                        // https://developer.android.com/training/data-storage/shared/photopicker
+                                        pickMedia.launch(
+                                                PickVisualMediaRequest(
+                                                        ActivityResultContracts.PickVisualMedia.ImageOnly
+                                                )
                                         )
-                                    )
-                                }) {
+                                    }) {
                                 viewModel.photo?.let {
                                     Image(
                                             bitmap = it,
@@ -300,9 +300,9 @@ class SettingsActivity : AppCompatActivity() {
                                                     R.string.your_pfp_description
                                             ),
                                             modifier = Modifier
-                                                .fillMaxSize()
-                                                .clip(CircleShape)
-                                                .align(Alignment.Center)
+                                                    .fillMaxSize()
+                                                    .clip(CircleShape)
+                                                    .align(Alignment.Center)
                                     )
                                 } ?: Icon(Icons.Outlined.AccountCircle, null)
                             }
@@ -652,7 +652,7 @@ class SettingsActivity : AppCompatActivity() {
         )
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
+    @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
     @Composable
     fun PreferenceScreen(
             preferences: List<Pair<Pair<Int, (@Composable () -> Unit)?>, @Composable () -> Unit>>,
@@ -744,12 +744,12 @@ class SettingsActivity : AppCompatActivity() {
                  modifier = Modifier.nestedScroll(if (phone) phoneScrollBehavior
                          .nestedScrollConnection else tabletScrollBehavior.nestedScrollConnection),
                  containerColor = MaterialTheme.colorScheme.background
-        ) {
+        ) { padding ->
             if (screenClass == WindowWidthSizeClass.Compact) {
                 LazyColumn(
                     modifier = Modifier
-                        .selectableGroup()
-                        .waterfallPadding(), contentPadding = it
+                            .selectableGroup()
+                            .waterfallPadding(), contentPadding = padding
                 ) {
                     items(
                         items = preferences,
@@ -772,12 +772,12 @@ class SettingsActivity : AppCompatActivity() {
                     verticalAlignment = Alignment.Top) {
                     LazyColumn(
                         modifier = Modifier
-                            .selectableGroup()
-                            .waterfallPadding()
-                            .fillMaxWidth(0.35f)
-                            .fillMaxHeight()
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                        contentPadding = it,
+                                .selectableGroup()
+                                .waterfallPadding()
+                                .fillMaxWidth(0.35f)
+                                .fillMaxHeight()
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentPadding = padding,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         items(
@@ -796,9 +796,16 @@ class SettingsActivity : AppCompatActivity() {
                             )
                         }
                     }
-                    Column(modifier = Modifier.weight(1f, true)) {
-                        Spacer(modifier = Modifier.height(it.calculateTopPadding()))
-                        currentPreferenceGroup()
+                    AnimatedContent(targetState = currentPreferenceGroup,
+                    transitionSpec = {
+                        slideIntoContainer(
+                                towards = AnimatedContentScope.SlideDirection.Start) with fadeOut()
+                    }) {
+                        targetPreferenceGroup ->
+                        Column(modifier = Modifier.weight(1f, true)) {
+                            Spacer(modifier = Modifier.height(padding.calculateTopPadding()))
+                            targetPreferenceGroup()
+                        }
                     }
                 }
             }
@@ -852,17 +859,17 @@ class SettingsActivity : AppCompatActivity() {
             ) {
                 Box(contentAlignment = Alignment.Center,
                         modifier = Modifier
-                            .weight(1f, fill = false)
-                            .onGloballyPositioned {
-                                if (uri == null) return@onGloballyPositioned
-                                lifecycleScope.launch {
-                                    bitmap = viewModel
-                                        .getImageBitmap(
-                                            uri, this@SettingsActivity, it.size, false
-                                        )
-                                        ?.asImageBitmap()
-                                }
-                            }) {
+                                .weight(1f, fill = false)
+                                .onGloballyPositioned {
+                                    if (uri == null) return@onGloballyPositioned
+                                    lifecycleScope.launch {
+                                        bitmap = viewModel
+                                                .getImageBitmap(
+                                                        uri, this@SettingsActivity, it.size, false
+                                                )
+                                                ?.asImageBitmap()
+                                    }
+                                }) {
                     Crossfade(targetState = uploading,
                               animationSpec = TweenSpec(FADE_DURATION, 0, EaseInOutCubic)) {
                             targetState ->
@@ -923,17 +930,18 @@ class SettingsActivity : AppCompatActivity() {
         if (tablet) {
             Box(
                     modifier = Modifier
-                        .fillMaxWidth(0.9f)
-                        .padding(top = 10.dp, bottom = 10.dp)
-                        .height(100.dp)
-                        .clip(
-                            RoundedCornerShape(12.dp)
-                        )
-                        .background(
-                            if (selected) MaterialTheme.colorScheme.inversePrimary else Color.Transparent
-                        )
-                        .selectable(selected = selected, onClick = onClick)
-                        .padding(start = 8.dp, end = 8.dp),
+                            .padding(start = PREFERENCE_GROUP_PADDING,
+                                    end = PREFERENCE_GROUP_PADDING)
+                            .height(PREFERENCE_GROUP_HEIGHT)
+                            .clip(
+                                    RoundedCornerShape(PREFERENCE_GROUP_RADIUS)
+                            )
+                            .background(
+                                    if (selected) MaterialTheme.colorScheme.inversePrimary else Color.Transparent
+                            )
+                            .selectable(selected = selected, onClick = onClick)
+                            .padding(start = PREFERENCE_GROUP_PADDING,
+                                    end = PREFERENCE_GROUP_PADDING),
                     contentAlignment = Alignment.CenterStart
             ) {
                 Layout(content = {
@@ -943,6 +951,7 @@ class SettingsActivity : AppCompatActivity() {
                             style = MaterialTheme.typography.headlineSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             overflow = TextOverflow.Ellipsis,
+                            fontWeight = FontWeight.Bold
                     )
                 }, modifier = Modifier.fillMaxSize(), measurePolicy = { measurables,
                                                                         constraints ->
@@ -1019,29 +1028,29 @@ class SettingsActivity : AppCompatActivity() {
     ) {
         Row(
                 modifier = modifier
-                    .fillMaxWidth()
-                    .height(PREFERENCE_HEIGHT),
+                        .fillMaxWidth()
+                        .height(PREFERENCE_HEIGHT),
                 verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                     modifier = modifier
-                        .padding(end = SPLIT_PREFERENCE_PADDING)
-                        .fillMaxHeight()
-                        .weight(1f, fill = true),
+                            .padding(end = SPLIT_PREFERENCE_PADDING)
+                            .fillMaxHeight()
+                            .weight(1f, fill = true),
                     contentAlignment = Alignment.CenterStart
             ) {
                 largePreference()
             }
             Divider(
                     modifier = Modifier
-                        .fillMaxHeight(0.6f)
-                        .width(1.dp),
+                            .fillMaxHeight(0.6f)
+                            .width(1.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = ContentAlpha.medium)
             )
             Box(
                     modifier = modifier
-                        .padding(start = SPLIT_PREFERENCE_PADDING)
-                        .size(PREFERENCE_HEIGHT),
+                            .padding(start = SPLIT_PREFERENCE_PADDING)
+                            .size(PREFERENCE_HEIGHT),
                     contentAlignment = Alignment.Center
             ) {
                 smallPreference()
@@ -1163,20 +1172,20 @@ class SettingsActivity : AppCompatActivity() {
         val value = if (default != null) preference.getValue(default) else preference.value
         Row(
                 modifier = modifier
-                    .fillMaxWidth()
-                    .height(73.dp)
-                    .clickable(enabled = enabled, onClick = {
-                        onPreferenceClicked(preference)
-                    }),
+                        .fillMaxWidth()
+                        .height(73.dp)
+                        .clickable(enabled = enabled, onClick = {
+                            onPreferenceClicked(preference)
+                        }),
                 verticalAlignment = Alignment.CenterVertically
         ) {
             if (icon != null || reserveIconSpace) {
                 val iconSpot: @Composable BoxScope.(enabled: Boolean) -> Unit = icon ?: { }
                 Box(
                         modifier = Modifier
-                            .padding(ICON_PADDING)
-                            .size(ICON_SIZE)
-                            .alpha(if (enabled) ContentAlpha.high else ContentAlpha.disabled),
+                                .padding(ICON_PADDING)
+                                .size(ICON_SIZE)
+                                .alpha(if (enabled) ContentAlpha.high else ContentAlpha.disabled),
                         contentAlignment = Alignment.Center,
                         content = {
                             iconSpot(enabled)
@@ -1184,8 +1193,8 @@ class SettingsActivity : AppCompatActivity() {
                 )
             }
             Column(modifier = modifier
-                .fillMaxHeight()
-                .weight(1f, fill = true),
+                    .fillMaxHeight()
+                    .weight(1f, fill = true),
                     verticalArrangement = Arrangement
                             .Center) {
                 Text(
@@ -1323,9 +1332,12 @@ class SettingsActivity : AppCompatActivity() {
 
     companion object {
         val PREFERENCE_HEIGHT = 73.dp
+        val PREFERENCE_GROUP_HEIGHT = 100.dp
         val SPLIT_PREFERENCE_PADDING = 5.dp
         val ICON_SIZE = 24.dp
         val ICON_PADDING = 16.dp
+        val PREFERENCE_GROUP_PADDING = 16.dp
+        val PREFERENCE_GROUP_RADIUS = 24.dp
         const val TEMP_PFP = "${MainViewModel.PFP_FILENAME}_temp"
         const val UPLOAD_GRAY_INTENSITY = 0.5f
         const val FADE_DURATION = 500

@@ -123,6 +123,11 @@ class LoginViewModel @Inject constructor(
         defaultPrefsEditor.putString(MainViewModel.MY_ID, username)
         defaultPrefsEditor.apply()
         password = ""
+        confirmPassword = ""
+        username = ""
+        firstName = ""
+        lastName = ""
+        email = ""
         passwordHidden = true
     }
 
