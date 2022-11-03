@@ -58,6 +58,7 @@ import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalAutofill
 import androidx.compose.ui.platform.LocalAutofillTree
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -501,6 +502,7 @@ class LoginActivity : AppCompatActivity() {
             paddingValues: PaddingValues
     ) {
         val confirmPasswordFocusRequester = FocusRequester()
+        val focusManager = LocalFocusManager.current
         Column(
                 verticalArrangement = centerWithBottomElement,
                 modifier = Modifier
@@ -537,11 +539,15 @@ class LoginActivity : AppCompatActivity() {
             ConfirmPasswordField(
                     model = model, confirmPasswordFocusRequester = confirmPasswordFocusRequester
             ) {
-                model.createUser(
-                        snackbarHostState = snackbarHostState,
-                        scope = coroutineScope,
-                        onLoggedIn = ::signInWithPassword
-                )
+                if (model.agreedToToS) {
+                    model.createUser(
+                            snackbarHostState = snackbarHostState,
+                            scope = coroutineScope,
+                            onLoggedIn = ::signInWithPassword
+                    )
+                } else {
+                    focusManager.clearFocus()
+                }
             }
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             ToSCheckbox(model = model)
@@ -954,17 +960,20 @@ class LoginActivity : AppCompatActivity() {
                 },
                 visualTransformation = if (model.passwordHidden) PasswordVisualTransformation() else VisualTransformation.None,
                 trailingIcon = {
-                    lateinit var description: String
-                    lateinit var visibilityIcon: ImageVector
-                    if (model.confirmPassword == model.password) {
-                        description = getString(R.string.passwords_match)
-                        visibilityIcon = Icons.Filled.Check
-                    } else {
-                        description = getString(R.string.passwords_different)
-                        visibilityIcon = Icons.Filled.Error
-                    }
+                    if (model.confirmPassword.isNotEmpty()) {
+                        lateinit var visibilityIcon: ImageVector
+                        lateinit var description: String
 
-                    Icon(imageVector = visibilityIcon, contentDescription = description)
+                        if (model.confirmPassword == model.password) {
+                            description = getString(R.string.passwords_match)
+                            visibilityIcon = Icons.Filled.Check
+                        } else {
+                            description = getString(R.string.passwords_different)
+                            visibilityIcon = Icons.Filled.Error
+                        }
+
+                        Icon(imageVector = visibilityIcon, contentDescription = description)
+                    }
                 },
                 label = {
                     Text(text = getString(R.string.confirm_password))

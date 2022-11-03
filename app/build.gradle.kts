@@ -89,7 +89,7 @@ dependencies {
 
     val gsonVersion = "2.9.0"
     implementation("com.squareup.retrofit2:converter-gson:$gsonVersion")
-    implementation("com.google.code.gson:gson:$gsonVersion")
+    implementation("com.google.code.gson:gson:2.10")
 
 
     val archVersion = "2.1.0"

@@ -920,7 +920,6 @@ class SettingsActivity : AppCompatActivity() {
             first: Boolean = false,
             icon: (@Composable () -> Unit)? = null
     ) {
-        assert(!selected || tablet)
         if (tablet) {
             Box(
                     modifier = Modifier
