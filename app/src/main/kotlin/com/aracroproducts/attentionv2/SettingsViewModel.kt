@@ -87,20 +87,11 @@ class SettingsViewModel(private val repository: AttentionRepository, application
                     ImageDecoder.createSource(context.contentResolver, uri)
                 ) { decoder, info, _ ->
                     Log.e(this::javaClass.name, "SIZES: ${info.size} $size")
-                    val maxDimension = if (minSize) IntSize(
-                            min(info.size.width, size.width), min(info.size.height, size.height)
-                    )
-                    else IntSize(size.width, size.height)
 
-                    val targetSize = if (info.size.width > info.size.height)
-                    // image is wider than it is tall - size should be (128 * aspect ratio, 128)
-                        IntSize(maxDimension.width, maxDimension.height * info.size.width / info
-                                .size.height)
-                    else
-                    // image is taller than it is wide - size should be (128, 128 * aspect ratio)
-                        IntSize(maxDimension.width * info.size.width / info
-                                .size.height, maxDimension.height)
-                    decoder.setTargetSize(targetSize.width, targetSize.height)
+                    var s = min(size.width.toDouble() / info.size.width, size
+                            .height.toDouble() / info.size.height)
+                    if (minSize) s = min(s, 1.0)
+                    decoder.setTargetSize((info.size.width * s).toInt(), (info.size.height * s).toInt())
                 }
             } else {
                 BitmapFactory.Options().run {
