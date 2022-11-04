@@ -87,10 +87,20 @@ class SettingsViewModel(private val repository: AttentionRepository, application
                     ImageDecoder.createSource(context.contentResolver, uri)
                 ) { decoder, info, _ ->
                     Log.e(this::javaClass.name, "SIZES: ${info.size} $size")
-                    if (minSize) decoder.setTargetSize(
-                        min(info.size.width, size.width), min(info.size.height, size.height)
+                    val maxDimension = if (minSize) IntSize(
+                            min(info.size.width, size.width), min(info.size.height, size.height)
                     )
-                    else decoder.setTargetSize(size.width, size.height)
+                    else IntSize(size.width, size.height)
+
+                    val targetSize = if (info.size.width > info.size.height)
+                    // image is wider than it is tall - size should be (128 * aspect ratio, 128)
+                        IntSize(maxDimension.width, maxDimension.height * info.size.width / info
+                                .size.height)
+                    else
+                    // image is taller than it is wide - size should be (128, 128 * aspect ratio)
+                        IntSize(maxDimension.width * info.size.width / info
+                                .size.height, maxDimension.height)
+                    decoder.setTargetSize(targetSize.width, targetSize.height)
                 }
             } else {
                 BitmapFactory.Options().run {
@@ -175,9 +185,19 @@ class SettingsViewModel(private val repository: AttentionRepository, application
                         }
                     } else {
                         when (response.code()) {
+                            400 -> {
+                                shouldRetryUpload = false
+                                uploadStatus = context.getString(R.string.upload_failed,
+                                        context.getString(R.string.invalid_photo))
+                            }
                             403 -> {
                                 uploadDialog = false
                                 launchLogin()
+                            }
+                            413 -> {
+                                shouldRetryUpload = false
+                                uploadStatus = context.getString(R.string.upload_failed, context
+                                        .getString(R.string.photo_too_large))
                             }
                             429 -> {
                                 shouldRetryUpload = true

@@ -55,6 +55,9 @@
     <string name="invalid_email">Email is invalid. Enter a valid email or leave blank</string>
     <string name="invalid_username">Enter a valid username. This value may contain only English
         letters, numbers, and @/./+/-/_ characters.</string>
+    <string name="invalid_photo">Invalid photo. Photo should be less than 20 MB and a valid
+    image format</string>
+    <string name="photo_too_large">Photo is too large (must not exceed 179 megapixels)</string>
     <string name="account">Account</string>
     <string name="network_error">An error occurred when connecting to server. Please try
         again later</string>

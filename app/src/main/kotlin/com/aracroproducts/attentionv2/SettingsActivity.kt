@@ -50,8 +50,6 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.Placeable
-import androidx.compose.ui.layout.layout
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -64,7 +62,6 @@ import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
 import com.aracroproducts.attentionv2.LoginActivity.Companion.LIST_ELEMENT_PADDING
 import com.aracroproducts.attentionv2.LoginActivity.Companion.UsernameField
@@ -862,18 +859,24 @@ class SettingsActivity : AppCompatActivity() {
             val density = LocalDensity.current
             Column(
                     verticalArrangement = Arrangement.Top,
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxHeight()
             ) {
                 BoxWithConstraints(contentAlignment = Alignment.Center,
                         modifier = Modifier
                                 .weight(1f, fill = false)) {
                     LaunchedEffect(key1 = constraints, key2 = uri) {
                         if (uri != null) {
+                            Log.d(this::class.java.name, "Constraints: $constraints")
                                 bitmap = viewModel
                                     .getImageBitmap(
                                         uri, this@SettingsActivity,
-                                        IntSize(if (constraints.hasBoundedWidth) constraints.maxWidth else with(density) {configuration.screenWidthDp.toPx().toInt()},
-                                                constraints.maxHeight),
+                                        IntSize(if (constraints.hasBoundedWidth) constraints
+                                                .maxWidth else with(density) {configuration
+                                                .screenWidthDp.dp.roundToPx()},
+                                                if (constraints.hasBoundedHeight) constraints
+                                                        .maxHeight else with(density) {configuration
+                                                        .screenWidthDp.dp.roundToPx()}),
                                         false
                                     )
                                     ?.asImageBitmap()
