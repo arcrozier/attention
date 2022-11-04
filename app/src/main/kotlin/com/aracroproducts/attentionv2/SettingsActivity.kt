@@ -18,8 +18,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.*
-import androidx.compose.animation.core.EaseInOutCubic
-import androidx.compose.animation.core.TweenSpec
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -336,7 +335,7 @@ class SettingsActivity : AppCompatActivity() {
                     dialog = { preference, dismissDialog, context, title ->
                         StringPreferenceChange(preference, dismissDialog, context, title) {
                             if (!(it.isEmpty() || android.util.Patterns.EMAIL_ADDRESS
-                                    .matcher(it).matches())) {
+                                            .matcher(it).matches())) {
                                 getString(R.string.invalid_email)
                             } else {
                                 ""
@@ -395,8 +394,8 @@ class SettingsActivity : AppCompatActivity() {
                         Image(painter = painterResource(id = R.drawable.ic_btn_google),
                                 contentDescription = getString(R.string.google_logo),
                                 modifier = Modifier.fillMaxSize(),
-                              colorFilter = if (enabled) null
-                              else grayScaleFilter())
+                                colorFilter = if (enabled) null
+                                else grayScaleFilter())
                     },
                     title = R.string.link_account,
                     summary = null,
@@ -670,7 +669,7 @@ class SettingsActivity : AppCompatActivity() {
 
         if (selected == 0) {
             onGroupSelected(preferences.firstOrNull()?.first?.first ?: 0, preferences.firstOrNull()
-                ?.second ?: {})
+                    ?.second ?: {})
         }
 
         val phone = screenClass == WindowWidthSizeClass.Compact
@@ -694,96 +693,67 @@ class SettingsActivity : AppCompatActivity() {
         Scaffold(topBar = {
             if (phone) {
                 LargeTopAppBar(colors = TopAppBarDefaults.largeTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    scrolledContainerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        scrolledContainerColor = MaterialTheme.colorScheme.primary,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
                 ), title = {
                     Text(
-                        getString(R.string.title_activity_settings),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                            getString(R.string.title_activity_settings),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                     )
                 }, scrollBehavior = phoneScrollBehavior, navigationIcon = {
                     IconButton(onClick = {
                         onBackPressedDispatcher.onBackPressed()
                     }) {
                         Icon(
-                            Icons.Default.ArrowBack, getString(
+                                Icons.Default.ArrowBack, getString(
                                 R.string.back
-                            )
+                        )
                         )
                     }
                 })
             } else {
                 TopAppBar(colors = TopAppBarDefaults.smallTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    scrolledContainerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        scrolledContainerColor = MaterialTheme.colorScheme.primary,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
                 ), title = {
                     Text(
-                        getString(R.string.title_activity_settings),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                            getString(R.string.title_activity_settings),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                     )
                 }, scrollBehavior = tabletScrollBehavior, navigationIcon = {
                     IconButton(onClick = {
                         onBackPressedDispatcher.onBackPressed()
                     }) {
                         Icon(
-                            Icons.Default.ArrowBack, getString(
+                                Icons.Default.ArrowBack, getString(
                                 R.string.back
-                            )
+                        )
                         )
                     }
                 })
             }
         },
-                 snackbarHost = { SnackbarHost(snackbarHostState) },
-                 modifier = Modifier.nestedScroll(if (phone) phoneScrollBehavior
-                         .nestedScrollConnection else tabletScrollBehavior.nestedScrollConnection),
-                 containerColor = MaterialTheme.colorScheme.background
+                snackbarHost = { SnackbarHost(snackbarHostState) },
+                modifier = Modifier.nestedScroll(if (phone) phoneScrollBehavior
+                        .nestedScrollConnection else tabletScrollBehavior.nestedScrollConnection),
+                containerColor = MaterialTheme.colorScheme.background
         ) { padding ->
             if (screenClass == WindowWidthSizeClass.Compact) {
                 LazyColumn(
-                    modifier = Modifier
-                            .selectableGroup()
-                            .waterfallPadding(), contentPadding = padding
-                ) {
-                    items(
-                        items = preferences,
-                        key = { preference -> preference.first.first }) { preference ->
-                        PreferenceGroup(
-                            title = preference.first.first,
-                            icon = preference.first.second,
-                            onClick = {
-                                onGroupSelected(preference.first.first, preference.second)
-                            },
-                            selected = preference.first.first == selected,
-                            tablet = screenClass != WindowWidthSizeClass.Compact,
-                            preferences = preference.second,
-                            first = preference.first.first == preferences.firstOrNull()?.first?.first
-                        )
-                    }
-                }
-            } else {
-                Row(modifier = Modifier.fillMaxSize(), horizontalArrangement = Arrangement.Start,
-                    verticalAlignment = Alignment.Top) {
-                    LazyColumn(
                         modifier = Modifier
                                 .selectableGroup()
-                                .waterfallPadding()
-                                .fillMaxWidth(0.35f)
-                                .fillMaxHeight()
-                                .background(MaterialTheme.colorScheme.surfaceVariant),
-                        contentPadding = padding,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        items(
+                                .waterfallPadding(), contentPadding = padding
+                ) {
+                    items(
                             items = preferences,
                             key = { preference -> preference.first.first }) { preference ->
-                            PreferenceGroup(
+                        PreferenceGroup(
                                 title = preference.first.first,
                                 icon = preference.first.second,
                                 onClick = {
@@ -793,15 +763,43 @@ class SettingsActivity : AppCompatActivity() {
                                 tablet = screenClass != WindowWidthSizeClass.Compact,
                                 preferences = preference.second,
                                 first = preference.first.first == preferences.firstOrNull()?.first?.first
+                        )
+                    }
+                }
+            } else {
+                Row(modifier = Modifier.fillMaxSize(), horizontalArrangement = Arrangement.Start,
+                        verticalAlignment = Alignment.Top) {
+                    LazyColumn(
+                            modifier = Modifier
+                                    .selectableGroup()
+                                    .waterfallPadding()
+                                    .fillMaxWidth(0.35f)
+                                    .fillMaxHeight()
+                                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                            contentPadding = padding,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        items(
+                                items = preferences,
+                                key = { preference -> preference.first.first }) { preference ->
+                            PreferenceGroup(
+                                    title = preference.first.first,
+                                    icon = preference.first.second,
+                                    onClick = {
+                                        onGroupSelected(preference.first.first, preference.second)
+                                    },
+                                    selected = preference.first.first == selected,
+                                    tablet = screenClass != WindowWidthSizeClass.Compact,
+                                    preferences = preference.second,
+                                    first = preference.first.first == preferences.firstOrNull()?.first?.first
                             )
                         }
                     }
                     AnimatedContent(targetState = currentPreferenceGroup,
-                    transitionSpec = {
-                        slideIntoContainer(
-                                towards = AnimatedContentScope.SlideDirection.Start) with fadeOut()
-                    }) {
-                        targetPreferenceGroup ->
+                            transitionSpec = {
+                                slideIntoContainer(
+                                        towards = AnimatedContentScope.SlideDirection.Start) with fadeOut()
+                            }) { targetPreferenceGroup ->
                         Column(modifier = Modifier.weight(1f, true)) {
                             Spacer(modifier = Modifier.height(padding.calculateTopPadding()))
                             targetPreferenceGroup()
@@ -871,25 +869,25 @@ class SettingsActivity : AppCompatActivity() {
                                     }
                                 }) {
                     Crossfade(targetState = uploading,
-                              animationSpec = TweenSpec(FADE_DURATION, 0, EaseInOutCubic)) {
-                            targetState ->
+                            animationSpec = TweenSpec(FADE_DURATION, 0,
+                                    EaseInOutCubic)) { targetState ->
                         when (targetState) {
                             true -> {
                                 bitmap?.let {
                                     Image(
-                                        bitmap = it,
-                                        contentDescription = getString(
-                                            R.string.your_pfp_description
-                                        ),
-                                        modifier = Modifier.fillMaxSize(),
-                                        colorFilter = ColorFilter.tint(
-                                            Color(
-                                                UPLOAD_GRAY_INTENSITY,
-                                                UPLOAD_GRAY_INTENSITY,
-                                                UPLOAD_GRAY_INTENSITY,
-                                                1f
-                                            ), BlendMode.Screen
-                                        )
+                                            bitmap = it,
+                                            contentDescription = getString(
+                                                    R.string.your_pfp_description
+                                            ),
+                                            modifier = Modifier.fillMaxSize(),
+                                            colorFilter = ColorFilter.tint(
+                                                    Color(
+                                                            UPLOAD_GRAY_INTENSITY,
+                                                            UPLOAD_GRAY_INTENSITY,
+                                                            UPLOAD_GRAY_INTENSITY,
+                                                            1f
+                                                    ), BlendMode.Screen
+                                            )
                                     )
                                 }
 
@@ -898,9 +896,9 @@ class SettingsActivity : AppCompatActivity() {
                             false -> {
                                 bitmap?.let {
                                     Image(
-                                        bitmap = it, contentDescription = getString(
+                                            bitmap = it, contentDescription = getString(
                                             R.string.your_pfp_description
-                                        ), modifier = Modifier.fillMaxSize()
+                                    ), modifier = Modifier.fillMaxSize()
                                     )
                                 }
                             }
@@ -928,6 +926,11 @@ class SettingsActivity : AppCompatActivity() {
             icon: (@Composable () -> Unit)? = null
     ) {
         if (tablet) {
+
+            val alpha by animateFloatAsState(label = "selected group background color", targetValue = when (selected) {
+                true -> 1f
+                false -> 0f
+            })
             Box(
                     modifier = Modifier
                             .padding(start = PREFERENCE_GROUP_PADDING,
@@ -937,7 +940,7 @@ class SettingsActivity : AppCompatActivity() {
                                     RoundedCornerShape(PREFERENCE_GROUP_RADIUS)
                             )
                             .background(
-                                    if (selected) MaterialTheme.colorScheme.inversePrimary else Color.Transparent
+                                    MaterialTheme.colorScheme.inversePrimary.copy(alpha = alpha)
                             )
                             .selectable(selected = selected, onClick = onClick)
                             .padding(start = PREFERENCE_GROUP_PADDING,
@@ -1349,12 +1352,12 @@ class SettingsActivity : AppCompatActivity() {
 
         private fun grayScaleFilter(): ColorFilter {
             val grayScaleMatrix = ColorMatrix(
-                floatArrayOf(
-                    0.33f, 0.33f, 0.33f, 0f, 0f,
-                    0.33f, 0.33f, 0.33f, 0f, 0f,
-                    0.33f, 0.33f, 0.33f, 0f, 0f,
-                    0f, 0f, 0f, 1f, 0f
-                )
+                    floatArrayOf(
+                            0.33f, 0.33f, 0.33f, 0f, 0f,
+                            0.33f, 0.33f, 0.33f, 0f, 0f,
+                            0.33f, 0.33f, 0.33f, 0f, 0f,
+                            0f, 0f, 0f, 1f, 0f
+                    )
             )
             return ColorFilter.colorMatrix(grayScaleMatrix)
         }
