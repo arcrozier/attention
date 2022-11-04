@@ -18,7 +18,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.EaseInOutCubic
+import androidx.compose.animation.core.TweenSpec
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -48,12 +50,14 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.Placeable
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModel
@@ -284,6 +288,7 @@ class SettingsActivity : AppCompatActivity() {
                         icon = {
                             Box(modifier = Modifier
                                     .fillMaxSize()
+                                    .clip(CircleShape)
                                     .clickable { // Launch the photo picker and allow the user to choose only images.
                                         // https://developer.android.com/training/data-storage/shared/photopicker
                                         pickMedia.launch(
@@ -858,15 +863,26 @@ class SettingsActivity : AppCompatActivity() {
                 Box(contentAlignment = Alignment.Center,
                         modifier = Modifier
                                 .weight(1f, fill = false)
-                                .onGloballyPositioned {
-                                    if (uri == null) return@onGloballyPositioned
-                                    lifecycleScope.launch {
-                                        bitmap = viewModel
-                                                .getImageBitmap(
-                                                        uri, this@SettingsActivity, it.size, false
-                                                )
-                                                ?.asImageBitmap()
+                                .layout { measurable, constraints ->
+                                    val placeable = measurable.measure(constraints)
+                                    if (uri != null) {
+                                        lifecycleScope.launch {
+                                            bitmap = viewModel
+                                                    .getImageBitmap(
+                                                            uri, this@SettingsActivity,
+                                                            IntSize(constraints.maxWidth,
+                                                                    constraints.maxHeight),
+                                                            false
+                                                    )
+                                                    ?.asImageBitmap()
+                                        }
                                     }
+                                    layout(placeable.width, placeable.height) {
+                                        placeable.place(0, 0)
+                                    }
+                                }
+                                .onGloballyPositioned {
+
                                 }) {
                     Crossfade(targetState = uploading,
                             animationSpec = TweenSpec(FADE_DURATION, 0,

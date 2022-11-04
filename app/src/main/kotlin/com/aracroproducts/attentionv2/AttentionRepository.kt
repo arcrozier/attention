@@ -3,7 +3,6 @@ package com.aracroproducts.attentionv2
 import android.util.Log
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
-import okhttp3.MultipartBody
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -324,32 +323,18 @@ class AttentionRepository(private val database: AttentionDB) {
         errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null,
         uploadCallbacks: ((Float) -> Unit)? = null
     ): Call<GenericResult<Void>> {
-        val parts = mapOf(
-            "username" to username,
-            "first_name" to firstName,
-            "last_name" to lastName,
-            "password" to password,
-            "old_password" to oldPassword,
-            "email" to email
-        ).mapValues {
-            val value = it.value
-            if (value != null) MultipartBody.Part.createFormData(name = it.key, value = value)
-            else null
-        }
         val call = apiInterface.editUser(
-            username = parts["username"],
-            firstName = parts["first_name"],
-            lastName = parts["last_name"],
-            email = parts["email"],
+            username = username,
+            firstName = firstName,
+            lastName = lastName,
+            email = email,
             photo = photo?.let {
-                MultipartBody.Part.createFormData(
-                    "photo", "photo.png", ProgressRequestBody(
+                ProgressRequestBody(
                         photo, "", uploadCallbacks
                     )
-                )
             },
-            password = parts["password"],
-            oldPassword = parts["old_password"],
+            password = password,
+            oldPassword = oldPassword,
             token = authHeader(token)
         )
         call.enqueue(object : Callback<GenericResult<Void>> {

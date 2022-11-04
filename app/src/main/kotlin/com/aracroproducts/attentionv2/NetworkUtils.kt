@@ -3,7 +3,6 @@ package com.aracroproducts.attentionv2
 import com.google.gson.annotations.SerializedName
 import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import okio.BufferedSink
 import retrofit2.Call
@@ -129,13 +128,13 @@ interface APIV2 {
     @Multipart
     @PUT("edit/")
     fun editUser(
-            @Part("username") username: MultipartBody.Part?,
-            @Part("first_name") firstName: MultipartBody.Part?,
-            @Part("last_name") lastName: MultipartBody.Part?,
-            @Part("email") email: MultipartBody.Part?,
-            @Part("photo") photo: MultipartBody.Part?,
-            @Part("password") password: MultipartBody.Part?,
-            @Part("old_password") oldPassword: MultipartBody.Part?,
+            @Part("username") username: String?,
+            @Part("first_name") firstName: String?,
+            @Part("last_name") lastName: String?,
+            @Part("email") email: String?,
+            @Part("photo") photo: ProgressRequestBody?,
+            @Part("password") password: String?,
+            @Part("old_password") oldPassword: String?,
             @Header("Authorization") token: String
     ): Call<GenericResult<Void>>
 
@@ -185,7 +184,7 @@ progressUpdate: ((Float) -> Unit)?) : RequestBody() {
 
         try {
             for (i in 0..image.size step DEFAULT_BUFFER_SIZE) {
-                sink.write(image, i, DEFAULT_BUFFER_SIZE)
+                sink.write(image, i, min(DEFAULT_BUFFER_SIZE, image.size - i))
                 uploaded += min(DEFAULT_BUFFER_SIZE, image.size - i)
                 progressUpdate?.invoke((uploaded.toDouble() / image.size).toFloat())
             }
