@@ -52,6 +52,8 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -287,16 +289,16 @@ class SettingsActivity : AppCompatActivity() {
                         },
                         icon = {
                             Box(modifier = Modifier
-                                    .fillMaxSize()
-                                    .clip(CircleShape)
-                                    .clickable { // Launch the photo picker and allow the user to choose only images.
-                                        // https://developer.android.com/training/data-storage/shared/photopicker
-                                        pickMedia.launch(
-                                                PickVisualMediaRequest(
-                                                        ActivityResultContracts.PickVisualMedia.ImageOnly
-                                                )
+                                .fillMaxSize()
+                                .clip(CircleShape)
+                                .clickable { // Launch the photo picker and allow the user to choose only images.
+                                    // https://developer.android.com/training/data-storage/shared/photopicker
+                                    pickMedia.launch(
+                                        PickVisualMediaRequest(
+                                            ActivityResultContracts.PickVisualMedia.ImageOnly
                                         )
-                                    }) {
+                                    )
+                                }) {
                                 viewModel.photo?.let {
                                     Image(
                                             bitmap = it,
@@ -856,34 +858,27 @@ class SettingsActivity : AppCompatActivity() {
         }, title = {
             Text(text = getString(R.string.upload_pfp))
         }, text = {
+            val configuration = LocalConfiguration.current
+            val density = LocalDensity.current
             Column(
                     verticalArrangement = Arrangement.Top,
                     horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Box(contentAlignment = Alignment.Center,
+                BoxWithConstraints(contentAlignment = Alignment.Center,
                         modifier = Modifier
-                                .weight(1f, fill = false)
-                                .layout { measurable, constraints ->
-                                    val placeable = measurable.measure(constraints)
-                                    if (uri != null) {
-                                        lifecycleScope.launch {
-                                            bitmap = viewModel
-                                                    .getImageBitmap(
-                                                            uri, this@SettingsActivity,
-                                                            IntSize(constraints.maxWidth,
-                                                                    constraints.maxHeight),
-                                                            false
-                                                    )
-                                                    ?.asImageBitmap()
-                                        }
-                                    }
-                                    layout(placeable.width, placeable.height) {
-                                        placeable.place(0, 0)
-                                    }
-                                }
-                                .onGloballyPositioned {
-
-                                }) {
+                                .weight(1f, fill = false)) {
+                    LaunchedEffect(key1 = constraints, key2 = uri) {
+                        if (uri != null) {
+                                bitmap = viewModel
+                                    .getImageBitmap(
+                                        uri, this@SettingsActivity,
+                                        IntSize(if (constraints.hasBoundedWidth) constraints.maxWidth else with(density) {configuration.screenWidthDp.toPx().toInt()},
+                                                constraints.maxHeight),
+                                        false
+                                    )
+                                    ?.asImageBitmap()
+                            }
+                    }
                     Crossfade(targetState = uploading,
                             animationSpec = TweenSpec(FADE_DURATION, 0,
                                     EaseInOutCubic)) { targetState ->
