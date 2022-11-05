@@ -43,11 +43,13 @@ import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.platform.LocalConfiguration
@@ -59,6 +61,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -814,6 +817,7 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
+    @OptIn(ExperimentalComposeUiApi::class)
     @Composable
     fun UploadDialog(
             uploading: Boolean,
@@ -860,7 +864,7 @@ class SettingsActivity : AppCompatActivity() {
             Column(
                     verticalArrangement = Arrangement.Top,
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.fillMaxHeight()
+                    modifier = Modifier
             ) {
                 BoxWithConstraints(contentAlignment = Alignment.Center,
                         modifier = Modifier
@@ -889,12 +893,13 @@ class SettingsActivity : AppCompatActivity() {
                             true -> {
                                 bitmap?.let {
                                     Image(
-                                            bitmap = it,
-                                            contentDescription = getString(
+                                        bitmap = it,
+                                        contentScale = ContentScale.Fit,
+                                        contentDescription = getString(
                                                     R.string.your_pfp_description
                                             ),
-                                            modifier = Modifier.fillMaxSize(),
-                                            colorFilter = ColorFilter.tint(
+                                        modifier = Modifier,
+                                        colorFilter = ColorFilter.tint(
                                                     Color(
                                                             UPLOAD_GRAY_INTENSITY,
                                                             UPLOAD_GRAY_INTENSITY,
@@ -912,7 +917,8 @@ class SettingsActivity : AppCompatActivity() {
                                     Image(
                                             bitmap = it, contentDescription = getString(
                                             R.string.your_pfp_description
-                                    ), modifier = Modifier.fillMaxSize()
+                                    ), modifier = Modifier,
+                                            contentScale = ContentScale.Fit,
                                     )
                                 }
                             }
@@ -926,7 +932,9 @@ class SettingsActivity : AppCompatActivity() {
                         style = MaterialTheme.typography.titleMedium
                 )
             }
-        })
+        },
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+        )
     }
 
     @Composable
