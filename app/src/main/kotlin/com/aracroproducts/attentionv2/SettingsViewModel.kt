@@ -7,7 +7,6 @@ import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
-import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -86,8 +85,6 @@ class SettingsViewModel(private val repository: AttentionRepository, application
                 ImageDecoder.decodeBitmap(
                     ImageDecoder.createSource(context.contentResolver, uri)
                 ) { decoder, info, _ ->
-                    Log.e(this::javaClass.name, "SIZES: ${info.size} $size")
-
                     var s = min(size.width.toDouble() / info.size.width, size
                             .height.toDouble() / info.size.height)
                     if (minSize) s = min(s, 1.0)
