@@ -169,6 +169,7 @@ class SettingsActivity : AppCompatActivity() {
                 uploading = viewModel.uploading,
                 uploadStatus = viewModel.uploadStatus,
                 shouldRetry = viewModel.shouldRetryUpload,
+                uploadSuccess = viewModel.uploadSuccess,
                 uploadProgress = viewModel.uploadProgress,
                 onCancel = viewModel.onCancel,
                 dismissDialog = { viewModel.uploadDialog = false },
@@ -843,6 +844,7 @@ class SettingsActivity : AppCompatActivity() {
         uploading: Boolean,
         uploadStatus: String,
         shouldRetry: Boolean,
+        uploadSuccess: Boolean?,
         uploadProgress: Float,
         onCancel: (() -> Unit)?,
         dismissDialog: () -> Unit,
@@ -962,6 +964,12 @@ class SettingsActivity : AppCompatActivity() {
                                             .clip(RoundedCornerShape(12.dp)),
                                         contentScale = ContentScale.Fit,
                                     )
+                                }
+                                androidx.compose.animation.AnimatedVisibility(visible =
+                                                                           uploadSuccess != null) {
+                                    Box {
+
+                                    }
                                 }
                             }
                         }

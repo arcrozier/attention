@@ -41,6 +41,7 @@ class SettingsViewModel(private val repository: AttentionRepository, application
 
     var uploadDialog by mutableStateOf(false)
     var uploadStatus by mutableStateOf("")
+    var uploadSuccess: Boolean? by mutableStateOf(null)
     var shouldRetryUpload by mutableStateOf(false)
     var onCancel: (() -> Unit)? by mutableStateOf(null)
     var uri: Uri? by mutableStateOf(null)
@@ -161,6 +162,7 @@ class SettingsViewModel(private val repository: AttentionRepository, application
                     onCancel = null
                     uploading = false
                     if (response.isSuccessful) {
+                        uploadSuccess = true
                         uploadStatus = context.getString(R.string.uploaded)
                         viewModelScope.launch(Dispatchers.IO) {
                             val bitmap = getImageBitmap(uri, context, ICON_SIZE, false)
@@ -172,6 +174,7 @@ class SettingsViewModel(private val repository: AttentionRepository, application
                             photo = bitmap?.asImageBitmap()
                         }
                     } else {
+                        uploadSuccess = false
                         when (response.code()) {
                             400 -> {
                                 shouldRetryUpload = false
@@ -205,6 +208,7 @@ class SettingsViewModel(private val repository: AttentionRepository, application
                     }
                     uploadLock.unlock()
                 }, errorListener = { _, _ ->
+                    uploadSuccess = false
                     shouldRetryUpload = true
                     uploadStatus = context.getString(
                         R.string.upload_failed, context.getString(
