@@ -1462,7 +1462,7 @@ class SettingsActivity : AppCompatActivity() {
         const val TEMP_PFP = "${MainViewModel.PFP_FILENAME}_temp"
         const val UPLOAD_GRAY_INTENSITY = 0.5f
         const val FADE_DURATION = 500
-        const val STATUS_DELAY: Long = 2000
+        const val STATUS_DELAY: Long = 5000
 
         private fun launchLogin(context: Context) {
             val loginIntent = Intent(context, LoginActivity::class.java)
