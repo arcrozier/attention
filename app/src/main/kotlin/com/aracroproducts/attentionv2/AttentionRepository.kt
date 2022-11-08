@@ -6,6 +6,7 @@ import kotlinx.coroutines.launch
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.io.InputStream
 import java.util.*
 import kotlin.concurrent.thread
 
@@ -313,7 +314,7 @@ class AttentionRepository(private val database: AttentionDB) {
         username: String? = null,
         firstName: String? = null,
         lastName: String? = null,
-        photo: ByteArray? = null,
+        photo: InputStream? = null,
         password: String? = null,
         oldPassword: String? = null,
         email: String? = null,
@@ -330,7 +331,7 @@ class AttentionRepository(private val database: AttentionDB) {
             email = email,
             photo = photo?.let {
                 ProgressRequestBody(
-                        photo, "", uploadCallbacks
+                        photo, "image", uploadCallbacks
                     )
             },
             password = password,
@@ -348,6 +349,7 @@ class AttentionRepository(private val database: AttentionDB) {
             override fun onResponse(
                 call: Call<GenericResult<Void>>, response: Response<GenericResult<Void>>
             ) {
+                photo?.close()
                 val responseErrorBody = response.errorBody()?.string()
                 if (!response.isSuccessful) printNetworkError(response, call, responseErrorBody)
                 responseListener?.invoke(call, response, responseErrorBody)
@@ -358,6 +360,7 @@ class AttentionRepository(private val database: AttentionDB) {
              * exception occurred creating the request or processing the response.
              */
             override fun onFailure(call: Call<GenericResult<Void>>, t: Throwable) {
+                photo?.close()
                 Log.e(javaClass.name, t.stackTraceToString())
                 errorListener?.invoke(call, t)
             }

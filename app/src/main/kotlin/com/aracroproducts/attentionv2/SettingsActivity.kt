@@ -1020,7 +1020,8 @@ class SettingsActivity : AppCompatActivity() {
                 Text(
                     text = uploadStatus,
                     textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (uploadSuccess == false) MaterialTheme.colorScheme.error else Color.Unspecified
                 )
             }
         }, properties = DialogProperties(usePlatformDefaultWidth = false)

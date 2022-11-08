@@ -23,9 +23,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.FileNotFoundException
 import java.io.FileOutputStream
+import java.io.InputStream
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.math.min
 
@@ -76,20 +77,22 @@ class SettingsViewModel(private val repository: AttentionRepository, application
     }
 
     suspend fun getImageBitmap(
-        uri: Uri,
-        context: Context,
-        size: IntSize,
-        minSize: Boolean
+        uri: Uri, context: Context, size: IntSize, minSize: Boolean
     ): Bitmap? {
         val job = viewModelScope.async(Dispatchers.IO) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 ImageDecoder.decodeBitmap(
                     ImageDecoder.createSource(context.contentResolver, uri)
                 ) { decoder, info, _ ->
-                    var s = min(size.width.toDouble() / info.size.width, size
-                            .height.toDouble() / info.size.height)
+                    var s = min(
+                        size.width.toDouble() / info.size.width,
+                        size.height.toDouble() / info.size.height
+                    )
                     if (minSize) s = min(s, 1.0)
-                    decoder.setTargetSize((info.size.width * s).toInt(), (info.size.height * s).toInt())
+                    decoder.setTargetSize(
+                        (info.size.width * s).toInt(),
+                        (info.size.height * s).toInt()
+                    )
                 }
             } else {
                 BitmapFactory.Options().run {
@@ -140,14 +143,14 @@ class SettingsViewModel(private val repository: AttentionRepository, application
             ).getString(MainViewModel.MY_TOKEN, null)
             if (token != null) {
                 uploadStatus = context.getString(R.string.processing)
-                val bytes = ByteArrayOutputStream().run {
-                    getImageBitmap(uri, context, UPLOAD_SIZE, true)?.compress(
-                        Bitmap.CompressFormat.PNG, 100, this
-                    )
-                    if (this.size() != 0) this.toByteArray()
-                    else null
+                val image: InputStream? = try {
+                    context.contentResolver.openInputStream(uri)
+                } catch (e: FileNotFoundException) {
+                    null
                 }
-                if (bytes == null) {
+                if (image == null) {
+                    uploadSuccess = false
+                    uploading = false
                     uploadStatus = context.getString(
                         R.string.upload_failed, context.getString(
                             R.string.no_file
@@ -157,69 +160,77 @@ class SettingsViewModel(private val repository: AttentionRepository, application
                 } else {
                     uploadStatus = context.getString(R.string.uploading)
                 }
-                val call = repository.editUser(photo = bytes, token = token, responseListener = {
-                        _, response, _ ->
-                    onCancel = null
-                    uploading = false
-                    if (response.isSuccessful) {
-                        uploadSuccess = true
-                        uploadStatus = context.getString(R.string.uploaded)
-                        viewModelScope.launch(Dispatchers.IO) {
-                            val bitmap = getImageBitmap(uri, context, ICON_SIZE, false)
-                            val file = File(context.filesDir, PFP_FILENAME).apply {
-                                createNewFile()
+                val call = repository.editUser(
+                    photo = image,
+                    token = token,
+                    responseListener = { _, response, _ ->
+                        onCancel = null
+                        uploading = false
+                        if (response.isSuccessful) {
+                            uploadSuccess = true
+                            uploadStatus = context.getString(R.string.uploaded)
+                            viewModelScope.launch(Dispatchers.IO) {
+                                val bitmap = getImageBitmap(uri, context, ICON_SIZE, false)
+                                val file = File(context.filesDir, PFP_FILENAME).apply {
+                                    createNewFile()
+                                }
+                                val output = FileOutputStream(file)
+                                bitmap?.compress(Bitmap.CompressFormat.PNG, 100, output)
+                                photo = bitmap?.asImageBitmap()
                             }
-                            val output = FileOutputStream(file)
-                            bitmap?.compress(Bitmap.CompressFormat.PNG, 100, output)
-                            photo = bitmap?.asImageBitmap()
+                        } else {
+                            uploadSuccess = false
+                            when (response.code()) {
+                                400 -> {
+                                    shouldRetryUpload = false
+                                    uploadStatus = context.getString(
+                                        R.string.upload_failed,
+                                        context.getString(R.string.invalid_photo)
+                                    )
+                                }
+                                403 -> {
+                                    uploadDialog = false
+                                    launchLogin()
+                                }
+                                413 -> {
+                                    shouldRetryUpload = false
+                                    uploadStatus = context.getString(
+                                        R.string.upload_failed,
+                                        context.getString(R.string.photo_too_large)
+                                    )
+                                }
+                                429 -> {
+                                    shouldRetryUpload = true
+                                    uploadStatus = context.getString(
+                                        R.string.upload_failed,
+                                        context.getString(R.string.rate_limited)
+                                    )
+                                }
+                                else -> {
+                                    shouldRetryUpload = true
+                                    uploadStatus = context.getString(
+                                        R.string.upload_failed,
+                                        context.getString(R.string.server_error)
+                                    )
+                                }
+                            }
                         }
-                    } else {
+                        uploadLock.unlock()
+                    },
+                    errorListener = { _, _ ->
                         uploadSuccess = false
-                        when (response.code()) {
-                            400 -> {
-                                shouldRetryUpload = false
-                                uploadStatus = context.getString(R.string.upload_failed,
-                                        context.getString(R.string.invalid_photo))
-                            }
-                            403 -> {
-                                uploadDialog = false
-                                launchLogin()
-                            }
-                            413 -> {
-                                shouldRetryUpload = false
-                                uploadStatus = context.getString(R.string.upload_failed, context
-                                        .getString(R.string.photo_too_large))
-                            }
-                            429 -> {
-                                shouldRetryUpload = true
-                                uploadStatus = context.getString(
-                                    R.string.upload_failed,
-                                    context.getString(R.string.rate_limited)
-                                )
-                            }
-                            else -> {
-                                shouldRetryUpload = true
-                                uploadStatus = context.getString(
-                                    R.string.upload_failed,
-                                    context.getString(R.string.server_error)
-                                )
-                            }
-                        }
-                    }
-                    uploadLock.unlock()
-                }, errorListener = { _, _ ->
-                    uploadSuccess = false
-                    shouldRetryUpload = true
-                    uploadStatus = context.getString(
-                        R.string.upload_failed, context.getString(
-                            R.string.connection_error
+                        shouldRetryUpload = true
+                        uploadStatus = context.getString(
+                            R.string.upload_failed, context.getString(
+                                R.string.connection_error
+                            )
                         )
-                    )
-                    onCancel = null
-                    uploadLock.unlock()
-                }, uploadCallbacks = {
-                    uploadProgress = it
-                })
+                        onCancel = null
+                        uploadLock.unlock()
+                    },
+                    uploadCallbacks = {
+                        uploadProgress = it
+                    })
                 onCancel = {
                     call.cancel()
                     uploadLock.unlock()
@@ -234,7 +245,6 @@ class SettingsViewModel(private val repository: AttentionRepository, application
     }
 
     companion object {
-        val UPLOAD_SIZE = IntSize(1000, 1000)
         val ICON_SIZE = IntSize(128, 128)
     }
 }
