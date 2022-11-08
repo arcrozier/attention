@@ -3,6 +3,7 @@ package com.aracroproducts.attentionv2
 import com.google.gson.annotations.SerializedName
 import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import okio.BufferedSink
 import retrofit2.Call
@@ -126,7 +127,7 @@ interface APIV2 {
         @Part("first_name") firstName: String?,
         @Part("last_name") lastName: String?,
         @Part("email") email: String?,
-        @Part("photo") photo: ProgressRequestBody?,
+        @Part photo: MultipartBody.Part?,
         @Part("password") password: String?,
         @Part("old_password") oldPassword: String?,
         @Header("Authorization") token: String

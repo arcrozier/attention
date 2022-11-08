@@ -3,6 +3,7 @@ package com.aracroproducts.attentionv2
 import android.util.Log
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
+import okhttp3.MultipartBody
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -330,9 +331,9 @@ class AttentionRepository(private val database: AttentionDB) {
             lastName = lastName,
             email = email,
             photo = photo?.let {
-                ProgressRequestBody(
+                MultipartBody.Part.createFormData("photo", "pfp", ProgressRequestBody(
                         photo, "image", uploadCallbacks
-                    )
+                    ))
             },
             password = password,
             oldPassword = oldPassword,
