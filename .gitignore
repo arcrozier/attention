@@ -33,6 +33,7 @@ workspace-SPECTREx360.xml
 .idea/**/dynamic.xml
 .idea/**/uiDesigner.xml
 .idea/**/dbnavigator.xml
+.idea/**/deploymentTargetDropDown.xml
 
 # Gradle
 .idea/**/gradle.xml
