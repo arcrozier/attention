@@ -5,6 +5,7 @@ import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
@@ -59,7 +60,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.layout
@@ -691,7 +691,10 @@ class MainActivity : AppCompatActivity() {
                     Friend(
                         username, it
                     ), responseListener = { _, response ->
-                        if (response.isSuccessful) friendModel.popDialogState()
+                        if (response.isSuccessful) {
+                            friendModel.popDialogState()
+                            reload()
+                        }
                     }, launchLogin = this::launchLogin
                 )
             }, launchLogin = ::launchLogin)
@@ -846,7 +849,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        var imageBitmap: ImageBitmap? by rememberSaveable {
+        var imageBitmap: Bitmap? by rememberSaveable {
             mutableStateOf(null)
         }
 
@@ -855,7 +858,6 @@ class MainActivity : AppCompatActivity() {
                 launch(context = Dispatchers.Default) {
                     val imageDecoded = Base64.decode(friend.photo, Base64.DEFAULT)
                     imageBitmap = BitmapFactory.decodeByteArray(imageDecoded, 0, imageDecoded.size)
-                        .asImageBitmap()
                 }
             }
         }
@@ -880,30 +882,34 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-        Box(modifier = modifier
-            .fillMaxWidth(1F)
-            .padding(10.dp)
-            .requiredHeight(48.dp)
-            .combinedClickable(
-                onClick = {
-                onStateChange(
-                    when (state) {
-                        State.NORMAL -> State.CONFIRM
-                        State.CONFIRM, State.CANCEL, State.EDIT -> State.NORMAL
-                    }
+        Box(
+            modifier = modifier
+                .fillMaxWidth(1F)
+                .padding(10.dp)
+                .requiredHeight(48.dp)
+                .combinedClickable(
+                    onClick = {
+                        onStateChange(
+                            when (state) {
+                                State.NORMAL -> State.CONFIRM
+                                State.CONFIRM, State.CANCEL, State.EDIT -> State.NORMAL
+                            }
+                        )
+                    },
+                    onClickLabel = getString(R.string.friend_card_click_label),
+                    onLongClick = {
+                        onStateChange(
+                            when (state) {
+                                State.NORMAL -> State.EDIT
+                                else -> state
+                            }
+                        )
+                        onLongPress()
+                    },
+                    onLongClickLabel = getString(R.string.friend_card_long_click_label),
+                    interactionSource = interactionSource,
+                    indication = LocalIndication.current,
                 )
-            }, onClickLabel = getString(R.string.friend_card_click_label), onLongClick = {
-                onStateChange(
-                    when (state) {
-                        State.NORMAL -> State.EDIT
-                        else -> state
-                    }
-                )
-                onLongPress()
-            }, onLongClickLabel = getString(R.string.friend_card_long_click_label),
-                interactionSource = interactionSource,
-                indication = LocalIndication.current,
-            )
         ) {
             Row(horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.CenterVertically,
@@ -914,7 +920,7 @@ class MainActivity : AppCompatActivity() {
                     .semantics(mergeDescendants = true) {}) {
                 imageBitmap?.let {
                     Image(
-                        bitmap = it,
+                        bitmap = it.asImageBitmap(),
                         contentDescription = getString(R.string.pfp_description, friend.name),
                         modifier = Modifier
                             .size(40.dp)
@@ -990,8 +996,7 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 enterTransition with exitTransition
-            },
-            modifier = Modifier.centerAt(x = loc)) { targetState ->
+            }, modifier = Modifier.centerAt(x = loc)) { targetState ->
                 if (transition.currentState == transition.targetState) {
                     animating = false
                 }
@@ -1184,19 +1189,31 @@ class MainActivity : AppCompatActivity() {
          * more about the layout modifier can be found here:
          * https://developer.android.com/jetpack/compose/layouts/custom
          */
-        fun Modifier.centerAt(x: Float = Float.NaN, y: Float = Float.NaN) = layout { measurable,
-                                                                             constraints ->
-            val placeable = measurable.measure(constraints)
-            val xPos = if (x.isNaN()) (constraints.maxWidth - placeable.width) / 2
-            else max(0, min((x - placeable.width.toFloat() / 2).toInt(), constraints.maxWidth - placeable.width))
-            val yPos = if (y.isNaN()) ((constraints.maxHeight - placeable.height) / 2)
-            else max(0, min((y - placeable.height.toFloat() / 2).toInt(), constraints.maxHeight - placeable.height))
-            layout(placeable.width, placeable.height) {
-                placeable.placeRelative(
-                    xPos,
-                    yPos)
-            }
+        fun Modifier.centerAt(x: Float = Float.NaN, y: Float = Float.NaN) =
+            layout { measurable, constraints ->
+                val placeable = measurable.measure(constraints)
+                val xPos = if (x.isNaN()) (constraints.maxWidth - placeable.width) / 2
+                else max(
+                    0,
+                    min(
+                        (x - placeable.width.toFloat() / 2).toInt(),
+                        constraints.maxWidth - placeable.width
+                    )
+                )
+                val yPos = if (y.isNaN()) ((constraints.maxHeight - placeable.height) / 2)
+                else max(
+                    0,
+                    min(
+                        (y - placeable.height.toFloat() / 2).toInt(),
+                        constraints.maxHeight - placeable.height
+                    )
+                )
+                layout(placeable.width, placeable.height) {
+                    placeable.placeRelative(
+                        xPos, yPos
+                    )
+                }
 
-        }
+            }
     }
 }
