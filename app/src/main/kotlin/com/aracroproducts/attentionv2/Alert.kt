@@ -134,6 +134,7 @@ class Alert : AppCompatActivity() {
         })
     }
 
+    // TODO this doesn't work
     @Composable
     fun timeSince(since: Calendar): String {
         var value by remember { mutableStateOf(durationToMinimalDisplay(since)) }
