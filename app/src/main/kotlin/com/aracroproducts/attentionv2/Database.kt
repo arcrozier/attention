@@ -9,7 +9,7 @@ import com.google.gson.annotations.SerializedName
 class Converters {
     @TypeConverter
     fun toMessageStatus(value: String?): MessageStatus? {
-        if (value != null) return enumValueOf<MessageStatus>(value)
+        if (value != null) return MessageStatus.messageStatusForValue(value)
         return null
     }
 
@@ -86,7 +86,16 @@ enum class MessageStatus(val value: String) {
     DELIVERED("Delivered"),
 
     @SerializedName("Read")
-    READ("Read")
+    READ("Read");
+
+    companion object {
+
+        fun messageStatusForValue(value: String): MessageStatus? {
+            return values().find { status ->
+                status.value == value
+            }
+        }
+    }
 }
 
 @Dao

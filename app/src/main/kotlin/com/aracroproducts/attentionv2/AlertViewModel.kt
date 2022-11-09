@@ -62,7 +62,6 @@ class AlertViewModel(
                 return
             }
             val context = getApplication<Application>()
-            Log.d(sTAG, "Vibrating device")
             val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 val vibratorManager =
                     context.getSystemService(AppCompatActivity.VIBRATOR_MANAGER_SERVICE) as VibratorManager

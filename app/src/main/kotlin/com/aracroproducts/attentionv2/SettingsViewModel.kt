@@ -219,6 +219,7 @@ class SettingsViewModel(private val repository: AttentionRepository, application
                     },
                     errorListener = { _, _ ->
                         uploadSuccess = false
+                        uploading = false
                         shouldRetryUpload = true
                         uploadStatus = context.getString(
                             R.string.upload_failed, context.getString(

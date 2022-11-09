@@ -5,8 +5,6 @@ import android.app.NotificationManager
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.provider.Settings
 import android.util.Log
 import androidx.activity.compose.setContent
@@ -15,16 +13,18 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.AnnotatedString
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.aracroproducts.attentionv2.LoginActivity.Companion.LIST_ELEMENT_PADDING
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
 import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
+import kotlinx.coroutines.delay
 import java.text.DateFormat
 import java.time.Duration
 import java.time.Instant
@@ -80,6 +80,7 @@ class Alert : AppCompatActivity() {
 
         Log.d(sTAG, "Dialog opened")
         alertModel.startPrompting()
+        Log.d(sTAG, "${alertModel.timestamp} ${System.currentTimeMillis()}")
     }
 
     @Composable
@@ -123,33 +124,30 @@ class Alert : AppCompatActivity() {
         }, title = { Text(getString(R.string.alert_title)) }, text = {
             Column {
                 Text(message)
+                Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
                 Text(
-                        timeSince(since = Calendar.getInstance().apply {
-                            timeInMillis = alertModel.timestamp
-                        }), color = MaterialTheme.colorScheme.onSurface.copy(
+                    timeSince(since = Calendar.getInstance().apply {
+                        timeInMillis = alertModel.timestamp
+                    }), color = MaterialTheme.colorScheme.onSurface.copy(
                         alpha = ContentAlpha.medium
-                )
+                    )
                 )
             }
         })
     }
 
-    // TODO this doesn't work
     @Composable
     fun timeSince(since: Calendar): String {
         var value by remember { mutableStateOf(durationToMinimalDisplay(since)) }
-
-        DisposableEffect(Unit) {
-            val handler = Handler(Looper.getMainLooper())
-
-            val runnable = {
+        Log.d(Alert::class.java.name, since.toString())
+        LaunchedEffect(Unit) {
+            while (true) {
+                // we never need to recompose
+                if (value.second == -1L) {
+                    break
+                }
+                delay(value.second)
                 value = durationToMinimalDisplay(since)
-            }
-
-            handler.postDelayed(runnable, value.second)
-
-            onDispose {
-                handler.removeCallbacks(runnable)
             }
         }
 
@@ -208,7 +206,7 @@ class Alert : AppCompatActivity() {
                             getString(
                                     R.string.sent_on,
                                     DateFormat.getDateTimeInstance().format(since.time)
-                            ), Long.MAX_VALUE
+                            ), -1
                     ) // This value will never change (unless the user changes their timezone, which
                     // probably wouldn't happen without the app getting recomposed?)
                 }
@@ -220,7 +218,7 @@ class Alert : AppCompatActivity() {
             return Pair(
                     getString(
                             R.string.sent_on, DateFormat.getDateTimeInstance().format(since.time)
-                    ), Long.MAX_VALUE
+                    ), -1
             )
         }
     }
