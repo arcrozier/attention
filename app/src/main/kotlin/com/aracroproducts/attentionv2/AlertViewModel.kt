@@ -24,10 +24,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.preference.PreferenceManager
 
 class AlertViewModel(
-    intent: Intent, private val attentionRepository: AttentionRepository,
-    application: Application
-) :
-    AndroidViewModel(application) {
+    intent: Intent, private val attentionRepository: AttentionRepository, application: Application
+) : AndroidViewModel(application) {
 
     var silenced: Boolean by mutableStateOf(
         !intent.getBooleanExtra(AlertHandler.SHOULD_VIBRATE, true)
@@ -37,11 +35,11 @@ class AlertViewModel(
     var message by mutableStateOf(
         AnnotatedString(
             intent.getStringExtra(
-                AlertHandler
-                    .REMOTE_MESSAGE
+                AlertHandler.REMOTE_MESSAGE
             ) ?: ""
         )
     )
+    val timestamp = intent.getLongExtra(AlertHandler.ALERT_TIMESTAMP, System.currentTimeMillis())
     var showDNDButton by mutableStateOf(false)
     val id = intent.getIntExtra(AlertHandler.ASSOCIATED_NOTIFICATION, NO_ID)
     val alertId = intent.getStringExtra(AlertHandler.ALERT_ID) ?: ""
@@ -50,8 +48,8 @@ class AlertViewModel(
 
 
     private val ringtone = RingtoneManager.getRingtone(
-        getApplication(), RingtoneManager
-            .getActualDefaultRingtoneUri(getApplication(), RingtoneManager.TYPE_RINGTONE)
+        getApplication(),
+        RingtoneManager.getActualDefaultRingtoneUri(getApplication(), RingtoneManager.TYPE_RINGTONE)
     ).apply {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) volume = 1.0f
     }
@@ -64,11 +62,9 @@ class AlertViewModel(
                 return
             }
             val context = getApplication<Application>()
-            Log.d(sTAG, "Vibrating device")
             val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 val vibratorManager =
-                    context.getSystemService(AppCompatActivity.VIBRATOR_MANAGER_SERVICE)
-                            as VibratorManager
+                    context.getSystemService(AppCompatActivity.VIBRATOR_MANAGER_SERVICE) as VibratorManager
                 vibratorManager.defaultVibrator
             } else {
                 context.getSystemService(AppCompatActivity.VIBRATOR_SERVICE) as Vibrator
@@ -76,8 +72,7 @@ class AlertViewModel(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 vibrator.vibrate(
                     VibrationEffect.createOneShot(
-                        400,
-                        MAX_AMPLITUDE
+                        400, MAX_AMPLITUDE
                     )
                 )
             } else {
@@ -97,8 +92,7 @@ class AlertViewModel(
             val vibrate =
                 settings.getStringSet(context.getString(R.string.vibrate_preference_key), HashSet())
             val ring = settings.getStringSet(
-                context.getString(R.string.ring_preference_key),
-                HashSet()
+                context.getString(R.string.ring_preference_key), HashSet()
             )
 
             if (ring != null) ring(ring)
@@ -127,10 +121,7 @@ class AlertViewModel(
         }
 
         attentionRepository.sendReadReceipt(
-            from = fromUsername,
-            alertId = alertId,
-            fcmToken = fcmToken,
-            authToken = token
+            from = fromUsername, alertId = alertId, fcmToken = fcmToken, authToken = token
         )
     }
 
@@ -159,8 +150,7 @@ class AlertViewModel(
                         val end = this.length - 1
                         addStyle(
                             SpanStyle(
-                                fontStyle = FontStyle.Italic, fontWeight = FontWeight
-                                    .Light
+                                fontStyle = FontStyle.Italic, fontWeight = FontWeight.Light
                             ), start, end
                         )
                     }
@@ -230,8 +220,7 @@ class AlertViewModel(
         intent.putExtra("alert_message", message)
         intent.putExtra("alert_from", from)
         val pendingIntent = PendingIntent.getActivity(
-            context, 0, intent, PendingIntent
-                .FLAG_IMMUTABLE
+            context, 0, intent, PendingIntent.FLAG_IMMUTABLE
         )
 
         AlertHandler.createMissedNotificationChannel(context)

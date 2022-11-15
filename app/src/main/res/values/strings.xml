@@ -3,6 +3,8 @@
     <string name="action_settings">Settings</string>
     <!-- Strings used for fragments for navigation -->
 
+    <string name="pfp_description">Profile photo for %1$s</string>
+    <string name="your_pfp_description">Your profile photo</string>
     <string name="username">Username</string>
     <string name="no_username">Not found</string>
     <string name="show_password">Show password</string>
@@ -25,34 +27,58 @@
         name</string>
     <string name="create_user">Create account</string>
     <string name="login">Log in</string>
+    <string name="create_user_title">Create Account</string>
+    <string name="choose_username_title">Choose Username</string>
+    <string name="change_password_title">Change Password</string>
+    <string name="link_account_title">Link Google Account</string>
+    <string name="link_account_warning">Warning: this cannot be undone</string>
+    <string name="login_title">Log In</string>
+    <string name="sign_in_w_google">Sign in with Google</string>
+    <string name="google_logo">Google logo</string>
     <string name="first_name">First name</string>
     <string name="last_name">Last name</string>
     <string name="email">Email</string>
     <string name="confirm_password">Confirm password</string>
     <string name="change_password">Change password</string>
+    <string name="choose_username">Choose username</string>
     <string name="tos_agree">I have read and agree to the <annotation url="tos">terms of service</annotation></string>
     <string name="wrong_password">Invalid username or password</string>
+    <string name="google_sign_in_failed">Unable to log in with Google</string>
     <string name="password_validation_failed">Password must be at least 8 characters</string>
     <string name="new_password">New password…</string>
     <string name="password_verification_failed">Couldn\'t verify old password. Please login
     again and then try changing your password</string>
+    <string name="rate_limited">Too many requests. Please try again later</string>
     <string name="mysterious_password_change_login_issue">"An unusual error occurred when attempting to change your password. This could be a server-side error or a result of on-device data being corrupted and, unfortunately, we aren't sure what your password is now. Try logging in with your new password and if that doesn't work, your old password. You can also contact Aracro Products at support@aracroproducts.com for help with getting back into your account. We apologize for the inconvenience."</string>
     <string name="password_updated">Password was updated successfully</string>
     <string name="username_in_use">Username is taken</string>
     <string name="invalid_email">Email is invalid. Enter a valid email or leave blank</string>
     <string name="invalid_username">Enter a valid username. This value may contain only English
         letters, numbers, and @/./+/-/_ characters.</string>
+    <string name="invalid_photo">Invalid photo. Photo should be less than 20 MB and a valid
+    image format</string>
+    <string name="photo_too_large">Photo is too large (must not exceed 179 megapixels)</string>
     <string name="account">Account</string>
     <string name="network_error">An error occurred when connecting to server. Please try
         again later</string>
+    <string name="no_friends">You don\'t have any friends - use the \'+\' button to add
+        some!</string>
     <string name="connection_error">Unable to connect to the server. Check your internet
         connection and try again</string>
     <string name="unknown_error">An unknown error occurred</string>
     <string name="server_error">The server encountered an error. Please be patient as we
         work to fix it</string>
+    <string name="upload_pfp">Upload Profile Photo</string>
     <string name="sharing">Sharing data; tap \"add message\" on a friend to edit and send</string>
     <string name="saving">Saving…</string>
+    <string name="uploading">Uploading…</string>
+    <string name="processing">Processing file…</string>
+    <string name="no_file">File not found. Please try again</string>
+    <string name="upload_failed">Unable to upload: %1$s</string>
+    <string name="retry">Retry</string>
     <string name="saved">Saved</string>
+    <string name="uploaded">Image was successfully uploaded</string>
+    <string name="share">Share</string>
     <string name="share_text">Add me on Attention!
         https://attention.aracroproducts.com/app/add?username=%s</string>
     <string name="name_dialog_title">Please enter your name</string>
@@ -64,11 +90,15 @@
     <string name="message_hint">Enter message…</string>
     <string name="message_label">Custom message to %s</string>
     <string name="invalid_id">You did not enter a valid ID</string>
+    <string name="invalid_float">Please enter a valid number</string>
     <string name="alert_sent">Successfully sent alert</string>
     <string name="alert_failed">Failed to send</string>
     <string name="alert_failed_not_friend">Could not send alert because you are not %s\'s
         friend</string>
-    <string name="alert_failed_no_user">Could not send alert to %s because the user does         not exist</string>
+    <string name="alert_failed_no_user">Could not send alert to %s because the user does not
+        exist (refresh and try again)</string>
+    <string name="alert_rate_limited">You have sent too many messages. Please wait a few
+        seconds and tap to try again</string>
     <string name="alert_failed_bad_request">An error occurred while sending an alert to %s</string>
     <string name="alert_failed_server_error">The server encountered an error while sending an alert to %s</string>
     <string name="alert_failed_no_connection">Could not send alert %s. Check your network
@@ -79,6 +109,10 @@
     <string name="user_registered">Your device has been registered!</string>
     <string name="default_message">%s wants your attention!</string>
     <string name="message_prefix">%1$s says: %2$s</string>
+    <string name="seconds_ago">%1$d s ago</string>
+    <string name="minutes_ago">%1$d m ago</string>
+    <string name="sent_at">Sent at %1$s</string>
+    <string name="sent_on">Sent %1$s</string>
     <string name="silence">Silence</string>
 
     <string name="bad_add_link">Invalid link</string>
@@ -92,11 +126,11 @@
     <string name="confirm_delete_message">Are you sure you want to remove %s from your friends?</string>
     <string name="yes">Yes</string>
     <string name="add_friend">Add new friend</string>
+    <string name="link_account">Link Google Account</string>
 
     <string name="friend_card_click_label">choose from alert options</string>
     <string name="friend_card_long_click_label">edit or remove friend</string>
 
-    <string name="cancel">Cancel</string>
     <string name="delete">Delete</string>
     <string name="rename">Change name</string>
     <string name="new_name">Enter new name</string>
@@ -134,6 +168,12 @@
     <string name="app_preference_category">App</string>
 
     <!-- Notification Preferences -->
+    <string name="notification_rationale_title">Allow notification permissions?</string>
+    <string name="notification_rationale">This is allows Attention! to show notifications
+        when your friends want your attention. Without notification permission, the app
+        will not show pop-up dialogs when your friends message either. If you want just the
+        dialogs without the notifications, leave notification permissions disabled and enabled
+        "Override Do Not Disturb" in the app settings</string>
     <string name="override_dnd">Override Do Not Disturb</string>
     <string name="override_summary_off">Alerts won\'t be shown when Do Not Disturb is on</string>
     <string name="override_summary_on">Alerts will be shown even when Do Not Disturb is on</string>
@@ -168,13 +208,19 @@
         .last_name</string>
     <string name="password_key" translatable="false">com.aracroproducts.attention.key
         .password</string>
+    <string name="link_account_key" translatable="false">com.aracroproducts.attention.key
+        .link_account</string>
     <string name="alert_title">Attention!</string>
-    <string name="change_password_action"
-        translatable="false">com.aracroproducts.attention.action.change_password</string>
+    <string name="change_password_action" translatable="false">com.aracroproducts.attention.action.change_password</string>
+    <string name="link_account_action" translatable="false">com.aracroproducts.attention
+        .action.link_account</string>
+    <string name="reopen_failed_alert_action" translatable="false">com.aracroproducts
+        .attention.action.resend_alert</string>
     <string name="logout_key" translatable="false">com.aracroproducts.attention.key.logout</string>
     <string name="delay_key" translatable="false">com.aracroproducts.attention.key.delay</string>
+    <string name="client_id" translatable="false">357995852275-tcfjuvtbrk3c57t5gsuc9a9jdfdn137s.apps.googleusercontent.com</string>
 
     <!-- URLs -->
-    <string name="tos_url" translatable="false">https://aracroproducts.com/legal/tac/</string>
+    <string name="tos_url" translatable="false">https://aracroproducts.com/legal/tos/</string>
     <string name="privacy_policy_url" translatable="false">https://aracroproducts.com/legal/privacy-policy/attention/</string>
 </resources>

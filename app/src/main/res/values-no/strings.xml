@@ -97,7 +97,6 @@
     <string name="bad_add_link">Ugyldig lenk</string>
     <string name="confirm_logout_title">Logg av</string>
     <string name="confirm_logout_message">Er du sikker du vil logg av?</string>
-    <string name="cancel">Avbryt</string>
     <string name="save">Lagre</string>
     <string name="send">Send</string>
     <string name="back">Tilbake</string>

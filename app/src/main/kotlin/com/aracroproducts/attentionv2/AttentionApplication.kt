@@ -10,7 +10,7 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import com.google.android.material.color.DynamicColors
 
 class AttentionApplication : Application(), LifecycleEventObserver,
-        Application.ActivityLifecycleCallbacks {
+                             Application.ActivityLifecycleCallbacks {
     val database by lazy { AttentionDB.getDB(this) }
     val repository by lazy { AttentionRepository(database) }
     var activity: Activity? = null
@@ -25,7 +25,8 @@ class AttentionApplication : Application(), LifecycleEventObserver,
         var shownAlertID: String? = null
         fun isActivityVisible(): Boolean {
             return ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(
-                    Lifecycle.State.STARTED)
+                Lifecycle.State.STARTED
+            )
         }
     }
 
@@ -35,16 +36,13 @@ class AttentionApplication : Application(), LifecycleEventObserver,
      * @param source The source of the event
      * @param event The event
      */
-    override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
-        // do nothing
+    override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) { // do nothing
     }
 
-    override fun onActivityCreated(p0: Activity, p1: Bundle?) {
-        // do nothing
+    override fun onActivityCreated(p0: Activity, p1: Bundle?) { // do nothing
     }
 
-    override fun onActivityStarted(p0: Activity) {
-        // do nothing
+    override fun onActivityStarted(p0: Activity) { // do nothing
     }
 
     override fun onActivityResumed(p0: Activity) {
@@ -59,15 +57,12 @@ class AttentionApplication : Application(), LifecycleEventObserver,
         activity = null
     }
 
-    override fun onActivityStopped(p0: Activity) {
-        // do nothing
+    override fun onActivityStopped(p0: Activity) { // do nothing
     }
 
-    override fun onActivitySaveInstanceState(p0: Activity, p1: Bundle) {
-        // do nothing
+    override fun onActivitySaveInstanceState(p0: Activity, p1: Bundle) { // do nothing
     }
 
-    override fun onActivityDestroyed(p0: Activity) {
-        // do nothing
+    override fun onActivityDestroyed(p0: Activity) { // do nothing
     }
 }

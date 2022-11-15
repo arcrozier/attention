@@ -11,7 +11,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import com.aracroproducts.attentionv2.AppTypography
-import com.aracroproducts.attentionv2.ui.theme.*
 import com.google.android.material.color.ColorRoles
 import com.google.android.material.color.DynamicColors
 import com.google.android.material.color.MaterialColors
@@ -44,6 +43,7 @@ private val LightThemeColors = lightColorScheme(
         inverseOnSurface = md_theme_light_inverseOnSurface,
         inverseSurface = md_theme_light_inverseSurface,
         inversePrimary = md_theme_light_inversePrimary,
+        scrim = md_theme_light_scrim,
 )
 private val DarkThemeColors = darkColorScheme(
 
@@ -73,12 +73,12 @@ private val DarkThemeColors = darkColorScheme(
         inverseOnSurface = md_theme_dark_inverseOnSurface,
         inverseSurface = md_theme_dark_inverseSurface,
         inversePrimary = md_theme_dark_inversePrimary,
+        scrim = md_theme_dark_scrim,
 )
 
 @Composable
 fun AppTheme(
-        useDarkTheme: Boolean = isSystemInDarkTheme(),
-        content: @Composable() () -> Unit
+        useDarkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit
 ) {
     val colors = if (!useDarkTheme) {
         LightThemeColors
@@ -87,23 +87,38 @@ fun AppTheme(
     }
 
     MaterialTheme(
-            colorScheme = colors,
-            typography = AppTypography,
-            content = content
+            colorScheme = colors, typography = AppTypography, content = content
     )
 }
 
-data class CustomColor(val name: String, val color: Color, val harmonized: Boolean,
-                       var roles: ColorRoles)
+data class CustomColor(
+        val name: String, val color: Color, val harmonized: Boolean, var roles: ColorRoles
+)
 
-data class ExtendedColors(val colors: Array<CustomColor>)
+data class ExtendedColors(val colors: Array<CustomColor>) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as ExtendedColors
+
+        if (!colors.contentEquals(other.colors)) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return colors.contentHashCode()
+    }
+}
 
 
 fun setupErrorColors(colorScheme: ColorScheme, isLight: Boolean): ColorScheme {
-    val harmonizedError =
-            MaterialColors.harmonize(error.toArgb(), colorScheme.primary.toArgb())
-    val roles = MaterialColors.getColorRoles(harmonizedError, isLight)
-    //returns a colorScheme with newly harmonized error colors
+    val harmonizedError = MaterialColors.harmonize(error.toArgb(), colorScheme.primary.toArgb())
+    val roles = MaterialColors.getColorRoles(
+            harmonizedError,
+            isLight
+    ) //returns a colorScheme with newly harmonized error colors
     return colorScheme.copy(
             error = Color(roles.accent),
             onError = Color(roles.onAccent),
@@ -114,20 +129,18 @@ fun setupErrorColors(colorScheme: ColorScheme, isLight: Boolean): ColorScheme {
 
 val initializeExtended = ExtendedColors(
         arrayOf(
-        ))
+        )
+)
 
 fun setupCustomColors(
-        colorScheme: ColorScheme,
-        isLight: Boolean
+        colorScheme: ColorScheme, isLight: Boolean
 ): ExtendedColors {
-    initializeExtended.colors.forEach { customColor ->
-        // Retrieve record
-        val shouldHarmonize = customColor.harmonized
-        // Blend or not
+    initializeExtended.colors.forEach { customColor -> // Retrieve record
+        val shouldHarmonize = customColor.harmonized // Blend or not
         if (shouldHarmonize) {
-            val blendedColor =
-                    MaterialColors.harmonize(customColor.color.toArgb(),
-                            colorScheme.primary.toArgb())
+            val blendedColor = MaterialColors.harmonize(
+                    customColor.color.toArgb(), colorScheme.primary.toArgb()
+            )
             customColor.roles = MaterialColors.getColorRoles(blendedColor, isLight)
         } else {
             customColor.roles = MaterialColors.getColorRoles(customColor.color.toArgb(), isLight)
@@ -159,11 +172,8 @@ fun HarmonizedTheme(
     val extendedColors = setupCustomColors(colors, !useDarkTheme)
     CompositionLocalProvider(LocalExtendedColors provides extendedColors) {
         MaterialTheme(
-                colorScheme = colorsWithHarmonizedError,
-                typography = AppTypography,
+                colorScheme = colorsWithHarmonizedError, typography = AppTypography,
                 content = content
         )
     }
 }
-
-object Extended

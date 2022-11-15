@@ -9,7 +9,7 @@ import com.google.gson.annotations.SerializedName
 class Converters {
     @TypeConverter
     fun toMessageStatus(value: String?): MessageStatus? {
-        if (value != null) return enumValueOf<MessageStatus>(value)
+        if (value != null) return MessageStatus.messageStatusForValue(value)
         return null
     }
 
@@ -21,8 +21,7 @@ class Converters {
 }
 
 @Database(
-        version = DB_V2,
-        entities = [Friend::class, Message::class, CachedFriend::class]
+    version = DB_V2, entities = [Friend::class, Message::class, CachedFriend::class]
 )
 abstract class AttentionDB : RoomDatabase() {
 
@@ -42,12 +41,9 @@ abstract class AttentionDB : RoomDatabase() {
         fun getDB(context: Context): AttentionDB {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
-                        context.applicationContext,
-                        AttentionDB::class.java,
-                        DB_NAME
+                    context.applicationContext, AttentionDB::class.java, DB_NAME
                 ).fallbackToDestructiveMigration().build()
-                INSTANCE = instance
-                // return instance
+                INSTANCE = instance // return instance
                 instance
             }
         }
@@ -56,33 +52,28 @@ abstract class AttentionDB : RoomDatabase() {
 
 @Entity
 data class CachedFriend(
-        @PrimaryKey val username: String
+    @PrimaryKey val username: String
 )
 
 @Entity
 data class Friend(
-        @SerializedName("friend")
-        @PrimaryKey val id: String,
-        @SerializedName("name")
-        val name: String,
-        @SerializedName("sent")
-        val sent: Int = 0,
-        @SerializedName("received")
-        val received: Int = 0,
-        @SerializedName("last_message_id_sent")
-        val last_message_sent_id: String? = null,
-        @SerializedName("last_message_status")
-        @TypeConverters(Converters::class)
-        val last_message_status: MessageStatus? = null
+    @SerializedName("friend") @PrimaryKey val id: String,
+    @SerializedName("name") val name: String,
+    @SerializedName("sent") val sent: Int = 0,
+    @SerializedName("received") val received: Int = 0,
+    @SerializedName("last_message_id_sent") val last_message_sent_id: String? = null,
+    @SerializedName("last_message_status") @TypeConverters(Converters::class)
+    val last_message_status: MessageStatus? = null,
+    @SerializedName("photo") val photo: String? = null,
 )
 
 @Entity
 data class Message(
-        @PrimaryKey(autoGenerate = true) val messageId: Int? = null,
-        val timestamp: Long,
-        val otherId: String,
-        val direction: DIRECTION,
-        val message: String?
+    @PrimaryKey(autoGenerate = true) val messageId: Int? = null,
+    val timestamp: Long,
+    val otherId: String,
+    val direction: DIRECTION,
+    val message: String?
 )
 
 enum class DIRECTION { Outgoing, Incoming }
@@ -90,10 +81,21 @@ enum class DIRECTION { Outgoing, Incoming }
 enum class MessageStatus(val value: String) {
     @SerializedName("Sent")
     SENT("Sent"),
+
     @SerializedName("Delivered")
     DELIVERED("Delivered"),
+
     @SerializedName("Read")
-    READ("Read")
+    READ("Read");
+
+    companion object {
+
+        fun messageStatusForValue(value: String): MessageStatus? {
+            return values().find { status ->
+                status.value == value
+            }
+        }
+    }
 }
 
 @Dao
@@ -117,9 +119,7 @@ interface FriendDAO {
     suspend fun setMessageAlert(message_id: String?, id: String)
 
     @Query(
-            "UPDATE Friend SET last_message_status = :status WHERE id = :id AND " +
-                    "last_message_sent_id =" +
-                    " :alert_id"
+        "UPDATE Friend SET last_message_status = :status WHERE id = :id AND " + "last_message_sent_id =" + " :alert_id"
     )
     suspend fun setMessageStatus(status: MessageStatus?, id: String?, alert_id: String?)
 
