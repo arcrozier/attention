@@ -111,7 +111,7 @@ dependencies {
     // optional - Test helpers for LiveData
     testImplementation("androidx.arch.core:core-testing:$archVersion")
 
-    val jetpackComposeVersion = "1.3.0"
+    val jetpackComposeVersion = "1.3.1"
     // Integration with activities
     implementation("androidx.activity:activity-compose:1.6.1")
     // Compose Material Design
@@ -127,7 +127,7 @@ dependencies {
     // UI Tests
 
 
-    val composeMaterialVersion = "1.1.0-alpha01"
+    val composeMaterialVersion = "1.0.1"
     androidTestImplementation("androidx.compose.ui:ui-test-junit4:$jetpackComposeVersion")
     implementation("androidx.compose.material3:material3:$composeMaterialVersion")
     implementation("androidx.compose.material3:material3-window-size-class:$composeMaterialVersion")
@@ -163,7 +163,7 @@ dependencies {
     // image cropping library
     implementation("com.github.yalantis:ucrop:2.2.8")
 
-    implementation("com.google.devtools.ksp:symbol-processing-api:1.7.20-1.0.7")
+    implementation("com.google.devtools.ksp:symbol-processing-api:1.7.21-1.0.8")
 }
 repositories {
     mavenCentral()
