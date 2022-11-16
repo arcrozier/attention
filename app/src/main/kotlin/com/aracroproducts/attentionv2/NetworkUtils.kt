@@ -189,7 +189,7 @@ class ProgressRequestBody(
             while (read != -1) {
                 sink.write(buf, 0, read)
                 uploaded += read
-                progressUpdate?.invoke((uploaded.toDouble() / contentLength).toFloat())
+                progressUpdate?.invoke((uploaded.toFloat() / contentLength))
                 read = image.read(buf)
             }
         } catch (_: IOException) {

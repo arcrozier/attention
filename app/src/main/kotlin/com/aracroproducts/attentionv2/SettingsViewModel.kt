@@ -85,10 +85,10 @@ class SettingsViewModel(private val repository: AttentionRepository, application
                     ImageDecoder.createSource(context.contentResolver, uri)
                 ) { decoder, info, _ ->
                     var s = min(
-                        size.width.toDouble() / info.size.width,
-                        size.height.toDouble() / info.size.height
+                        size.width.toFloat() / info.size.width,
+                        size.height.toFloat() / info.size.height
                     )
-                    if (minSize) s = min(s, 1.0)
+                    if (minSize) s = min(s, 1f)
                     decoder.setTargetSize(
                         (info.size.width * s).toInt(),
                         (info.size.height * s).toInt()
