@@ -3,7 +3,7 @@ package com.aracroproducts.attentionv2
 import android.content.Context
 import androidx.lifecycle.LiveData
 import androidx.room.*
-import com.aracroproducts.attentionv2.AttentionDB.Companion.DB_V2
+import com.aracroproducts.attentionv2.AttentionDB.Companion.DB_V3
 import com.google.gson.annotations.SerializedName
 
 class Converters {
@@ -21,7 +21,7 @@ class Converters {
 }
 
 @Database(
-    version = DB_V2, entities = [Friend::class, Message::class, CachedFriend::class]
+    version = DB_V3, entities = [Friend::class, Message::class, CachedFriend::class]
 )
 abstract class AttentionDB : RoomDatabase() {
 
@@ -32,7 +32,7 @@ abstract class AttentionDB : RoomDatabase() {
     abstract fun getCachedFriendDAO(): CachedFriendDAO
 
     companion object {
-        const val DB_V2 = 2
+        const val DB_V3 = 3
         private const val DB_NAME = "attention_database"
 
         @Volatile
