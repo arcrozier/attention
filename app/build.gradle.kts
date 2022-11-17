@@ -13,8 +13,8 @@ android {
         applicationId = "com.aracroproducts.attentionv2"
         minSdk = 24
         targetSdk = 33
-        versionCode = 29
-        versionName = "2.1.0"
+        versionCode = 30
+        versionName = "2.1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -151,7 +151,7 @@ dependencies {
     // For sharing
     implementation("androidx.sharetarget:sharetarget:1.2.0")
 
-    val accompanistVersion = "0.27.0"
+    val accompanistVersion = "0.27.1"
     implementation("com.google.accompanist:accompanist-swiperefresh:$accompanistVersion")
     implementation("com.google.accompanist:accompanist-systemuicontroller:$accompanistVersion")
 

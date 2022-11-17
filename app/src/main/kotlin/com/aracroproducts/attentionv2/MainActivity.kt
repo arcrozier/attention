@@ -43,6 +43,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.*
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -77,8 +80,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
 import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
-import com.google.accompanist.swiperefresh.SwipeRefresh
-import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
@@ -294,7 +295,9 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    @OptIn(ExperimentalAnimationApi::class, ExperimentalMaterial3Api::class)
+    @OptIn(ExperimentalAnimationApi::class, ExperimentalMaterial3Api::class,
+           ExperimentalMaterialApi::class
+    )
     @ExperimentalFoundationApi
     @Composable
     fun Home(
@@ -418,10 +421,12 @@ class MainActivity : AppCompatActivity() {
                          )
                      }
                  }) {
-            SwipeRefresh(
-                state = rememberSwipeRefreshState(friendModel.isRefreshing),
-                onRefresh = { reload() },
+            val refreshState = rememberPullRefreshState(friendModel
+                                                            .isRefreshing, onRefresh = { reload() })
+            Box(
+                modifier = Modifier.pullRefresh(refreshState),
             ) {
+                PullRefreshIndicator(refreshing = friendModel.isRefreshing, state = refreshState)
                 AnimatedContent(targetState = friends.isEmpty() && !friendModel.isRefreshing && friendModel.connected,
                                 transitionSpec = {
                                     fadeIn() with fadeOut()
