@@ -52,7 +52,15 @@ class BooleanPreference(key: String, val context: Context) : ComposablePreferenc
         }
 
     override fun getValue(default: Boolean): Boolean {
-        return PreferenceManager.getDefaultSharedPreferences(context).getBoolean(key, default)
+        return try {
+            PreferenceManager.getDefaultSharedPreferences(context).getBoolean(key, default)
+        } catch (_: java.lang.ClassCastException) {
+            PreferenceManager.getDefaultSharedPreferences(context).edit().apply {
+                putBoolean(key, default)
+                apply()
+            }
+            default
+        }
     }
 }
 
@@ -68,8 +76,16 @@ class StringPreference(key: String, val context: Context) : ComposablePreference
         }
 
     override fun getValue(default: String): String {
-        return PreferenceManager.getDefaultSharedPreferences(context).getString(key, default)
-               ?: default
+        return try {
+            PreferenceManager.getDefaultSharedPreferences(context).getString(key, default)
+            ?: default
+        } catch (_: java.lang.ClassCastException) {
+            PreferenceManager.getDefaultSharedPreferences(context).edit().apply {
+                putString(key, default)
+                apply()
+            }
+            default
+        }
     }
 }
 
@@ -86,8 +102,16 @@ class StringSetPreference(key: String, val context: Context) :
         }
 
     override fun getValue(default: Set<String>): Set<String> {
-        return PreferenceManager.getDefaultSharedPreferences(context).getStringSet(key, default)
-               ?: default
+        return try {
+            PreferenceManager.getDefaultSharedPreferences(context).getStringSet(key, default)
+            ?: default
+        } catch (_: java.lang.ClassCastException) {
+            PreferenceManager.getDefaultSharedPreferences(context).edit().apply {
+                putStringSet(key, default)
+                apply()
+            }
+            default
+        }
     }
 }
 
@@ -103,7 +127,15 @@ class FloatPreference(key: String, val context: Context) : ComposablePreference<
         }
 
     override fun getValue(default: Float): Float {
-        return PreferenceManager.getDefaultSharedPreferences(context).getFloat(key, default)
+        return try {
+            PreferenceManager.getDefaultSharedPreferences(context).getFloat(key, default)
+        } catch (_: java.lang.ClassCastException) {
+            PreferenceManager.getDefaultSharedPreferences(context).edit().apply {
+                putFloat(key, default)
+                apply()
+            }
+            default
+        }
     }
 }
 

@@ -73,6 +73,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -426,7 +427,10 @@ class MainActivity : AppCompatActivity() {
             Box(
                 modifier = Modifier.pullRefresh(refreshState),
             ) {
-                PullRefreshIndicator(refreshing = friendModel.isRefreshing, state = refreshState)
+
+                PullRefreshIndicator(friendModel.isRefreshing,
+                                     refreshState,
+                                     Modifier.align(Alignment.TopCenter).zIndex(1f))
                 AnimatedContent(targetState = friends.isEmpty() && !friendModel.isRefreshing && friendModel.connected,
                                 transitionSpec = {
                                     fadeIn() with fadeOut()
