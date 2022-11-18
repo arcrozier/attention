@@ -160,7 +160,7 @@ class SettingsViewModel(private val repository: AttentionRepository, application
                 } else {
                     uploadStatus = context.getString(R.string.uploading)
                 }
-                val call = repository.editUser(
+                val call = repository.editPhoto(
                     photo = image,
                     token = token,
                     responseListener = { _, response, _ ->

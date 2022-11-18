@@ -4,10 +4,13 @@ import android.content.Context
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.ImeAction
 import androidx.preference.PreferenceManager
 
 abstract class ComposablePreference<T>(val key: String) {
@@ -150,22 +153,30 @@ fun StringPreferenceChange(
     dismissDialog: () -> Unit,
     context: Context,
     title: String,
+    keyboardOptions: KeyboardOptions? = null,
     validate: ((String) -> String)? = null
 ) {
+
     var newValue by remember { mutableStateOf(preference.value) }
     var message by remember { mutableStateOf( "" )}
+
+
+    fun onDone() {
+        message = validate?.invoke(newValue) ?: ""
+        if (message.isNotBlank()) {
+            return
+        }
+        preference.value = newValue
+        dismissDialog()
+    }
+
     AlertDialog(onDismissRequest = { dismissDialog() }, dismissButton = {
         OutlinedButton(onClick = dismissDialog) {
             Text(text = context.getString(android.R.string.cancel))
         }
     }, confirmButton = {
         Button(onClick = {
-            message = validate?.invoke(newValue) ?: ""
-            if (message.isBlank()) {
-                return@Button
-            }
-            preference.value = newValue
-            dismissDialog()
+            onDone()
         }) {
             Text(text = context.getString(android.R.string.ok))
         }
@@ -174,7 +185,11 @@ fun StringPreferenceChange(
         Text(text = title)
     }, text = {
         Column {
-            OutlinedTextField(value = newValue, onValueChange = { newValue = it })
+            OutlinedTextField(value = newValue, onValueChange = { newValue = it }, singleLine =
+            true, isError = message.isNotBlank(), keyboardOptions = keyboardOptions?.copy
+                (imeAction = ImeAction.Done) ?: KeyboardOptions(imeAction = ImeAction.Done),
+                              keyboardActions = KeyboardActions { onDone() }
+            )
             Text(
                     text = message,
                     style = MaterialTheme.typography.labelSmall,
@@ -225,7 +240,7 @@ fun FloatPreferenceChange(
     }, text = {
         Column {
             OutlinedTextField(value = newValue, onValueChange = { newValue = it }, isError =
-            message.isNotBlank())
+            message.isNotBlank(), singleLine = true)
                 Text(
                         text = message,
                         style = MaterialTheme.typography.labelSmall,

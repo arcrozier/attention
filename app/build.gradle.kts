@@ -164,6 +164,9 @@ dependencies {
     implementation("com.github.yalantis:ucrop:2.2.8")
 
     implementation("com.google.devtools.ksp:symbol-processing-api:1.7.21-1.0.8")
+
+    // Preferences DataStore (SharedPreferences like APIs)
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
 }
 repositories {
     mavenCentral()

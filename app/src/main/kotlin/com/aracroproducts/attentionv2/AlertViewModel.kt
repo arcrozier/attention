@@ -3,7 +3,6 @@ package com.aracroproducts.attentionv2
 import android.app.Application
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.content.Context
 import android.content.Intent
 import android.media.AudioManager
 import android.media.RingtoneManager
@@ -20,8 +19,13 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.lifecycle.AndroidViewModel
-import androidx.preference.PreferenceManager
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 class AlertViewModel(
     intent: Intent, private val attentionRepository: AttentionRepository, application: Application
@@ -87,16 +91,18 @@ class AlertViewModel(
 
     fun startPrompting() {
         if (!silenced) {
-            val context = getApplication<Application>()
-            val settings = PreferenceManager.getDefaultSharedPreferences(context)
-            val vibrate =
-                settings.getStringSet(context.getString(R.string.vibrate_preference_key), HashSet())
-            val ring = settings.getStringSet(
-                context.getString(R.string.ring_preference_key), HashSet()
-            )
+            viewModelScope.launch(context = Dispatchers.IO) {
+                val context = getApplication<Application>()
+                val settings = context.dataStore.data.first()
+                val vibrate = settings[stringSetPreferencesKey(context.getString(R.string
+                                                                                     .vibrate_preference_key))] ?: HashSet()
+                val ring = settings[stringSetPreferencesKey(context.getString(R.string
+                                                                                  .ring_preference_key))] ?:
+                                                                                  HashSet()
 
-            if (ring != null) ring(ring)
-            if (vibrate != null) vibrate(vibrate)
+                ring(ring)
+                vibrate(vibrate)
+            }
         }
     }
 
@@ -104,25 +110,24 @@ class AlertViewModel(
         silence()
         isFinishing = true
 
-        val context = getApplication<Application>()
-        val userInfo = context.getSharedPreferences(MainViewModel.USER_INFO, Context.MODE_PRIVATE)
+        viewModelScope.launch(context = Dispatchers.IO) {
+            val context = getApplication<Application>()
+            val preferences = context.dataStore.data.first()
 
-        val fcmTokenPrefs =
-            context.getSharedPreferences(MainViewModel.FCM_TOKEN, Context.MODE_PRIVATE)
+            // token is auth token
+            val token = preferences[stringPreferencesKey(MainViewModel.MY_TOKEN)]
 
-        // token is auth token
-        val token = userInfo.getString(MainViewModel.MY_TOKEN, null)
+            val fcmToken = preferences[stringPreferencesKey(MainViewModel.FCM_TOKEN)]
 
-        val fcmToken = fcmTokenPrefs.getString(MainViewModel.FCM_TOKEN, null)
+            if (token == null || fcmToken == null) {
+                Log.e(javaClass.name, "Token is null when sending read receipt!")
+                return@launch
+            }
 
-        if (token == null || fcmToken == null) {
-            Log.e(javaClass.name, "Token is null when sending read receipt!")
-            return
+            attentionRepository.sendReadReceipt(
+                from = fromUsername, alertId = alertId, fcmToken = fcmToken, authToken = token
+            )
         }
-
-        attentionRepository.sendReadReceipt(
-            from = fromUsername, alertId = alertId, fcmToken = fcmToken, authToken = token
-        )
     }
 
     /**

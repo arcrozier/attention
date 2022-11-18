@@ -310,6 +310,54 @@ class AttentionRepository(private val database: AttentionDB) {
         })
     }
 
+    fun editPhoto(
+        token: String,
+        photo: InputStream,
+        uploadCallbacks: ((Float) -> Unit)? = null,
+        responseListener: ((
+            Call<GenericResult<Void>>, Response<GenericResult<Void>>, String?
+        ) -> Unit)? = null,
+        errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null,
+    ): Call<GenericResult<Void>> {
+        val call = apiInterface.editPhoto(
+            photo = photo.let {
+                MultipartBody.Part.createFormData("photo", "pfp", ProgressRequestBody(
+                    photo, "image", uploadCallbacks
+                ))
+            },
+            token = authHeader(token)
+        )
+        call.enqueue(object : Callback<GenericResult<Void>> {
+            /**
+             * Invoked for a received HTTP response.
+             *
+             *
+             * Note: An HTTP response may still indicate an application-level failure such as a 404 or 500.
+             * Call [Response.isSuccessful] to determine if the response indicates success.
+             */
+            override fun onResponse(
+                call: Call<GenericResult<Void>>, response: Response<GenericResult<Void>>
+            ) {
+                photo.close()
+                val responseErrorBody = response.errorBody()?.string()
+                if (!response.isSuccessful) printNetworkError(response, call, responseErrorBody)
+                responseListener?.invoke(call, response, responseErrorBody)
+            }
+
+            /**
+             * Invoked when a network exception occurred talking to the server or when an unexpected
+             * exception occurred creating the request or processing the response.
+             */
+            override fun onFailure(call: Call<GenericResult<Void>>, t: Throwable) {
+                photo.close()
+                Log.e(javaClass.name, t.stackTraceToString())
+                errorListener?.invoke(call, t)
+            }
+
+        })
+        return call
+    }
+
     fun editUser(
         token: String,
         username: String? = null,
@@ -323,18 +371,12 @@ class AttentionRepository(private val database: AttentionDB) {
             Call<GenericResult<Void>>, Response<GenericResult<Void>>, String?
         ) -> Unit)? = null,
         errorListener: ((Call<GenericResult<Void>>, Throwable) -> Unit)? = null,
-        uploadCallbacks: ((Float) -> Unit)? = null
-    ): Call<GenericResult<Void>> {
+    ) {
         val call = apiInterface.editUser(
             username = username,
             firstName = firstName,
             lastName = lastName,
             email = email,
-            photo = photo?.let {
-                MultipartBody.Part.createFormData("photo", "pfp", ProgressRequestBody(
-                        photo, "image", uploadCallbacks
-                    ))
-            },
             password = password,
             oldPassword = oldPassword,
             token = authHeader(token)
@@ -367,7 +409,6 @@ class AttentionRepository(private val database: AttentionDB) {
             }
 
         })
-        return call
     }
 
     fun downloadUserInfo(

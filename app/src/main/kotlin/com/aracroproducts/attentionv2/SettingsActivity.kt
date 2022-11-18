@@ -1181,7 +1181,6 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
-    @OptIn(ExperimentalAnimationApi::class)
     @Composable
     fun <T> DialoguePreference(
         preference: ComposablePreference<T>,
@@ -1220,18 +1219,10 @@ class SettingsActivity : AppCompatActivity() {
         val editing = rememberSaveable {
             mutableStateOf(false)
         }
-        AnimatedContent(targetState = editing, transitionSpec = {
-            slideIntoContainer(
-                towards = AnimatedContentScope.SlideDirection.Up
-            ) with slideOutOfContainer(
-                towards = AnimatedContentScope.SlideDirection.Down
-            )
-        }) { targetState ->
-            if (targetState.value) {
-                dialog(preference = preference, dismissDialog = {
-                    editing.value = false
-                }, context = this@SettingsActivity, title = getString(title))
-            }
+        if (editing.value) {
+            dialog(preference = preference, dismissDialog = {
+                editing.value = false
+            }, context = this@SettingsActivity, title = getString(title))
         }
         Preference(
             preference = preference,
@@ -1369,6 +1360,7 @@ class SettingsActivity : AppCompatActivity() {
                 snackbarHostState.showSnackbar(
                     context.getString(message),
                     withDismissAction = false,
+                    actionLabel = context.getString(android.R.string.ok),
                     duration = SnackbarDuration.Long
                 )
             }
@@ -1393,7 +1385,6 @@ class SettingsActivity : AppCompatActivity() {
                 coroutineScope.launch {
                     snackbarHostState.showSnackbar(
                         context.getString(R.string.saving),
-                        actionLabel = context.getString(android.R.string.ok),
                         withDismissAction = true,
                         duration = SnackbarDuration.Indefinite
                     )

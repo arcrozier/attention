@@ -1,10 +1,15 @@
 package com.aracroproducts.attentionv2
 
 import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.LiveData
 import androidx.room.*
 import com.aracroproducts.attentionv2.AttentionDB.Companion.DB_V3
 import com.google.gson.annotations.SerializedName
+
+val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
 class Converters {
     @TypeConverter

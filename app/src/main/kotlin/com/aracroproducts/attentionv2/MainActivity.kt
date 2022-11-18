@@ -75,10 +75,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
-import androidx.preference.PreferenceManager
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
 import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
@@ -86,6 +87,7 @@ import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.lang.Integer.max
 import kotlin.math.min
@@ -111,6 +113,21 @@ class MainActivity : AppCompatActivity() {
         NORMAL, CONFIRM, CANCEL, EDIT
     }
 
+    private var delay: Float
+
+    init {
+        val defaultDelay = TypedValue()
+        resources.getValue(R.integer.default_delay, defaultDelay, false)
+
+        delay = defaultDelay.float
+
+        lifecycleScope.launch(context = Dispatchers.IO) {
+            dataStore.data.collect {
+                delay = it[floatPreferencesKey(getString(R.string.delay_key))] ?: defaultDelay.float
+            }
+        }
+    }
+
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { // there isn't really anything we can do
         }
@@ -128,6 +145,7 @@ class MainActivity : AppCompatActivity() {
     @OptIn(ExperimentalFoundationApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
 
         setContent {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -221,13 +239,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun checkOverlayDisplay() {
-        val userInfo = getSharedPreferences(MainViewModel.USER_INFO, Context.MODE_PRIVATE)
+        lifecycleScope.launch(context = Dispatchers.IO) {
 
-        if (!Settings.canDrawOverlays(application) && !userInfo.getBoolean(
-                MainViewModel.OVERLAY_NO_PROMPT, false
-            )
-        ) {
-            friendModel.appendDialogState(MainViewModel.DialogStatus.OverlayPermission)
+            if (!Settings.canDrawOverlays(application) && this@MainActivity.dataStore.data.first()[booleanPreferencesKey(MainViewModel.OVERLAY_NO_PROMPT)] != true
+            ) {
+                friendModel.appendDialogState(MainViewModel.DialogStatus.OverlayPermission)
+            }
         }
     }
 
@@ -1079,14 +1096,8 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
                     State.CANCEL -> {
-                        val defaultDelay = TypedValue()
-                        resources.getValue(R.integer.default_delay, defaultDelay, false)
                         val delay: Long by remember {
-                            mutableStateOf((PreferenceManager.getDefaultSharedPreferences(
-                                this@MainActivity
-                            ).getString(getString(R.string.delay_key), null).let {
-                                it?.toFloatOrNull() ?: defaultDelay.float
-                            } * 1000).toLong())
+                            mutableStateOf((delay * 1000).toLong())
                         }
                         var progress by remember { mutableStateOf(0L) }
                         val animatedProgress by animateFloatAsState(

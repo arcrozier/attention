@@ -68,8 +68,11 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.core.text.getSpans
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import com.aracroproducts.attentionv2.MainViewModel.Companion.TOKEN_UPLOADED
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
 import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
@@ -78,6 +81,7 @@ import com.google.android.gms.auth.api.identity.*
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.CommonStatusCodes
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -1136,10 +1140,10 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun completeSignIn() {
-        val fcmTokenPrefs = getSharedPreferences(MainViewModel.FCM_TOKEN, Context.MODE_PRIVATE)
-        fcmTokenPrefs.edit().apply {
-            putBoolean(TOKEN_UPLOADED, false)
-            apply()
+        lifecycleScope.launch(context = Dispatchers.IO) {
+            this@LoginActivity.dataStore.edit { settings ->
+                settings[booleanPreferencesKey(TOKEN_UPLOADED)] = false
+            }
         }
         finish()
     }

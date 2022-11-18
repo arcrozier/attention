@@ -122,16 +122,22 @@ interface APIV2 {
         @Path("id") friend: String, @Header("Authorization") token: String
     ): Call<GenericResult<Void>>
 
-    @Multipart
+    @FormUrlEncoded
     @PUT("edit/")
     fun editUser(
-        @Part("username") username: String?,
-        @Part("first_name") firstName: String?,
-        @Part("last_name") lastName: String?,
-        @Part("email") email: String?,
+        @Field("username") username: String?,
+        @Field("first_name") firstName: String?,
+        @Field("last_name") lastName: String?,
+        @Field("email") email: String?,
+        @Field("password") password: String?,
+        @Field("old_password") oldPassword: String?,
+        @Header("Authorization") token: String
+    ): Call<GenericResult<Void>>
+
+    @Multipart
+    @PUT("photo/")
+    fun editPhoto (
         @Part photo: MultipartBody.Part?,
-        @Part("password") password: String?,
-        @Part("old_password") oldPassword: String?,
         @Header("Authorization") token: String
     ): Call<GenericResult<Void>>
 
