@@ -14,13 +14,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.IntSize
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.aracroproducts.attentionv2.MainViewModel.Companion.FCM_TOKEN
+import com.aracroproducts.attentionv2.MainViewModel.Companion.MY_TOKEN
 import com.aracroproducts.attentionv2.MainViewModel.Companion.PFP_FILENAME
 import com.aracroproducts.attentionv2.MainViewModel.Companion.TOKEN_UPLOADED
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -68,12 +73,13 @@ class SettingsViewModel(private val repository: AttentionRepository, application
     fun unregisterDevice(token: String, fcmToken: String) {
         repository.unregisterDevice(token = token, fcmToken = fcmToken)
 
-        val context = getApplication<Application>()
-        val fcmTokenPrefs = context.getSharedPreferences(FCM_TOKEN, Context.MODE_PRIVATE)
-        fcmTokenPrefs.edit().apply {
-            putBoolean(TOKEN_UPLOADED, false)
-            apply()
+        viewModelScope.launch {
+            val context = getApplication<Application>()
+            context.dataStore.edit { settings ->
+                settings[booleanPreferencesKey(TOKEN_UPLOADED)] = false
+            }
         }
+
     }
 
     suspend fun getImageBitmap(
@@ -138,9 +144,7 @@ class SettingsViewModel(private val repository: AttentionRepository, application
 
         viewModelScope.launch(context = Dispatchers.IO) {
 
-            val token = context.getSharedPreferences(
-                MainViewModel.USER_INFO, Context.MODE_PRIVATE
-            ).getString(MainViewModel.MY_TOKEN, null)
+            val token = context.dataStore.data.first()[stringPreferencesKey(MY_TOKEN)]
             if (token != null) {
                 uploadStatus = context.getString(R.string.processing)
                 val image: InputStream? = try {

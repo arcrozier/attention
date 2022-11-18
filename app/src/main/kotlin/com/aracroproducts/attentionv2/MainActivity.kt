@@ -76,7 +76,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
@@ -276,25 +278,27 @@ class MainActivity : AppCompatActivity() {
     private fun reload() {
         friendModel.isRefreshing = true
 
-        val userInfo = getSharedPreferences(MainViewModel.USER_INFO, Context.MODE_PRIVATE)
+        lifecycleScope.launch(context = Dispatchers.IO) {
+            // token is auth token
+            val token = this@MainActivity.dataStore.data.first()[stringPreferencesKey
+                (MainViewModel.MY_TOKEN)]
 
-        // token is auth token
-        val token = userInfo.getString(MainViewModel.MY_TOKEN, null)
-
-        // we want an exception to the login if they opened an add-friend link
-        // if opened from a link, the action is ACTION_VIEW, so we delay logging in
-        if (token == null && !friendModel.addFriendException) {
-            launchLogin()
-        } else if (token != null) {
-            friendModel.getUserInfo(token) {
-                if (!friendModel.addFriendException) launchLogin()
+            // we want an exception to the login if they opened an add-friend link
+            // if opened from a link, the action is ACTION_VIEW, so we delay logging in
+            if (token == null && !friendModel.addFriendException) {
+                launchLogin()
+            } else if (token != null) {
+                friendModel.getUserInfo(token) {
+                    if (!friendModel.addFriendException) launchLogin()
+                }
+                friendModel.registerDevice()
+                getNotificationPermission()
+                return@launch
             }
-            friendModel.registerDevice()
-            getNotificationPermission()
-            return
+
+            friendModel.isRefreshing = false
         }
 
-        friendModel.isRefreshing = false
     }
 
     @ExperimentalFoundationApi
@@ -685,11 +689,11 @@ class MainActivity : AppCompatActivity() {
             }
         }, dismissButton = {
             OutlinedButton(onClick = {
-                val editor = getSharedPreferences(
-                    MainViewModel.USER_INFO, MODE_PRIVATE
-                ).edit()
-                editor.putBoolean(MainViewModel.OVERLAY_NO_PROMPT, true)
-                editor.apply()
+                lifecycleScope.launch(context = Dispatchers.IO) {
+                    this@MainActivity.dataStore.edit { settings ->
+                        settings[booleanPreferencesKey(MainViewModel.OVERLAY_NO_PROMPT)] = true
+                    }
+                }
                 friendModel.popDialogState()
             }) {
                 Text(text = getString(R.string.do_not_ask_again))
