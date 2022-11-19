@@ -10,146 +10,73 @@ import androidx.compose.material.ContentAlpha
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
-import androidx.preference.PreferenceManager
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
-abstract class ComposablePreference<T>(val key: String) {
-    abstract var value: T
-    val onPreferenceChangeListener: MutableList<ComposablePreferenceChangeListener<T>> = ArrayList()
+@Composable
+fun <T> rememberPreference(
+    key: Preferences.Key<T>,
+    defaultValue: T,
+    onPreferenceChangeListener: MutableList<(pref: Preferences.Key<T>, newValue: T) -> Boolean> =
+        ArrayList()
+): MutableState<T> {
 
     fun shouldPersistChange(newValue: T): Boolean {
         for (preferenceChangeListener in onPreferenceChangeListener) {
-            if (!preferenceChangeListener.onPreferenceChange(this, newValue)) return false
+            if (!preferenceChangeListener(key, newValue)) return false
         }
         return true
     }
 
-    abstract fun getValue(default: T): T
+    val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val state = remember {
+        context.dataStore.data
+            .map {
+                it[key] ?: defaultValue
+            }
+    }.collectAsState(initial = defaultValue)
+
+    return remember {
+        object : MutableState<T> {
+            override var value: T
+                get() = state.value
+                set(value) {
+                    if (shouldPersistChange(value)) {
+                        coroutineScope.launch {
+                            context.dataStore.edit {
+                                it[key] = value
+                            }
+                        }
+                    }
+                }
+
+            override fun component1() = value
+            override fun component2(): (T) -> Unit = { value = it }
+        }
+    }
 }
 
-class EphemeralPreference<T>(key: String, override var value: T) : ComposablePreference<T>(key) {
-    override fun getValue(default: T): T {
+class EphemeralPreference<T>(override var value: T) : MutableState<T> {
+
+    override fun component1(): T {
         return value
     }
-}
 
-/*
-class NonPersistentPreference<T>(key: String) : ComposablePreference<Nothing>(key) {
-    override var value: Nothing
-        get() = throw UnsupportedOperationException("Cannot get value of a non-persistent " +
-                "preference")
-        set(value) = throw UnsupportedOperationException("Cannot set value of a non-persistent " +
-                "preference")
-}
- */
-
-class BooleanPreference(key: String, val context: Context) : ComposablePreference<Boolean>(key) {
-    override var value
-        get() = getValue(false)
-        set(value) {
-            if (!shouldPersistChange(value)) return
-            PreferenceManager.getDefaultSharedPreferences(context).edit().apply {
-                putBoolean(key, value)
-                apply()
-            }
-        }
-
-    override fun getValue(default: Boolean): Boolean {
-        return try {
-            PreferenceManager.getDefaultSharedPreferences(context).getBoolean(key, default)
-        } catch (_: java.lang.ClassCastException) {
-            PreferenceManager.getDefaultSharedPreferences(context).edit().apply {
-                putBoolean(key, default)
-                apply()
-            }
-            default
-        }
+    override fun component2(): (T) -> Unit = {
+        value = it
     }
-}
-
-class StringPreference(key: String, val context: Context) : ComposablePreference<String>(key) {
-    override var value: String
-        get() = getValue("")
-        set(value) {
-            if (!shouldPersistChange(value)) return
-            PreferenceManager.getDefaultSharedPreferences(context).edit().apply {
-                putString(key, value)
-                apply()
-            }
-        }
-
-    override fun getValue(default: String): String {
-        return try {
-            PreferenceManager.getDefaultSharedPreferences(context).getString(key, default)
-            ?: default
-        } catch (_: java.lang.ClassCastException) {
-            PreferenceManager.getDefaultSharedPreferences(context).edit().apply {
-                putString(key, default)
-                apply()
-            }
-            default
-        }
-    }
-}
-
-class StringSetPreference(key: String, val context: Context) :
-    ComposablePreference<Set<String>>(key) {
-    override var value: Set<String>
-        get() = getValue(HashSet())
-        set(value) {
-            if (!shouldPersistChange(value)) return
-            PreferenceManager.getDefaultSharedPreferences(context).edit().apply {
-                putStringSet(key, value)
-                apply()
-            }
-        }
-
-    override fun getValue(default: Set<String>): Set<String> {
-        return try {
-            PreferenceManager.getDefaultSharedPreferences(context).getStringSet(key, default)
-            ?: default
-        } catch (_: java.lang.ClassCastException) {
-            PreferenceManager.getDefaultSharedPreferences(context).edit().apply {
-                putStringSet(key, default)
-                apply()
-            }
-            default
-        }
-    }
-}
-
-class FloatPreference(key: String, val context: Context) : ComposablePreference<Float>(key) {
-    override var value: Float
-        get() = getValue(0f)
-        set(value) {
-            if (!shouldPersistChange(value)) return
-            PreferenceManager.getDefaultSharedPreferences(context).edit().apply {
-                putFloat(key, value)
-                apply()
-            }
-        }
-
-    override fun getValue(default: Float): Float {
-        return try {
-            PreferenceManager.getDefaultSharedPreferences(context).getFloat(key, default)
-        } catch (_: java.lang.ClassCastException) {
-            PreferenceManager.getDefaultSharedPreferences(context).edit().apply {
-                putFloat(key, default)
-                apply()
-            }
-            default
-        }
-    }
-}
-
-interface ComposablePreferenceChangeListener<T> {
-    fun onPreferenceChange(preference: ComposablePreference<T>, newValue: T): Boolean
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StringPreferenceChange(
-    preference: ComposablePreference<String>,
+    value: String,
+    setValue: (String) -> Unit,
     dismissDialog: () -> Unit,
     context: Context,
     title: String,
@@ -157,7 +84,7 @@ fun StringPreferenceChange(
     validate: ((String) -> String)? = null
 ) {
 
-    var newValue by remember { mutableStateOf(preference.value) }
+    var newValue by remember { mutableStateOf(value) }
     var message by remember { mutableStateOf( "" )}
 
 
@@ -166,7 +93,7 @@ fun StringPreferenceChange(
         if (message.isNotBlank()) {
             return
         }
-        preference.value = newValue
+        setValue(newValue)
         dismissDialog()
     }
 
@@ -204,13 +131,14 @@ fun StringPreferenceChange(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FloatPreferenceChange(
-    preference: ComposablePreference<Float>,
+    value: Float,
+    setValue: (Float) -> Unit,
     dismissDialog: () -> Unit,
     context: Context,
     title: String,
     validate: ((Float) -> String)? = null
 ) {
-    var newValue by remember { mutableStateOf(preference.value.toString()) }
+    var newValue by remember { mutableStateOf(value.toString()) }
     var message by remember {
         mutableStateOf("")
     }
@@ -226,7 +154,7 @@ fun FloatPreferenceChange(
                 if (message.isNotBlank()) {
                     return@Button
                 }
-                preference.value = newValue.toFloat()
+                setValue(newValue.toFloat())
                 dismissDialog()
             } catch (e: NumberFormatException) {
                 message = context.getString(R.string.invalid_float)
@@ -253,7 +181,8 @@ fun FloatPreferenceChange(
 
 @Composable
 fun MultiSelectListPreferenceChange(
-    preference: ComposablePreference<Set<String>>,
+    value: Set<String>,
+    setValue: (Set<String>) -> Unit,
     dismissDialog: () -> Unit,
     context: Context,
     title: String,
@@ -261,7 +190,7 @@ fun MultiSelectListPreferenceChange(
     entryValuesRes: Int
 ) {
     val newValue = remember {
-        mutableStateMapOf(*preference.value.map {
+        mutableStateMapOf(*value.map {
             Pair(
                 it, true
             )
@@ -276,7 +205,7 @@ fun MultiSelectListPreferenceChange(
         }
     }, confirmButton = {
         Button(onClick = {
-            preference.value = newValue.keys
+            setValue(newValue.keys)
             dismissDialog()
         }) {
             Text(text = context.getString(android.R.string.ok))

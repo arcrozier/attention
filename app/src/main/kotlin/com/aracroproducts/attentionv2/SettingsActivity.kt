@@ -67,6 +67,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
 import androidx.core.view.WindowCompat
+import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.preference.PreferenceManager
@@ -403,7 +404,7 @@ class SettingsActivity : AppCompatActivity() {
                     onPreferenceChanged = userInfoChangeListener
                 )
                 Preference(preference = EphemeralPreference(
-                    "", null
+                    null
                 ), icon = {
                     Icon(Icons.Outlined.Password, null)
                 }, title = R.string.password, summary = null, onPreferenceClicked = {
@@ -413,7 +414,7 @@ class SettingsActivity : AppCompatActivity() {
                     true
                 })
                 Preference(preference = EphemeralPreference(
-                    getString(R.string.link_account_key), null
+                    null
                 ), icon = { enabled ->
                     Image(
                         painter = painterResource(id = R.drawable.ic_btn_google),
@@ -432,7 +433,7 @@ class SettingsActivity : AppCompatActivity() {
                 )
                 )
                 DialoguePreference(
-                    preference = EphemeralPreference(getString(R.string.logout_key), null),
+                    preference = EphemeralPreference(null),
                     icon = {
                         Icon(
                             Icons.Outlined.Logout, null, tint = MaterialTheme.colorScheme.error
@@ -642,7 +643,7 @@ class SettingsActivity : AppCompatActivity() {
                    ) @Composable {
                        Icon(Icons.Outlined.Gavel, null)
                    }) @Composable {
-                       Preference(preference = EphemeralPreference("", null),
+                       Preference(preference = EphemeralPreference(null),
                                   icon = { Icon(Icons.Outlined.Gavel, null) },
                                   title = R.string.terms_of_service,
                                   summary = null,
@@ -653,7 +654,7 @@ class SettingsActivity : AppCompatActivity() {
                                       startActivity(browserIntent)
                                       false
                                   })
-                       Preference(preference = EphemeralPreference("", null), icon = {
+                       Preference(preference = EphemeralPreference(null), icon = {
                            Icon(Icons.Outlined.Policy, null)
                        }, title = R.string.privacy_policy, summary = null, onPreferenceClicked = {
                            val browserIntent = Intent(
@@ -665,7 +666,7 @@ class SettingsActivity : AppCompatActivity() {
 
                        Preference(
                            preference = EphemeralPreference(
-                               key = "", value = getString(R.string.version_name)
+                               value = getString(R.string.version_name)
                            ), title = R.string.app_version, enabled = false
                        )
                    }
@@ -1183,7 +1184,8 @@ class SettingsActivity : AppCompatActivity() {
 
     @Composable
     fun <T> DialoguePreference(
-        preference: ComposablePreference<T>,
+        value: T,
+        setValue: (T) -> Unit,
         title: Int,
         modifier: Modifier = Modifier,
         action: (@Composable (value: T) -> Unit)? = null,
@@ -1202,25 +1204,21 @@ class SettingsActivity : AppCompatActivity() {
             alpha = ContentAlpha.medium
         ),
         summaryStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.labelLarge,
-        onPreferenceChanged: ComposablePreferenceChangeListener<T> = object :
-            ComposablePreferenceChangeListener<T> {
-            override fun onPreferenceChange(
-                preference: ComposablePreference<T>, newValue: T
-            ): Boolean {
-                return true
-            }
+        onPreferenceChanged: (Preferences.Key<T>, T) -> Boolean = {
+                                                                  true
         },
         enabled: Boolean = true,
         default: T? = null,
         dialog: @Composable (
-            preference: ComposablePreference<T>, dismissDialog: () -> Unit, context: Context, title: String
+            value: T, setValue: (T) -> Unit, dismissDialog: () -> Unit, context: Context, title:
+            String
         ) -> Unit
     ) {
         val editing = rememberSaveable {
             mutableStateOf(false)
         }
         if (editing.value) {
-            dialog(preference = preference, dismissDialog = {
+            dialog(value = value, setValue = setValue, dismissDialog = {
                 editing.value = false
             }, context = this@SettingsActivity, title = getString(title))
         }
@@ -1249,7 +1247,8 @@ class SettingsActivity : AppCompatActivity() {
 
     @Composable
     fun <T> Preference(
-        preference: ComposablePreference<T>,
+        value: T,
+        setValue: (T) -> Unit,
         title: Int,
         modifier: Modifier = Modifier,
         action: (@Composable (value: T) -> Unit)? = null,
@@ -1268,19 +1267,11 @@ class SettingsActivity : AppCompatActivity() {
             alpha = ContentAlpha.medium
         ),
         summaryStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.labelLarge,
-        onPreferenceClicked: (preference: ComposablePreference<T>) -> Boolean = {
-            false
-        },
-        onPreferenceChanged: ComposablePreferenceChangeListener<T> = object :
-            ComposablePreferenceChangeListener<T> {
-            override fun onPreferenceChange(
-                preference: ComposablePreference<T>, newValue: T
-            ): Boolean {
-                return true
-            }
+        onPreferenceChanged: (Preferences.Key<T>, T) -> Boolean = {
+            true
         },
         enabled: Boolean = true,
-        default: T? = null
+        default: T? = null,
     ) {
         preference.onPreferenceChangeListener.add(onPreferenceChanged)
         val value = if (default != null) preference.getValue(default) else preference.value
@@ -1328,7 +1319,7 @@ class SettingsActivity : AppCompatActivity() {
         private val model: SettingsViewModel,
         private val snackbarHostState: SnackbarHostState,
         private val coroutineScope: CoroutineScope
-    ) : ComposablePreferenceChangeListener<String> {
+    ) {
         private val attentionRepository = AttentionRepository(AttentionDB.getDB(context))
 
 
