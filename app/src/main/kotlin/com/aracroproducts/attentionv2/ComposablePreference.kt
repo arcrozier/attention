@@ -21,8 +21,8 @@ import kotlinx.coroutines.launch
 fun <T> rememberPreference(
     key: Preferences.Key<T>,
     defaultValue: T,
-    onPreferenceChangeListener: MutableList<(pref: Preferences.Key<T>, newValue: T) -> Boolean> =
-        ArrayList()
+    onPreferenceChangeListener: List<(pref: Preferences.Key<T>, newValue: T) -> Boolean> =
+        listOf()
 ): MutableState<T> {
 
     fun shouldPersistChange(newValue: T): Boolean {
@@ -58,17 +58,6 @@ fun <T> rememberPreference(
             override fun component1() = value
             override fun component2(): (T) -> Unit = { value = it }
         }
-    }
-}
-
-class EphemeralPreference<T>(override var value: T) : MutableState<T> {
-
-    override fun component1(): T {
-        return value
-    }
-
-    override fun component2(): (T) -> Unit = {
-        value = it
     }
 }
 

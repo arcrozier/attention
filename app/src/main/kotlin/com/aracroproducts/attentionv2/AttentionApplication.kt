@@ -2,17 +2,27 @@ package com.aracroproducts.attentionv2
 
 import android.app.Activity
 import android.app.Application
+import android.content.Context
 import android.os.Bundle
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.google.android.material.color.DynamicColors
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+
+class AttentionContainer(context: Context) {
+    val database by lazy { AttentionDB.getDB(context) }
+    val repository by lazy { AttentionRepository(database) }
+    val applicationScope = CoroutineScope(SupervisorJob())
+}
 
 class AttentionApplication : Application(), LifecycleEventObserver,
                              Application.ActivityLifecycleCallbacks {
-    val database by lazy { AttentionDB.getDB(this) }
-    val repository by lazy { AttentionRepository(database) }
+
+    val container = AttentionContainer(this)
+
     var activity: Activity? = null
 
     override fun onCreate() {

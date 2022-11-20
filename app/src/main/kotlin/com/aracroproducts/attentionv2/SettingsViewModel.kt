@@ -1,12 +1,16 @@
 package com.aracroproducts.attentionv2
 
+import android.app.Activity
 import android.app.Application
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -14,6 +18,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.IntSize
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -22,11 +27,8 @@ import androidx.lifecycle.viewModelScope
 import com.aracroproducts.attentionv2.MainViewModel.Companion.MY_TOKEN
 import com.aracroproducts.attentionv2.MainViewModel.Companion.PFP_FILENAME
 import com.aracroproducts.attentionv2.MainViewModel.Companion.TOKEN_UPLOADED
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.FileOutputStream
@@ -34,7 +36,8 @@ import java.io.InputStream
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.math.min
 
-class SettingsViewModel(private val repository: AttentionRepository, application: Application) :
+class SettingsViewModel(private val repository: AttentionRepository, private val applicationScope:
+                CoroutineScope, application: Application) :
     AndroidViewModel(application) {
 
     var outstandingRequests by mutableStateOf(0)
@@ -67,9 +70,9 @@ class SettingsViewModel(private val repository: AttentionRepository, application
         }
     }
 
-    fun clearAllDatabaseTables() = repository.clearTables()
+    private fun clearAllDatabaseTables() = repository.clearTables()
 
-    fun unregisterDevice(token: String, fcmToken: String) {
+    private fun unregisterDevice(token: String, fcmToken: String) {
         repository.unregisterDevice(token = token, fcmToken = fcmToken)
 
         viewModelScope.launch {
@@ -248,7 +251,234 @@ class SettingsViewModel(private val repository: AttentionRepository, application
         }
     }
 
+    fun <T> writeToDatastore(key: Preferences.Key<T>, value: T, context: Context) {
+        viewModelScope.launch {
+            context.dataStore.edit { settings ->
+                settings[key] = value
+            }
+        }
+    }
+
+    fun logout(context: Context) {
+        applicationScope.launch {
+            context.dataStore.data.first().let {
+                unregisterDevice(
+                    it[stringPreferencesKey(MY_TOKEN)] ?: "",
+                    it[stringPreferencesKey(MainViewModel.FCM_TOKEN)] ?: ""
+                )
+            }
+            context.dataStore.edit { settings ->
+                settings.remove(stringPreferencesKey(MY_TOKEN))
+                settings.remove(stringPreferencesKey(context.getString(R.string
+                                                                   .username_key)))
+                settings.remove(stringPreferencesKey(context.getString(R.string
+                                                                   .first_name_key)))
+                settings.remove(stringPreferencesKey(context.getString(R.string
+                                                                   .last_name_key)))
+                settings.remove(stringPreferencesKey(context.getString(R.string
+                                                                   .email_key)))
+            }
+            clearAllDatabaseTables()
+        }
+    }
+
+    fun changeUsername(newValue: String, setValue: (String) -> Unit, setUsernameCaption: (String)
+    -> Unit,
+                                                     setStatus:
+    (error: Boolean, loading: Boolean) -> Unit, dismissDialog: () -> Unit, context: Context,
+                       coroutineScope:
+                       CoroutineScope, snackbarHostState: SnackbarHostState) {
+        viewModelScope.launch {
+            val token = context.dataStore.data.first()[stringPreferencesKey(MY_TOKEN)]
+            if (token == null) {
+                val loginIntent =
+                    Intent(context, LoginActivity::class.java)
+                context.startActivity(loginIntent)
+                return@launch
+            }
+            repository.editUser(token = token,
+                                username = newValue,
+                                responseListener = { _, response, _ ->
+                                    setStatus(!response.isSuccessful, false)
+                                    when (response.code()) {
+                                        200 -> {
+                                            setUsernameCaption("")
+                                            setValue(newValue)
+                                            dismissDialog()
+                                        }
+                                        400 -> {
+                                            setUsernameCaption(context.getString(
+                                                    R.string.username_in_use
+                                                ))
+                                        }
+                                        403 -> {
+                                            setUsernameCaption("")
+                                            dismissDialog()
+                                            SettingsActivity.launchLogin(
+                                                context
+                                            )
+                                        }
+                                        else -> {
+                                            setUsernameCaption(context.getString(
+                                                    R.string.unknown_error
+                                                ))
+                                        }
+                                    }
+                                },
+                                errorListener = { _, _ ->
+                                    setStatus(true, false)
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar(
+                                            context.getString(
+                                                R.string.disconnected
+                                            ),
+                                            duration = SnackbarDuration.Long
+                                        )
+                                    }
+                                })
+        }
+
+    }
+
+    fun launchShareSheet(context: Context) {
+        viewModelScope.launch {
+            val username = context.dataStore.data.first()[stringPreferencesKey(MainViewModel
+                                                                                   .MY_ID)]
+            if (username != null) {
+                val sharingIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    val shareBody = context.getString(R.string.share_text, username)
+                    putExtra(Intent.EXTRA_TEXT, shareBody)
+                }
+                context.startActivity(Intent.createChooser(sharingIntent, null))
+            }
+        }
+    }
+
     companion object {
         val ICON_SIZE = IntSize(128, 128)
+    }
+
+    inner class UserInfoChangeListener(
+        private val context: Activity,
+        private val model: SettingsViewModel,
+        private val snackbarHostState: SnackbarHostState,
+        private val coroutineScope: CoroutineScope
+    ) {
+        private val attentionRepository = AttentionRepository(AttentionDB.getDB(context))
+
+
+        private fun <T> onResponse(code: Int, newValue: T, key: Preferences.Key<T>) {
+            synchronized(this) {
+                outstandingRequests--
+            }
+            val message = when (code) {
+                200 -> {
+                    applicationScope.launch {
+                        context.dataStore.edit {
+                            it[key] = newValue
+                        }
+                    }
+                    if (model.outstandingRequests == 0) {
+                        R.string.saved
+                    }
+                    null
+                }
+                400 -> {
+                    R.string.invalid_email
+                }
+                403 -> {
+                    SettingsActivity.launchLogin(context)
+                    R.string.confirm_logout_title
+                }
+                429 -> {
+                    R.string.rate_limited
+                }
+                else -> {
+                    R.string.unknown_error
+                }
+            }
+            if (message != null) coroutineScope.launch {
+                snackbarHostState.showSnackbar(
+                    context.getString(message),
+                    withDismissAction = false,
+                    actionLabel = context.getString(android.R.string.ok),
+                    duration = SnackbarDuration.Long
+                )
+            }
+        }
+
+        private fun onError() {
+            synchronized(this) {
+                outstandingRequests--
+            }
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar(
+                    context.getString(R.string.disconnected), duration = SnackbarDuration.Long
+                )
+            }
+        }
+
+        fun onPreferenceChange(
+            preference: Preferences.Key<String>, newValue: String
+        ): Boolean {
+            viewModelScope.launch {
+                val token = context.dataStore.data.first()[stringPreferencesKey(MY_TOKEN)]
+                if (token != null) {
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar(
+                            context.getString(R.string.saving),
+                            withDismissAction = true,
+                            duration = SnackbarDuration.Indefinite
+                        )
+                    }
+                    synchronized(this) {
+                        outstandingRequests++
+                    }
+                    when (preference.name) {
+                        context.getString(R.string.first_name_key) -> {
+                            attentionRepository.editUser(token = token,
+                                                         firstName = newValue,
+                                                         responseListener = { _, response, _ ->
+                                                             onResponse(
+                                                                 response.code(), newValue, preference
+                                                             )
+                                                         },
+                                                         errorListener = { _, _ ->
+                                                             onError()
+                                                         })
+                        }
+                        context.getString(R.string.last_name_key) -> {
+                            attentionRepository.editUser(token = token,
+                                                         lastName = newValue,
+                                                         responseListener = { _, response, _ ->
+                                                             onResponse(
+                                                                 response.code(), newValue, preference
+                                                             )
+                                                         },
+                                                         errorListener = { _, _ ->
+                                                             onError()
+                                                         })
+                        }
+                        context.getString(R.string.email_key) -> {
+                            attentionRepository.editUser(token = token,
+                                                         email = newValue,
+                                                         responseListener = { _, response, _ ->
+                                                             onResponse(
+                                                                 response.code(), newValue, preference
+                                                             )
+                                                         },
+                                                         errorListener = { _, _ ->
+                                                             onError()
+                                                         })
+                        }
+                    }
+                } else {
+                    SettingsActivity.launchLogin(context)
+                }
+            }
+            return false
+        }
+
     }
 }
