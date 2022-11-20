@@ -17,6 +17,23 @@ import androidx.datastore.preferences.core.edit
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
+
+/**
+ * Remembers a preference in a DataStore
+ *
+ * Used with modification from Phil Dukhov (https://stackoverflow.com/a/69266511/7484693)
+ *
+ * @param key - The key for the preference
+ * @param defaultValue - The default value if the key is not found
+ * @param onPreferenceChangeListener - A list of functions that take the key and the proposed
+ * value and return true if the new value should be persisted and false otherwise. They are
+ * called in the order provided to this field. The first listener to return false will stop the
+ * persisting and no further listeners will be called. All listeners must return true for the
+ * value to be persisted. If there are no listeners, value will be persisted (default).
+ *
+ * @return a MutableState that can serve as a property delegate and will trigger recompositions
+ * when the underlying preference is changed
+ */
 @Composable
 fun <T> rememberPreference(
     key: Preferences.Key<T>,
