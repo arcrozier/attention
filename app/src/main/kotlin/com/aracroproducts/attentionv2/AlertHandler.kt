@@ -16,7 +16,6 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.preference.PreferenceManager
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.Dispatchers
@@ -86,7 +85,6 @@ open class AlertHandler : FirebaseMessagingService() {
                     val repository = AttentionRepository(AttentionDB.getDB(applicationContext))
                     val preferences = applicationContext.dataStore.data.first()
                     val username = preferences[stringPreferencesKey(getString(R.string.username_key))]
-                        PreferenceManager.getDefaultSharedPreferences(this@AlertHandler)
                     if (messageData[REMOTE_TO] != username || messageData[REMOTE_TO] == null) return@launch  //if message is not addressed to the user, ends
 
                     val alertId = messageData[ALERT_ID]

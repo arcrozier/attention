@@ -9,11 +9,11 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.preference.PreferenceManager
 import com.aracroproducts.attentionv2.MainViewModel.Companion.MY_ID
 import com.aracroproducts.attentionv2.MainViewModel.Companion.MY_TOKEN
 import kotlinx.coroutines.CoroutineScope
@@ -174,11 +174,12 @@ class LoginViewModel @Inject constructor(
                                   )
                                   return@linkGoogleAccount
                               }
-                              PreferenceManager.getDefaultSharedPreferences(context).edit()
-                                  .apply {
-                                      putBoolean(context.getString(R.string.password_key), false)
-                                      apply()
+                              viewModelScope.launch {
+                                  context.dataStore.edit {
+                                      it[booleanPreferencesKey(context.getString(R.string
+                                                                                     .password_key))] = false
                                   }
+                              }
                               onLoggedIn()
                           }
                           400 -> {

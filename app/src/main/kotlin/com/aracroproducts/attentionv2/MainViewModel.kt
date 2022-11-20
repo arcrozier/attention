@@ -29,7 +29,6 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.preference.PreferenceManager
 import com.google.android.gms.tasks.Task
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.*
@@ -395,9 +394,14 @@ class MainViewModel @Inject internal constructor(
         return attentionRepository.getFriend(id)
     }
 
-    suspend fun getToken(): String? {
+    private suspend fun getToken(): String? {
         return getApplication<Application>().dataStore.data.first()[stringPreferencesKey
             (MY_TOKEN)]
+    }
+
+    private suspend fun getFCMToken(): String? {
+        return getApplication<Application>().dataStore.data.first()[stringPreferencesKey
+            (FCM_TOKEN)]
     }
 
     /**
@@ -736,9 +740,9 @@ class MainViewModel @Inject internal constructor(
                 val token = task.result
                 Log.d(sTAG, "Got token! $token")
 
-                val fcmTokenPrefs = context.getSharedPreferences(FCM_TOKEN, Context.MODE_PRIVATE)
+                val fcmToken = getFCMToken()
                 val authToken = getToken()
-                if (token != null && token != fcmTokenPrefs.getString(FCM_TOKEN, null)) {
+                if (token != null && token != fcmToken) {
                     context.dataStore.edit { settings ->
                         settings[stringPreferencesKey(FCM_TOKEN)] = token
                         settings[booleanPreferencesKey(TOKEN_UPLOADED)] = false
@@ -805,7 +809,6 @@ class MainViewModel @Inject internal constructor(
 
         const val OVERLAY_NO_PROMPT = "OverlayDoNotAsk"
         const val TOKEN_UPLOADED = "token_needs_upload"
-        const val USER_INFO = "user"
         const val MY_ID = "id"
         const val MY_TOKEN = "token"
         const val FCM_TOKEN = "fcm_token"
