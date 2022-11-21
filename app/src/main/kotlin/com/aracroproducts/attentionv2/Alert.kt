@@ -1,6 +1,5 @@
 package com.aracroproducts.attentionv2
 
-import android.app.Application
 import android.app.NotificationManager
 import android.content.Intent
 import android.os.Build
@@ -8,22 +7,24 @@ import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
 import androidx.activity.compose.setContent
-import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.AnnotatedString
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.aracroproducts.attentionv2.LoginActivity.Companion.LIST_ELEMENT_PADDING
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
 import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import java.text.DateFormat
 import java.time.Duration
@@ -34,26 +35,11 @@ import java.util.*
 /**
  * An Activity that displays the pop up dialog for an alert
  */
+@AndroidEntryPoint
 class Alert : AppCompatActivity() {
     private val sTAG = javaClass.name
 
-    val alertModel: AlertViewModel by viewModels(factoryProducer = {
-        AlertViewModelFactory(intent, AttentionRepository(AttentionDB.getDB(this)), application)
-    })
-
-    inner class AlertViewModelFactory(
-            private val intent: Intent,
-            private val attentionRepository: AttentionRepository,
-            private val application: Application
-    ) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            if (modelClass.isAssignableFrom(AlertViewModel::class.java)) {
-                return AlertViewModel(intent, attentionRepository, application) as T
-            }
-            throw IllegalArgumentException("Unknown ViewModel class")
-        }
-    }
+    val alertModel: AlertViewModel = ViewModelProvider(this)[AlertViewModel::class.java]
 
     /**
      * Called when the activity is created
@@ -126,11 +112,11 @@ class Alert : AppCompatActivity() {
                 Text(message)
                 Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
                 Text(
-                    timeSince(since = Calendar.getInstance().apply {
-                        timeInMillis = alertModel.timestamp
-                    }), color = MaterialTheme.colorScheme.onSurface.copy(
+                        timeSince(since = Calendar.getInstance().apply {
+                            timeInMillis = alertModel.timestamp
+                        }), color = MaterialTheme.colorScheme.onSurface.copy(
                         alpha = ContentAlpha.medium
-                    )
+                )
                 )
             }
         })

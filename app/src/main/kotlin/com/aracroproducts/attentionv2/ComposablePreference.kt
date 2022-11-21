@@ -10,12 +10,9 @@ import androidx.compose.material.ContentAlpha
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 
@@ -37,10 +34,11 @@ import kotlinx.coroutines.launch
  */
 @Composable
 fun <T> rememberPreference(
-    key: Preferences.Key<T>,
-    defaultValue: T,
-    onPreferenceChangeListener: List<(pref: Preferences.Key<T>, newValue: T) -> Boolean> =
-        listOf()
+        key: Preferences.Key<T>,
+        defaultValue: T,
+        onPreferenceChangeListener: List<(pref: Preferences.Key<T>, newValue: T) -> Boolean> =
+                listOf(),
+        repository: PreferencesRepository
 ): MutableState<T> {
 
     fun shouldPersistChange(newValue: T): Boolean {
@@ -51,12 +49,10 @@ fun <T> rememberPreference(
     }
 
     val coroutineScope = rememberCoroutineScope()
-    val context = LocalContext.current
     val state = remember {
-        context.dataStore.data
-            .map {
-                it[key] ?: defaultValue
-            }
+        repository.subscribe {
+            it[key] ?: defaultValue
+        }
     }.collectAsState(initial = defaultValue)
 
     return remember {
@@ -66,9 +62,7 @@ fun <T> rememberPreference(
                 set(value) {
                     if (shouldPersistChange(value)) {
                         coroutineScope.launch {
-                            context.dataStore.edit {
-                                it[key] = value
-                            }
+                            repository.setValue(key, value)
                         }
                     }
                 }
@@ -82,17 +76,17 @@ fun <T> rememberPreference(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StringPreferenceChange(
-    value: String,
-    setValue: (String) -> Unit,
-    dismissDialog: () -> Unit,
-    context: Context,
-    title: String,
-    keyboardOptions: KeyboardOptions? = null,
-    validate: ((String) -> String)? = null
+        value: String,
+        setValue: (String) -> Unit,
+        dismissDialog: () -> Unit,
+        context: Context,
+        title: String,
+        keyboardOptions: KeyboardOptions? = null,
+        validate: ((String) -> String)? = null
 ) {
 
     var newValue by remember { mutableStateOf(value) }
-    var message by remember { mutableStateOf( "" )}
+    var message by remember { mutableStateOf("") }
 
 
     fun onDone() {
@@ -121,8 +115,8 @@ fun StringPreferenceChange(
         Column {
             OutlinedTextField(value = newValue, onValueChange = { newValue = it }, singleLine =
             true, isError = message.isNotBlank(), keyboardOptions = keyboardOptions?.copy
-                (imeAction = ImeAction.Done) ?: KeyboardOptions(imeAction = ImeAction.Done),
-                              keyboardActions = KeyboardActions { onDone() }
+            (imeAction = ImeAction.Done) ?: KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions { onDone() }
             )
             Text(
                     text = message,
@@ -138,12 +132,12 @@ fun StringPreferenceChange(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FloatPreferenceChange(
-    value: Float,
-    setValue: (Float) -> Unit,
-    dismissDialog: () -> Unit,
-    context: Context,
-    title: String,
-    validate: ((Float) -> String)? = null
+        value: Float,
+        setValue: (Float) -> Unit,
+        dismissDialog: () -> Unit,
+        context: Context,
+        title: String,
+        validate: ((Float) -> String)? = null
 ) {
     var newValue by remember { mutableStateOf(value.toString()) }
     var message by remember {
@@ -176,32 +170,32 @@ fun FloatPreferenceChange(
         Column {
             OutlinedTextField(value = newValue, onValueChange = { newValue = it }, isError =
             message.isNotBlank(), singleLine = true, keyboardOptions = KeyboardOptions
-                (keyboardType = KeyboardType.Decimal)
+            (keyboardType = KeyboardType.Decimal)
             )
-                Text(
-                        text = message,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(
-                                alpha = ContentAlpha.medium)
-                )
-            }
-        })
+            Text(
+                    text = message,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(
+                            alpha = ContentAlpha.medium)
+            )
+        }
+    })
 }
 
 @Composable
 fun MultiSelectListPreferenceChange(
-    value: Set<String>,
-    setValue: (Set<String>) -> Unit,
-    dismissDialog: () -> Unit,
-    context: Context,
-    title: String,
-    entriesRes: Int,
-    entryValuesRes: Int
+        value: Set<String>,
+        setValue: (Set<String>) -> Unit,
+        dismissDialog: () -> Unit,
+        context: Context,
+        title: String,
+        entriesRes: Int,
+        entryValuesRes: Int
 ) {
     val newValue = remember {
         mutableStateMapOf(*value.map {
             Pair(
-                it, true
+                    it, true
             )
         }.toTypedArray())
     }
@@ -226,17 +220,17 @@ fun MultiSelectListPreferenceChange(
         Column {
             for ((index, entry) in entries.withIndex()) {
                 Row(
-                    modifier = Modifier.toggleable(value = newValue.containsKey(entry),
-                                                   onValueChange = {
-                                                       if (it) {
-                                                           newValue[entry] = true
-                                                       } else {
-                                                           newValue.remove(entry)
-                                                       }
-                                                   })
+                        modifier = Modifier.toggleable(value = newValue.containsKey(entry),
+                                onValueChange = {
+                                    if (it) {
+                                        newValue[entry] = true
+                                    } else {
+                                        newValue.remove(entry)
+                                    }
+                                })
                 ) {
                     Checkbox(
-                        checked = newValue.containsKey(entry), onCheckedChange = null/*{
+                            checked = newValue.containsKey(entry), onCheckedChange = null/*{
                                 if (it) {
                                     newValue[entry] = true
                                 } else {
@@ -253,14 +247,14 @@ fun MultiSelectListPreferenceChange(
 }
 
 fun multiselectListPreferenceSummary(
-    value: Set<String>, entries: Array<String>, values: Array<String>
+        value: Set<String>, entries: Array<String>, values: Array<String>
 ): String {
     val summaryList: MutableList<String> = ArrayList(value.size)
     for (i in values.indices) {
         if (value.contains(values[i])) summaryList.add(entries[i])
     }
     return summaryList
-        .joinToString(", ")
+            .joinToString(", ")
 }
 
 @Composable

@@ -23,25 +23,29 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class AlertViewModel(
-    intent: Intent, private val attentionRepository: AttentionRepository, application: Application
+@HiltViewModel
+class AlertViewModel @Inject constructor(
+        intent: Intent, private val attentionRepository: AttentionRepository, private val
+        preferencesRepository: PreferencesRepository,
+        application: Application
 ) : AndroidViewModel(application) {
 
     var silenced: Boolean by mutableStateOf(
-        !intent.getBooleanExtra(AlertHandler.SHOULD_VIBRATE, true)
+            !intent.getBooleanExtra(AlertHandler.SHOULD_VIBRATE, true)
     )
     private var isFinishing: Boolean by mutableStateOf(false)
     val from = intent.getStringExtra(AlertHandler.REMOTE_FROM) ?: ""
     var message by mutableStateOf(
-        AnnotatedString(
-            intent.getStringExtra(
-                AlertHandler.REMOTE_MESSAGE
-            ) ?: ""
-        )
+            AnnotatedString(
+                    intent.getStringExtra(
+                            AlertHandler.REMOTE_MESSAGE
+                    ) ?: ""
+            )
     )
     val timestamp = intent.getLongExtra(AlertHandler.ALERT_TIMESTAMP, System.currentTimeMillis())
     var showDNDButton by mutableStateOf(false)
@@ -52,8 +56,9 @@ class AlertViewModel(
 
 
     private val ringtone = RingtoneManager.getRingtone(
-        getApplication(),
-        RingtoneManager.getActualDefaultRingtoneUri(getApplication(), RingtoneManager.TYPE_RINGTONE)
+            getApplication(),
+            RingtoneManager.getActualDefaultRingtoneUri(getApplication(),
+                    RingtoneManager.TYPE_RINGTONE)
     ).apply {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) volume = 1.0f
     }
@@ -68,16 +73,17 @@ class AlertViewModel(
             val context = getApplication<Application>()
             val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 val vibratorManager =
-                    context.getSystemService(AppCompatActivity.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+                        context.getSystemService(
+                                AppCompatActivity.VIBRATOR_MANAGER_SERVICE) as VibratorManager
                 vibratorManager.defaultVibrator
             } else {
                 context.getSystemService(AppCompatActivity.VIBRATOR_SERVICE) as Vibrator
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 vibrator.vibrate(
-                    VibrationEffect.createOneShot(
-                        400, MAX_AMPLITUDE
-                    )
+                        VibrationEffect.createOneShot(
+                                400, MAX_AMPLITUDE
+                        )
                 )
             } else {
                 vibrator.vibrate(400)
@@ -93,12 +99,14 @@ class AlertViewModel(
         if (!silenced) {
             viewModelScope.launch(context = Dispatchers.IO) {
                 val context = getApplication<Application>()
-                val settings = context.dataStore.data.first()
-                val vibrate = settings[stringSetPreferencesKey(context.getString(R.string
-                                                                                     .vibrate_preference_key))] ?: HashSet()
-                val ring = settings[stringSetPreferencesKey(context.getString(R.string
-                                                                                  .ring_preference_key))] ?:
-                                                                                  HashSet()
+                val vibrate =
+                        preferencesRepository.getValue(stringSetPreferencesKey(context.getString(R
+                                .string
+                                .vibrate_preference_key)), HashSet())
+                val ring = preferencesRepository.getValue(stringSetPreferencesKey(context
+                        .getString(R.string
+                                .ring_preference_key)),
+                        HashSet())
 
                 ring(ring)
                 vibrate(vibrate)
@@ -111,13 +119,12 @@ class AlertViewModel(
         isFinishing = true
 
         viewModelScope.launch(context = Dispatchers.IO) {
-            val context = getApplication<Application>()
-            val preferences = context.dataStore.data.first()
 
             // token is auth token
-            val token = preferences[stringPreferencesKey(MainViewModel.MY_TOKEN)]
+            val token = preferencesRepository.getValue(stringPreferencesKey(MainViewModel.MY_TOKEN))
 
-            val fcmToken = preferences[stringPreferencesKey(MainViewModel.FCM_TOKEN)]
+            val fcmToken = preferencesRepository.getValue(stringPreferencesKey(MainViewModel
+                    .FCM_TOKEN))
 
             if (token == null || fcmToken == null) {
                 Log.e(javaClass.name, "Token is null when sending read receipt!")
@@ -125,7 +132,7 @@ class AlertViewModel(
             }
 
             attentionRepository.sendReadReceipt(
-                from = fromUsername, alertId = alertId, fcmToken = fcmToken, authToken = token
+                    from = fromUsername, alertId = alertId, fcmToken = fcmToken, authToken = token
             )
         }
     }
@@ -154,9 +161,9 @@ class AlertViewModel(
                         append(context.getString(R.string.could_not_ring))
                         val end = this.length - 1
                         addStyle(
-                            SpanStyle(
-                                fontStyle = FontStyle.Italic, fontWeight = FontWeight.Light
-                            ), start, end
+                                SpanStyle(
+                                        fontStyle = FontStyle.Italic, fontWeight = FontWeight.Light
+                                ), start, end
                         )
                     }
                 }
@@ -216,7 +223,7 @@ class AlertViewModel(
         val context = getApplication<Application>()
         if (id != NO_ID) {
             val notificationManager = context.getSystemService(
-                AppCompatActivity.NOTIFICATION_SERVICE
+                    AppCompatActivity.NOTIFICATION_SERVICE
             ) as NotificationManager
             notificationManager.cancel(id)
         }
@@ -225,7 +232,7 @@ class AlertViewModel(
         intent.putExtra("alert_message", message)
         intent.putExtra("alert_from", from)
         val pendingIntent = PendingIntent.getActivity(
-            context, 0, intent, PendingIntent.FLAG_IMMUTABLE
+                context, 0, intent, PendingIntent.FLAG_IMMUTABLE
         )
 
         AlertHandler.createMissedNotificationChannel(context)

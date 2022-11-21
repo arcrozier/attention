@@ -20,7 +20,6 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.IntSize
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -29,7 +28,6 @@ import com.aracroproducts.attentionv2.MainViewModel.Companion.PFP_FILENAME
 import com.aracroproducts.attentionv2.MainViewModel.Companion.TOKEN_UPLOADED
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.first
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.FileOutputStream
@@ -39,10 +37,12 @@ import javax.inject.Inject
 import kotlin.math.min
 
 @HiltViewModel
-class SettingsViewModel @Inject constructor(private val repository: AttentionRepository, private
-val applicationScope:
-                CoroutineScope, application: Application) :
-    AndroidViewModel(application) {
+class SettingsViewModel @Inject constructor(
+        private val repository: AttentionRepository,
+        private val attentionRepository: AttentionRepository,
+        val preferencesRepository: PreferencesRepository,
+        private val applicationScope: CoroutineScope,
+        application: Application) : AndroidViewModel(application) {
 
     var outstandingRequests by mutableStateOf(0)
 
@@ -65,7 +65,7 @@ val applicationScope:
         viewModelScope.launch {
             val data = withContext(Dispatchers.IO) {
                 File(
-                    getApplication<Application>().filesDir, PFP_FILENAME
+                        getApplication<Application>().filesDir, PFP_FILENAME
                 ).readBytes()
             }
             photo = withContext(Dispatchers.Default) {
@@ -80,30 +80,27 @@ val applicationScope:
         repository.unregisterDevice(token = token, fcmToken = fcmToken)
 
         viewModelScope.launch {
-            val context = getApplication<Application>()
-            context.dataStore.edit { settings ->
-                settings[booleanPreferencesKey(TOKEN_UPLOADED)] = false
-            }
+            preferencesRepository.setValue(booleanPreferencesKey(TOKEN_UPLOADED), false)
         }
 
     }
 
     suspend fun getImageBitmap(
-        uri: Uri, context: Context, size: IntSize, minSize: Boolean
+            uri: Uri, context: Context, size: IntSize, minSize: Boolean
     ): Bitmap? {
         val job = viewModelScope.async(Dispatchers.IO) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 ImageDecoder.decodeBitmap(
-                    ImageDecoder.createSource(context.contentResolver, uri)
+                        ImageDecoder.createSource(context.contentResolver, uri)
                 ) { decoder, info, _ ->
                     var s = min(
-                        size.width.toFloat() / info.size.width,
-                        size.height.toFloat() / info.size.height
+                            size.width.toFloat() / info.size.width,
+                            size.height.toFloat() / info.size.height
                     )
                     if (minSize) s = min(s, 1f)
                     decoder.setTargetSize(
-                        (info.size.width * s).toInt(),
-                        (info.size.height * s).toInt()
+                            (info.size.width * s).toInt(),
+                            (info.size.height * s).toInt()
                     )
                 }
             } else {
@@ -150,7 +147,7 @@ val applicationScope:
 
         viewModelScope.launch(context = Dispatchers.IO) {
 
-            val token = context.dataStore.data.first()[stringPreferencesKey(MY_TOKEN)]
+            val token = preferencesRepository.getValue(stringPreferencesKey(MY_TOKEN))
             if (token != null) {
                 uploadStatus = context.getString(R.string.processing)
                 val image: InputStream? = try {
@@ -162,86 +159,86 @@ val applicationScope:
                     uploadSuccess = false
                     uploading = false
                     uploadStatus = context.getString(
-                        R.string.upload_failed, context.getString(
+                            R.string.upload_failed, context.getString(
                             R.string.no_file
-                        )
+                    )
                     )
                     return@launch
                 } else {
                     uploadStatus = context.getString(R.string.uploading)
                 }
                 val call = repository.editPhoto(
-                    photo = image,
-                    token = token,
-                    responseListener = { _, response, _ ->
-                        onCancel = null
-                        uploading = false
-                        if (response.isSuccessful) {
-                            uploadSuccess = true
-                            uploadStatus = context.getString(R.string.uploaded)
-                            viewModelScope.launch(Dispatchers.IO) {
-                                val bitmap = getImageBitmap(uri, context, ICON_SIZE, false)
-                                val file = File(context.filesDir, PFP_FILENAME).apply {
-                                    createNewFile()
+                        photo = image,
+                        token = token,
+                        responseListener = { _, response, _ ->
+                            onCancel = null
+                            uploading = false
+                            if (response.isSuccessful) {
+                                uploadSuccess = true
+                                uploadStatus = context.getString(R.string.uploaded)
+                                viewModelScope.launch(Dispatchers.IO) {
+                                    val bitmap = getImageBitmap(uri, context, ICON_SIZE, false)
+                                    val file = File(context.filesDir, PFP_FILENAME).apply {
+                                        createNewFile()
+                                    }
+                                    val output = FileOutputStream(file)
+                                    bitmap?.compress(Bitmap.CompressFormat.PNG, 100, output)
+                                    photo = bitmap?.asImageBitmap()
                                 }
-                                val output = FileOutputStream(file)
-                                bitmap?.compress(Bitmap.CompressFormat.PNG, 100, output)
-                                photo = bitmap?.asImageBitmap()
+                            } else {
+                                uploadSuccess = false
+                                when (response.code()) {
+                                    400 -> {
+                                        shouldRetryUpload = false
+                                        uploadStatus = context.getString(
+                                                R.string.upload_failed,
+                                                context.getString(R.string.invalid_photo)
+                                        )
+                                    }
+                                    403 -> {
+                                        uploadDialog = false
+                                        launchLogin()
+                                    }
+                                    413 -> {
+                                        shouldRetryUpload = false
+                                        uploadStatus = context.getString(
+                                                R.string.upload_failed,
+                                                context.getString(R.string.photo_too_large)
+                                        )
+                                    }
+                                    429 -> {
+                                        shouldRetryUpload = true
+                                        uploadStatus = context.getString(
+                                                R.string.upload_failed,
+                                                context.getString(R.string.rate_limited)
+                                        )
+                                    }
+                                    else -> {
+                                        shouldRetryUpload = true
+                                        uploadStatus = context.getString(
+                                                R.string.upload_failed,
+                                                context.getString(R.string.server_error)
+                                        )
+                                    }
+                                }
                             }
-                        } else {
+                            uploadLock.unlock()
+                        },
+                        errorListener = { _, _ ->
                             uploadSuccess = false
-                            when (response.code()) {
-                                400 -> {
-                                    shouldRetryUpload = false
-                                    uploadStatus = context.getString(
-                                        R.string.upload_failed,
-                                        context.getString(R.string.invalid_photo)
-                                    )
-                                }
-                                403 -> {
-                                    uploadDialog = false
-                                    launchLogin()
-                                }
-                                413 -> {
-                                    shouldRetryUpload = false
-                                    uploadStatus = context.getString(
-                                        R.string.upload_failed,
-                                        context.getString(R.string.photo_too_large)
-                                    )
-                                }
-                                429 -> {
-                                    shouldRetryUpload = true
-                                    uploadStatus = context.getString(
-                                        R.string.upload_failed,
-                                        context.getString(R.string.rate_limited)
-                                    )
-                                }
-                                else -> {
-                                    shouldRetryUpload = true
-                                    uploadStatus = context.getString(
-                                        R.string.upload_failed,
-                                        context.getString(R.string.server_error)
-                                    )
-                                }
-                            }
-                        }
-                        uploadLock.unlock()
-                    },
-                    errorListener = { _, _ ->
-                        uploadSuccess = false
-                        uploading = false
-                        shouldRetryUpload = true
-                        uploadStatus = context.getString(
-                            R.string.upload_failed, context.getString(
-                                R.string.connection_error
+                            uploading = false
+                            shouldRetryUpload = true
+                            uploadStatus = context.getString(
+                                    R.string.upload_failed, context.getString(
+                                    R.string.connection_error
                             )
-                        )
-                        onCancel = null
-                        uploadLock.unlock()
-                    },
-                    uploadCallbacks = {
-                        uploadProgress = it
-                    })
+                            )
+                            onCancel = null
+                            uploadLock.unlock()
+                        },
+                        uploadCallbacks = {
+                            uploadProgress = it
+                        })
                 onCancel = {
                     call.cancel()
                     uploadLock.unlock()
@@ -255,32 +252,30 @@ val applicationScope:
         }
     }
 
-    fun <T> writeToDatastore(key: Preferences.Key<T>, value: T, context: Context) {
+    fun <T> writeToDatastore(key: Preferences.Key<T>, value: T) {
         viewModelScope.launch {
-            context.dataStore.edit { settings ->
-                settings[key] = value
-            }
+            preferencesRepository.setValue(key, value)
         }
     }
 
     fun logout(context: Context) {
         applicationScope.launch {
-            context.dataStore.data.first().let {
+            preferencesRepository.let {
                 unregisterDevice(
-                    it[stringPreferencesKey(MY_TOKEN)] ?: "",
-                    it[stringPreferencesKey(MainViewModel.FCM_TOKEN)] ?: ""
+                        it.getValue(stringPreferencesKey(MY_TOKEN), ""),
+                        it.getValue(stringPreferencesKey(MainViewModel.FCM_TOKEN), "")
                 )
             }
-            context.dataStore.edit { settings ->
+            preferencesRepository.bulkEdit { settings ->
                 settings.remove(stringPreferencesKey(MY_TOKEN))
                 settings.remove(stringPreferencesKey(context.getString(R.string
-                                                                   .username_key)))
+                        .username_key)))
                 settings.remove(stringPreferencesKey(context.getString(R.string
-                                                                   .first_name_key)))
+                        .first_name_key)))
                 settings.remove(stringPreferencesKey(context.getString(R.string
-                                                                   .last_name_key)))
+                        .last_name_key)))
                 settings.remove(stringPreferencesKey(context.getString(R.string
-                                                                   .email_key)))
+                        .email_key)))
             }
             clearAllDatabaseTables()
         }
@@ -288,66 +283,67 @@ val applicationScope:
 
     fun changeUsername(newValue: String, setValue: (String) -> Unit, setUsernameCaption: (String)
     -> Unit,
-                                                     setStatus:
-    (error: Boolean, loading: Boolean) -> Unit, dismissDialog: () -> Unit, context: Context,
+                       setStatus:
+                       (error: Boolean, loading: Boolean) -> Unit, dismissDialog: () -> Unit,
+                       context: Context,
                        coroutineScope:
                        CoroutineScope, snackbarHostState: SnackbarHostState) {
         viewModelScope.launch {
-            val token = context.dataStore.data.first()[stringPreferencesKey(MY_TOKEN)]
+            val token = preferencesRepository.getValue(stringPreferencesKey(MY_TOKEN))
             if (token == null) {
                 val loginIntent =
-                    Intent(context, LoginActivity::class.java)
+                        Intent(context, LoginActivity::class.java)
                 context.startActivity(loginIntent)
                 return@launch
             }
             repository.editUser(token = token,
-                                username = newValue,
-                                responseListener = { _, response, _ ->
-                                    setStatus(!response.isSuccessful, false)
-                                    when (response.code()) {
-                                        200 -> {
-                                            setUsernameCaption("")
-                                            setValue(newValue)
-                                            dismissDialog()
-                                        }
-                                        400 -> {
-                                            setUsernameCaption(context.getString(
-                                                    R.string.username_in_use
-                                                ))
-                                        }
-                                        403 -> {
-                                            setUsernameCaption("")
-                                            dismissDialog()
-                                            SettingsActivity.launchLogin(
-                                                context
-                                            )
-                                        }
-                                        else -> {
-                                            setUsernameCaption(context.getString(
-                                                    R.string.unknown_error
-                                                ))
-                                        }
-                                    }
-                                },
-                                errorListener = { _, _ ->
-                                    setStatus(true, false)
-                                    coroutineScope.launch {
-                                        snackbarHostState.showSnackbar(
-                                            context.getString(
-                                                R.string.disconnected
-                                            ),
-                                            duration = SnackbarDuration.Long
-                                        )
-                                    }
-                                })
+                    username = newValue,
+                    responseListener = { _, response, _ ->
+                        setStatus(!response.isSuccessful, false)
+                        when (response.code()) {
+                            200 -> {
+                                setUsernameCaption("")
+                                setValue(newValue)
+                                dismissDialog()
+                            }
+                            400 -> {
+                                setUsernameCaption(context.getString(
+                                        R.string.username_in_use
+                                ))
+                            }
+                            403 -> {
+                                setUsernameCaption("")
+                                dismissDialog()
+                                SettingsActivity.launchLogin(
+                                        context
+                                )
+                            }
+                            else -> {
+                                setUsernameCaption(context.getString(
+                                        R.string.unknown_error
+                                ))
+                            }
+                        }
+                    },
+                    errorListener = { _, _ ->
+                        setStatus(true, false)
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar(
+                                    context.getString(
+                                            R.string.disconnected
+                                    ),
+                                    duration = SnackbarDuration.Long
+                            )
+                        }
+                    })
         }
 
     }
 
     fun launchShareSheet(context: Context) {
         viewModelScope.launch {
-            val username = context.dataStore.data.first()[stringPreferencesKey(MainViewModel
-                                                                                   .MY_ID)]
+            val username = preferencesRepository.getValue(stringPreferencesKey(MainViewModel
+                    .MY_ID))
             if (username != null) {
                 val sharingIntent = Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"
@@ -364,13 +360,11 @@ val applicationScope:
     }
 
     inner class UserInfoChangeListener(
-        private val context: Activity,
-        private val model: SettingsViewModel,
-        private val snackbarHostState: SnackbarHostState,
-        private val coroutineScope: CoroutineScope
+            private val context: Activity,
+            private val model: SettingsViewModel,
+            private val snackbarHostState: SnackbarHostState,
+            private val coroutineScope: CoroutineScope
     ) {
-        private val attentionRepository = AttentionRepository(AttentionDB.getDB(context))
-
 
         private fun <T> onResponse(code: Int, newValue: T, key: Preferences.Key<T>) {
             synchronized(this) {
@@ -379,9 +373,7 @@ val applicationScope:
             val message = when (code) {
                 200 -> {
                     applicationScope.launch {
-                        context.dataStore.edit {
-                            it[key] = newValue
-                        }
+                        preferencesRepository.setValue(key, newValue)
                     }
                     if (model.outstandingRequests == 0) {
                         R.string.saved
@@ -404,10 +396,10 @@ val applicationScope:
             }
             if (message != null) coroutineScope.launch {
                 snackbarHostState.showSnackbar(
-                    context.getString(message),
-                    withDismissAction = false,
-                    actionLabel = context.getString(android.R.string.ok),
-                    duration = SnackbarDuration.Long
+                        context.getString(message),
+                        withDismissAction = false,
+                        actionLabel = context.getString(android.R.string.ok),
+                        duration = SnackbarDuration.Long
                 )
             }
         }
@@ -418,22 +410,22 @@ val applicationScope:
             }
             coroutineScope.launch {
                 snackbarHostState.showSnackbar(
-                    context.getString(R.string.disconnected), duration = SnackbarDuration.Long
+                        context.getString(R.string.disconnected), duration = SnackbarDuration.Long
                 )
             }
         }
 
         fun onPreferenceChange(
-            preference: Preferences.Key<String>, newValue: String
+                preference: Preferences.Key<String>, newValue: String
         ): Boolean {
             viewModelScope.launch {
-                val token = context.dataStore.data.first()[stringPreferencesKey(MY_TOKEN)]
+                val token = preferencesRepository.getValue(stringPreferencesKey(MY_TOKEN))
                 if (token != null) {
                     coroutineScope.launch {
                         snackbarHostState.showSnackbar(
-                            context.getString(R.string.saving),
-                            withDismissAction = true,
-                            duration = SnackbarDuration.Indefinite
+                                context.getString(R.string.saving),
+                                withDismissAction = true,
+                                duration = SnackbarDuration.Indefinite
                         )
                     }
                     synchronized(this) {
@@ -442,39 +434,39 @@ val applicationScope:
                     when (preference.name) {
                         context.getString(R.string.first_name_key) -> {
                             attentionRepository.editUser(token = token,
-                                                         firstName = newValue,
-                                                         responseListener = { _, response, _ ->
-                                                             onResponse(
-                                                                 response.code(), newValue, preference
-                                                             )
-                                                         },
-                                                         errorListener = { _, _ ->
-                                                             onError()
-                                                         })
+                                    firstName = newValue,
+                                    responseListener = { _, response, _ ->
+                                        onResponse(
+                                                response.code(), newValue, preference
+                                        )
+                                    },
+                                    errorListener = { _, _ ->
+                                        onError()
+                                    })
                         }
                         context.getString(R.string.last_name_key) -> {
                             attentionRepository.editUser(token = token,
-                                                         lastName = newValue,
-                                                         responseListener = { _, response, _ ->
-                                                             onResponse(
-                                                                 response.code(), newValue, preference
-                                                             )
-                                                         },
-                                                         errorListener = { _, _ ->
-                                                             onError()
-                                                         })
+                                    lastName = newValue,
+                                    responseListener = { _, response, _ ->
+                                        onResponse(
+                                                response.code(), newValue, preference
+                                        )
+                                    },
+                                    errorListener = { _, _ ->
+                                        onError()
+                                    })
                         }
                         context.getString(R.string.email_key) -> {
                             attentionRepository.editUser(token = token,
-                                                         email = newValue,
-                                                         responseListener = { _, response, _ ->
-                                                             onResponse(
-                                                                 response.code(), newValue, preference
-                                                             )
-                                                         },
-                                                         errorListener = { _, _ ->
-                                                             onError()
-                                                         })
+                                    email = newValue,
+                                    responseListener = { _, response, _ ->
+                                        onResponse(
+                                                response.code(), newValue, preference
+                                        )
+                                    },
+                                    errorListener = { _, _ ->
+                                        onError()
+                                    })
                         }
                     }
                 } else {

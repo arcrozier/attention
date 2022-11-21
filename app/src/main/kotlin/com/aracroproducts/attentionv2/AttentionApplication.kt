@@ -13,17 +13,9 @@ import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 
-class AttentionContainer(context: Context) {
-    val database by lazy { AttentionDB.getDB(context) }
-    val repository by lazy { AttentionRepository(database) }
-    val applicationScope = CoroutineScope(SupervisorJob())
-}
-
 @HiltAndroidApp
 class AttentionApplication : Application(), LifecycleEventObserver,
                              Application.ActivityLifecycleCallbacks {
-
-    val container = AttentionContainer(this)
 
     var activity: Activity? = null
 

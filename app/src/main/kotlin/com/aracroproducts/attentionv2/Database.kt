@@ -1,15 +1,16 @@
 package com.aracroproducts.attentionv2
 
 import android.content.Context
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.LiveData
 import androidx.room.*
 import com.aracroproducts.attentionv2.AttentionDB.Companion.DB_V3
 import com.google.gson.annotations.SerializedName
-
-val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
 
 class Converters {
     @TypeConverter
@@ -26,7 +27,7 @@ class Converters {
 }
 
 @Database(
-    version = DB_V3, entities = [Friend::class, Message::class, CachedFriend::class]
+        version = DB_V3, entities = [Friend::class, Message::class, CachedFriend::class]
 )
 abstract class AttentionDB : RoomDatabase() {
 
@@ -38,7 +39,7 @@ abstract class AttentionDB : RoomDatabase() {
 
     companion object {
         const val DB_V3 = 3
-        private const val DB_NAME = "attention_database"
+        const val DB_NAME = "attention_database"
 
         @Volatile
         private var INSTANCE: AttentionDB? = null
@@ -46,7 +47,7 @@ abstract class AttentionDB : RoomDatabase() {
         fun getDB(context: Context): AttentionDB {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
-                    context.applicationContext, AttentionDB::class.java, DB_NAME
+                        context.applicationContext, AttentionDB::class.java, DB_NAME
                 ).fallbackToDestructiveMigration().build()
                 INSTANCE = instance // return instance
                 instance
@@ -57,28 +58,28 @@ abstract class AttentionDB : RoomDatabase() {
 
 @Entity
 data class CachedFriend(
-    @PrimaryKey val username: String
+        @PrimaryKey val username: String
 )
 
 @Entity
 data class Friend(
-    @SerializedName("friend") @PrimaryKey val id: String,
-    @SerializedName("name") val name: String,
-    @SerializedName("sent") val sent: Int = 0,
-    @SerializedName("received") val received: Int = 0,
-    @SerializedName("last_message_id_sent") val last_message_sent_id: String? = null,
-    @SerializedName("last_message_status") @TypeConverters(Converters::class)
-    val last_message_status: MessageStatus? = null,
-    @SerializedName("photo") val photo: String? = null,
+        @SerializedName("friend") @PrimaryKey val id: String,
+        @SerializedName("name") val name: String,
+        @SerializedName("sent") val sent: Int = 0,
+        @SerializedName("received") val received: Int = 0,
+        @SerializedName("last_message_id_sent") val last_message_sent_id: String? = null,
+        @SerializedName("last_message_status") @TypeConverters(Converters::class)
+        val last_message_status: MessageStatus? = null,
+        @SerializedName("photo") val photo: String? = null,
 )
 
 @Entity
 data class Message(
-    @PrimaryKey(autoGenerate = true) val messageId: Int? = null,
-    val timestamp: Long,
-    val otherId: String,
-    val direction: DIRECTION,
-    val message: String?
+        @PrimaryKey(autoGenerate = true) val messageId: Int? = null,
+        val timestamp: Long,
+        val otherId: String,
+        val direction: DIRECTION,
+        val message: String?
 )
 
 enum class DIRECTION { Outgoing, Incoming }
@@ -124,7 +125,7 @@ interface FriendDAO {
     suspend fun setMessageAlert(message_id: String?, id: String)
 
     @Query(
-        "UPDATE Friend SET last_message_status = :status WHERE id = :id AND " + "last_message_sent_id =" + " :alert_id"
+            "UPDATE Friend SET last_message_status = :status WHERE id = :id AND " + "last_message_sent_id =" + " :alert_id"
     )
     suspend fun setMessageStatus(status: MessageStatus?, id: String?, alert_id: String?)
 
@@ -163,4 +164,19 @@ interface MessageDA0 {
 
     @Insert
     suspend fun insertMessage(message: Message)
+}
+
+@InstallIn(SingletonComponent::class)
+@Module
+class DatabaseModule {
+
+    @Provides
+    @Singleton
+    fun provideAttentionDB(@ApplicationContext appContext: Context): AttentionDB {
+        return Room.databaseBuilder(
+                appContext,
+                AttentionDB::class.java,
+                AttentionDB.DB_NAME
+        ).build()
+    }
 }
