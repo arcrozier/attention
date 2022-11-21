@@ -2,7 +2,6 @@ package com.aracroproducts.attentionv2
 
 import android.Manifest.permission.POST_NOTIFICATIONS
 import android.app.Application
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -13,7 +12,6 @@ import android.os.Bundle
 import android.provider.Settings
 import android.util.Base64
 import android.util.Log
-import android.util.TypedValue
 import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -118,14 +116,12 @@ class MainActivity : AppCompatActivity() {
     private var delay: Float
 
     init {
-        val defaultDelay = TypedValue()
-        resources.getValue(R.integer.default_delay, defaultDelay, false)
 
-        delay = defaultDelay.float
+        delay = SettingsActivity.DEFAULT_DELAY
 
         lifecycleScope.launch(context = Dispatchers.IO) {
             dataStore.data.collect {
-                delay = it[floatPreferencesKey(getString(R.string.delay_key))] ?: defaultDelay.float
+                delay = it[floatPreferencesKey(getString(R.string.delay_key))] ?: SettingsActivity.DEFAULT_DELAY
             }
         }
     }

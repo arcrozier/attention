@@ -10,7 +10,6 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS
 import android.util.Log
-import android.util.TypedValue
 import androidx.activity.compose.setContent
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -31,6 +30,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -59,6 +59,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
@@ -77,6 +79,7 @@ import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.google.android.gms.auth.api.identity.Identity
 import com.yalantis.ucrop.UCrop
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
 import java.io.File
 import java.lang.Integer.max
@@ -84,6 +87,7 @@ import java.lang.Integer.max
 /**
  * The class for the settings menu in the app
  */
+@AndroidEntryPoint
 class SettingsActivity : AppCompatActivity() {
 
     private val viewModel: SettingsViewModel by viewModels(factoryProducer = {
@@ -310,7 +314,8 @@ class SettingsActivity : AppCompatActivity() {
                                    title = R.string.email,
                                    dialog = { value, setValue, dismissDialog, context, title ->
                                        StringPreferenceChange(
-                                           value, setValue, dismissDialog, context, title
+                                           value, setValue, dismissDialog, context, title,
+                                           KeyboardOptions(keyboardType = KeyboardType.Email)
                                        ) {
                                            if (!(it.isEmpty() || android.util.Patterns.EMAIL_ADDRESS.matcher(
                                                    it
@@ -337,7 +342,9 @@ class SettingsActivity : AppCompatActivity() {
                             setValue = setValue,
                             dismissDialog = dismissDialog,
                             context = context,
-                            title = title
+                            title = title,
+                            keyboardOptions = KeyboardOptions(capitalization =
+                                                              KeyboardCapitalization.Words)
                         )
                     }
                 )
@@ -356,7 +363,9 @@ class SettingsActivity : AppCompatActivity() {
                             setValue = setValue,
                             dismissDialog = dismissDialog,
                             context = context,
-                            title = title
+                            title = title,
+                            keyboardOptions = KeyboardOptions(capitalization =
+                                                              KeyboardCapitalization.Words)
                         )
                     },
                 )
@@ -432,11 +441,9 @@ class SettingsActivity : AppCompatActivity() {
                    Pair<Pair<Int, (@Composable () -> Unit)?>, @Composable () -> Unit>(Pair(R.string.app_preference_category) @Composable {
                        Icon(Icons.Outlined.Tune, null)
                    }) @Composable {
-                       val defaultDelay = TypedValue()
-                       resources.getValue(R.integer.default_delay, defaultDelay, false)
                        var delayValue by rememberPreference(
                            key = floatPreferencesKey(getString(R.string.delay_key)),
-                           defaultValue = defaultDelay.float)
+                           defaultValue = DEFAULT_DELAY)
                        DialoguePreference(
                            value = delayValue,
                            setValue = {newValue -> delayValue = newValue},
@@ -1244,6 +1251,8 @@ class SettingsActivity : AppCompatActivity() {
         const val UPLOAD_GRAY_INTENSITY = 0.5f
         const val FADE_DURATION = 500
         const val STATUS_DELAY: Long = 5000
+
+        const val DEFAULT_DELAY = 3.5f
 
         fun launchLogin(context: Context) {
             val loginIntent = Intent(context, LoginActivity::class.java)

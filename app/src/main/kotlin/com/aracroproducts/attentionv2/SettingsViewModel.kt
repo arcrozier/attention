@@ -27,6 +27,7 @@ import androidx.lifecycle.viewModelScope
 import com.aracroproducts.attentionv2.MainViewModel.Companion.MY_TOKEN
 import com.aracroproducts.attentionv2.MainViewModel.Companion.PFP_FILENAME
 import com.aracroproducts.attentionv2.MainViewModel.Companion.TOKEN_UPLOADED
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
 import java.io.File
@@ -34,9 +35,12 @@ import java.io.FileNotFoundException
 import java.io.FileOutputStream
 import java.io.InputStream
 import java.util.concurrent.locks.ReentrantLock
+import javax.inject.Inject
 import kotlin.math.min
 
-class SettingsViewModel(private val repository: AttentionRepository, private val applicationScope:
+@HiltViewModel
+class SettingsViewModel @Inject constructor(private val repository: AttentionRepository, private
+val applicationScope:
                 CoroutineScope, application: Application) :
     AndroidViewModel(application) {
 

@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import kotlinx.coroutines.flow.map
@@ -174,7 +175,9 @@ fun FloatPreferenceChange(
     }, text = {
         Column {
             OutlinedTextField(value = newValue, onValueChange = { newValue = it }, isError =
-            message.isNotBlank(), singleLine = true)
+            message.isNotBlank(), singleLine = true, keyboardOptions = KeyboardOptions
+                (keyboardType = KeyboardType.Decimal)
+            )
                 Text(
                         text = message,
                         style = MaterialTheme.typography.labelSmall,

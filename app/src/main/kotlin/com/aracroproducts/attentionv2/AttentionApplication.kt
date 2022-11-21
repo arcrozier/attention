@@ -9,6 +9,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.google.android.material.color.DynamicColors
+import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 
@@ -18,6 +19,7 @@ class AttentionContainer(context: Context) {
     val applicationScope = CoroutineScope(SupervisorJob())
 }
 
+@HiltAndroidApp
 class AttentionApplication : Application(), LifecycleEventObserver,
                              Application.ActivityLifecycleCallbacks {
 

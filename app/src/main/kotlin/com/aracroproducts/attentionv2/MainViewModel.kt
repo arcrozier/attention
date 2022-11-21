@@ -809,6 +809,7 @@ class MainViewModel @Inject internal constructor(
 
         const val OVERLAY_NO_PROMPT = "OverlayDoNotAsk"
         const val TOKEN_UPLOADED = "token_needs_upload"
+        const val USER_INFO = "user"
         const val MY_ID = "id"
         const val MY_TOKEN = "token"
         const val FCM_TOKEN = "fcm_token"

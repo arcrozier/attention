@@ -4,6 +4,7 @@ plugins {
     // https://mvnrepository.com/artifact/com.google.devtools.ksp/symbol-processing-api
     id("com.google.devtools.ksp") version "1.7.20-1.0.7"
     id("com.google.gms.google-services")
+    id("com.google.dagger.hilt.android") version "2.44" apply false
 }
 
 android {
@@ -167,7 +168,12 @@ dependencies {
 
     // Preferences DataStore (SharedPreferences like APIs)
     implementation("androidx.datastore:datastore-preferences:1.0.0")
+
+    // Hilt - the dependency injection tool
+    implementation("com.google.dagger:hilt-android:2.44")
+    ksp("com.google.dagger:hilt-android-compiler:2.44")
 }
+
 repositories {
     mavenCentral()
 }
