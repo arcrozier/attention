@@ -1,6 +1,5 @@
 package com.aracroproducts.attentionv2
 
-import android.app.Application
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -18,7 +17,6 @@ import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentScope
@@ -68,30 +66,23 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.core.text.getSpans
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.edit
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.lifecycleScope
-import com.aracroproducts.attentionv2.MainViewModel.Companion.TOKEN_UPLOADED
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
 import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.google.android.gms.auth.api.identity.*
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.CommonStatusCodes
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlin.math.min
 import kotlin.math.roundToInt
 
-
+@AndroidEntryPoint
 class LoginActivity : AppCompatActivity() {
 
-    private val loginViewModel: LoginViewModel by viewModels(factoryProducer = {
-        LoginViewModelFactory(AttentionRepository(AttentionDB.getDB(this)), application)
-    })
+    private val loginViewModel: LoginViewModel = ViewModelProvider(this)[LoginViewModel::class.java]
 
     private var oneTapClient: SignInClient? = null
 
@@ -185,19 +176,6 @@ class LoginActivity : AppCompatActivity() {
                     e.printStackTrace()
                 }
             }
-        }
-    }
-
-    class LoginViewModelFactory(
-            private val attentionRepository: AttentionRepository,
-            private val application: Application
-    ) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            if (modelClass.isAssignableFrom(LoginViewModel::class.java)) {
-                return LoginViewModel(attentionRepository, application) as T
-            }
-            throw IllegalArgumentException("Unknown ViewModel class")
         }
     }
 
@@ -1140,11 +1118,7 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun completeSignIn() {
-        lifecycleScope.launch(context = Dispatchers.IO) {
-            this@LoginActivity.dataStore.edit { settings ->
-                settings[booleanPreferencesKey(TOKEN_UPLOADED)] = false
-            }
-        }
+        loginViewModel.setTokenUploaded(false)
         finish()
     }
 

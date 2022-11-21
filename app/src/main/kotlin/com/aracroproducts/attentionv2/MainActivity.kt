@@ -1,7 +1,6 @@
 package com.aracroproducts.attentionv2
 
 import android.Manifest.permission.POST_NOTIFICATIONS
-import android.app.Application
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -15,7 +14,6 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.*
 import androidx.compose.animation.core.animateDp
@@ -74,10 +72,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.floatPreferencesKey
-import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
@@ -85,45 +79,19 @@ import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.lang.Integer.max
 import kotlin.math.min
 
+@AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
-    private val friendModel: MainViewModel by viewModels(factoryProducer = {
-        MainViewModelFactory(AttentionRepository(AttentionDB.getDB(this)), application)
-    })
-
-    class MainViewModelFactory(
-        private val attentionRepository: AttentionRepository, private val application: Application
-    ) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            if (modelClass.isAssignableFrom(MainViewModel::class.java)) {
-                return MainViewModel(attentionRepository, application) as T
-            }
-            throw IllegalArgumentException("Unknown ViewModel class")
-        }
-    }
+    private val friendModel: MainViewModel = ViewModelProvider(this)[MainViewModel::class.java]
 
     enum class State {
         NORMAL, CONFIRM, CANCEL, EDIT
-    }
-
-    private var delay: Float
-
-    init {
-
-        delay = SettingsActivity.DEFAULT_DELAY
-
-        lifecycleScope.launch(context = Dispatchers.IO) {
-            dataStore.data.collect {
-                delay = it[floatPreferencesKey(getString(R.string.delay_key))] ?: SettingsActivity.DEFAULT_DELAY
-            }
-        }
     }
 
     private val requestPermissionLauncher =
@@ -237,13 +205,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun checkOverlayDisplay() {
-        lifecycleScope.launch(context = Dispatchers.IO) {
-
-            if (!Settings.canDrawOverlays(application) && this@MainActivity.dataStore.data.first()[booleanPreferencesKey(MainViewModel.OVERLAY_NO_PROMPT)] != true
-            ) {
-                friendModel.appendDialogState(MainViewModel.DialogStatus.OverlayPermission)
-            }
-        }
+        friendModel.checkOverlayPermission()
     }
 
     private fun getNotificationPermission() {
@@ -272,29 +234,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun reload() {
-        friendModel.isRefreshing = true
-
-        lifecycleScope.launch(context = Dispatchers.IO) {
-            // token is auth token
-            val token = this@MainActivity.dataStore.data.first()[stringPreferencesKey
-                (MainViewModel.MY_TOKEN)]
-
-            // we want an exception to the login if they opened an add-friend link
-            // if opened from a link, the action is ACTION_VIEW, so we delay logging in
-            if (token == null && !friendModel.addFriendException) {
-                launchLogin()
-            } else if (token != null) {
-                friendModel.getUserInfo(token) {
-                    if (!friendModel.addFriendException) launchLogin()
-                }
-                friendModel.registerDevice()
-                getNotificationPermission()
-                return@launch
-            }
-
-            friendModel.isRefreshing = false
+        // token is auth token
+        friendModel.getUserInfo {
+            if (!friendModel.addFriendException) launchLogin()
         }
-
+        friendModel.registerDevice()
+        getNotificationPermission()
     }
 
     @ExperimentalFoundationApi
@@ -685,11 +630,8 @@ class MainActivity : AppCompatActivity() {
             }
         }, dismissButton = {
             OutlinedButton(onClick = {
-                lifecycleScope.launch(context = Dispatchers.IO) {
-                    this@MainActivity.dataStore.edit { settings ->
-                        settings[booleanPreferencesKey(MainViewModel.OVERLAY_NO_PROMPT)] = true
-                    }
-                }
+                friendModel.setPreference(booleanPreferencesKey(MainViewModel.OVERLAY_NO_PROMPT),
+                        true)
                 friendModel.popDialogState()
             }) {
                 Text(text = getString(R.string.do_not_ask_again))
@@ -1097,7 +1039,7 @@ class MainActivity : AppCompatActivity() {
                     }
                     State.CANCEL -> {
                         val delay: Long by remember {
-                            mutableStateOf((delay * 1000).toLong())
+                            mutableStateOf((friendModel.delay * 1000).toLong())
                         }
                         var progress by remember { mutableStateOf(0L) }
                         val animatedProgress by animateFloatAsState(

@@ -170,8 +170,8 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.0.0")
 
     // Hilt - the dependency injection tool
-    implementation("com.google.dagger:hilt-android:2.44")
-    ksp("com.google.dagger:hilt-android-compiler:2.44")
+    implementation("com.google.dagger:hilt-android:2.44.2")
+    ksp("com.google.dagger:hilt-android-compiler:2.44.2")
 }
 
 repositories {

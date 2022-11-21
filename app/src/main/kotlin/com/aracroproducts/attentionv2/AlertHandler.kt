@@ -14,14 +14,11 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
@@ -88,7 +85,6 @@ private val repository: AttentionRepository) : FirebaseMessagingService() {
                                           otherId = messageData[REMOTE_FROM] ?: return@launch,
                                           direction = DIRECTION.Incoming,
                                           message = messageData[REMOTE_MESSAGE])
-                    val repository = AttentionRepository(AttentionDB.getDB(applicationContext))
                     val username = preferencesRepository.getValue(stringPreferencesKey(getString(R
                             .string.username_key)))
                     if (messageData[REMOTE_TO] != username || messageData[REMOTE_TO] == null) return@launch  //if message is not addressed to the user, ends
@@ -144,8 +140,7 @@ private val repository: AttentionRepository) : FirebaseMessagingService() {
                     // Stores the id so the notification can be cancelled by the user
                     val id = showNotification(display, senderName, alertId, message.otherId, false)
 
-                    AttentionDB.getDB(applicationContext).getFriendDAO()
-                        .incrementReceived(message.otherId)
+                    repository.incrementReceived(message.otherId)
 
                     // Device should only show pop up if the device is off or if it has the ability to draw overlays (required to show pop up if screen is on)
                     if (!pm.isInteractive || Settings.canDrawOverlays(this@AlertHandler) || AttentionApplication.isActivityVisible()) {
@@ -172,16 +167,12 @@ private val repository: AttentionRepository) : FirebaseMessagingService() {
                     }
                 }
                 "delivered" -> {
-                    val attentionRepository =
-                        AttentionRepository(AttentionDB.getDB(this@AlertHandler))
-                    attentionRepository.alertDelivered(
+                    repository.alertDelivered(
                         username = messageData["username_to"], alertId = messageData["alert_id"]
                     )
                 }
                 "read" -> {
-                    val attentionRepository =
-                        AttentionRepository(AttentionDB.getDB(this@AlertHandler))
-                    attentionRepository.alertRead(
+                    repository.alertRead(
                         username = messageData["username_to"], alertId = messageData["alert_id"]
                     )
 

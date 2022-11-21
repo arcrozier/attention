@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.provider.Settings
 import android.util.Base64
 import android.util.Log
 import android.widget.Toast
@@ -23,11 +24,10 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.Person
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.core.stringSetPreferencesKey
+import androidx.datastore.preferences.core.*
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.aracroproducts.attentionv2.SettingsActivity.Companion.DEFAULT_DELAY
 import com.google.android.gms.tasks.Task
 import com.google.firebase.messaging.FirebaseMessaging
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -44,6 +44,16 @@ class MainViewModel @Inject internal constructor(
         private val attentionRepository: AttentionRepository, private val preferencesRepository:
         PreferencesRepository, application: Application
 ) : AndroidViewModel(application) {
+
+    init {
+        viewModelScope.launch {
+            preferencesRepository.subscribe { it[floatPreferencesKey
+            (getApplication<Application>().getString(R.string.delay_key))] }.collect {
+                if (it != null) delay = it
+            }
+        }
+
+    }
 
     sealed class DialogStatus(val priority: Int) {
         sealed class FriendStatus(val friend: Friend, priority: Int) : DialogStatus(priority)
@@ -92,6 +102,8 @@ class MainViewModel @Inject internal constructor(
     var message by mutableStateOf("")
 
     private var lastNameRequest: Call<GenericResult<NameResult>>? = null
+
+    var delay = DEFAULT_DELAY
 
     /**
      * Used to determine which dialog to display (or none). If the dialog requires additional data,
@@ -466,68 +478,99 @@ class MainViewModel @Inject internal constructor(
         }
     }
 
-    fun getUserInfo(token: String, onAuthError: () -> Unit) {
-        val context = getApplication<Application>()
-        attentionRepository.downloadUserInfo(token, { _, response, _ ->
-            setConnectStatus(response.code())
-            when (response.code()) {
-                200 -> {
-                    Log.d(sTAG, response.body().toString())
-                    val data = response.body()?.data
-                    if (data == null) {
-                        Log.e(sTAG, "Got user info but body was null!")
-                        return@downloadUserInfo
-                    }
-                    viewModelScope.launch {
-                        preferencesRepository.bulkEdit { settings ->
-                            settings[stringPreferencesKey(context.getString(R.string
-                                    .username_key))] = data.username
-                            settings[stringPreferencesKey(context.getString(R.string
-                                    .first_name_key))
-                            ] = data.firstName
-                            settings[stringPreferencesKey(context.getString(R.string
-                                    .last_name_key))
-                            ] = data.lastName
-                            settings[stringPreferencesKey(context.getString(R.string
-                                    .email_key))
-                            ] = data.email
-                            settings[booleanPreferencesKey(context.getString(R.string
-                                    .password_key))
-                            ] = data.password
-                        }
-                    }
-                    viewModelScope.launch {
-                        attentionRepository.updateUserInfo(
-                                data.friends
-                        )
-                    }
-                    viewModelScope.launch {
-                        @Suppress("BlockingMethodInNonBlockingContext") withContext(
-                                Dispatchers.IO) {
-                            val file =
-                                    File(context.filesDir, PFP_FILENAME).apply { createNewFile() }
-
-                            data.photo?.let {
-                                file.writeBytes(
-                                        Base64.decode(
-                                                data.photo, Base64.DEFAULT
-                                        )
-                                )
-                            } ?: file.writeBytes(ByteArray(0))
-                        }
-                    }
-                    uploadCachedFriends()
-                    populateShareTargets()
-                }
-                403 -> {
-                    onAuthError()
-                }
+    fun checkOverlayPermission() {
+        viewModelScope.launch {
+            if (!Settings.canDrawOverlays(getApplication()) && preferencesRepository
+                            .getValue(booleanPreferencesKey(OVERLAY_NO_PROMPT)) != true
+            ) {
+                appendDialogState(DialogStatus.OverlayPermission)
             }
-            isRefreshing = false
-        }, { _, _ ->
-            isRefreshing = false
-            setConnectStatus(null)
-        })
+        }
+    }
+
+    fun <T> setPreference(key: Preferences.Key<T>, value: T) {
+        viewModelScope.launch {
+            preferencesRepository.setValue(key, value)
+        }
+    }
+
+    fun getUserInfo(onAuthError: () -> Unit) {
+        isRefreshing = true
+        val context = getApplication<Application>()
+        viewModelScope.launch {
+            val token = getToken()
+
+            // we want an exception to the login if they opened an add-friend link
+            // if opened from a link, the action is ACTION_VIEW, so we delay logging in
+            if (token == null && !addFriendException) {
+                onAuthError()
+            } else if (token != null) {
+                attentionRepository.downloadUserInfo(token, { _, response, _ ->
+                    setConnectStatus(response.code())
+                    when (response.code()) {
+                        200 -> {
+                            Log.d(sTAG, response.body().toString())
+                            val data = response.body()?.data
+                            if (data == null) {
+                                Log.e(sTAG, "Got user info but body was null!")
+                                return@downloadUserInfo
+                            }
+                            viewModelScope.launch {
+                                preferencesRepository.bulkEdit { settings ->
+                                    settings[stringPreferencesKey(context.getString(R.string
+                                            .username_key))] = data.username
+                                    settings[stringPreferencesKey(context.getString(R.string
+                                            .first_name_key))
+                                    ] = data.firstName
+                                    settings[stringPreferencesKey(context.getString(R.string
+                                            .last_name_key))
+                                    ] = data.lastName
+                                    settings[stringPreferencesKey(context.getString(R.string
+                                            .email_key))
+                                    ] = data.email
+                                    settings[booleanPreferencesKey(context.getString(R.string
+                                            .password_key))
+                                    ] = data.password
+                                }
+                            }
+                            viewModelScope.launch {
+                                attentionRepository.updateUserInfo(
+                                        data.friends
+                                )
+                            }
+                            viewModelScope.launch {
+                                @Suppress("BlockingMethodInNonBlockingContext") withContext(
+                                        Dispatchers.IO) {
+                                    val file =
+                                            File(context.filesDir,
+                                                    PFP_FILENAME).apply { createNewFile() }
+
+                                    data.photo?.let {
+                                        file.writeBytes(
+                                                Base64.decode(
+                                                        data.photo, Base64.DEFAULT
+                                                )
+                                        )
+                                    } ?: file.writeBytes(ByteArray(0))
+                                }
+                            }
+                            uploadCachedFriends()
+                            populateShareTargets()
+                        }
+                        403 -> {
+                            onAuthError()
+                        }
+                    }
+                    isRefreshing = false
+                }, { _, _ ->
+                    isRefreshing = false
+                    setConnectStatus(null)
+                })
+            } else {
+                isRefreshing = false
+            }
+        }
+
     }
 
     fun registerDevice() {

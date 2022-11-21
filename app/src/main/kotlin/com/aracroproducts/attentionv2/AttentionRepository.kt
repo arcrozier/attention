@@ -37,6 +37,10 @@ class AttentionRepository @Inject constructor(private val database: AttentionDB)
         }
     }
 
+    suspend fun incrementReceived(from: String) {
+        database.getFriendDAO().incrementReceived(from)
+    }
+
 
     fun delete(
             friend: Friend,

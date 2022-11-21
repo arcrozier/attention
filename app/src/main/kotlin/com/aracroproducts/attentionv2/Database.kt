@@ -40,19 +40,6 @@ abstract class AttentionDB : RoomDatabase() {
     companion object {
         const val DB_V3 = 3
         const val DB_NAME = "attention_database"
-
-        @Volatile
-        private var INSTANCE: AttentionDB? = null
-
-        fun getDB(context: Context): AttentionDB {
-            return INSTANCE ?: synchronized(this) {
-                val instance = Room.databaseBuilder(
-                        context.applicationContext, AttentionDB::class.java, DB_NAME
-                ).fallbackToDestructiveMigration().build()
-                INSTANCE = instance // return instance
-                instance
-            }
-        }
     }
 }
 
@@ -166,6 +153,7 @@ interface MessageDA0 {
     suspend fun insertMessage(message: Message)
 }
 
+@Suppress("unused")
 @InstallIn(SingletonComponent::class)
 @Module
 class DatabaseModule {
