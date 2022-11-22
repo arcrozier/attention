@@ -172,6 +172,8 @@ dependencies {
     // Hilt - the dependency injection tool
     implementation("com.google.dagger:hilt-android:2.44.2")
     ksp("com.google.dagger:hilt-android-compiler:2.44.2")
+    ksp("androidx.hilt:hilt-compiler:1.0.0")
+    implementation("androidx.hilt:hilt-navigation-compose:1.0.0")
 }
 
 repositories {

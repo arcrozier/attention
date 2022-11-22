@@ -25,12 +25,13 @@ import androidx.core.app.Person
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.datastore.preferences.core.*
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aracroproducts.attentionv2.SettingsActivity.Companion.DEFAULT_DELAY
 import com.google.android.gms.tasks.Task
 import com.google.firebase.messaging.FirebaseMessaging
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
 import retrofit2.Call
 import retrofit2.Response
@@ -40,15 +41,17 @@ import java.lang.Integer.min
 import javax.inject.Inject
 
 @HiltViewModel
-class MainViewModel @Inject internal constructor(
-        private val attentionRepository: AttentionRepository, private val preferencesRepository:
-        PreferencesRepository, application: Application
-) : AndroidViewModel(application) {
+class MainViewModel @Inject constructor(
+    private val attentionRepository: AttentionRepository,
+    private val preferencesRepository: PreferencesRepository,
+    @ApplicationContext private val application: Context
+) : ViewModel() {
 
     init {
         viewModelScope.launch {
-            preferencesRepository.subscribe { it[floatPreferencesKey
-            (getApplication<Application>().getString(R.string.delay_key))] }.collect {
+            preferencesRepository.subscribe {
+                it[floatPreferencesKey(application.getString(R.string.delay_key))]
+            }.collect {
                 if (it != null) delay = it
             }
         }
@@ -150,7 +153,7 @@ class MainViewModel @Inject internal constructor(
         if (state is DialogStatus.None) return
         synchronized(this) {
             if (dialogQueue.isEmpty() && dialogState.value is DialogStatus.None) dialogState.value =
-                    state
+                state
             else dialogQueue.add(state)
         }
     }
@@ -171,39 +174,38 @@ class MainViewModel @Inject internal constructor(
             val token = getToken() ?: return@launch
             val friends: List<CachedFriend> = attentionRepository.getCachedFriendsSnapshot()
             for (friend in friends) {
-                attentionRepository.getName(
-                        token,
-                        friend.username,
-                        responseListener = { _, response, _ ->
-                            connected = true
-                            if (response.isSuccessful) {
-                                response.body()?.data?.name?.let {
-                                    attentionRepository.addFriend(friend.username,
-                                            it,
-                                            token,
+                attentionRepository.getName(token,
+                                            friend.username,
                                             responseListener = { _, response, _ ->
-                                                if (response.isSuccessful || response.code() == 400) backgroundScope.launch {
-                                                    attentionRepository.deleteCachedFriend(
+                                                connected = true
+                                                if (response.isSuccessful) {
+                                                    response.body()?.data?.name?.let {
+                                                        attentionRepository.addFriend(friend.username,
+                                                                                      it,
+                                                                                      token,
+                                                                                      responseListener = { _, response, _ ->
+                                                                                          if (response.isSuccessful || response.code() == 400) backgroundScope.launch {
+                                                                                              attentionRepository.deleteCachedFriend(
+                                                                                                  friend.username
+                                                                                              )
+                                                                                          }
+                                                                                      })
+                                                    }
+                                                } else if (response.code() == 400) {
+                                                    backgroundScope.launch {
+                                                        attentionRepository.deleteCachedFriend(
                                                             friend.username
-                                                    )
+                                                        )
+                                                    }
                                                 }
                                             })
-                                }
-                            } else if (response.code() == 400) {
-                                backgroundScope.launch {
-                                    attentionRepository.deleteCachedFriend(
-                                            friend.username
-                                    )
-                                }
-                            }
-                        })
             }
         }
     }
 
     private fun populateShareTargets() {
         backgroundScope.launch {
-            val context = getApplication<Application>()
+            val context = application
             val shortcuts = ArrayList<ShortcutInfoCompat>()
             val contactCategories = setOf(SHARE_CATEGORY)
 
@@ -212,11 +214,11 @@ class MainViewModel @Inject internal constructor(
 
             for (x in 0 until min(friends.size, MAX_SHORTCUTS)) {
                 shortcuts.add(
-                        ShortcutInfoCompat.Builder(context, friends[x].id)
-                                .setShortLabel(friends[x].name).setIntent(staticShortcutIntent)
-                                .setLongLived(true).setCategories(contactCategories).setPerson(
-                                        Person.Builder().setName(friends[x].name).build()
-                                ).build()
+                    ShortcutInfoCompat.Builder(context, friends[x].id)
+                        .setShortLabel(friends[x].name).setIntent(staticShortcutIntent)
+                        .setLongLived(true).setCategories(contactCategories).setPerson(
+                            Person.Builder().setName(friends[x].name).build()
+                        ).build()
                 )
             }
             ShortcutManagerCompat.addDynamicShortcuts(context, shortcuts)
@@ -224,9 +226,9 @@ class MainViewModel @Inject internal constructor(
     }
 
     fun onAddFriend(
-            friend: Friend, responseListener: ((
-                    Call<GenericResult<Void>>, Response<GenericResult<Void>>
-            ) -> Unit)? = null, launchLogin: () -> Unit
+        friend: Friend, responseListener: ((
+            Call<GenericResult<Void>>, Response<GenericResult<Void>>
+        ) -> Unit)? = null, launchLogin: () -> Unit
     ) {
         viewModelScope.launch {
             val token = getToken()
@@ -238,29 +240,29 @@ class MainViewModel @Inject internal constructor(
                 return@launch
             }
             addFriendException = false
-            attentionRepository.addFriend(friend.id,
-                    friend.name,
-                    token,
-                    responseListener = { call, response, _ ->
-                        setConnectStatus(response.code())
-                        when (response.code()) {
-                            200 -> {
-                                responseListener?.invoke(call, response)
-                            }
-                            400 -> {
-                                usernameCaption =
-                                        getApplication<Application>().getString(
-                                                R.string.add_friend_failed
-                                        )
-                            }
-                            403 -> {
-                                backgroundScope.launch {
-                                    attentionRepository.cacheFriend(friend.id)
-                                }
-                                launchLogin()
-                            }
+            attentionRepository.addFriend(
+                friend.id,
+                friend.name,
+                token,
+                responseListener = { call, response, _ ->
+                    setConnectStatus(response.code())
+                    when (response.code()) {
+                        200 -> {
+                            responseListener?.invoke(call, response)
                         }
-                    }) { _, _ ->
+                        400 -> {
+                            usernameCaption = application.getString(
+                                R.string.add_friend_failed
+                            )
+                        }
+                        403 -> {
+                            backgroundScope.launch {
+                                attentionRepository.cacheFriend(friend.id)
+                            }
+                            launchLogin()
+                        }
+                    }
+                }) { _, _ ->
                 backgroundScope.launch {
                     attentionRepository.cacheFriend(friend.id)
                 }
@@ -276,9 +278,9 @@ class MainViewModel @Inject internal constructor(
     }
 
     fun getFriendName(
-            username: String,
-            responseListener: ((name: String) -> Unit)? = null,
-            launchLogin: () -> Unit
+        username: String,
+        responseListener: ((name: String) -> Unit)? = null,
+        launchLogin: () -> Unit
     ) {
         viewModelScope.launch {
             val token = getToken()
@@ -294,36 +296,35 @@ class MainViewModel @Inject internal constructor(
             lastNameRequest?.cancel()
             friendNameLoading = true
             lastNameRequest =
-                    attentionRepository.getName(token, username,
-                            responseListener = { _, response, _ ->
-                                setConnectStatus(response.code())
-                                lastNameRequest = null
-                                newFriendName = response.body()?.data?.name ?: ""
-                                friendNameLoading = false
-                                when (response.code()) {
-                                    200 -> {
-                                        usernameCaption = ""
-                                        responseListener?.invoke(newFriendName)
-                                    }
-                                    400 -> {
-                                        usernameCaption = getApplication<Application>().getString(
-                                                R.string.nonexistent_username
-                                        )
-                                    }
-                                    403 -> {
-                                        if (!addFriendException) launchLogin()
-                                        else responseListener?.invoke(
-                                                username
-                                        )
-                                    }
-                                }
-                            }, errorListener = { _, t ->
-                        if (t is IOException) return@getName
-                        lastNameRequest = null
-                        friendNameLoading = false
-                        newFriendName = ""
-                        setConnectStatus(null)
-                    })
+                attentionRepository.getName(token, username, responseListener = { _, response, _ ->
+                    setConnectStatus(response.code())
+                    lastNameRequest = null
+                    newFriendName = response.body()?.data?.name ?: ""
+                    friendNameLoading = false
+                    when (response.code()) {
+                        200 -> {
+                            usernameCaption = ""
+                            responseListener?.invoke(newFriendName)
+                        }
+                        400 -> {
+                            usernameCaption = application.getString(
+                                R.string.nonexistent_username
+                            )
+                        }
+                        403 -> {
+                            if (!addFriendException) launchLogin()
+                            else responseListener?.invoke(
+                                username
+                            )
+                        }
+                    }
+                }, errorListener = { _, t ->
+                    if (t is IOException) return@getName
+                    lastNameRequest = null
+                    friendNameLoading = false
+                    newFriendName = ""
+                    setConnectStatus(null)
+                })
         }
 
     }
@@ -381,25 +382,25 @@ class MainViewModel @Inject internal constructor(
                 return@launch
             }
             attentionRepository.edit(Friend(id = id, name = name),
-                    token,
-                    responseListener = { _, response, _ ->
-                        val context = getApplication<Application>()
-                        setConnectStatus(response.code())
-                        when (response.code()) {
-                            400 -> {
-                                showSnackBar(context.getString(R.string.edit_friend_name_failed))
-                            }
-                            403 -> {
-                                val loginIntent =
-                                        Intent(context, LoginActivity::class.java)
-                                context.startActivity(loginIntent)
-                            }
-                        }
+                                     token,
+                                     responseListener = { _, response, _ ->
+                                         val context = application
+                                         setConnectStatus(response.code())
+                                         when (response.code()) {
+                                             400 -> {
+                                                 showSnackBar(context.getString(R.string.edit_friend_name_failed))
+                                             }
+                                             403 -> {
+                                                 val loginIntent =
+                                                     Intent(context, LoginActivity::class.java)
+                                                 context.startActivity(loginIntent)
+                                             }
+                                         }
 
-                    },
-                    errorListener = { _, _ ->
-                        setConnectStatus(null)
-                    })
+                                     },
+                                     errorListener = { _, _ ->
+                                         setConnectStatus(null)
+                                     })
         }
 
     }
@@ -421,23 +422,23 @@ class MainViewModel @Inject internal constructor(
      */
     fun onLongPress() {
         @Suppress("DEPRECATION") val vibrator =
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    val vibratorManager = getApplication<Application>().getSystemService(
-                            AppCompatActivity.VIBRATOR_MANAGER_SERVICE
-                    ) as VibratorManager
-                    vibratorManager.defaultVibrator
-                } else {
-                    getApplication<Application>().getSystemService(
-                            AppCompatActivity.VIBRATOR_SERVICE
-                    ) as Vibrator
-                }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val vibratorManager = application.getSystemService(
+                    AppCompatActivity.VIBRATOR_MANAGER_SERVICE
+                ) as VibratorManager
+                vibratorManager.defaultVibrator
+            } else {
+                application.getSystemService(
+                    AppCompatActivity.VIBRATOR_SERVICE
+                ) as Vibrator
+            }
         @Suppress("DEPRECATION") if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val effect: VibrationEffect =
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) VibrationEffect.createPredefined(
-                            VibrationEffect.EFFECT_HEAVY_CLICK
-                    ) else VibrationEffect.createOneShot(
-                            100, COMPAT_HEAVY_CLICK
-                    )
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) VibrationEffect.createPredefined(
+                    VibrationEffect.EFFECT_HEAVY_CLICK
+                ) else VibrationEffect.createOneShot(
+                    100, COMPAT_HEAVY_CLICK
+                )
             vibrator.vibrate(effect)
         } else {
             vibrator.vibrate(100)
@@ -452,7 +453,7 @@ class MainViewModel @Inject internal constructor(
      */
     private fun notifyUser(text: String, message: Message? = null) {
         viewModelScope.launch {
-            val context = getApplication<Application>()
+            val context = application
 
             val intent = Intent(context, MainActivity::class.java)
             if (message != null) {
@@ -462,15 +463,15 @@ class MainViewModel @Inject internal constructor(
             }
 
             val pendingIntent =
-                    PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+                PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
 
             createFailedAlertNotificationChannel(context)
             val builder: NotificationCompat.Builder =
-                    NotificationCompat.Builder(context, FAILED_ALERT_CHANNEL_ID)
+                NotificationCompat.Builder(context, FAILED_ALERT_CHANNEL_ID)
             builder.setSmallIcon(R.drawable.app_icon_foreground)
-                    .setContentTitle(context.getString(R.string.alert_failed)).setContentText(text)
-                    .setPriority(NotificationCompat.PRIORITY_MAX).setContentIntent(pendingIntent)
-                    .setAutoCancel(true)
+                .setContentTitle(context.getString(R.string.alert_failed)).setContentText(text)
+                .setPriority(NotificationCompat.PRIORITY_MAX).setContentIntent(pendingIntent)
+                .setAutoCancel(true)
 
             val notificationID = System.currentTimeMillis().toInt()
             val notificationManagerCompat = NotificationManagerCompat.from(context)
@@ -480,8 +481,9 @@ class MainViewModel @Inject internal constructor(
 
     fun checkOverlayPermission() {
         viewModelScope.launch {
-            if (!Settings.canDrawOverlays(getApplication()) && preferencesRepository
-                            .getValue(booleanPreferencesKey(OVERLAY_NO_PROMPT)) != true
+            if (!Settings.canDrawOverlays(application) && preferencesRepository.getValue(
+                        booleanPreferencesKey(OVERLAY_NO_PROMPT)
+                    ) != true
             ) {
                 appendDialogState(DialogStatus.OverlayPermission)
             }
@@ -496,7 +498,7 @@ class MainViewModel @Inject internal constructor(
 
     fun getUserInfo(onAuthError: () -> Unit) {
         isRefreshing = true
-        val context = getApplication<Application>()
+        val context = application
         viewModelScope.launch {
             val token = getToken()
 
@@ -517,39 +519,51 @@ class MainViewModel @Inject internal constructor(
                             }
                             viewModelScope.launch {
                                 preferencesRepository.bulkEdit { settings ->
-                                    settings[stringPreferencesKey(context.getString(R.string
-                                            .username_key))] = data.username
-                                    settings[stringPreferencesKey(context.getString(R.string
-                                            .first_name_key))
-                                    ] = data.firstName
-                                    settings[stringPreferencesKey(context.getString(R.string
-                                            .last_name_key))
-                                    ] = data.lastName
-                                    settings[stringPreferencesKey(context.getString(R.string
-                                            .email_key))
-                                    ] = data.email
-                                    settings[booleanPreferencesKey(context.getString(R.string
-                                            .password_key))
-                                    ] = data.password
+                                    settings[stringPreferencesKey(
+                                        context.getString(
+                                            R.string.username_key
+                                        )
+                                    )] = data.username
+                                    settings[stringPreferencesKey(
+                                        context.getString(
+                                            R.string.first_name_key
+                                        )
+                                    )] = data.firstName
+                                    settings[stringPreferencesKey(
+                                        context.getString(
+                                            R.string.last_name_key
+                                        )
+                                    )] = data.lastName
+                                    settings[stringPreferencesKey(
+                                        context.getString(
+                                            R.string.email_key
+                                        )
+                                    )] = data.email
+                                    settings[booleanPreferencesKey(
+                                        context.getString(
+                                            R.string.password_key
+                                        )
+                                    )] = data.password
                                 }
                             }
                             viewModelScope.launch {
                                 attentionRepository.updateUserInfo(
-                                        data.friends
+                                    data.friends
                                 )
                             }
                             viewModelScope.launch {
                                 @Suppress("BlockingMethodInNonBlockingContext") withContext(
-                                        Dispatchers.IO) {
-                                    val file =
-                                            File(context.filesDir,
-                                                    PFP_FILENAME).apply { createNewFile() }
+                                    Dispatchers.IO
+                                ) {
+                                    val file = File(
+                                        context.filesDir, PFP_FILENAME
+                                    ).apply { createNewFile() }
 
                                     data.photo?.let {
                                         file.writeBytes(
-                                                Base64.decode(
-                                                        data.photo, Base64.DEFAULT
-                                                )
+                                            Base64.decode(
+                                                data.photo, Base64.DEFAULT
+                                            )
                                         )
                                     } ?: file.writeBytes(ByteArray(0))
                                 }
@@ -563,9 +577,9 @@ class MainViewModel @Inject internal constructor(
                     }
                     isRefreshing = false
                 }, { _, _ ->
-                    isRefreshing = false
-                    setConnectStatus(null)
-                })
+                                                         isRefreshing = false
+                                                         setConnectStatus(null)
+                                                     })
             } else {
                 isRefreshing = false
             }
@@ -575,15 +589,15 @@ class MainViewModel @Inject internal constructor(
 
     fun registerDevice() {
         viewModelScope.launch {
-            val context = getApplication<Application>()
+            val context = application
 
             // token is auth token
             val token = getToken()
 
             val fcmToken: String? = preferencesRepository.getValue(stringPreferencesKey(FCM_TOKEN))
-            val fcmTokenUploaded: Boolean = preferencesRepository.getValue(booleanPreferencesKey
-            (TOKEN_UPLOADED), false)
-            // Do we need to upload a token (note we don't want to upload if we don't have a token yet)
+            val fcmTokenUploaded: Boolean = preferencesRepository.getValue(
+                booleanPreferencesKey(TOKEN_UPLOADED), false
+            ) // Do we need to upload a token (note we don't want to upload if we don't have a token yet)
 
             if (fcmToken != null && !fcmTokenUploaded && token != null) {
                 attentionRepository.registerDevice(token, fcmToken, { _, response, errorBody ->
@@ -592,8 +606,9 @@ class MainViewModel @Inject internal constructor(
                         200 -> {
                             Log.d(sTAG, "Successfully uploaded token")
                             viewModelScope.launch {
-                                preferencesRepository.setValue(booleanPreferencesKey
-                                (TOKEN_UPLOADED), true)
+                                preferencesRepository.setValue(
+                                    booleanPreferencesKey(TOKEN_UPLOADED), true
+                                )
                             }
                         }
                         else -> {
@@ -601,8 +616,8 @@ class MainViewModel @Inject internal constructor(
                         }
                     }
                 }, { _, _ ->
-                    setConnectStatus(null)
-                })
+                                                       setConnectStatus(null)
+                                                   })
             } else if (fcmToken == null) { // We don't have a token, so let's get one
                 getToken(context)
             }
@@ -612,22 +627,42 @@ class MainViewModel @Inject internal constructor(
 
     fun loadUserPrefs() {
         viewModelScope.launch {
-            val context = getApplication<Application>() // Load user preferences and data
+            val context = application // Load user preferences and data
 
             val notificationValues = context.resources.getStringArray(
-                    R.array.notification_values
+                R.array.notification_values
             ) // Set up default preferences
-            if (!preferencesRepository.contains(stringPreferencesKey(context.getString(R.string
-                            .ring_preference_key)))) {
-                preferencesRepository.setValue(stringSetPreferencesKey(context.getString(R.string
-                        .ring_preference_key)),
-                        setOf(notificationValues[2]))
+            if (!preferencesRepository.contains(
+                    stringPreferencesKey(
+                        context.getString(
+                            R.string.ring_preference_key
+                        )
+                    )
+                )
+            ) {
+                preferencesRepository.setValue(
+                    stringSetPreferencesKey(
+                        context.getString(
+                            R.string.ring_preference_key
+                        )
+                    ), setOf(notificationValues[2])
+                )
             }
-            if (!preferencesRepository.contains(stringPreferencesKey(context.getString(R.string
-                            .vibrate_preference_key)))) {
-                preferencesRepository.setValue(stringSetPreferencesKey(context.getString(R.string
-                        .vibrate_preference_key)
-                ), setOf(notificationValues[1], notificationValues[2]))
+            if (!preferencesRepository.contains(
+                    stringPreferencesKey(
+                        context.getString(
+                            R.string.vibrate_preference_key
+                        )
+                    )
+                )
+            ) {
+                preferencesRepository.setValue(
+                    stringSetPreferencesKey(
+                        context.getString(
+                            R.string.vibrate_preference_key
+                        )
+                    ), setOf(notificationValues[1], notificationValues[2])
+                )
             }
             if (!preferencesRepository.contains(booleanPreferencesKey(TOKEN_UPLOADED))) {
                 preferencesRepository.setValue(booleanPreferencesKey(TOKEN_UPLOADED), false)
@@ -637,24 +672,24 @@ class MainViewModel @Inject internal constructor(
     }
 
     fun sendAlert(
-            to: Friend,
-            body: String?,
-            launchLogin: () -> Unit,
-            onError: (() -> Unit)? = null,
-            onSuccess: (() -> Unit)? = null
+        to: Friend,
+        body: String?,
+        launchLogin: () -> Unit,
+        onError: (() -> Unit)? = null,
+        onSuccess: (() -> Unit)? = null
     ) {
         viewModelScope.launch {
-            val context = getApplication<Application>()
+            val context = application
             val token = getToken()
             if (token == null) {
                 launchLogin()
                 return@launch
             }
             val message = Message(
-                    timestamp = System.currentTimeMillis(),
-                    otherId = to.id,
-                    message = body,
-                    direction = DIRECTION.Outgoing
+                timestamp = System.currentTimeMillis(),
+                otherId = to.id,
+                message = body,
+                direction = DIRECTION.Outgoing
             )
             backgroundScope.launch {
                 attentionRepository.sendMessage(message, token = token, { _, response, errorBody ->
@@ -664,39 +699,39 @@ class MainViewModel @Inject internal constructor(
                             val responseBody = response.body()
                             if (responseBody == null) {
                                 Log.e(
-                                        sTAG, "Got response but body was null"
+                                    sTAG, "Got response but body was null"
                                 )
                                 return@sendMessage
                             }
                             showSnackBar(
-                                    getApplication<Application>().getString(
-                                            R.string.alert_sent
-                                    )
+                                application.getString(
+                                    R.string.alert_sent
+                                )
                             )
                             onSuccess?.invoke()
                         }
                         400 -> {
                             if (errorBody == null) {
                                 Log.e(
-                                        sTAG, "Got response but body was null"
+                                    sTAG, "Got response but body was null"
                                 )
                                 return@sendMessage
                             }
                             when {
                                 errorBody.contains(
-                                        "Could not find user", true
+                                    "Could not find user", true
                                 ) -> {
                                     notifyUser(
-                                            context.getString(
-                                                    R.string.alert_failed_no_user, to.name
-                                            )
+                                        context.getString(
+                                            R.string.alert_failed_no_user, to.name
+                                        )
                                     )
                                 }
                                 else -> {
                                     notifyUser(
-                                            context.getString(
-                                                    R.string.alert_failed_bad_request, to.name
-                                            )
+                                        context.getString(
+                                            R.string.alert_failed_bad_request, to.name
+                                        )
                                     )
                                 }
                             }
@@ -705,18 +740,18 @@ class MainViewModel @Inject internal constructor(
                         403 -> {
                             if (errorBody == null) {
                                 Log.e(
-                                        sTAG, "Got response but body was null"
+                                    sTAG, "Got response but body was null"
                                 )
                                 return@sendMessage
                             }
                             when {
                                 errorBody.contains(
-                                        "does not have you as a friend", true
+                                    "does not have you as a friend", true
                                 ) -> {
                                     notifyUser(
-                                            context.getString(
-                                                    R.string.alert_failed_not_friend, to.name
-                                            )
+                                        context.getString(
+                                            R.string.alert_failed_not_friend, to.name
+                                        )
                                     )
                                 }
                                 else -> launchLogin()
@@ -725,31 +760,32 @@ class MainViewModel @Inject internal constructor(
                         }
                         429 -> {
                             notifyUser(
-                                    context.getString(
-                                            R.string.alert_rate_limited
-                                    ), message
+                                context.getString(
+                                    R.string.alert_rate_limited
+                                ), message
                             )
                             onError?.invoke()
 
                         }
                         else -> {
                             notifyUser(
-                                    context.getString(
-                                            R.string.alert_failed_server_error, to.name
-                                    )
+                                context.getString(
+                                    R.string.alert_failed_server_error, to.name
+                                )
                             )
                             onError?.invoke()
                         }
                     }
                 }, { _, _ ->
-                    notifyUser(
-                            context.getString(
-                                    R.string.alert_failed_no_connection, to.name
-                            ), message
-                    )
-                    onError?.invoke()
-                    setConnectStatus(null)
-                })
+                                                    notifyUser(
+                                                        context.getString(
+                                                            R.string.alert_failed_no_connection,
+                                                            to.name
+                                                        ), message
+                                                    )
+                                                    onError?.invoke()
+                                                    setConnectStatus(null)
+                                                })
             }
         }
 
@@ -785,14 +821,15 @@ class MainViewModel @Inject internal constructor(
                             when (response.code()) {
                                 200 -> {
                                     viewModelScope.launch {
-                                        preferencesRepository.setValue(booleanPreferencesKey
-                                        (TOKEN_UPLOADED), true)
+                                        preferencesRepository.setValue(
+                                            booleanPreferencesKey(TOKEN_UPLOADED), true
+                                        )
                                     }
 
                                     Toast.makeText(
-                                            context,
-                                            context.getString(R.string.user_registered),
-                                            Toast.LENGTH_SHORT
+                                        context,
+                                        context.getString(R.string.user_registered),
+                                        Toast.LENGTH_SHORT
                                     ).show()
                                 }
                             }
@@ -809,7 +846,7 @@ class MainViewModel @Inject internal constructor(
     }
 
     private fun setConnectStatus(responseCode: Int?) {
-        val context = getApplication<Application>()
+        val context = application
         when (responseCode) {
             200, 400, 403, 415 -> { // even though some of these are errors, they represent the
                 // server working correctly and the calling code should handle these gracefully
@@ -821,7 +858,7 @@ class MainViewModel @Inject internal constructor(
             null -> { // no internet
                 connected = false
                 if (connectionState != context.getString(R.string.sharing)) {
-                    connectionState = getApplication<Application>().getString(R.string.disconnected)
+                    connectionState = application.getString(R.string.disconnected)
                 }
             }
             else -> { // 500 errors, other weird stuff
@@ -852,7 +889,7 @@ class MainViewModel @Inject internal constructor(
 
         private const val MAX_SHORTCUTS = 4
         private const val SHARE_CATEGORY =
-                "com.aracroproducts.attentionv2.sharingshortcuts.category.TEXT_SHARE_TARGET"
+            "com.aracroproducts.attentionv2.sharingshortcuts.category.TEXT_SHARE_TARGET"
 
         /**
          * Helper function to create the notification channel for the failed alert
@@ -866,7 +903,7 @@ class MainViewModel @Inject internal constructor(
                 val importance = NotificationManager.IMPORTANCE_HIGH
                 val channel = NotificationChannel(FAILED_ALERT_CHANNEL_ID, name, importance)
                 channel.description =
-                        description // Register the channel with the system; you can't change the importance
+                    description // Register the channel with the system; you can't change the importance
                 // or other notification behaviors after this
                 val notificationManager = context.getSystemService(NotificationManager::class.java)
                 notificationManager.createNotificationChannel(channel)

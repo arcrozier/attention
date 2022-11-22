@@ -14,6 +14,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.*
 import androidx.compose.animation.core.animateDp
@@ -88,7 +89,7 @@ import kotlin.math.min
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
-    private val friendModel: MainViewModel = ViewModelProvider(this)[MainViewModel::class.java]
+    private val friendModel: MainViewModel by viewModels()
 
     enum class State {
         NORMAL, CONFIRM, CANCEL, EDIT
