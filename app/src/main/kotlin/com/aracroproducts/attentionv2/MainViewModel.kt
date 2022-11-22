@@ -1,6 +1,5 @@
 package com.aracroproducts.attentionv2
 
-import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -31,7 +30,6 @@ import com.aracroproducts.attentionv2.SettingsActivity.Companion.DEFAULT_DELAY
 import com.google.android.gms.tasks.Task
 import com.google.firebase.messaging.FirebaseMessaging
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
 import retrofit2.Call
 import retrofit2.Response
@@ -44,7 +42,7 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     private val attentionRepository: AttentionRepository,
     private val preferencesRepository: PreferencesRepository,
-    @ApplicationContext private val application: Context
+    private val application: AttentionApplication
 ) : ViewModel() {
 
     init {
