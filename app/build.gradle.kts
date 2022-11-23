@@ -1,11 +1,9 @@
-import org.jetbrains.kotlin.kapt3.base.Kapt.kapt
-
 plugins {
     id("com.android.application")
     id("kotlin-android")
     // https://mvnrepository.com/artifact/com.google.devtools.ksp/symbol-processing-api
     // id("com.google.devtools.ksp") version "1.7.20-1.0.7"
-    kotlin("kapt") version "1.7.21" apply false
+    kotlin("kapt")
     id("com.google.gms.google-services")
     id("com.google.dagger.hilt.android") version "2.44" apply false
 }
@@ -31,6 +29,7 @@ android {
             arguments {
                 arg("room.schemaLocation", "$projectDir/schemas")
             }
+            correctErrorTypes = true
         }
 
         signingConfig = signingConfigs.getByName("debug")
@@ -167,7 +166,7 @@ dependencies {
     implementation("com.google.accompanist:accompanist-systemuicontroller:$accompanistVersion")
 
     // Sign in with Google
-    implementation("com.google.android.gms:play-services-auth:20.3.0")
+    implementation("com.google.android.gms:play-services-auth:20.4.0")
 
     implementation("androidx.activity:activity-ktx:1.6.1")
 
