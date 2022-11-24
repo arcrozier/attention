@@ -1,7 +1,6 @@
 package com.aracroproducts.attentionv2
 
 import android.Manifest.permission.POST_NOTIFICATIONS
-import android.app.Application
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -93,7 +92,8 @@ class MainActivity : AppCompatActivity() {
         MainViewModelFactory(
             AttentionRepository(AttentionDB.getDB(this)),
             (application as AttentionApplication).container.settingsRepository,
-            application as AttentionApplication)
+            application as AttentionApplication
+        )
     })
 
     class MainViewModelFactory(
@@ -253,8 +253,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun reload() {
-        // token is auth token
+    private fun reload() { // token is auth token
         friendModel.getUserInfo {
             if (!friendModel.addFriendException) launchLogin()
         }
@@ -278,8 +277,10 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    @OptIn(ExperimentalAnimationApi::class, ExperimentalMaterial3Api::class,
-           ExperimentalMaterialApi::class
+    @OptIn(
+        ExperimentalAnimationApi::class,
+        ExperimentalMaterial3Api::class,
+        ExperimentalMaterialApi::class
     )
     @ExperimentalFoundationApi
     @Composable
@@ -404,15 +405,19 @@ class MainActivity : AppCompatActivity() {
                          )
                      }
                  }) {
-            val refreshState = rememberPullRefreshState(friendModel
-                                                            .isRefreshing, onRefresh = { reload() })
+            val refreshState =
+                rememberPullRefreshState(friendModel.isRefreshing, onRefresh = { reload() })
             Box(
                 modifier = Modifier.pullRefresh(refreshState),
             ) {
 
-                PullRefreshIndicator(friendModel.isRefreshing,
-                                     refreshState,
-                                     Modifier.align(Alignment.TopCenter).zIndex(1f))
+                PullRefreshIndicator(
+                    friendModel.isRefreshing,
+                    refreshState,
+                    Modifier
+                        .align(Alignment.TopCenter)
+                        .zIndex(1f)
+                )
                 AnimatedContent(targetState = friends.isEmpty() && !friendModel.isRefreshing && friendModel.connected,
                                 transitionSpec = {
                                     fadeIn() with fadeOut()
@@ -650,8 +655,9 @@ class MainActivity : AppCompatActivity() {
             }
         }, dismissButton = {
             OutlinedButton(onClick = {
-                friendModel.setPreference(booleanPreferencesKey(MainViewModel.OVERLAY_NO_PROMPT),
-                        true)
+                friendModel.setPreference(
+                    booleanPreferencesKey(MainViewModel.OVERLAY_NO_PROMPT), true
+                )
                 friendModel.popDialogState()
             }) {
                 Text(text = getString(R.string.do_not_ask_again))
@@ -1176,16 +1182,14 @@ class MainActivity : AppCompatActivity() {
                 val placeable = measurable.measure(constraints)
                 val xPos = if (x.isNaN()) (constraints.maxWidth - placeable.width) / 2
                 else max(
-                    0,
-                    min(
+                    0, min(
                         (x - placeable.width.toFloat() / 2).toInt(),
                         constraints.maxWidth - placeable.width
                     )
                 )
                 val yPos = if (y.isNaN()) ((constraints.maxHeight - placeable.height) / 2)
                 else max(
-                    0,
-                    min(
+                    0, min(
                         (y - placeable.height.toFloat() / 2).toInt(),
                         constraints.maxHeight - placeable.height
                     )

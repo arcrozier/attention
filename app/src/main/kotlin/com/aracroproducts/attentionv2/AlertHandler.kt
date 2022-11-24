@@ -36,22 +36,26 @@ open class AlertHandler : FirebaseMessagingService() {
     override fun onNewToken(token: String) {
         Log.d(TAG, "New token: $token")
         MainScope().launch {
-            if (preferencesRepository.getValue(stringPreferencesKey(MainViewModel.FCM_TOKEN)) !=
-                    token) {
+            if (preferencesRepository.getValue(stringPreferencesKey(MainViewModel.FCM_TOKEN)) != token) {
                 Log.d(TAG, "Token is new: updating shared preferences")
                 preferencesRepository.bulkEdit { settings ->
                     settings[booleanPreferencesKey(MainViewModel.TOKEN_UPLOADED)] = false
                     settings[stringPreferencesKey(MainViewModel.FCM_TOKEN)] = token
                 }
-                val authToken = preferencesRepository.getValue(stringPreferencesKey(MainViewModel
-                        .MY_TOKEN)) ?:
-                return@launch
+                val authToken = preferencesRepository.getValue(
+                    stringPreferencesKey(
+                        MainViewModel.MY_TOKEN
+                    )
+                ) ?: return@launch
                 repository.registerDevice(authToken, token, { _, response, errorBody ->
                     if (response.isSuccessful) {
                         Log.d(TAG, "Successfully uploaded token")
                         MainScope().launch {
-                            preferencesRepository.setValue(booleanPreferencesKey(MainViewModel
-                                    .TOKEN_UPLOADED), true)
+                            preferencesRepository.setValue(
+                                booleanPreferencesKey(
+                                    MainViewModel.TOKEN_UPLOADED
+                                ), true
+                            )
                         }
 
                     } else {
@@ -83,8 +87,13 @@ open class AlertHandler : FirebaseMessagingService() {
                                           otherId = messageData[REMOTE_FROM] ?: return@launch,
                                           direction = DIRECTION.Incoming,
                                           message = messageData[REMOTE_MESSAGE])
-                    val username = preferencesRepository.getValue(stringPreferencesKey(getString(R
-                            .string.username_key)))
+                    val username = preferencesRepository.getValue(
+                        stringPreferencesKey(
+                            getString(
+                                R.string.username_key
+                            )
+                        )
+                    )
                     if (messageData[REMOTE_TO] != username || messageData[REMOTE_TO] == null) return@launch  //if message is not addressed to the user, ends
 
                     val alertId = messageData[ALERT_ID]
@@ -101,8 +110,11 @@ open class AlertHandler : FirebaseMessagingService() {
                     repository.appendMessage(message = message)
 
                     // token is auth token
-                    val token = preferencesRepository.getValue(stringPreferencesKey(MainViewModel
-                            .MY_TOKEN))
+                    val token = preferencesRepository.getValue(
+                        stringPreferencesKey(
+                            MainViewModel.MY_TOKEN
+                        )
+                    )
 
                     if (token != null) {
                         repository.sendDeliveredReceipt(
@@ -122,8 +134,7 @@ open class AlertHandler : FirebaseMessagingService() {
                     }
                     try {
                         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R && Settings.Global.getInt(
-                                contentResolver,
-                                "zen_mode"
+                                contentResolver, "zen_mode"
                             ) > 1
                         ) { // a variant of do not disturb
                             Log.d(TAG, "Device's zen mode is enabled")
@@ -189,11 +200,13 @@ open class AlertHandler : FirebaseMessagingService() {
     }
 
     private fun areNotificationsAllowed(): Boolean {
-        val overrideDND = runBlocking { preferencesRepository.getValue(booleanPreferencesKey
-        (getString(R.string.override_dnd_key)), false) }
+        val overrideDND = runBlocking {
+            preferencesRepository.getValue(
+                booleanPreferencesKey(getString(R.string.override_dnd_key)), false
+            )
+        }
         val manager =
-            getSystemService(NOTIFICATION_SERVICE) as NotificationManager // Check if SDK >= Android 7.0, uses the new notification manager, else uses the compat manager (SDK 19+)
-        // Checks if the app should avoid notifying because it has notifications disabled or:
+            getSystemService(NOTIFICATION_SERVICE) as NotificationManager // Check if SDK >= Android 7.0, uses the new notification manager, else uses the compat manager (SDK 19+) // Checks if the app should avoid notifying because it has notifications disabled or:
         val channel =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) manager.getNotificationChannel(
                 ALERT_CHANNEL_ID

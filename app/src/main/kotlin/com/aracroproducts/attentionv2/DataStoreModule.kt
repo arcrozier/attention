@@ -20,17 +20,29 @@ private val INSTANCE_LOCK: Lock = ReentrantLock()
 
 fun getDataStore(appContext: Context): DataStore<Preferences> {
     return INSTANCE ?: synchronized(INSTANCE_LOCK) {
-        val instance = PreferenceDataStoreFactory.create(
-            corruptionHandler = ReplaceFileCorruptionHandler(
-                produceNewData = { emptyPreferences() }
-            ),
-            migrations = listOf(SharedPreferencesMigration(appContext, USER_PREFERENCES),
-                                SharedPreferencesMigration(appContext, MainViewModel.USER_INFO),
-                                SharedPreferencesMigration(appContext, MainViewModel.FCM_TOKEN)
-            ),
-            scope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
-            produceFile = { appContext.preferencesDataStoreFile(USER_PREFERENCES) }
-        )
+        val instance =
+            PreferenceDataStoreFactory.create(corruptionHandler = ReplaceFileCorruptionHandler(
+                produceNewData = { emptyPreferences() }),
+                                              migrations = listOf(
+                                                  SharedPreferencesMigration(
+                                                      appContext,
+                                                      USER_PREFERENCES
+                                                  ),
+                                                  SharedPreferencesMigration(
+                                                      appContext,
+                                                      MainViewModel.USER_INFO
+                                                  ),
+                                                  SharedPreferencesMigration(
+                                                      appContext,
+                                                      MainViewModel.FCM_TOKEN
+                                                  )
+                                              ),
+                                              scope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
+                                              produceFile = {
+                                                  appContext.preferencesDataStoreFile(
+                                                      USER_PREFERENCES
+                                                  )
+                                              })
         INSTANCE = instance
         instance
     }

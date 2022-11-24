@@ -40,10 +40,9 @@ class UserDataResult(
 class APIClient {
 
     companion object {
-        private var retrofit: Retrofit =
-            Retrofit.Builder().baseUrl(BASE_URL).addConverterFactory(GsonConverterFactory.create
-                ()).client(OkHttpClient.Builder().retryOnConnectionFailure(true).build())
-                .build()
+        private var retrofit: Retrofit = Retrofit.Builder().baseUrl(BASE_URL).addConverterFactory(
+            GsonConverterFactory.create()
+        ).client(OkHttpClient.Builder().retryOnConnectionFailure(true).build()).build()
 
         fun getClient(): Retrofit {
             return retrofit
@@ -136,9 +135,8 @@ interface APIV2 {
 
     @Multipart
     @PUT("photo/")
-    fun editPhoto (
-        @Part photo: MultipartBody.Part?,
-        @Header("Authorization") token: String
+    fun editPhoto(
+        @Part photo: MultipartBody.Part?, @Header("Authorization") token: String
     ): Call<GenericResult<Void>>
 
     @GET("get_info/")
