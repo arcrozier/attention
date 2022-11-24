@@ -129,9 +129,12 @@ class PriorityQueueSet<E>(comparator: Comparator<E>) : Queue<E> {
     }
 
     override fun offer(p0: E): Boolean {
-        val accepted = priorityQueue.offer(p0)
-        if (accepted) elements.add(p0)
-        return accepted
+        if (p0 !in elements) {
+            val accepted = priorityQueue.offer(p0)
+            if (accepted) elements.add(p0)
+            return accepted
+        }
+        return false
     }
 
     override fun poll(): E? {
