@@ -36,8 +36,7 @@ import java.util.concurrent.locks.ReentrantLock
 import javax.inject.Inject
 import kotlin.math.min
 
-@HiltViewModel
-class SettingsViewModel @Inject constructor(
+class SettingsViewModel (
         private val repository: AttentionRepository,
         private val attentionRepository: AttentionRepository,
         val preferencesRepository: PreferencesRepository,

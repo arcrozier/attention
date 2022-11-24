@@ -5,12 +5,6 @@ import androidx.lifecycle.LiveData
 import androidx.room.*
 import com.aracroproducts.attentionv2.AttentionDB.Companion.DB_V3
 import com.google.gson.annotations.SerializedName
-import dagger.Module
-import dagger.Provides
-import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
-import dagger.hilt.components.SingletonComponent
-import javax.inject.Singleton
 
 class Converters {
     @TypeConverter
@@ -39,7 +33,20 @@ abstract class AttentionDB : RoomDatabase() {
 
     companion object {
         const val DB_V3 = 3
-        const val DB_NAME = "attention_database"
+        private const val DB_NAME = "attention_database"
+
+        @Volatile
+        private var INSTANCE: AttentionDB? = null
+
+        fun getDB(context: Context): AttentionDB {
+            return INSTANCE ?: synchronized(this) {
+                val instance = Room.databaseBuilder(
+                    context.applicationContext, AttentionDB::class.java, DB_NAME
+                ).fallbackToDestructiveMigration().build()
+                INSTANCE = instance // return instance
+                instance
+            }
+        }
     }
 }
 
@@ -151,20 +158,4 @@ interface MessageDA0 {
 
     @Insert
     suspend fun insertMessage(message: Message)
-}
-
-@Suppress("unused")
-@InstallIn(SingletonComponent::class)
-@Module
-class DatabaseModule {
-
-    @Provides
-    @Singleton
-    fun provideAttentionDB(@ApplicationContext appContext: Context): AttentionDB {
-        return Room.databaseBuilder(
-                appContext,
-                AttentionDB::class.java,
-                AttentionDB.DB_NAME
-        ).build()
-    }
 }

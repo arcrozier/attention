@@ -1,6 +1,7 @@
 package com.aracroproducts.attentionv2
 
 import android.Manifest.permission.POST_NOTIFICATIONS
+import android.app.Application
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -73,6 +74,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
@@ -80,16 +82,33 @@ import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
-import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.lang.Integer.max
 import kotlin.math.min
 
-@AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
-    private val friendModel: MainViewModel by viewModels()
+    private val friendModel: MainViewModel by viewModels(factoryProducer = {
+        MainViewModelFactory(
+            AttentionRepository(AttentionDB.getDB(this)),
+            (application as AttentionApplication).container.settingsRepository,
+            application as AttentionApplication)
+    })
+
+    class MainViewModelFactory(
+        private val attentionRepository: AttentionRepository,
+        private val preferencesRepository: PreferencesRepository,
+        private val application: AttentionApplication
+    ) : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            if (modelClass.isAssignableFrom(MainViewModel::class.java)) {
+                return MainViewModel(attentionRepository, preferencesRepository, application) as T
+            }
+            throw IllegalArgumentException("Unknown ViewModel class")
+        }
+    }
 
     enum class State {
         NORMAL, CONFIRM, CANCEL, EDIT

@@ -17,19 +17,17 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
-import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import javax.inject.Inject
 
 /**
  * Handles Firebase alerts
  */
-@AndroidEntryPoint
-open class AlertHandler @Inject constructor(
-        private val preferencesRepository: PreferencesRepository,
-private val repository: AttentionRepository) : FirebaseMessagingService() {
+open class AlertHandler : FirebaseMessagingService() {
+
+    val preferencesRepository = (application as AttentionApplication).container.settingsRepository
+    private val repository = (application as AttentionApplication).container.repository
 
     /**
      * Executed when the device gets a new Firebase token

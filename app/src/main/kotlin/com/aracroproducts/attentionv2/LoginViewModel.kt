@@ -15,17 +15,14 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.aracroproducts.attentionv2.MainViewModel.Companion.MY_ID
 import com.aracroproducts.attentionv2.MainViewModel.Companion.MY_TOKEN
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-@HiltViewModel
-class LoginViewModel @Inject constructor(
-        private val attentionRepository: AttentionRepository, private val preferencesRepository:
-        PreferencesRepository, application:
-        Application
+class LoginViewModel (
+        private val attentionRepository: AttentionRepository,
+        private val preferencesRepository: PreferencesRepository,
+        application: Application
 ) : AndroidViewModel(application) {
 
     enum class State {

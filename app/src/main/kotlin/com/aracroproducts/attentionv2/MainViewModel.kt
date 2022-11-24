@@ -29,17 +29,14 @@ import androidx.lifecycle.viewModelScope
 import com.aracroproducts.attentionv2.SettingsActivity.Companion.DEFAULT_DELAY
 import com.google.android.gms.tasks.Task
 import com.google.firebase.messaging.FirebaseMessaging
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.*
 import retrofit2.Call
 import retrofit2.Response
 import java.io.File
 import java.io.IOException
 import java.lang.Integer.min
-import javax.inject.Inject
 
-@HiltViewModel
-class MainViewModel @Inject constructor(
+class MainViewModel (
     private val attentionRepository: AttentionRepository,
     private val preferencesRepository: PreferencesRepository,
     private val application: AttentionApplication

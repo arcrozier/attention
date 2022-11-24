@@ -23,16 +23,14 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-@HiltViewModel
-class AlertViewModel @Inject constructor(
-        intent: Intent, private val attentionRepository: AttentionRepository, private val
-        preferencesRepository: PreferencesRepository,
-        application: Application
+class AlertViewModel(
+    intent: Intent,
+    private val attentionRepository: AttentionRepository,
+    private val preferencesRepository: PreferencesRepository,
+    application: Application
 ) : AndroidViewModel(application) {
 
     var silenced: Boolean by mutableStateOf(

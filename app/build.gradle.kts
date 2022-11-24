@@ -2,10 +2,8 @@ plugins {
     id("com.android.application")
     id("kotlin-android")
     // https://mvnrepository.com/artifact/com.google.devtools.ksp/symbol-processing-api
-    // id("com.google.devtools.ksp") version "1.7.20-1.0.7"
-    kotlin("kapt")
+    id("com.google.devtools.ksp") version "1.7.20-1.0.7"
     id("com.google.gms.google-services")
-    id("com.google.dagger.hilt.android") version "2.44" apply false
 }
 
 android {
@@ -20,16 +18,8 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        /*
         ksp {
             arg("room.schemaLocation", "$projectDir/schemas")
-        }
-         */
-        kapt {
-            arguments {
-                arg("room.schemaLocation", "$projectDir/schemas")
-            }
-            correctErrorTypes = true
         }
 
         signingConfig = signingConfigs.getByName("debug")
@@ -147,7 +137,7 @@ dependencies {
     implementation("androidx.room:room-runtime:$roomVersion")
     implementation("androidx.room:room-ktx:$roomVersion")
     // To use Kotlin annotation processing tool (kapt)
-    kapt("androidx.room:room-compiler:$roomVersion")
+    ksp("androidx.room:room-compiler:$roomVersion")
 
     // optional - Guava support for Room, including Optional and ListenableFuture
     implementation("androidx.room:room-guava:$roomVersion")
@@ -177,12 +167,6 @@ dependencies {
 
     // Preferences DataStore (SharedPreferences like APIs)
     implementation("androidx.datastore:datastore-preferences:1.0.0")
-
-    // Hilt - the dependency injection tool
-    implementation("com.google.dagger:hilt-android:2.44.2")
-    kapt("com.google.dagger:hilt-android-compiler:2.44.2")
-    implementation("androidx.hilt:hilt-navigation-compose:1.0.0")
-    kapt("androidx.hilt:hilt-compiler:1.0.0")
 }
 
 repositories {

@@ -9,13 +9,20 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.google.android.material.color.DynamicColors
-import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 
-@HiltAndroidApp
+class AttentionContainer(context: Context) {
+    val database by lazy { AttentionDB.getDB(context) }
+    val repository by lazy { AttentionRepository(database) }
+    val settingsRepository by lazy { PreferencesRepository(getDataStore(context))}
+    val applicationScope = CoroutineScope(SupervisorJob())
+}
+
 class AttentionApplication : Application(), LifecycleEventObserver,
                              Application.ActivityLifecycleCallbacks {
+
+    val container = AttentionContainer(this)
 
     var activity: Activity? = null
 

@@ -87,11 +87,14 @@ import java.lang.Integer.max
 /**
  * The class for the settings menu in the app
  */
-@AndroidEntryPoint
 class SettingsActivity : AppCompatActivity() {
 
-    private val viewModel: SettingsViewModel =
-            ViewModelProvider(this)[SettingsViewModel::class.java]
+    private val viewModel: SettingsViewModel by viewModels(factoryProducer = {
+        val attentionApplication = application as AttentionApplication
+        SettingsViewModelFactory(attentionApplication.container.repository, attentionApplication
+            .container.applicationScope,
+        application)
+    })
 
 
     private val cropResultHandler = registerForActivityResult(
@@ -121,6 +124,20 @@ class SettingsActivity : AppCompatActivity() {
             Log.d("PhotoPicker", "Selected URI: $uri")
         } else {
             Log.d("PhotoPicker", "No media selected")
+        }
+    }
+
+    class SettingsViewModelFactory(
+        private val attentionRepository: AttentionRepository,
+        private val externalScope: CoroutineScope,
+        private val application: Application
+    ) : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            if (modelClass.isAssignableFrom(SettingsViewModel::class.java)) {
+                return SettingsViewModel(attentionRepository, externalScope, application) as T
+            }
+            throw IllegalArgumentException("Unknown ViewModel class")
         }
     }
 

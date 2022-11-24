@@ -9,12 +9,11 @@ import retrofit2.Callback
 import retrofit2.Response
 import java.io.InputStream
 import java.util.*
-import javax.inject.Inject
 import kotlin.concurrent.thread
 
 // Declares the DAO as a private property in the constructor. Pass in the DAO
 // instead of the whole database, because you only need access to the DAO
-class AttentionRepository @Inject constructor(private val database: AttentionDB) {
+class AttentionRepository(private val database: AttentionDB) {
 
     private val apiInterface = APIClient.getClient().create(APIV2::class.java)
 
