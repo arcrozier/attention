@@ -3,7 +3,7 @@ package com.aracroproducts.attentionv2
 import java.util.*
 
 /**
- * A priority queue that does not allow duplicates. See {@link PriorityQueue}
+ * A priority queue that does not allow duplicates. See {@link PriorityQueue}. Not thread-safe
  */
 class PriorityQueueSet<E>(comparator: Comparator<E>) : Queue<E> {
 
@@ -39,7 +39,26 @@ class PriorityQueueSet<E>(comparator: Comparator<E>) : Queue<E> {
     }
 
     override fun iterator(): MutableIterator<E> {
-        return priorityQueue.iterator()
+        return object : MutableIterator<E> {
+            private val iterator = priorityQueue.iterator()
+            private var last: E? = null
+
+            override fun hasNext(): Boolean {
+                return iterator.hasNext()
+            }
+
+            override fun next(): E {
+                val temp = iterator.next()
+                last = temp
+                return temp
+            }
+
+            override fun remove() {
+                iterator.remove()
+                elements.remove(last)
+            }
+
+        }
     }
 
     override fun remove(): E {
@@ -104,8 +123,8 @@ class PriorityQueueSet<E>(comparator: Comparator<E>) : Queue<E> {
      * @return `true` if any element was removed from the collection, `false` if the collection was not modified.
      */
     override fun retainAll(elements: Collection<E>): Boolean {
-        val returned = this.elements.retainAll(elements = elements)
-        if (returned) priorityQueue.retainAll(elements)
+        val returned = this.elements.retainAll(elements = elements.toSet())
+        if (returned) priorityQueue.retainAll(elements.toSet())
         return returned
     }
 
