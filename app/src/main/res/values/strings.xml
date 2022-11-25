@@ -187,7 +187,10 @@
     <string name="display_name">Display name</string>
 
     <!-- App Preferences -->
-    <string name="delay_title">Time to cancel a message (seconds)</string>
+    <string name="delay_title">Time to cancel a message</string>
+    <string name="delay_label">Delay (s)</string>
+    <string name="delay_summary">%1$s s</string>
+    <string name="delay_greater_than_zero">Delay must be greater than or equal to 0</string>
 
     <!-- Legal -->
     <string name="legal_title">Legal</string>

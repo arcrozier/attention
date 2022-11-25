@@ -26,8 +26,6 @@ import kotlinx.coroutines.runBlocking
  */
 open class AlertHandler : FirebaseMessagingService() {
 
-    val preferencesRepository = (application as AttentionApplication).container.settingsRepository
-    private val repository = (application as AttentionApplication).container.repository
 
     /**
      * Executed when the device gets a new Firebase token
@@ -35,6 +33,8 @@ open class AlertHandler : FirebaseMessagingService() {
      */
     override fun onNewToken(token: String) {
         Log.d(TAG, "New token: $token")
+        val preferencesRepository = (application as AttentionApplication).container.settingsRepository
+        val repository = (application as AttentionApplication).container.repository
         MainScope().launch {
             if (preferencesRepository.getValue(stringPreferencesKey(MainViewModel.FCM_TOKEN)) != token) {
                 Log.d(TAG, "Token is new: updating shared preferences")
@@ -76,6 +76,8 @@ open class AlertHandler : FirebaseMessagingService() {
      * @param remoteMessage - The message from Firebase
      */
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
+        val preferencesRepository = (application as AttentionApplication).container.settingsRepository
+        val repository = (application as AttentionApplication).container.repository
         MainScope().launch {
             Log.d(TAG, "Message received! $remoteMessage")
             val messageData = remoteMessage.data
@@ -200,6 +202,7 @@ open class AlertHandler : FirebaseMessagingService() {
     }
 
     private fun areNotificationsAllowed(): Boolean {
+        val preferencesRepository = (application as AttentionApplication).container.settingsRepository
         val overrideDND = runBlocking {
             preferencesRepository.getValue(
                 booleanPreferencesKey(getString(R.string.override_dnd_key)), false

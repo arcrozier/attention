@@ -69,6 +69,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
@@ -751,6 +752,12 @@ class MainActivity : AppCompatActivity() {
                                       capitalization = KeyboardCapitalization.None,
                                       imeAction = ImeAction.Done
                                   ),
+                                  supportingText = {
+                                      Text(
+                                          text = friendModel.usernameCaption,
+                                          overflow = TextOverflow.Ellipsis
+                                      )
+                                  },
                                   keyboardActions = KeyboardActions(onDone = {
                                       onAddFriend(username = friendModel.addFriendUsername)
                                   }),
@@ -759,14 +766,7 @@ class MainActivity : AppCompatActivity() {
                                   label = { Text(text = getString(R.string.username)) },
                                   isError = friendModel.usernameCaption.isNotBlank(),
                                   placeholder = { Text(text = getString(R.string.placeholder_name)) })
-                Text(
-                    text = friendModel.usernameCaption,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                        alpha = ContentAlpha.medium
-                    ),
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.padding(start = 16.dp)
-                )
+
             }
         })
     }

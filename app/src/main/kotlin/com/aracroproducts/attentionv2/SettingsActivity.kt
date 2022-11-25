@@ -346,7 +346,8 @@ class SettingsActivity : AppCompatActivity() {
                             dismissDialog,
                             context,
                             title,
-                            KeyboardOptions(keyboardType = KeyboardType.Email)
+                            KeyboardOptions(keyboardType = KeyboardType.Email),
+                            R.string.email
                         ) {
                             if (!(it.isEmpty() || android.util.Patterns.EMAIL_ADDRESS.matcher(
                                     it
@@ -380,6 +381,7 @@ class SettingsActivity : AppCompatActivity() {
                                            dismissDialog = dismissDialog,
                                            context = context,
                                            title = title,
+                                           textFieldLabel = R.string.placeholder_name,
                                            keyboardOptions = KeyboardOptions(
                                                capitalization = KeyboardCapitalization.Words
                                            )
@@ -408,6 +410,7 @@ class SettingsActivity : AppCompatActivity() {
                             dismissDialog = dismissDialog,
                             context = context,
                             title = title,
+                            textFieldLabel = R.string.placeholder_name,
                             keyboardOptions = KeyboardOptions(
                                 capitalization = KeyboardCapitalization.Words
                             )
@@ -501,6 +504,9 @@ class SettingsActivity : AppCompatActivity() {
                                           icon = {
                                               Icon(Icons.Outlined.Timer, null)
                                           },
+                                          summary = {
+                                              getString(R.string.delay_summary, it.toString())
+                                          },
                                           title = R.string.delay_title
                        ) { value, setValue, dismissDialog, context, title ->
                            FloatPreferenceChange(
@@ -508,7 +514,13 @@ class SettingsActivity : AppCompatActivity() {
                                setValue = setValue,
                                dismissDialog = dismissDialog,
                                context = context,
-                               title = title
+                               title = title,
+                               textFieldLabel = R.string.delay_label,
+                           validate = {
+                                   if (it < 0) {
+                                       getString(R.string.delay_greater_than_zero)
+                                   } else ""
+                               }
                            )
                        }
                    },
@@ -583,23 +595,27 @@ class SettingsActivity : AppCompatActivity() {
                        val showDNDAlert = rememberSaveable {
                            mutableStateOf(false)
                        }
-                       var overrideDNDValue by rememberPreference(key = booleanPreferencesKey(
-                           getString(R.string.override_dnd_key)
-                       ), defaultValue = false, onPreferenceChangeListener = listOf { _, newValue ->
-                           if (newValue) {
-                               return@listOf if ((getSystemService(
-                                       NOTIFICATION_SERVICE
-                                   ) as NotificationManager).isNotificationPolicyAccessGranted
-                               ) {
-                                   true
-                               } else {
-                                   showDNDAlert.value = true
-                                   false
-                               }
+                       var overrideDNDValue by rememberPreference(
+                           key = booleanPreferencesKey(
+                               getString(R.string.override_dnd_key)
+                           ),
+                           defaultValue = false,
+                           onPreferenceChangeListener = listOf { _, newValue ->
+                               if (newValue) {
+                                   return@listOf if ((getSystemService(
+                                           NOTIFICATION_SERVICE
+                                       ) as NotificationManager).isNotificationPolicyAccessGranted
+                                   ) {
+                                       true
+                                   } else {
+                                       showDNDAlert.value = true
+                                       false
+                                   }
 
-                           }
-                           false
-                       }, repository = viewModel.preferencesRepository
+                               }
+                               false
+                           },
+                           repository = viewModel.preferencesRepository
                        )
                        if (showDNDAlert.value) {
                            AlertDialog(onDismissRequest = { showDNDAlert.value = false },
@@ -778,8 +794,9 @@ class SettingsActivity : AppCompatActivity() {
                         .waterfallPadding(),
                     contentPadding = padding
                 ) {
-                    items(items = preferences,
-                          key = { preference -> preference.first.first }) { preference ->
+                    items(
+                        items = preferences,
+                        key = { preference -> preference.first.first }) { preference ->
                         PreferenceGroup(
                             title = preference.first.first,
                             icon = preference.first.second,
@@ -809,8 +826,9 @@ class SettingsActivity : AppCompatActivity() {
                         contentPadding = padding,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        items(items = preferences,
-                              key = { preference -> preference.first.first }) { preference ->
+                        items(
+                            items = preferences,
+                            key = { preference -> preference.first.first }) { preference ->
                             PreferenceGroup(
                                 title = preference.first.first,
                                 icon = preference.first.second,

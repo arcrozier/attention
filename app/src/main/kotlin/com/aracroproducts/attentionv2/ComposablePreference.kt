@@ -3,15 +3,18 @@ package com.aracroproducts.attentionv2
 import android.content.Context
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.ContentAlpha
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.datastore.preferences.core.Preferences
 import kotlinx.coroutines.launch
 
@@ -81,6 +84,7 @@ fun StringPreferenceChange(
     context: Context,
     title: String,
     keyboardOptions: KeyboardOptions? = null,
+    textFieldLabel: Int? = null,
     validate: ((String) -> String)? = null
 ) {
 
@@ -115,17 +119,21 @@ fun StringPreferenceChange(
             OutlinedTextField(value = newValue,
                               onValueChange = { newValue = it },
                               singleLine = true,
+                              label = textFieldLabel?.let {
+                                  {
+                                      Text(text = context.getString(textFieldLabel))
+                                  }
+                              } ?: {},
+                              supportingText = {
+                                  Text(
+                                      text = message, overflow = TextOverflow.Ellipsis
+                                  )
+                              },
                               isError = message.isNotBlank(),
                               keyboardOptions = keyboardOptions?.copy(imeAction = ImeAction.Done)
                                                 ?: KeyboardOptions(imeAction = ImeAction.Done),
                               keyboardActions = KeyboardActions { onDone() })
-            Text(
-                text = message,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(
-                    alpha = ContentAlpha.medium
-                )
-            )
+
         }
 
     })
@@ -139,7 +147,8 @@ fun FloatPreferenceChange(
     dismissDialog: () -> Unit,
     context: Context,
     title: String,
-    validate: ((Float) -> String)? = null
+    validate: ((Float) -> String)? = null,
+    textFieldLabel: Int? = null
 ) {
     var newValue by remember { mutableStateOf(value.toString()) }
     var message by remember {
@@ -170,19 +179,21 @@ fun FloatPreferenceChange(
         Text(text = title)
     }, text = {
         Column {
-            OutlinedTextField(
-                value = newValue,
-                onValueChange = { newValue = it },
-                isError = message.isNotBlank(),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
-            )
-            Text(
-                text = message,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(
-                    alpha = ContentAlpha.medium
-                )
+            OutlinedTextField(value = newValue,
+                              onValueChange = { newValue = it },
+                              isError = message.isNotBlank(),
+                              label = textFieldLabel?.let {
+                                  {
+                                      Text(text = context.getString(textFieldLabel))
+                                  }
+                              } ?: {},
+                              supportingText = {
+                                  Text(
+                                      text = message, overflow = TextOverflow.Ellipsis
+                                  )
+                              },
+                              singleLine = true,
+                              keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
             )
         }
     })
@@ -224,28 +235,24 @@ fun MultiSelectListPreferenceChange(
         Text(text = title)
     }, text = {
         Column {
-            for ((index, entry) in entries.withIndex()) {
+            for ((index, entryValue) in entryValues.withIndex()) {
                 Row(
-                    modifier = Modifier.toggleable(
-                        value = newValue.containsKey(entry),
-                        onValueChange = {
-                            if (it) {
-                                newValue[entry] = true
-                            } else {
-                                newValue.remove(entry)
-                            }
-                        })
+                    modifier = Modifier.toggleable(value = newValue.containsKey(entryValue),
+                                                   onValueChange = {
+                                                       if (it) {
+                                                           newValue[entryValue] = true
+                                                       } else {
+                                                           newValue.remove(entryValue)
+                                                       }
+                                                   }),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Checkbox(
-                        checked = newValue.containsKey(entry), onCheckedChange = null/*{
-                                if (it) {
-                                    newValue[entry] = true
-                                } else {
-                                    newValue.remove(entry)
-                                }
-                            }*/
+                        checked = newValue.containsKey(entryValue),
+                        onCheckedChange = null,
+                        modifier = Modifier.padding(4.dp)
                     )
-                    Text(text = entryValues[index])
+                    Text(text = entries[index], style = MaterialTheme.typography.labelLarge)
                 }
             }
         }

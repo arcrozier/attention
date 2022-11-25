@@ -64,6 +64,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.*
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -795,6 +796,14 @@ class LoginActivity : AppCompatActivity() {
             isError = !(model.email.isEmpty() || android.util.Patterns.EMAIL_ADDRESS.matcher(
                 model.email
             ).matches()),
+            supportingText = {
+                if (model.emailCaption.isNotBlank()) {
+                    Text(
+                        text = model.emailCaption,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            },
             singleLine = true,
             label = { Text(text = getString(R.string.email)) },
             keyboardOptions = KeyboardOptions(
@@ -802,16 +811,7 @@ class LoginActivity : AppCompatActivity() {
                 imeAction = ImeAction.Next,
             )
         )
-        if (model.emailCaption.isNotBlank()) {
-            Text(
-                text = model.emailCaption,
-                color = MaterialTheme.colorScheme.onSurface.copy(
-                    alpha = ContentAlpha.medium
-                ),
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.padding(start = 16.dp)
-            )
-        }
+
     }
 
     @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
@@ -897,6 +897,14 @@ class LoginActivity : AppCompatActivity() {
                 Text(text = getString(R.string.password))
             },
             singleLine = true,
+            supportingText = {
+                if (model.passwordCaption.isNotBlank()) {
+                    Text(
+                        text = model.oldPasswordCaption,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            },
             keyboardOptions = KeyboardOptions(
                 autoCorrect = false,
                 imeAction = ImeAction.Next,
@@ -907,16 +915,7 @@ class LoginActivity : AppCompatActivity() {
             }),
             enabled = model.uiEnabled
         )
-        if (model.passwordCaption.isNotBlank()) {
-            Text(
-                text = model.oldPasswordCaption,
-                color = MaterialTheme.colorScheme.onSurface.copy(
-                    alpha = ContentAlpha.medium
-                ),
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.padding(start = 16.dp)
-            )
-        }
+
     }
 
     @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
@@ -960,6 +959,14 @@ class LoginActivity : AppCompatActivity() {
                       imeAction = imeAction,
                       keyboardType = KeyboardType.Password
                   ),
+                  supportingText = {
+                      if (model.passwordCaption.isNotBlank()) {
+                          Text(
+                              text = model.passwordCaption,
+                              overflow = TextOverflow.Ellipsis
+                          )
+                      }
+                  },
                   keyboardActions = KeyboardActions(onDone = {
                       if (imeAction == ImeAction.Done) {
                           model.login(
@@ -976,16 +983,7 @@ class LoginActivity : AppCompatActivity() {
                   enabled = model.uiEnabled,
                   isError = model.passwordCaption.isNotBlank()
         )
-        if (model.passwordCaption.isNotBlank()) {
-            Text(
-                text = model.passwordCaption,
-                color = MaterialTheme.colorScheme.onSurface.copy(
-                    alpha = ContentAlpha.medium
-                ),
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.padding(start = 16.dp)
-            )
-        }
+
     }
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -1023,6 +1021,15 @@ class LoginActivity : AppCompatActivity() {
             modifier = Modifier.focusRequester(confirmPasswordFocusRequester),
             isError = model.confirmPasswordCaption.isNotBlank(),
             singleLine = true,
+            supportingText = {
+
+                if (model.confirmPasswordCaption.isNotBlank()) {
+                    Text(
+                        text = model.confirmPasswordCaption,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            },
             keyboardOptions = KeyboardOptions(
                 autoCorrect = false,
                 imeAction = ImeAction.Done,
@@ -1033,16 +1040,6 @@ class LoginActivity : AppCompatActivity() {
             ),
             enabled = model.uiEnabled
         )
-        if (model.confirmPasswordCaption.isNotBlank()) {
-            Text(
-                text = model.confirmPasswordCaption,
-                color = MaterialTheme.colorScheme.onSurface.copy(
-                    alpha = ContentAlpha.medium
-                ),
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.padding(start = 16.dp)
-            )
-        }
     }
 
     @Composable
@@ -1235,20 +1232,19 @@ class LoginActivity : AppCompatActivity() {
                 keyboardOptions = KeyboardOptions(
                     autoCorrect = false, imeAction = imeAction
                 ),
+                supportingText = {
+
+                    if (caption.isNotBlank()) {
+                        Text(
+                            text = caption,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                },
                 keyboardActions = KeyboardActions(onDone = onDone),
                 enabled = enabled,
                 isError = error,
             )
-            if (caption.isNotBlank()) {
-                Text(
-                    text = caption,
-                    color = MaterialTheme.colorScheme.onSurface.copy(
-                        alpha = ContentAlpha.medium
-                    ),
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.padding(start = 16.dp)
-                )
-            }
         }
 
         private fun filterUsername(username: String): String {
