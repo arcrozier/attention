@@ -3,137 +3,111 @@ package com.aracroproducts.attentionv2
 import android.content.Context
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material.ContentAlpha
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.preference.PreferenceManager
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.datastore.preferences.core.Preferences
+import kotlinx.coroutines.launch
 
-abstract class ComposablePreference<T>(val key: String) {
-    abstract var value: T
-    val onPreferenceChangeListener: MutableList<ComposablePreferenceChangeListener<T>> = ArrayList()
+
+/**
+ * Remembers a preference in a DataStore
+ *
+ * Used with modification from Phil Dukhov (https://stackoverflow.com/a/69266511/7484693)
+ *
+ * @param key - The key for the preference
+ * @param defaultValue - The default value if the key is not found
+ * @param onPreferenceChangeListener - A list of functions that take the key and the proposed
+ * value and return true if the new value should be persisted and false otherwise. They are
+ * called in the order provided to this field. The first listener to return false will stop the
+ * persisting and no further listeners will be called. All listeners must return true for the
+ * value to be persisted. If there are no listeners, value will be persisted (default).
+ *
+ * @return a MutableState that can serve as a property delegate and will trigger recompositions
+ * when the underlying preference is changed
+ */
+@Composable
+fun <T> rememberPreference(
+    key: Preferences.Key<T>,
+    defaultValue: T,
+    onPreferenceChangeListener: List<(pref: Preferences.Key<T>, newValue: T) -> Boolean> = listOf(),
+    repository: PreferencesRepository
+): MutableState<T> {
 
     fun shouldPersistChange(newValue: T): Boolean {
         for (preferenceChangeListener in onPreferenceChangeListener) {
-            if (!preferenceChangeListener.onPreferenceChange(this, newValue)) return false
+            if (!preferenceChangeListener(key, newValue)) return false
         }
         return true
     }
 
-    abstract fun getValue(default: T): T
-}
-
-class EphemeralPreference<T>(key: String, override var value: T) : ComposablePreference<T>(key) {
-    override fun getValue(default: T): T {
-        return value
-    }
-}
-
-/*
-class NonPersistentPreference<T>(key: String) : ComposablePreference<Nothing>(key) {
-    override var value: Nothing
-        get() = throw UnsupportedOperationException("Cannot get value of a non-persistent " +
-                "preference")
-        set(value) = throw UnsupportedOperationException("Cannot set value of a non-persistent " +
-                "preference")
-}
- */
-
-class BooleanPreference(key: String, val context: Context) : ComposablePreference<Boolean>(key) {
-    override var value
-        get() = getValue(false)
-        set(value) {
-            if (!shouldPersistChange(value)) return
-            PreferenceManager.getDefaultSharedPreferences(context).edit().apply {
-                putBoolean(key, value)
-                apply()
-            }
+    val coroutineScope = rememberCoroutineScope()
+    val state = remember {
+        repository.subscribe {
+            it[key] ?: defaultValue
         }
+    }.collectAsState(initial = defaultValue)
 
-    override fun getValue(default: Boolean): Boolean {
-        return PreferenceManager.getDefaultSharedPreferences(context).getBoolean(key, default)
-    }
-}
+    return remember {
+        object : MutableState<T> {
+            override var value: T
+                get() = state.value
+                set(value) {
+                    if (shouldPersistChange(value)) {
+                        coroutineScope.launch {
+                            repository.setValue(key, value)
+                        }
+                    }
+                }
 
-class StringPreference(key: String, val context: Context) : ComposablePreference<String>(key) {
-    override var value: String
-        get() = getValue("")
-        set(value) {
-            if (!shouldPersistChange(value)) return
-            PreferenceManager.getDefaultSharedPreferences(context).edit().apply {
-                putString(key, value)
-                apply()
-            }
+            override fun component1() = value
+            override fun component2(): (T) -> Unit = { value = it }
         }
-
-    override fun getValue(default: String): String {
-        return PreferenceManager.getDefaultSharedPreferences(context).getString(key, default)
-               ?: default
     }
-}
-
-class StringSetPreference(key: String, val context: Context) :
-    ComposablePreference<Set<String>>(key) {
-    override var value: Set<String>
-        get() = getValue(HashSet())
-        set(value) {
-            if (!shouldPersistChange(value)) return
-            PreferenceManager.getDefaultSharedPreferences(context).edit().apply {
-                putStringSet(key, value)
-                apply()
-            }
-        }
-
-    override fun getValue(default: Set<String>): Set<String> {
-        return PreferenceManager.getDefaultSharedPreferences(context).getStringSet(key, default)
-               ?: default
-    }
-}
-
-class FloatPreference(key: String, val context: Context) : ComposablePreference<Float>(key) {
-    override var value: Float
-        get() = getValue(0f)
-        set(value) {
-            if (!shouldPersistChange(value)) return
-            PreferenceManager.getDefaultSharedPreferences(context).edit().apply {
-                putFloat(key, value)
-                apply()
-            }
-        }
-
-    override fun getValue(default: Float): Float {
-        return PreferenceManager.getDefaultSharedPreferences(context).getFloat(key, default)
-    }
-}
-
-interface ComposablePreferenceChangeListener<T> {
-    fun onPreferenceChange(preference: ComposablePreference<T>, newValue: T): Boolean
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StringPreferenceChange(
-    preference: ComposablePreference<String>,
+    value: String,
+    setValue: (String) -> Unit,
     dismissDialog: () -> Unit,
     context: Context,
     title: String,
+    keyboardOptions: KeyboardOptions? = null,
+    textFieldLabel: Int? = null,
     validate: ((String) -> String)? = null
 ) {
-    var newValue by remember { mutableStateOf(preference.value) }
-    var message by remember { mutableStateOf( "" )}
+
+    var newValue by remember { mutableStateOf(value) }
+    var message by remember { mutableStateOf("") }
+
+
+    fun onDone() {
+        message = validate?.invoke(newValue) ?: ""
+        if (message.isNotBlank()) {
+            return
+        }
+        setValue(newValue)
+        dismissDialog()
+    }
+
     AlertDialog(onDismissRequest = { dismissDialog() }, dismissButton = {
         OutlinedButton(onClick = dismissDialog) {
             Text(text = context.getString(android.R.string.cancel))
         }
     }, confirmButton = {
         Button(onClick = {
-            message = validate?.invoke(newValue) ?: ""
-            if (message.isBlank()) {
-                return@Button
-            }
-            preference.value = newValue
-            dismissDialog()
+            onDone()
         }) {
             Text(text = context.getString(android.R.string.ok))
         }
@@ -142,13 +116,24 @@ fun StringPreferenceChange(
         Text(text = title)
     }, text = {
         Column {
-            OutlinedTextField(value = newValue, onValueChange = { newValue = it })
-            Text(
-                    text = message,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(
-                            alpha = ContentAlpha.medium)
-            )
+            OutlinedTextField(value = newValue,
+                              onValueChange = { newValue = it },
+                              singleLine = true,
+                              label = textFieldLabel?.let {
+                                  {
+                                      Text(text = context.getString(textFieldLabel))
+                                  }
+                              } ?: {},
+                              supportingText = {
+                                  Text(
+                                      text = message, overflow = TextOverflow.Ellipsis
+                                  )
+                              },
+                              isError = message.isNotBlank(),
+                              keyboardOptions = keyboardOptions?.copy(imeAction = ImeAction.Done)
+                                                ?: KeyboardOptions(imeAction = ImeAction.Done),
+                              keyboardActions = KeyboardActions { onDone() })
+
         }
 
     })
@@ -157,13 +142,15 @@ fun StringPreferenceChange(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FloatPreferenceChange(
-    preference: ComposablePreference<Float>,
+    value: Float,
+    setValue: (Float) -> Unit,
     dismissDialog: () -> Unit,
     context: Context,
     title: String,
-    validate: ((Float) -> String)? = null
+    validate: ((Float) -> String)? = null,
+    textFieldLabel: Int? = null
 ) {
-    var newValue by remember { mutableStateOf(preference.value.toString()) }
+    var newValue by remember { mutableStateOf(value.toString()) }
     var message by remember {
         mutableStateOf("")
     }
@@ -179,7 +166,7 @@ fun FloatPreferenceChange(
                 if (message.isNotBlank()) {
                     return@Button
                 }
-                preference.value = newValue.toFloat()
+                setValue(newValue.toFloat())
                 dismissDialog()
             } catch (e: NumberFormatException) {
                 message = context.getString(R.string.invalid_float)
@@ -192,21 +179,30 @@ fun FloatPreferenceChange(
         Text(text = title)
     }, text = {
         Column {
-            OutlinedTextField(value = newValue, onValueChange = { newValue = it }, isError =
-            message.isNotBlank())
-                Text(
-                        text = message,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(
-                                alpha = ContentAlpha.medium)
-                )
-            }
-        })
+            OutlinedTextField(value = newValue,
+                              onValueChange = { newValue = it },
+                              isError = message.isNotBlank(),
+                              label = textFieldLabel?.let {
+                                  {
+                                      Text(text = context.getString(textFieldLabel))
+                                  }
+                              } ?: {},
+                              supportingText = {
+                                  Text(
+                                      text = message, overflow = TextOverflow.Ellipsis
+                                  )
+                              },
+                              singleLine = true,
+                              keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+            )
+        }
+    })
 }
 
 @Composable
 fun MultiSelectListPreferenceChange(
-    preference: ComposablePreference<Set<String>>,
+    value: Set<String>,
+    setValue: (Set<String>) -> Unit,
     dismissDialog: () -> Unit,
     context: Context,
     title: String,
@@ -214,7 +210,7 @@ fun MultiSelectListPreferenceChange(
     entryValuesRes: Int
 ) {
     val newValue = remember {
-        mutableStateMapOf(*preference.value.map {
+        mutableStateMapOf(*value.map {
             Pair(
                 it, true
             )
@@ -229,7 +225,7 @@ fun MultiSelectListPreferenceChange(
         }
     }, confirmButton = {
         Button(onClick = {
-            preference.value = newValue.keys
+            setValue(newValue.keys)
             dismissDialog()
         }) {
             Text(text = context.getString(android.R.string.ok))
@@ -239,27 +235,24 @@ fun MultiSelectListPreferenceChange(
         Text(text = title)
     }, text = {
         Column {
-            for ((index, entry) in entries.withIndex()) {
+            for ((index, entryValue) in entryValues.withIndex()) {
                 Row(
-                    modifier = Modifier.toggleable(value = newValue.containsKey(entry),
+                    modifier = Modifier.toggleable(value = newValue.containsKey(entryValue),
                                                    onValueChange = {
                                                        if (it) {
-                                                           newValue[entry] = true
+                                                           newValue[entryValue] = true
                                                        } else {
-                                                           newValue.remove(entry)
+                                                           newValue.remove(entryValue)
                                                        }
-                                                   })
+                                                   }),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Checkbox(
-                        checked = newValue.containsKey(entry), onCheckedChange = null/*{
-                                if (it) {
-                                    newValue[entry] = true
-                                } else {
-                                    newValue.remove(entry)
-                                }
-                            }*/
+                        checked = newValue.containsKey(entryValue),
+                        onCheckedChange = null,
+                        modifier = Modifier.padding(4.dp)
                     )
-                    Text(text = entryValues[index])
+                    Text(text = entries[index], style = MaterialTheme.typography.labelLarge)
                 }
             }
         }
@@ -274,8 +267,7 @@ fun multiselectListPreferenceSummary(
     for (i in values.indices) {
         if (value.contains(values[i])) summaryList.add(entries[i])
     }
-    return summaryList
-        .joinToString(", ")
+    return summaryList.joinToString(", ")
 }
 
 @Composable

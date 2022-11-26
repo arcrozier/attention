@@ -1,8 +1,6 @@
 package com.aracroproducts.attentionv2
 
 import android.Manifest.permission.POST_NOTIFICATIONS
-import android.app.Application
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -13,7 +11,6 @@ import android.os.Bundle
 import android.provider.Settings
 import android.util.Base64
 import android.util.Log
-import android.util.TypedValue
 import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -72,12 +69,14 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
-import androidx.preference.PreferenceManager
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
 import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
@@ -91,16 +90,22 @@ import kotlin.math.min
 
 class MainActivity : AppCompatActivity() {
     private val friendModel: MainViewModel by viewModels(factoryProducer = {
-        MainViewModelFactory(AttentionRepository(AttentionDB.getDB(this)), application)
+        MainViewModelFactory(
+            AttentionRepository(AttentionDB.getDB(this)),
+            (application as AttentionApplication).container.settingsRepository,
+            application as AttentionApplication
+        )
     })
 
     class MainViewModelFactory(
-        private val attentionRepository: AttentionRepository, private val application: Application
+        private val attentionRepository: AttentionRepository,
+        private val preferencesRepository: PreferencesRepository,
+        private val application: AttentionApplication
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(MainViewModel::class.java)) {
-                return MainViewModel(attentionRepository, application) as T
+                return MainViewModel(attentionRepository, preferencesRepository, application) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class")
         }
@@ -127,6 +132,7 @@ class MainActivity : AppCompatActivity() {
     @OptIn(ExperimentalFoundationApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
 
         setContent {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -220,14 +226,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun checkOverlayDisplay() {
-        val userInfo = getSharedPreferences(MainViewModel.USER_INFO, Context.MODE_PRIVATE)
-
-        if (!Settings.canDrawOverlays(application) && !userInfo.getBoolean(
-                MainViewModel.OVERLAY_NO_PROMPT, false
-            )
-        ) {
-            friendModel.appendDialogState(MainViewModel.DialogStatus.OverlayPermission)
-        }
+        friendModel.checkOverlayPermission()
     }
 
     private fun getNotificationPermission() {
@@ -255,28 +254,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun reload() {
-        friendModel.isRefreshing = true
-
-        val userInfo = getSharedPreferences(MainViewModel.USER_INFO, Context.MODE_PRIVATE)
-
-        // token is auth token
-        val token = userInfo.getString(MainViewModel.MY_TOKEN, null)
-
-        // we want an exception to the login if they opened an add-friend link
-        // if opened from a link, the action is ACTION_VIEW, so we delay logging in
-        if (token == null && !friendModel.addFriendException) {
-            launchLogin()
-        } else if (token != null) {
-            friendModel.getUserInfo(token) {
-                if (!friendModel.addFriendException) launchLogin()
-            }
-            friendModel.registerDevice()
-            getNotificationPermission()
-            return
+    private fun reload() { // token is auth token
+        friendModel.getUserInfo {
+            if (!friendModel.addFriendException) launchLogin()
         }
-
-        friendModel.isRefreshing = false
+        friendModel.registerDevice()
+        getNotificationPermission()
     }
 
     @ExperimentalFoundationApi
@@ -295,8 +278,10 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    @OptIn(ExperimentalAnimationApi::class, ExperimentalMaterial3Api::class,
-           ExperimentalMaterialApi::class
+    @OptIn(
+        ExperimentalAnimationApi::class,
+        ExperimentalMaterial3Api::class,
+        ExperimentalMaterialApi::class
     )
     @ExperimentalFoundationApi
     @Composable
@@ -421,12 +406,19 @@ class MainActivity : AppCompatActivity() {
                          )
                      }
                  }) {
-            val refreshState = rememberPullRefreshState(friendModel
-                                                            .isRefreshing, onRefresh = { reload() })
+            val refreshState =
+                rememberPullRefreshState(friendModel.isRefreshing, onRefresh = { reload() })
             Box(
                 modifier = Modifier.pullRefresh(refreshState),
             ) {
-                PullRefreshIndicator(refreshing = friendModel.isRefreshing, state = refreshState)
+
+                PullRefreshIndicator(
+                    friendModel.isRefreshing,
+                    refreshState,
+                    Modifier
+                        .align(Alignment.TopCenter)
+                        .zIndex(1f)
+                )
                 AnimatedContent(targetState = friends.isEmpty() && !friendModel.isRefreshing && friendModel.connected,
                                 transitionSpec = {
                                     fadeIn() with fadeOut()
@@ -664,11 +656,9 @@ class MainActivity : AppCompatActivity() {
             }
         }, dismissButton = {
             OutlinedButton(onClick = {
-                val editor = getSharedPreferences(
-                    MainViewModel.USER_INFO, MODE_PRIVATE
-                ).edit()
-                editor.putBoolean(MainViewModel.OVERLAY_NO_PROMPT, true)
-                editor.apply()
+                friendModel.setPreference(
+                    booleanPreferencesKey(MainViewModel.OVERLAY_NO_PROMPT), true
+                )
                 friendModel.popDialogState()
             }) {
                 Text(text = getString(R.string.do_not_ask_again))
@@ -762,6 +752,12 @@ class MainActivity : AppCompatActivity() {
                                       capitalization = KeyboardCapitalization.None,
                                       imeAction = ImeAction.Done
                                   ),
+                                  supportingText = {
+                                      Text(
+                                          text = friendModel.usernameCaption,
+                                          overflow = TextOverflow.Ellipsis
+                                      )
+                                  },
                                   keyboardActions = KeyboardActions(onDone = {
                                       onAddFriend(username = friendModel.addFriendUsername)
                                   }),
@@ -770,14 +766,7 @@ class MainActivity : AppCompatActivity() {
                                   label = { Text(text = getString(R.string.username)) },
                                   isError = friendModel.usernameCaption.isNotBlank(),
                                   placeholder = { Text(text = getString(R.string.placeholder_name)) })
-                Text(
-                    text = friendModel.usernameCaption,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                        alpha = ContentAlpha.medium
-                    ),
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.padding(start = 16.dp)
-                )
+
             }
         })
     }
@@ -1075,14 +1064,8 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
                     State.CANCEL -> {
-                        val defaultDelay = TypedValue()
-                        resources.getValue(R.integer.default_delay, defaultDelay, false)
                         val delay: Long by remember {
-                            mutableStateOf((PreferenceManager.getDefaultSharedPreferences(
-                                this@MainActivity
-                            ).getString(getString(R.string.delay_key), null).let {
-                                it?.toFloatOrNull() ?: defaultDelay.float
-                            } * 1000).toLong())
+                            mutableStateOf((friendModel.delay * 1000).toLong())
                         }
                         var progress by remember { mutableStateOf(0L) }
                         val animatedProgress by animateFloatAsState(
@@ -1199,16 +1182,14 @@ class MainActivity : AppCompatActivity() {
                 val placeable = measurable.measure(constraints)
                 val xPos = if (x.isNaN()) (constraints.maxWidth - placeable.width) / 2
                 else max(
-                    0,
-                    min(
+                    0, min(
                         (x - placeable.width.toFloat() / 2).toInt(),
                         constraints.maxWidth - placeable.width
                     )
                 )
                 val yPos = if (y.isNaN()) ((constraints.maxHeight - placeable.height) / 2)
                 else max(
-                    0,
-                    min(
+                    0, min(
                         (y - placeable.height.toFloat() / 2).toInt(),
                         constraints.maxHeight - placeable.height
                     )

@@ -13,16 +13,19 @@ import android.provider.Settings.SettingNotFoundException
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.preference.PreferenceManager
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 /**
  * Handles Firebase alerts
  */
 open class AlertHandler : FirebaseMessagingService() {
+
 
     /**
      * Executed when the device gets a new Firebase token
@@ -30,29 +33,41 @@ open class AlertHandler : FirebaseMessagingService() {
      */
     override fun onNewToken(token: String) {
         Log.d(TAG, "New token: $token")
-        val preferences = getSharedPreferences(MainViewModel.USER_INFO, MODE_PRIVATE)
-        if (preferences.getString(MainViewModel.FCM_TOKEN, "") != token) {
-            Log.d(TAG, "Token is new: updating shared preferences")
-            val editor = preferences.edit()
-            editor.putBoolean(MainViewModel.TOKEN_UPLOADED, false)
-            editor.putString(MainViewModel.FCM_TOKEN, token)
-            editor.apply()
-            val authToken = preferences.getString(MainViewModel.MY_TOKEN, null) ?: return
-            val repository = AttentionRepository(AttentionDB.getDB(applicationContext))
-            repository.registerDevice(authToken, token, { _, response, errorBody ->
-                if (response.isSuccessful) {
-                    Log.d(TAG, "Successfully uploaded token")
-                    editor.putBoolean(MainViewModel.TOKEN_UPLOADED, true)
-                    editor.apply()
-                } else {
-                    Log.e(TAG, "An error occurred when uploading token: $errorBody")
+        val preferencesRepository = (application as AttentionApplication).container.settingsRepository
+        val repository = (application as AttentionApplication).container.repository
+        MainScope().launch {
+            if (preferencesRepository.getValue(stringPreferencesKey(MainViewModel.FCM_TOKEN)) != token) {
+                Log.d(TAG, "Token is new: updating shared preferences")
+                preferencesRepository.bulkEdit { settings ->
+                    settings[booleanPreferencesKey(MainViewModel.TOKEN_UPLOADED)] = false
+                    settings[stringPreferencesKey(MainViewModel.FCM_TOKEN)] = token
                 }
-            }, { _, t ->
-                                          Log.e(
-                                              TAG,
-                                              "An error occurred when uploading token: ${t.message}"
-                                          )
-                                      })
+                val authToken = preferencesRepository.getValue(
+                    stringPreferencesKey(
+                        MainViewModel.MY_TOKEN
+                    )
+                ) ?: return@launch
+                repository.registerDevice(authToken, token, { _, response, errorBody ->
+                    if (response.isSuccessful) {
+                        Log.d(TAG, "Successfully uploaded token")
+                        MainScope().launch {
+                            preferencesRepository.setValue(
+                                booleanPreferencesKey(
+                                    MainViewModel.TOKEN_UPLOADED
+                                ), true
+                            )
+                        }
+
+                    } else {
+                        Log.e(TAG, "An error occurred when uploading token: $errorBody")
+                    }
+                }, { _, t ->
+                                              Log.e(
+                                                  TAG,
+                                                  "An error occurred when uploading token: ${t.message}"
+                                              )
+                                          })
+            }
         }
     }
 
@@ -61,6 +76,8 @@ open class AlertHandler : FirebaseMessagingService() {
      * @param remoteMessage - The message from Firebase
      */
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
+        val preferencesRepository = (application as AttentionApplication).container.settingsRepository
+        val repository = (application as AttentionApplication).container.repository
         MainScope().launch {
             Log.d(TAG, "Message received! $remoteMessage")
             val messageData = remoteMessage.data
@@ -72,13 +89,14 @@ open class AlertHandler : FirebaseMessagingService() {
                                           otherId = messageData[REMOTE_FROM] ?: return@launch,
                                           direction = DIRECTION.Incoming,
                                           message = messageData[REMOTE_MESSAGE])
-                    val repository = AttentionRepository(AttentionDB.getDB(applicationContext))
-                    val defaultPrefs =
-                        PreferenceManager.getDefaultSharedPreferences(this@AlertHandler)
-                    if (messageData[REMOTE_TO] != defaultPrefs.getString(
-                            getString(R.string.username_key), ""
-                        ) || messageData[REMOTE_TO] == ""
-                    ) return@launch  //if message is not addressed to the user, ends
+                    val username = preferencesRepository.getValue(
+                        stringPreferencesKey(
+                            getString(
+                                R.string.username_key
+                            )
+                        )
+                    )
+                    if (messageData[REMOTE_TO] != username || messageData[REMOTE_TO] == null) return@launch  //if message is not addressed to the user, ends
 
                     val alertId = messageData[ALERT_ID]
                     if (alertId == null) {
@@ -93,11 +111,12 @@ open class AlertHandler : FirebaseMessagingService() {
 
                     repository.appendMessage(message = message)
 
-                    val userInfo = getSharedPreferences(
-                        MainViewModel.USER_INFO,
-                        Context.MODE_PRIVATE
-                    ) // token is auth token
-                    val token = userInfo.getString(MainViewModel.MY_TOKEN, null)
+                    // token is auth token
+                    val token = preferencesRepository.getValue(
+                        stringPreferencesKey(
+                            MainViewModel.MY_TOKEN
+                        )
+                    )
 
                     if (token != null) {
                         repository.sendDeliveredReceipt(
@@ -117,8 +136,7 @@ open class AlertHandler : FirebaseMessagingService() {
                     }
                     try {
                         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R && Settings.Global.getInt(
-                                contentResolver,
-                                "zen_mode"
+                                contentResolver, "zen_mode"
                             ) > 1
                         ) { // a variant of do not disturb
                             Log.d(TAG, "Device's zen mode is enabled")
@@ -133,8 +151,7 @@ open class AlertHandler : FirebaseMessagingService() {
                     // Stores the id so the notification can be cancelled by the user
                     val id = showNotification(display, senderName, alertId, message.otherId, false)
 
-                    AttentionDB.getDB(applicationContext).getFriendDAO()
-                        .incrementReceived(message.otherId)
+                    repository.incrementReceived(message.otherId)
 
                     // Device should only show pop up if the device is off or if it has the ability to draw overlays (required to show pop up if screen is on)
                     if (!pm.isInteractive || Settings.canDrawOverlays(this@AlertHandler) || AttentionApplication.isActivityVisible()) {
@@ -161,16 +178,12 @@ open class AlertHandler : FirebaseMessagingService() {
                     }
                 }
                 "delivered" -> {
-                    val attentionRepository =
-                        AttentionRepository(AttentionDB.getDB(this@AlertHandler))
-                    attentionRepository.alertDelivered(
+                    repository.alertDelivered(
                         username = messageData["username_to"], alertId = messageData["alert_id"]
                     )
                 }
                 "read" -> {
-                    val attentionRepository =
-                        AttentionRepository(AttentionDB.getDB(this@AlertHandler))
-                    attentionRepository.alertRead(
+                    repository.alertRead(
                         username = messageData["username_to"], alertId = messageData["alert_id"]
                     )
 
@@ -189,20 +202,21 @@ open class AlertHandler : FirebaseMessagingService() {
     }
 
     private fun areNotificationsAllowed(): Boolean {
-        val preferences = PreferenceManager.getDefaultSharedPreferences(this@AlertHandler)
+        val preferencesRepository = (application as AttentionApplication).container.settingsRepository
+        val overrideDND = runBlocking {
+            preferencesRepository.getValue(
+                booleanPreferencesKey(getString(R.string.override_dnd_key)), false
+            )
+        }
         val manager =
-            getSystemService(NOTIFICATION_SERVICE) as NotificationManager // Check if SDK >= Android 7.0, uses the new notification manager, else uses the compat manager (SDK 19+)
-        // Checks if the app should avoid notifying because it has notifications disabled or:
+            getSystemService(NOTIFICATION_SERVICE) as NotificationManager // Check if SDK >= Android 7.0, uses the new notification manager, else uses the compat manager (SDK 19+) // Checks if the app should avoid notifying because it has notifications disabled or:
         val channel =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) manager.getNotificationChannel(
                 ALERT_CHANNEL_ID
             ) else null
         return (manager.areNotificationsEnabled() && // all app notifications disabled
                 ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) && channel?.importance != NotificationManager.IMPORTANCE_NONE)) && // specifically this channel is disabled
-               (preferences.getBoolean(
-                   getString(R.string.override_dnd_key),
-                   false
-               ) || // Checks whether it should not be overriding Do Not Disturb
+               (overrideDND || // Checks whether it should not be overriding Do Not Disturb
                 ((manager.currentInterruptionFilter == NotificationManager.INTERRUPTION_FILTER_ALL || // Do not disturb is on
                   manager.currentInterruptionFilter == NotificationManager.INTERRUPTION_FILTER_UNKNOWN) || (Build.VERSION.SDK_INT < Build.VERSION_CODES.R || (manager.consolidatedNotificationPolicy.priorityCategories and NotificationManager.Policy.PRIORITY_CATEGORY_MESSAGES != 0 || manager.consolidatedNotificationPolicy.priorityMessageSenders == NotificationManager.Policy.PRIORITY_SENDERS_ANY))))
 

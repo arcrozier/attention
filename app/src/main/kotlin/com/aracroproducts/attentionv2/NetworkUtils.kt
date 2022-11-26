@@ -40,10 +40,9 @@ class UserDataResult(
 class APIClient {
 
     companion object {
-        private var retrofit: Retrofit =
-            Retrofit.Builder().baseUrl(BASE_URL).addConverterFactory(GsonConverterFactory.create
-                ()).client(OkHttpClient.Builder().retryOnConnectionFailure(true).build())
-                .build()
+        private var retrofit: Retrofit = Retrofit.Builder().baseUrl(BASE_URL).addConverterFactory(
+            GsonConverterFactory.create()
+        ).client(OkHttpClient.Builder().retryOnConnectionFailure(true).build()).build()
 
         fun getClient(): Retrofit {
             return retrofit
@@ -122,17 +121,22 @@ interface APIV2 {
         @Path("id") friend: String, @Header("Authorization") token: String
     ): Call<GenericResult<Void>>
 
-    @Multipart
+    @FormUrlEncoded
     @PUT("edit/")
     fun editUser(
-        @Part("username") username: String?,
-        @Part("first_name") firstName: String?,
-        @Part("last_name") lastName: String?,
-        @Part("email") email: String?,
-        @Part photo: MultipartBody.Part?,
-        @Part("password") password: String?,
-        @Part("old_password") oldPassword: String?,
+        @Field("username") username: String?,
+        @Field("first_name") firstName: String?,
+        @Field("last_name") lastName: String?,
+        @Field("email") email: String?,
+        @Field("password") password: String?,
+        @Field("old_password") oldPassword: String?,
         @Header("Authorization") token: String
+    ): Call<GenericResult<Void>>
+
+    @Multipart
+    @PUT("photo/")
+    fun editPhoto(
+        @Part photo: MultipartBody.Part?, @Header("Authorization") token: String
     ): Call<GenericResult<Void>>
 
     @GET("get_info/")

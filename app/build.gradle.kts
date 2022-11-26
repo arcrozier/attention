@@ -13,8 +13,8 @@ android {
         applicationId = "com.aracroproducts.attentionv2"
         minSdk = 24
         targetSdk = 33
-        versionCode = 30
-        versionName = "2.1.1"
+        versionCode = 32
+        versionName = "2.1.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -156,7 +156,7 @@ dependencies {
     implementation("com.google.accompanist:accompanist-systemuicontroller:$accompanistVersion")
 
     // Sign in with Google
-    implementation("com.google.android.gms:play-services-auth:20.3.0")
+    implementation("com.google.android.gms:play-services-auth:20.4.0")
 
     implementation("androidx.activity:activity-ktx:1.6.1")
 
@@ -164,7 +164,11 @@ dependencies {
     implementation("com.github.yalantis:ucrop:2.2.8")
 
     implementation("com.google.devtools.ksp:symbol-processing-api:1.7.21-1.0.8")
+
+    // Preferences DataStore (SharedPreferences like APIs)
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
 }
+
 repositories {
     mavenCentral()
 }

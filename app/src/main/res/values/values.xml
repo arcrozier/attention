@@ -12,6 +12,4 @@
         <item>@string/ring</item>
     </string-array>
 
-    <item name="default_delay" format="float" type="integer">3.5</item>
-
 </resources>

@@ -13,7 +13,10 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -38,18 +41,26 @@ class Alert : AppCompatActivity() {
     private val sTAG = javaClass.name
 
     val alertModel: AlertViewModel by viewModels(factoryProducer = {
-        AlertViewModelFactory(intent, AttentionRepository(AttentionDB.getDB(this)), application)
+        AlertViewModelFactory(
+            intent,
+            (application as AttentionApplication).container.repository,
+            (application as AttentionApplication).container.settingsRepository,
+            application
+        )
     })
 
     inner class AlertViewModelFactory(
-            private val intent: Intent,
-            private val attentionRepository: AttentionRepository,
-            private val application: Application
+        private val intent: Intent,
+        private val attentionRepository: AttentionRepository,
+        private val preferencesRepository: PreferencesRepository,
+        private val application: Application
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(AlertViewModel::class.java)) {
-                return AlertViewModel(intent, attentionRepository, application) as T
+                return AlertViewModel(
+                    intent, attentionRepository, preferencesRepository, application
+                ) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class")
         }
@@ -88,9 +99,7 @@ class Alert : AppCompatActivity() {
         AlertDialog(onDismissRequest = { }, dismissButton = {
             Row {
                 AnimatedVisibility(
-                        visible = !alertModel.silenced,
-                        enter = fadeIn(),
-                        exit = fadeOut()
+                    visible = !alertModel.silenced, enter = fadeIn(), exit = fadeOut()
                 ) {
                     TextButton(onClick = { alertModel.silence() }) {
                         Text(text = getString(R.string.silence))
@@ -98,15 +107,16 @@ class Alert : AppCompatActivity() {
                 }
 
                 AnimatedVisibility(
-                        visible = alertModel.showDNDButton && (getSystemService(
-                                NOTIFICATION_SERVICE) as NotificationManager).isNotificationPolicyAccessGranted,
-                        enter = fadeIn(),
-                        exit = fadeOut()
+                    visible = alertModel.showDNDButton && (getSystemService(
+                        NOTIFICATION_SERVICE
+                    ) as NotificationManager).isNotificationPolicyAccessGranted,
+                    enter = fadeIn(),
+                    exit = fadeOut()
                 ) {
                     TextButton(onClick = {
                         alertModel.silence()
                         val intent = Intent(
-                                Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS
+                            Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS
                         )
                         startActivity(intent)
                     }) {
@@ -141,8 +151,7 @@ class Alert : AppCompatActivity() {
         var value by remember { mutableStateOf(durationToMinimalDisplay(since)) }
         Log.d(Alert::class.java.name, since.toString())
         LaunchedEffect(Unit) {
-            while (true) {
-                // we never need to recompose
+            while (true) { // we never need to recompose
                 if (value.second == -1L) {
                     break
                 }
@@ -173,52 +182,50 @@ class Alert : AppCompatActivity() {
             when {
                 duration.seconds < 60 -> {
                     return Pair(
-                            getString(R.string.seconds_ago, duration.seconds),
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) secondsToMillis(1) -
-                                    duration.toMillisPart() else secondsToMillis(
-                                    1) - duration.nano /
-                                    1e6.toLong()
+                        getString(R.string.seconds_ago, duration.seconds),
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) secondsToMillis(1) - duration.toMillisPart() else secondsToMillis(
+                            1
+                        ) - duration.nano / 1e6.toLong()
                     )
                 }
                 duration.toMinutes() < 60 -> {
                     return Pair(
-                            getString(R.string.minutes_ago, duration.toMinutes()),
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) minutesToMillis() -
-                                    secondsToMillis(duration.toSecondsPart()
-                                            .toLong()) else duration.seconds % 60
+                        getString(R.string.minutes_ago, duration.toMinutes()),
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) minutesToMillis() - secondsToMillis(
+                            duration.toSecondsPart().toLong()
+                        ) else duration.seconds % 60
                     )
                 }
                 since.toInstant().truncatedTo(ChronoUnit.DAYS) == now.truncatedTo(
-                        ChronoUnit.DAYS) -> {
+                    ChronoUnit.DAYS
+                ) -> {
                     return Pair(
-                            getString(
-                                    R.string.sent_at, DateFormat.getTimeInstance().format(
-                                    since.time
+                        getString(
+                            R.string.sent_at, DateFormat.getTimeInstance().format(
+                                since.time
                             )
-                            ), Duration.between(
+                        ), Duration.between(
                             since.toInstant(),
                             since.toInstant().truncatedTo(ChronoUnit.DAYS).plus(1, ChronoUnit.DAYS)
-                    ).toMillis()
+                        ).toMillis()
                     ) // This returns the amount of time (in milliseconds) until tomorrow
                 }
                 else -> {
                     return Pair(
-                            getString(
-                                    R.string.sent_on,
-                                    DateFormat.getDateTimeInstance().format(since.time)
-                            ), -1
+                        getString(
+                            R.string.sent_on, DateFormat.getDateTimeInstance().format(since.time)
+                        ), -1
                     ) // This value will never change (unless the user changes their timezone, which
                     // probably wouldn't happen without the app getting recomposed?)
                 }
             }
-        } else {
-            // Look I can't be bothered to figure out how to durations without the Duration class
+        } else { // Look I can't be bothered to figure out how to durations without the Duration class
             // I'm sure there's a way but I'm not doing it sorry
             // Besides, Android O is now 5 years old - basically everyone is running it or newer
             return Pair(
-                    getString(
-                            R.string.sent_on, DateFormat.getDateTimeInstance().format(since.time)
-                    ), -1
+                getString(
+                    R.string.sent_on, DateFormat.getDateTimeInstance().format(since.time)
+                ), -1
             )
         }
     }
