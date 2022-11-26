@@ -10,7 +10,6 @@ import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
 import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,12 +40,21 @@ class SettingsViewModel(
     application: Application
 ) : AndroidViewModel(application) {
 
+    data class SnackBarData(
+        val message: String,
+        val withDismissAction: Boolean = true,
+        val actionLabel: String? = null,
+        val duration: SnackbarDuration = SnackbarDuration.Short
+    )
+
     var outstandingRequests by mutableStateOf(0)
 
     var currentPreferenceGroup by mutableStateOf<@Composable () -> Unit>(@Composable {})
     var selectedPreferenceGroupIndex by mutableStateOf(0)
 
     var photo: ImageBitmap? by mutableStateOf(null)
+
+    var currentSnackBar: SnackBarData? by mutableStateOf(null)
 
     var uploadDialog by mutableStateOf(false)
     var uploadStatus by mutableStateOf("")
@@ -174,14 +182,10 @@ class SettingsViewModel(
                                                             context.getString(R.string.uploaded)
                                                         viewModelScope.launch(Dispatchers.IO) {
                                                             val bitmap = getImageBitmap(
-                                                                uri,
-                                                                context,
-                                                                ICON_SIZE,
-                                                                false
+                                                                uri, context, ICON_SIZE, false
                                                             )
                                                             val file = File(
-                                                                context.filesDir,
-                                                                PFP_FILENAME
+                                                                context.filesDir, PFP_FILENAME
                                                             ).apply {
                                                                 createNewFile()
                                                             }
@@ -315,9 +319,7 @@ class SettingsViewModel(
         setUsernameCaption: (String) -> Unit,
         setStatus: (error: Boolean, loading: Boolean) -> Unit,
         dismissDialog: () -> Unit,
-        context: Context,
-        coroutineScope: CoroutineScope,
-        snackbarHostState: SnackbarHostState
+        context: Context
     ) {
         viewModelScope.launch {
             val token = preferencesRepository.getValue(stringPreferencesKey(MY_TOKEN))
@@ -361,13 +363,11 @@ class SettingsViewModel(
                                 },
                                 errorListener = { _, _ ->
                                     setStatus(true, false)
-                                    coroutineScope.launch {
-                                        snackbarHostState.showSnackbar(
-                                            context.getString(
-                                                R.string.disconnected
-                                            ), duration = SnackbarDuration.Long
-                                        )
-                                    }
+                                    currentSnackBar = SnackBarData(
+                                        context.getString(
+                                            R.string.disconnected
+                                        ), duration = SnackbarDuration.Long
+                                    )
                                 })
         }
 
@@ -396,10 +396,7 @@ class SettingsViewModel(
     }
 
     inner class UserInfoChangeListener(
-        private val context: Activity,
-        private val model: SettingsViewModel,
-        private val snackbarHostState: SnackbarHostState,
-        private val coroutineScope: CoroutineScope
+        private val context: Activity, private val model: SettingsViewModel
     ) {
 
         private fun <T> onResponse(code: Int, newValue: T, key: Preferences.Key<T>) {
@@ -413,8 +410,7 @@ class SettingsViewModel(
                     }
                     if (model.outstandingRequests == 0) {
                         R.string.saved
-                    }
-                    null
+                    } else null
                 }
                 400 -> {
                     R.string.invalid_email
@@ -430,8 +426,8 @@ class SettingsViewModel(
                     R.string.unknown_error
                 }
             }
-            if (message != null) coroutineScope.launch {
-                snackbarHostState.showSnackbar(
+            if (message != null) {
+                currentSnackBar = SnackBarData(
                     context.getString(message),
                     withDismissAction = false,
                     actionLabel = context.getString(android.R.string.ok),
@@ -444,11 +440,9 @@ class SettingsViewModel(
             synchronized(this) {
                 outstandingRequests--
             }
-            coroutineScope.launch {
-                snackbarHostState.showSnackbar(
-                    context.getString(R.string.disconnected), duration = SnackbarDuration.Long
-                )
-            }
+            currentSnackBar = SnackBarData(
+                context.getString(R.string.disconnected), duration = SnackbarDuration.Long
+            )
         }
 
         fun onPreferenceChange(
@@ -457,13 +451,11 @@ class SettingsViewModel(
             viewModelScope.launch {
                 val token = preferencesRepository.getValue(stringPreferencesKey(MY_TOKEN))
                 if (token != null) {
-                    coroutineScope.launch {
-                        snackbarHostState.showSnackbar(
-                            context.getString(R.string.saving),
-                            withDismissAction = true,
-                            duration = SnackbarDuration.Indefinite
-                        )
-                    }
+                    currentSnackBar = SnackBarData(
+                        context.getString(R.string.saving),
+                        withDismissAction = true,
+                        duration = SnackbarDuration.Indefinite
+                    )
                     synchronized(this) {
                         outstandingRequests++
                     }

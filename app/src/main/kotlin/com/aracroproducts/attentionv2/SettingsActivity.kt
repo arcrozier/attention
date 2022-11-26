@@ -178,9 +178,19 @@ class SettingsActivity : AppCompatActivity() {
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     @Composable
     fun PreferenceScreenWrapper() {
-
         val snackbarHostState = remember { SnackbarHostState() }
-        val coroutineScope = rememberCoroutineScope()
+        LaunchedEffect(viewModel.currentSnackBar) {
+            val snackBar = viewModel.currentSnackBar
+            if (snackBar != null) {
+                snackbarHostState.showSnackbar(
+                    message = snackBar.message,
+                    actionLabel = snackBar.actionLabel,
+                    withDismissAction = snackBar.withDismissAction,
+                    duration = snackBar.duration
+                )
+                viewModel.currentSnackBar = null
+            }
+        }
 
         if (viewModel.uploadDialog) {
             UploadDialog(
@@ -197,8 +207,7 @@ class SettingsActivity : AppCompatActivity() {
             )
         }
 
-        val userInfoChangeListener =
-            viewModel.UserInfoChangeListener(this, viewModel, snackbarHostState, coroutineScope)
+        val userInfoChangeListener = viewModel.UserInfoChangeListener(this, viewModel)
         val preferences =
             listOf(Pair<Pair<Int, (@Composable () -> Unit)?>, @Composable () -> Unit>(Pair(R.string.account) @Composable {
                 Icon(Icons.Outlined.ManageAccounts, null)
@@ -251,9 +260,7 @@ class SettingsActivity : AppCompatActivity() {
                                                                                                 l
                                                                                         },
                                                                                         dismissDialog,
-                                                                                        this,
-                                                                                        coroutineScope,
-                                                                                        snackbarHostState
+                                                                                        this
                                                                )
                                                            }, content = {
                                                                Text(
@@ -509,19 +516,17 @@ class SettingsActivity : AppCompatActivity() {
                                           },
                                           title = R.string.delay_title
                        ) { value, setValue, dismissDialog, context, title ->
-                           FloatPreferenceChange(
-                               value = value,
-                               setValue = setValue,
-                               dismissDialog = dismissDialog,
-                               context = context,
-                               title = title,
-                               textFieldLabel = R.string.delay_label,
-                           validate = {
-                                   if (it < 0) {
-                                       getString(R.string.delay_greater_than_zero)
-                                   } else ""
-                               }
-                           )
+                           FloatPreferenceChange(value = value,
+                                                 setValue = setValue,
+                                                 dismissDialog = dismissDialog,
+                                                 context = context,
+                                                 title = title,
+                                                 textFieldLabel = R.string.delay_label,
+                                                 validate = {
+                                                     if (it < 0) {
+                                                         getString(R.string.delay_greater_than_zero)
+                                                     } else ""
+                                                 })
                        }
                    },
                    Pair<Pair<Int, (@Composable () -> Unit)?>, @Composable () -> Unit>(Pair(R.string.notifications_title) @Composable {
@@ -794,9 +799,8 @@ class SettingsActivity : AppCompatActivity() {
                         .waterfallPadding(),
                     contentPadding = padding
                 ) {
-                    items(
-                        items = preferences,
-                        key = { preference -> preference.first.first }) { preference ->
+                    items(items = preferences,
+                          key = { preference -> preference.first.first }) { preference ->
                         PreferenceGroup(
                             title = preference.first.first,
                             icon = preference.first.second,
@@ -826,9 +830,8 @@ class SettingsActivity : AppCompatActivity() {
                         contentPadding = padding,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        items(
-                            items = preferences,
-                            key = { preference -> preference.first.first }) { preference ->
+                        items(items = preferences,
+                              key = { preference -> preference.first.first }) { preference ->
                             PreferenceGroup(
                                 title = preference.first.first,
                                 icon = preference.first.second,
