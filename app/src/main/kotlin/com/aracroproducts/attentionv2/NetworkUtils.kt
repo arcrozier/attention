@@ -4,7 +4,6 @@ import com.google.gson.annotations.SerializedName
 import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
-import okhttp3.OkHttpClient
 import okhttp3.RequestBody
 import okio.BufferedSink
 import retrofit2.Call
@@ -42,7 +41,7 @@ class APIClient {
     companion object {
         private var retrofit: Retrofit = Retrofit.Builder().baseUrl(BASE_URL).addConverterFactory(
             GsonConverterFactory.create()
-        ).client(OkHttpClient.Builder().retryOnConnectionFailure(true).build()).build()
+        ).build()
 
         fun getClient(): Retrofit {
             return retrofit
