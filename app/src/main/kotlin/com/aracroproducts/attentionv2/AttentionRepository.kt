@@ -21,8 +21,6 @@ class AttentionRepository(private val database: AttentionDB) {
     // Observed Flow will notify the observer when the data has changed.
     fun getFriends() = database.getFriendDAO().getFriends()
 
-    suspend fun getFriendsSnapshot() = database.getFriendDAO().getFriendsSnapshot()
-
     // By default Room runs suspend queries off the main thread, therefore, we don't need to
     // implement anything else to ensure we're not doing long running database work
     // off the main thread.
@@ -115,7 +113,8 @@ class AttentionRepository(private val database: AttentionDB) {
         })
     }
 
-    suspend fun getFriend(id: String): Friend = database.getFriendDAO().getFriend(id)
+    suspend fun getFriend(id: String): Friend =
+        database.getFriendDAO().getFriend(id) ?: Friend(id, name = "")
 
     suspend fun cacheFriend(username: String) {
 

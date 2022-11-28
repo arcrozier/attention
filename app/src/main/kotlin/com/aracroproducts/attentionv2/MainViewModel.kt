@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -23,6 +24,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.Person
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
+import androidx.core.graphics.drawable.IconCompat
 import androidx.datastore.preferences.core.*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -34,7 +36,6 @@ import retrofit2.Call
 import retrofit2.Response
 import java.io.File
 import java.io.IOException
-import java.lang.Integer.min
 
 class MainViewModel(
     private val attentionRepository: AttentionRepository,
@@ -169,55 +170,32 @@ class MainViewModel(
             val token = getToken() ?: return@launch
             val friends: List<CachedFriend> = attentionRepository.getCachedFriendsSnapshot()
             for (friend in friends) {
-                attentionRepository.getName(
-                    token,
-                    friend.username,
-                    responseListener = { _, response, _ ->
-                        connected = true
-                        if (response.isSuccessful) {
-                            response.body()?.data?.name?.let {
-                                attentionRepository.addFriend(friend.username,
-                                                              it,
-                                                              token,
-                                                              responseListener = { _, response, _ ->
-                                                                  if (response.isSuccessful || response.code() == 400) backgroundScope.launch {
-                                                                      attentionRepository.deleteCachedFriend(
-                                                                          friend.username
-                                                                      )
-                                                                  }
-                                                              })
-                            }
-                        } else if (response.code() == 400) {
-                            backgroundScope.launch {
-                                attentionRepository.deleteCachedFriend(
-                                    friend.username
-                                )
-                            }
-                        }
-                    })
+                attentionRepository.getName(token,
+                                            friend.username,
+                                            responseListener = { _, response, _ ->
+                                                connected = true
+                                                if (response.isSuccessful) {
+                                                    response.body()?.data?.name?.let {
+                                                        attentionRepository.addFriend(friend.username,
+                                                                                      it,
+                                                                                      token,
+                                                                                      responseListener = { _, response, _ ->
+                                                                                          if (response.isSuccessful || response.code() == 400) backgroundScope.launch {
+                                                                                              attentionRepository.deleteCachedFriend(
+                                                                                                  friend.username
+                                                                                              )
+                                                                                          }
+                                                                                      })
+                                                    }
+                                                } else if (response.code() == 400) {
+                                                    backgroundScope.launch {
+                                                        attentionRepository.deleteCachedFriend(
+                                                            friend.username
+                                                        )
+                                                    }
+                                                }
+                                            })
             }
-        }
-    }
-
-    private fun populateShareTargets() {
-        backgroundScope.launch {
-            val context = application
-            val shortcuts = ArrayList<ShortcutInfoCompat>()
-            val contactCategories = setOf(SHARE_CATEGORY)
-
-            val friends = attentionRepository.getFriendsSnapshot()
-            val staticShortcutIntent = Intent(Intent.ACTION_DEFAULT)
-
-            for (x in 0 until min(friends.size, MAX_SHORTCUTS)) {
-                shortcuts.add(
-                    ShortcutInfoCompat.Builder(context, friends[x].id)
-                        .setShortLabel(friends[x].name).setIntent(staticShortcutIntent)
-                        .setLongLived(true).setCategories(contactCategories).setPerson(
-                            Person.Builder().setName(friends[x].name).build()
-                        ).build()
-                )
-            }
-            ShortcutManagerCompat.addDynamicShortcuts(context, shortcuts)
         }
     }
 
@@ -236,28 +214,29 @@ class MainViewModel(
                 return@launch
             }
             addFriendException = false
-            attentionRepository.addFriend(friend.id,
-                                          friend.name,
-                                          token,
-                                          responseListener = { call, response, _ ->
-                                              setConnectStatus(response.code())
-                                              when (response.code()) {
-                                                  200 -> {
-                                                      responseListener?.invoke(call, response)
-                                                  }
-                                                  400 -> {
-                                                      usernameCaption = application.getString(
-                                                          R.string.add_friend_failed
-                                                      )
-                                                  }
-                                                  403 -> {
-                                                      backgroundScope.launch {
-                                                          attentionRepository.cacheFriend(friend.id)
-                                                      }
-                                                      launchLogin()
-                                                  }
-                                              }
-                                          }) { _, _ ->
+            attentionRepository.addFriend(
+                friend.id,
+                friend.name,
+                token,
+                responseListener = { call, response, _ ->
+                    setConnectStatus(response.code())
+                    when (response.code()) {
+                        200 -> {
+                            responseListener?.invoke(call, response)
+                        }
+                        400 -> {
+                            usernameCaption = application.getString(
+                                R.string.add_friend_failed
+                            )
+                        }
+                        403 -> {
+                            backgroundScope.launch {
+                                attentionRepository.cacheFriend(friend.id)
+                            }
+                            launchLogin()
+                        }
+                    }
+                }) { _, _ ->
                 backgroundScope.launch {
                     attentionRepository.cacheFriend(friend.id)
                 }
@@ -564,7 +543,6 @@ class MainViewModel(
                                 }
                             }
                             uploadCachedFriends()
-                            populateShareTargets()
                         }
                         403 -> {
                             onAuthError()
@@ -687,6 +665,7 @@ class MainViewModel(
                 direction = DIRECTION.Outgoing
             )
             backgroundScope.launch {
+                pushFriendShortcut(context, to)
                 attentionRepository.sendMessage(message, token = token, { _, response, errorBody ->
                     setConnectStatus(response.code())
                     when (response.code()) {
@@ -882,9 +861,27 @@ class MainViewModel(
         const val EXTRA_RECIPIENT = "extra_recipient"
         const val EXTRA_BODY = "extra_body"
 
-        private const val MAX_SHORTCUTS = 4
         private const val SHARE_CATEGORY =
             "com.aracroproducts.attentionv2.sharingshortcuts.category.TEXT_SHARE_TARGET"
+
+        fun pushFriendShortcut(context: Context, friend: Friend) {
+            val contactCategories = setOf(SHARE_CATEGORY)
+            ShortcutManagerCompat.pushDynamicShortcut(
+                context,
+                ShortcutInfoCompat.Builder(context, friend.id).setShortLabel(friend.name)
+                    .setIcon(if (friend.photo != null) IconCompat.createWithBitmap(run {
+                        val imageDecoded = Base64.decode(friend.photo, Base64.DEFAULT)
+                        BitmapFactory.decodeByteArray(imageDecoded, 0, imageDecoded.size)
+                    }) else null).setIntent(Intent(
+                        context, MainActivity::class.java
+                    ).apply {
+                        action = Intent.ACTION_SENDTO
+                        putExtra(EXTRA_RECIPIENT, friend.id)
+                    }).setLongLived(true).setCategories(contactCategories).setPerson(
+                        Person.Builder().setName(friend.name).build()
+                    ).build()
+            )
+        }
 
         /**
          * Helper function to create the notification channel for the failed alert

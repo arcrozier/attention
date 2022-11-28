@@ -10,7 +10,6 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
-import com.aracroproducts.attentionv2.AppTypography
 import com.google.android.material.color.ColorRoles
 import com.google.android.material.color.DynamicColors
 import com.google.android.material.color.MaterialColors
@@ -87,7 +86,7 @@ fun AppTheme(
     }
 
     MaterialTheme(
-            colorScheme = colors, typography = AppTypography, content = content
+        colorScheme = colors, typography = AppTypography, content = content
     )
 }
 
@@ -172,8 +171,8 @@ fun HarmonizedTheme(
     val extendedColors = setupCustomColors(colors, !useDarkTheme)
     CompositionLocalProvider(LocalExtendedColors provides extendedColors) {
         MaterialTheme(
-                colorScheme = colorsWithHarmonizedError, typography = AppTypography,
-                content = content
+            colorScheme = colorsWithHarmonizedError, typography = AppTypography,
+            content = content
         )
     }
 }

@@ -1328,11 +1328,6 @@ class SettingsActivity : AppCompatActivity() {
 
         const val DEFAULT_DELAY = 3.5f
 
-        fun launchLogin(context: Context) {
-            val loginIntent = Intent(context, LoginActivity::class.java)
-            context.startActivity(loginIntent)
-        }
-
         private fun grayScaleFilter(): ColorFilter {
             val grayScaleMatrix = ColorMatrix(
                 floatArrayOf(

@@ -52,6 +52,14 @@ class AlertViewModel(
     private val fromUsername = intent.getStringExtra(AlertHandler.REMOTE_FROM_USERNAME) ?: ""
     private var ringerMode: Int? = null
 
+    var sender: Friend? by mutableStateOf(null)
+
+    init {
+        viewModelScope.launch {
+            sender = attentionRepository.getFriend(fromUsername)
+        }
+    }
+
 
     private val ringtone = RingtoneManager.getRingtone(
         getApplication(), RingtoneManager.getActualDefaultRingtoneUri(

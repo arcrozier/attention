@@ -129,11 +129,8 @@ interface FriendDAO {
     @Query("DELETE FROM Friend WHERE id NOT IN (:idList)")
     suspend fun keepOnly(vararg idList: String)
 
-    @Query("SELECT * FROM Friend ORDER BY sent DESC")
-    suspend fun getFriendsSnapshot(): List<Friend>
-
     @Query("SELECT * FROM Friend WHERE id = :id")
-    suspend fun getFriend(id: String): Friend
+    suspend fun getFriend(id: String): Friend?
 }
 
 @Dao

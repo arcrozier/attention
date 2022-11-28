@@ -1,6 +1,7 @@
 package com.aracroproducts.attentionv2
 
 import android.content.Context
+import android.view.KeyEvent.KEYCODE_ENTER
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -11,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -117,7 +119,7 @@ fun StringPreferenceChange(
     }, text = {
         Column {
             OutlinedTextField(value = newValue,
-                              onValueChange = { newValue = it },
+                              onValueChange = { newValue = filterSpecialChars(it) },
                               singleLine = true,
                               label = textFieldLabel?.let {
                                   {
@@ -132,7 +134,13 @@ fun StringPreferenceChange(
                               isError = message.isNotBlank(),
                               keyboardOptions = keyboardOptions?.copy(imeAction = ImeAction.Done)
                                                 ?: KeyboardOptions(imeAction = ImeAction.Done),
-                              keyboardActions = KeyboardActions { onDone() })
+                              keyboardActions = KeyboardActions { onDone() },
+                              modifier = Modifier.onKeyEvent {
+                                  if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER) {
+                                      onDone()
+                                      true
+                                  } else false
+                              })
 
         }
 
@@ -154,23 +162,28 @@ fun FloatPreferenceChange(
     var message by remember {
         mutableStateOf("")
     }
+
+    fun done() {
+        try {
+            val temp = newValue.toFloat()
+            message = validate?.invoke(temp) ?: ""
+            if (message.isNotBlank()) {
+                return
+            }
+            setValue(newValue.toFloat())
+            dismissDialog()
+        } catch (e: NumberFormatException) {
+            message = context.getString(R.string.invalid_float)
+        }
+    }
+
     AlertDialog(onDismissRequest = { dismissDialog() }, dismissButton = {
         OutlinedButton(onClick = dismissDialog) {
             Text(text = context.getString(android.R.string.cancel))
         }
     }, confirmButton = {
         Button(onClick = {
-            try {
-                val temp = newValue.toFloat()
-                message = validate?.invoke(temp) ?: ""
-                if (message.isNotBlank()) {
-                    return@Button
-                }
-                setValue(newValue.toFloat())
-                dismissDialog()
-            } catch (e: NumberFormatException) {
-                message = context.getString(R.string.invalid_float)
-            }
+            done()
         }) {
             Text(text = context.getString(android.R.string.ok))
         }
@@ -193,8 +206,18 @@ fun FloatPreferenceChange(
                                   )
                               },
                               singleLine = true,
-                              keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
-            )
+                              keyboardOptions = KeyboardOptions(
+                                  keyboardType = KeyboardType.Decimal
+                              ),
+                              keyboardActions = KeyboardActions(onDone = {
+                                  done()
+                              }),
+                              modifier = Modifier.onKeyEvent {
+                                  if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER) {
+                                      done()
+                                      true
+                                  } else false
+                              })
         }
     })
 }
@@ -237,14 +260,15 @@ fun MultiSelectListPreferenceChange(
         Column {
             for ((index, entryValue) in entryValues.withIndex()) {
                 Row(
-                    modifier = Modifier.toggleable(value = newValue.containsKey(entryValue),
-                                                   onValueChange = {
-                                                       if (it) {
-                                                           newValue[entryValue] = true
-                                                       } else {
-                                                           newValue.remove(entryValue)
-                                                       }
-                                                   }),
+                    modifier = Modifier.toggleable(
+                        value = newValue.containsKey(entryValue),
+                        onValueChange = {
+                            if (it) {
+                                newValue[entryValue] = true
+                            } else {
+                                newValue.remove(entryValue)
+                            }
+                        }),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Checkbox(
