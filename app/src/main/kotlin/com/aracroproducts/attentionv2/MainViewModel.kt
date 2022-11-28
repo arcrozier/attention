@@ -5,7 +5,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.graphics.BitmapFactory
+import android.graphics.*
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -170,31 +170,32 @@ class MainViewModel(
             val token = getToken() ?: return@launch
             val friends: List<CachedFriend> = attentionRepository.getCachedFriendsSnapshot()
             for (friend in friends) {
-                attentionRepository.getName(token,
-                                            friend.username,
-                                            responseListener = { _, response, _ ->
-                                                connected = true
-                                                if (response.isSuccessful) {
-                                                    response.body()?.data?.name?.let {
-                                                        attentionRepository.addFriend(friend.username,
-                                                                                      it,
-                                                                                      token,
-                                                                                      responseListener = { _, response, _ ->
-                                                                                          if (response.isSuccessful || response.code() == 400) backgroundScope.launch {
-                                                                                              attentionRepository.deleteCachedFriend(
-                                                                                                  friend.username
-                                                                                              )
-                                                                                          }
-                                                                                      })
-                                                    }
-                                                } else if (response.code() == 400) {
-                                                    backgroundScope.launch {
-                                                        attentionRepository.deleteCachedFriend(
-                                                            friend.username
-                                                        )
-                                                    }
-                                                }
-                                            })
+                attentionRepository.getName(
+                    token,
+                    friend.username,
+                    responseListener = { _, response, _ ->
+                        connected = true
+                        if (response.isSuccessful) {
+                            response.body()?.data?.name?.let {
+                                attentionRepository.addFriend(friend.username,
+                                                              it,
+                                                              token,
+                                                              responseListener = { _, response, _ ->
+                                                                  if (response.isSuccessful || response.code() == 400) backgroundScope.launch {
+                                                                      attentionRepository.deleteCachedFriend(
+                                                                          friend.username
+                                                                      )
+                                                                  }
+                                                              })
+                            }
+                        } else if (response.code() == 400) {
+                            backgroundScope.launch {
+                                attentionRepository.deleteCachedFriend(
+                                    friend.username
+                                )
+                            }
+                        }
+                    })
             }
         }
     }
@@ -214,29 +215,28 @@ class MainViewModel(
                 return@launch
             }
             addFriendException = false
-            attentionRepository.addFriend(
-                friend.id,
-                friend.name,
-                token,
-                responseListener = { call, response, _ ->
-                    setConnectStatus(response.code())
-                    when (response.code()) {
-                        200 -> {
-                            responseListener?.invoke(call, response)
-                        }
-                        400 -> {
-                            usernameCaption = application.getString(
-                                R.string.add_friend_failed
-                            )
-                        }
-                        403 -> {
-                            backgroundScope.launch {
-                                attentionRepository.cacheFriend(friend.id)
-                            }
-                            launchLogin()
-                        }
-                    }
-                }) { _, _ ->
+            attentionRepository.addFriend(friend.id,
+                                          friend.name,
+                                          token,
+                                          responseListener = { call, response, _ ->
+                                              setConnectStatus(response.code())
+                                              when (response.code()) {
+                                                  200 -> {
+                                                      responseListener?.invoke(call, response)
+                                                  }
+                                                  400 -> {
+                                                      usernameCaption = application.getString(
+                                                          R.string.add_friend_failed
+                                                      )
+                                                  }
+                                                  403 -> {
+                                                      backgroundScope.launch {
+                                                          attentionRepository.cacheFriend(friend.id)
+                                                      }
+                                                      launchLogin()
+                                                  }
+                                              }
+                                          }) { _, _ ->
                 backgroundScope.launch {
                     attentionRepository.cacheFriend(friend.id)
                 }
@@ -866,13 +866,46 @@ class MainViewModel(
 
         fun pushFriendShortcut(context: Context, friend: Friend) {
             val contactCategories = setOf(SHARE_CATEGORY)
+            val icon = if (friend.photo != null) IconCompat.createWithBitmap(run {
+                val imageDecoded = Base64.decode(friend.photo, Base64.DEFAULT)
+                val bitmap = BitmapFactory.decodeByteArray(imageDecoded, 0, imageDecoded.size)
+
+                // From diesel - https://stackoverflow.com/a/15537470/7484693
+                // Licensed under CC BY-SA 3.0
+                val output: Bitmap = if (bitmap.width > bitmap.height) {
+                    Bitmap.createBitmap(bitmap.height, bitmap.height, Bitmap.Config.ARGB_8888)
+                } else {
+                    Bitmap.createBitmap(bitmap.width, bitmap.width, Bitmap.Config.ARGB_8888)
+                }
+
+                Log.d(MainViewModel::class.java.name, "${bitmap.width} x ${bitmap.height}")
+                val canvas = Canvas(output)
+
+                val color: UInt = 0xff424242u
+                val paint = Paint()
+                val rect = Rect(0, 0, bitmap.width, bitmap.height)
+
+                val r = if (bitmap.width > bitmap.height) {
+                    (bitmap.height / 2).toFloat()
+                } else {
+                    (bitmap.width / 2).toFloat()
+                }
+
+                paint.isAntiAlias = true
+                canvas.drawARGB(0, 0, 0, 0)
+                paint.color = color.toInt()
+                canvas.drawCircle(r, r, r, paint)
+                paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
+                canvas.drawBitmap(bitmap, rect, rect, paint)
+                output
+            }) else null
+
             ShortcutManagerCompat.pushDynamicShortcut(
                 context,
-                ShortcutInfoCompat.Builder(context, friend.id).setShortLabel(friend.name)
-                    .setIcon(if (friend.photo != null) IconCompat.createWithBitmap(run {
-                        val imageDecoded = Base64.decode(friend.photo, Base64.DEFAULT)
-                        BitmapFactory.decodeByteArray(imageDecoded, 0, imageDecoded.size)
-                    }) else null).setIntent(Intent(
+                ShortcutInfoCompat.Builder(context, friend.id).setShortLabel(friend.name).setPerson(
+                        Person.Builder().setName(friend.name).setKey(friend.id).setImportant(true)
+                            .setIcon(icon).build()
+                    ).setIcon(icon).setIntent(Intent(
                         context, MainActivity::class.java
                     ).apply {
                         action = Intent.ACTION_SENDTO

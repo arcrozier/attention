@@ -16,8 +16,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -103,10 +106,10 @@ class Alert : AppCompatActivity() {
     @Composable
     fun Dialog(message: AnnotatedString) {
 
-        var imageBitmap: Bitmap? by remember(alertModel.sender) {
+        var imageBitmap: Bitmap? by remember {
             mutableStateOf(null)
         }
-        LaunchedEffect(key1 = alertModel.sender) {
+        LaunchedEffect(key1 = alertModel.sender?.photo) {
             val photo = alertModel.sender?.photo
             if (photo != null) {
                 launch(context = Dispatchers.Default) {
@@ -151,20 +154,20 @@ class Alert : AppCompatActivity() {
                 Text(text = getString(android.R.string.ok))
             }
         }, title = { Text(getString(R.string.alert_title)) }, text = {
-            Column {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 Row(verticalAlignment = Alignment.Top) {
                     imageBitmap?.let {
-                        Icon(
-                            bitmap = it.asImageBitmap(), contentDescription = getString(
-                                R.string.pfp_description, alertModel.sender?.name ?: ""
-                            ), modifier = Modifier
-                                .size(
-                                    MainActivity.ICON_SIZE
-                                )
-                                .clip(
-                                    CircleShape
-                                )
+                        Image(
+                            bitmap = it.asImageBitmap(),
+                            contentDescription = getString(
+                                R.string.pfp_description,
+                                alertModel.from
+                            ),
+                            modifier = Modifier
+                                .size(MainActivity.ICON_SIZE)
+                                .clip(CircleShape)
                         )
+                        Spacer(modifier = Modifier.width(MainActivity.ICON_SPACING))
                     }
                     Text(message)
                 }

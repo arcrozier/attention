@@ -31,7 +31,6 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.ClickableText
-import androidx.compose.foundation.text.KeyboardActionScope
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -164,12 +163,11 @@ class LoginActivity : AppCompatActivity() {
             if (loginViewModel.idToken != null) { // Got an ID token from Google. Use it to authenticate
                 // with your backend.
                 Log.d(TAG, "Got ID token.")
-                loginViewModel.linkAccount(
-                    snackbarHostState = null,
-                    coroutineScope = null,
-                    onLoggedIn = {
-                        finish()
-                    })
+                loginViewModel.linkAccount(snackbarHostState = null,
+                                           coroutineScope = null,
+                                           onLoggedIn = {
+                                               finish()
+                                           })
             }
         } catch (e: ApiException) {
             when (e.statusCode) {
@@ -885,54 +883,54 @@ class LoginActivity : AppCompatActivity() {
     @Composable
     fun OldPasswordField(model: LoginViewModel, passwordFocusRequester: FocusRequester) {
         val focusManager = LocalFocusManager.current
-        TextField(
-            value = model.oldPassword,
-            onValueChange = {
-                onOldPasswordChanged(model, it)
-            },
-            modifier = Modifier.autofill(autofillTypes = listOf(AutofillType.Password), onFill = {
-                onOldPasswordChanged(model, it)
-            })
-                .onKeyEvent {
-                    if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER || it.nativeKeyEvent.keyCode == KEYCODE_TAB) {
-                        focusManager.moveFocus(focusDirection = FocusDirection.Next)
-                        true
-                    } else false
-                },
-            visualTransformation = if (model.passwordHidden) PasswordVisualTransformation() else VisualTransformation.None,
-            trailingIcon = {
-                IconButton(onClick = { model.passwordHidden = !model.passwordHidden }) {
-                    val visibilityIcon =
-                        if (model.passwordHidden) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                    val description = if (model.passwordHidden) getString(
-                        R.string.show_password
-                    ) else getString(
-                        R.string.hide_password
-                    )
-                    Icon(imageVector = visibilityIcon, contentDescription = description)
-                }
-            },
-            isError = model.passwordCaption.isNotBlank(),
-            label = {
-                Text(text = getString(R.string.password))
-            },
-            singleLine = true,
-            supportingText = {
-                if (model.passwordCaption.isNotBlank()) {
-                    Text(
-                        text = model.oldPasswordCaption, overflow = TextOverflow.Ellipsis
-                    )
-                }
-            },
-            keyboardOptions = KeyboardOptions(
-                autoCorrect = false,
-                imeAction = ImeAction.Next,
-                keyboardType = KeyboardType.Password
-            ),
-            keyboardActions = KeyboardActions(onNext = {
-                passwordFocusRequester.requestFocus()
-            }),
-            enabled = model.uiEnabled
+        TextField(value = model.oldPassword,
+                  onValueChange = {
+                      onOldPasswordChanged(model, it)
+                  },
+                  modifier = Modifier
+                      .autofill(autofillTypes = listOf(AutofillType.Password), onFill = {
+                          onOldPasswordChanged(model, it)
+                      })
+                      .onKeyEvent {
+                          if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER || it.nativeKeyEvent.keyCode == KEYCODE_TAB) {
+                              focusManager.moveFocus(focusDirection = FocusDirection.Next)
+                              true
+                          } else false
+                      },
+                  visualTransformation = if (model.passwordHidden) PasswordVisualTransformation() else VisualTransformation.None,
+                  trailingIcon = {
+                      IconButton(onClick = { model.passwordHidden = !model.passwordHidden }) {
+                          val visibilityIcon =
+                              if (model.passwordHidden) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                          val description = if (model.passwordHidden) getString(
+                              R.string.show_password
+                          ) else getString(
+                              R.string.hide_password
+                          )
+                          Icon(imageVector = visibilityIcon, contentDescription = description)
+                      }
+                  },
+                  isError = model.passwordCaption.isNotBlank(),
+                  label = {
+                      Text(text = getString(R.string.password))
+                  },
+                  singleLine = true,
+                  supportingText = {
+                      if (model.passwordCaption.isNotBlank()) {
+                          Text(
+                              text = model.oldPasswordCaption, overflow = TextOverflow.Ellipsis
+                          )
+                      }
+                  },
+                  keyboardOptions = KeyboardOptions(
+                      autoCorrect = false,
+                      imeAction = ImeAction.Next,
+                      keyboardType = KeyboardType.Password
+                  ),
+                  keyboardActions = KeyboardActions(onNext = {
+                      passwordFocusRequester.requestFocus()
+                  }),
+                  enabled = model.uiEnabled
         )
 
     }
@@ -964,7 +962,8 @@ class LoginActivity : AppCompatActivity() {
                       .autofill(autofillTypes = listOf(AutofillType.NewPassword), onFill = {
                           onPasswordChanged(model, it)
                           onConfirmPasswordChanged(model, it)
-                      }).onKeyEvent {
+                      })
+                      .onKeyEvent {
                           if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER || it.nativeKeyEvent.keyCode == KEYCODE_TAB) {
                               when (imeAction) {
                                   ImeAction.Done -> {
@@ -1027,57 +1026,55 @@ class LoginActivity : AppCompatActivity() {
         confirmPasswordFocusRequester: FocusRequester,
         onDone: () -> Unit = {}
     ) {
-        TextField(
-            value = model.confirmPassword,
-            onValueChange = {
-                onConfirmPasswordChanged(model, it)
-            },
-            visualTransformation = if (model.passwordHidden) PasswordVisualTransformation() else VisualTransformation.None,
-            trailingIcon = {
-                if (model.confirmPassword.isNotEmpty()) {
-                    lateinit var visibilityIcon: ImageVector
-                    lateinit var description: String
+        TextField(value = model.confirmPassword,
+                  onValueChange = {
+                      onConfirmPasswordChanged(model, it)
+                  },
+                  visualTransformation = if (model.passwordHidden) PasswordVisualTransformation() else VisualTransformation.None,
+                  trailingIcon = {
+                      if (model.confirmPassword.isNotEmpty()) {
+                          lateinit var visibilityIcon: ImageVector
+                          lateinit var description: String
 
-                    if (model.confirmPassword == model.password) {
-                        description = getString(R.string.passwords_match)
-                        visibilityIcon = Icons.Filled.Check
-                    } else {
-                        description = getString(R.string.passwords_different)
-                        visibilityIcon = Icons.Filled.Error
-                    }
+                          if (model.confirmPassword == model.password) {
+                              description = getString(R.string.passwords_match)
+                              visibilityIcon = Icons.Filled.Check
+                          } else {
+                              description = getString(R.string.passwords_different)
+                              visibilityIcon = Icons.Filled.Error
+                          }
 
-                    Icon(imageVector = visibilityIcon, contentDescription = description)
-                }
-            },
-            label = {
-                Text(text = getString(R.string.confirm_password))
-            },
-            modifier = Modifier.focusRequester(confirmPasswordFocusRequester).onKeyEvent {
-                if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER || it.nativeKeyEvent.keyCode == KEYCODE_TAB) {
-                    onDone()
-                    true
-                } else false
-            },
-            isError = model.confirmPasswordCaption.isNotBlank(),
-            singleLine = true,
-            supportingText = {
+                          Icon(imageVector = visibilityIcon, contentDescription = description)
+                      }
+                  },
+                  label = {
+                      Text(text = getString(R.string.confirm_password))
+                  },
+                  modifier = Modifier
+                      .focusRequester(confirmPasswordFocusRequester)
+                      .onKeyEvent {
+                          if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER || it.nativeKeyEvent.keyCode == KEYCODE_TAB) {
+                              onDone()
+                              true
+                          } else false
+                      },
+                  isError = model.confirmPasswordCaption.isNotBlank(),
+                  singleLine = true,
+                  supportingText = {
 
-                if (model.confirmPasswordCaption.isNotBlank()) {
-                    Text(
-                        text = model.confirmPasswordCaption, overflow = TextOverflow.Ellipsis
-                    )
-                }
-            },
-            keyboardOptions = KeyboardOptions(
-                autoCorrect = false,
-                imeAction = ImeAction.Done,
-                keyboardType = KeyboardType.Password
-            ),
-            keyboardActions = KeyboardActions(
-                onDone = { onDone() }
-            ),
-            enabled = model.uiEnabled
-        )
+                      if (model.confirmPasswordCaption.isNotBlank()) {
+                          Text(
+                              text = model.confirmPasswordCaption, overflow = TextOverflow.Ellipsis
+                          )
+                      }
+                  },
+                  keyboardOptions = KeyboardOptions(
+                      autoCorrect = false,
+                      imeAction = ImeAction.Done,
+                      keyboardType = KeyboardType.Password
+                  ),
+                  keyboardActions = KeyboardActions(onDone = { onDone() }),
+                  enabled = model.uiEnabled)
     }
 
     @Composable
@@ -1257,15 +1254,26 @@ class LoginActivity : AppCompatActivity() {
             caption: String,
             context: Context,
             imeAction: ImeAction = ImeAction.Next,
-            onDone: ((KeyboardActionScope) -> Unit)? = null
+            onDone: (() -> Unit)? = null
         ) {
+            val focusManager = LocalFocusManager.current
             TextField(
                 value = value,
                 onValueChange = { onValueChanged(filterUsername(it)) },
-                modifier = Modifier.autofill(autofillTypes = if (newUsername) listOf(
-                    AutofillType.NewUsername
-                ) else listOf(AutofillType.Username),
-                                             onFill = { onValueChanged(filterUsername(it)) }),
+                modifier = Modifier
+                    .autofill(autofillTypes = if (newUsername) listOf(
+                        AutofillType.NewUsername
+                    ) else listOf(AutofillType.Username),
+                              onFill = { onValueChanged(filterUsername(it)) })
+                    .onKeyEvent {
+                        if ((it.nativeKeyEvent.keyCode == KEYCODE_ENTER || it.nativeKeyEvent.keyCode == KEYCODE_TAB) && imeAction == ImeAction.Next) {
+                            focusManager.moveFocus(FocusDirection.Next)
+                            true
+                        } else if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER && imeAction == ImeAction.Done) {
+                            onDone?.invoke()
+                            true
+                        } else false
+                    },
                 label = { Text(text = context.getString(R.string.username)) },
                 keyboardOptions = KeyboardOptions(
                     autoCorrect = false, imeAction = imeAction
@@ -1278,7 +1286,7 @@ class LoginActivity : AppCompatActivity() {
                         )
                     }
                 },
-                keyboardActions = KeyboardActions(onDone = onDone),
+                keyboardActions = KeyboardActions(onDone = { onDone?.invoke() }),
                 enabled = enabled,
                 isError = error,
             )

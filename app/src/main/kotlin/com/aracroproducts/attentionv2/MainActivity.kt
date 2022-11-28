@@ -933,7 +933,7 @@ class MainActivity : AppCompatActivity() {
             Row(horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .padding(start = 8.dp, end = 8.dp)
+                    .padding(start = ICON_SPACING, end = ICON_SPACING)
                     .fillMaxSize()
                     .align(Alignment.CenterStart)
                     .semantics(mergeDescendants = true) {}) {
@@ -946,7 +946,7 @@ class MainActivity : AppCompatActivity() {
                             .clip(CircleShape)
                     )
                 } ?: Spacer(modifier = Modifier.width(ICON_SIZE))
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(ICON_SPACING))
                 Column(verticalArrangement = Arrangement.Center,
                        horizontalAlignment = Alignment.Start,
                        modifier = Modifier.semantics(
@@ -1191,6 +1191,7 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val DELAY_INTERVAL: Long = 100
         private val BUTTON_SPACING = 16.dp
+        val ICON_SPACING = 8.dp
         val ICON_SIZE = 40.dp
         const val USERNAME_QUERY_PARMETER = "username"
 

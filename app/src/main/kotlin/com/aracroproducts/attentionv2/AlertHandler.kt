@@ -6,17 +6,14 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.graphics.BitmapFactory
 import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
 import android.provider.Settings.SettingNotFoundException
-import android.util.Base64
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.Person
-import androidx.core.graphics.drawable.IconCompat
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.google.firebase.messaging.FirebaseMessagingService
@@ -25,6 +22,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+
 
 /**
  * Handles Firebase alerts
@@ -257,11 +255,8 @@ open class AlertHandler : FirebaseMessagingService() {
             // https://developer.android.com/develop/ui/views/notifications/conversations#api-notifications
             MainViewModel.pushFriendShortcut(this@AlertHandler, sender)
 
-            val person = Person.Builder().setName(sender.name).setKey(sender.id)
-                .setIcon(if (sender.photo != null) IconCompat.createWithBitmap(run {
-                    val imageDecoded = Base64.decode(sender.photo, Base64.DEFAULT)
-                    BitmapFactory.decodeByteArray(imageDecoded, 0, imageDecoded.size)
-                }) else null).setImportant(true).build()
+            val person =
+                Person.Builder().setName(sender.name).setKey(sender.id).setImportant(true).build()
 
             val messagingStyle = NotificationCompat.MessagingStyle(person).addMessage(
                 NotificationCompat.MessagingStyle.Message(
