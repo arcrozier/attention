@@ -470,7 +470,7 @@ class MainViewModel(
         }
     }
 
-    fun getUserInfo(onAuthError: () -> Unit) {
+    fun getUserInfo(onAuthError: () -> Unit, onSuccess: (() -> Unit)? = null) {
         isRefreshing = true
         val context = application
         viewModelScope.launch {
@@ -491,6 +491,7 @@ class MainViewModel(
                                 Log.e(sTAG, "Got user info but body was null!")
                                 return@downloadUserInfo
                             }
+                            onSuccess?.invoke()
                             viewModelScope.launch {
                                 preferencesRepository.bulkEdit { settings ->
                                     settings[stringPreferencesKey(

@@ -260,11 +260,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun reload() { // token is auth token
-        friendModel.getUserInfo {
+        friendModel.getUserInfo(onAuthError = {
             if (!friendModel.addFriendException) launchLogin()
-        }
-        friendModel.registerDevice()
-        getNotificationPermission()
+        }, onSuccess = {
+            getNotificationPermission()
+            friendModel.registerDevice()
+        })
     }
 
     @ExperimentalFoundationApi
