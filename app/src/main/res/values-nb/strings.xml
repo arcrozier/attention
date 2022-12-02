@@ -145,8 +145,8 @@
     <string name="share">Del</string>
     <string name="invalid_float">Tast inn en gyldig tall</string>
     <string name="alert_rate_limited">Du har sendt for mange meldinger. Vennligst vent noen få sekunder og trykk for å prøv igjen.</string>
-    <string name="seconds_ago">%1$d s siden</string>
-    <string name="minutes_ago">%1$d m siden</string>
+    <string name="seconds_ago">For %1$d s siden</string>
+    <string name="minutes_ago">For %1$d m siden</string>
     <string name="sent_at">Sendt kl. %1$s</string>
     <string name="sent_on">Sendt %1$s</string>
     <string name="link_account">Koble Til Google Konto</string>

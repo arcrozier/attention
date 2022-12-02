@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.*
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -23,6 +24,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.Person
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
+import androidx.core.graphics.drawable.IconCompat
 import androidx.datastore.preferences.core.*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -34,7 +36,6 @@ import retrofit2.Call
 import retrofit2.Response
 import java.io.File
 import java.io.IOException
-import java.lang.Integer.min
 
 class MainViewModel(
     private val attentionRepository: AttentionRepository,
@@ -94,6 +95,8 @@ class MainViewModel(
 
     var newFriendName by mutableStateOf("")
     var friendNameLoading by mutableStateOf(false)
+
+    var waitForLoginResult = false
 
     var usernameCaption by mutableStateOf("")
 
@@ -196,28 +199,6 @@ class MainViewModel(
                         }
                     })
             }
-        }
-    }
-
-    private fun populateShareTargets() {
-        backgroundScope.launch {
-            val context = application
-            val shortcuts = ArrayList<ShortcutInfoCompat>()
-            val contactCategories = setOf(SHARE_CATEGORY)
-
-            val friends = attentionRepository.getFriendsSnapshot()
-            val staticShortcutIntent = Intent(Intent.ACTION_DEFAULT)
-
-            for (x in 0 until min(friends.size, MAX_SHORTCUTS)) {
-                shortcuts.add(
-                    ShortcutInfoCompat.Builder(context, friends[x].id)
-                        .setShortLabel(friends[x].name).setIntent(staticShortcutIntent)
-                        .setLongLived(true).setCategories(contactCategories).setPerson(
-                            Person.Builder().setName(friends[x].name).build()
-                        ).build()
-                )
-            }
-            ShortcutManagerCompat.addDynamicShortcuts(context, shortcuts)
         }
     }
 
@@ -491,18 +472,24 @@ class MainViewModel(
         }
     }
 
-    fun getUserInfo(onAuthError: () -> Unit) {
+    fun getUserInfo(
+        onAuthError: () -> Unit, onSuccess: (() -> Unit)? = null, token: String? = null
+    ) {
         isRefreshing = true
         val context = application
         viewModelScope.launch {
-            val token = getToken()
+            token?.let {
+                preferencesRepository.setValue(stringPreferencesKey(MY_TOKEN), token)
+            } // datastore guarantees read-after-write consistency
+            val innerToken = token ?: getToken()
 
             // we want an exception to the login if they opened an add-friend link
             // if opened from a link, the action is ACTION_VIEW, so we delay logging in
-            if (token == null && !addFriendException) {
+            if (innerToken == null && !addFriendException) {
+                Log.d(MainViewModel::class.java.name, "Token null; logging out")
                 onAuthError()
-            } else if (token != null) {
-                attentionRepository.downloadUserInfo(token, { _, response, _ ->
+            } else if (innerToken != null) {
+                attentionRepository.downloadUserInfo(innerToken, { _, response, _ ->
                     setConnectStatus(response.code())
                     when (response.code()) {
                         200 -> {
@@ -512,6 +499,7 @@ class MainViewModel(
                                 Log.e(sTAG, "Got user info but body was null!")
                                 return@downloadUserInfo
                             }
+                            onSuccess?.invoke()
                             viewModelScope.launch {
                                 preferencesRepository.bulkEdit { settings ->
                                     settings[stringPreferencesKey(
@@ -564,7 +552,6 @@ class MainViewModel(
                                 }
                             }
                             uploadCachedFriends()
-                            populateShareTargets()
                         }
                         403 -> {
                             onAuthError()
@@ -687,6 +674,7 @@ class MainViewModel(
                 direction = DIRECTION.Outgoing
             )
             backgroundScope.launch {
+                pushFriendShortcut(context, to)
                 attentionRepository.sendMessage(message, token = token, { _, response, errorBody ->
                     setConnectStatus(response.code())
                     when (response.code()) {
@@ -882,9 +870,60 @@ class MainViewModel(
         const val EXTRA_RECIPIENT = "extra_recipient"
         const val EXTRA_BODY = "extra_body"
 
-        private const val MAX_SHORTCUTS = 4
         private const val SHARE_CATEGORY =
             "com.aracroproducts.attentionv2.sharingshortcuts.category.TEXT_SHARE_TARGET"
+
+        fun pushFriendShortcut(context: Context, friend: Friend) {
+            val contactCategories = setOf(SHARE_CATEGORY)
+            val icon = if (friend.photo != null) IconCompat.createWithBitmap(run {
+                val imageDecoded = Base64.decode(friend.photo, Base64.DEFAULT)
+                val bitmap = BitmapFactory.decodeByteArray(imageDecoded, 0, imageDecoded.size)
+
+                // From diesel - https://stackoverflow.com/a/15537470/7484693
+                // Licensed under CC BY-SA 3.0
+                val output: Bitmap = if (bitmap.width > bitmap.height) {
+                    Bitmap.createBitmap(bitmap.height, bitmap.height, Bitmap.Config.ARGB_8888)
+                } else {
+                    Bitmap.createBitmap(bitmap.width, bitmap.width, Bitmap.Config.ARGB_8888)
+                }
+
+                Log.d(MainViewModel::class.java.name, "${bitmap.width} x ${bitmap.height}")
+                val canvas = Canvas(output)
+
+                val color: UInt = 0xff424242u
+                val paint = Paint()
+                val rect = Rect(0, 0, bitmap.width, bitmap.height)
+
+                val r = if (bitmap.width > bitmap.height) {
+                    (bitmap.height / 2).toFloat()
+                } else {
+                    (bitmap.width / 2).toFloat()
+                }
+
+                paint.isAntiAlias = true
+                canvas.drawARGB(0, 0, 0, 0)
+                paint.color = color.toInt()
+                canvas.drawCircle(r, r, r, paint)
+                paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
+                canvas.drawBitmap(bitmap, rect, rect, paint)
+                output
+            }) else null
+
+            ShortcutManagerCompat.pushDynamicShortcut(
+                context,
+                ShortcutInfoCompat.Builder(context, friend.id).setShortLabel(friend.name).setPerson(
+                    Person.Builder().setName(friend.name).setKey(friend.id).setImportant(true)
+                        .setIcon(icon).build()
+                ).setIcon(icon).setIntent(Intent(
+                    context, MainActivity::class.java
+                ).apply {
+                    action = Intent.ACTION_SENDTO
+                    putExtra(EXTRA_RECIPIENT, friend.id)
+                }).setLongLived(true).setCategories(contactCategories).setPerson(
+                    Person.Builder().setName(friend.name).build()
+                ).build()
+            )
+        }
 
         /**
          * Helper function to create the notification channel for the failed alert

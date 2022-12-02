@@ -3,9 +3,12 @@ package com.aracroproducts.attentionv2
 import android.app.Application
 import android.app.NotificationManager
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.util.Base64
 import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -13,21 +16,27 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.AnnotatedString
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.aracroproducts.attentionv2.LoginActivity.Companion.LIST_ELEMENT_PADDING
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
 import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.time.Duration
 import java.time.Instant
@@ -96,6 +105,19 @@ class Alert : AppCompatActivity() {
 
     @Composable
     fun Dialog(message: AnnotatedString) {
+
+        var imageBitmap: Bitmap? by remember {
+            mutableStateOf(null)
+        }
+        LaunchedEffect(key1 = alertModel.sender?.photo) {
+            val photo = alertModel.sender?.photo
+            if (photo != null) {
+                launch(context = Dispatchers.Default) {
+                    val imageDecoded = Base64.decode(photo, Base64.DEFAULT)
+                    imageBitmap = BitmapFactory.decodeByteArray(imageDecoded, 0, imageDecoded.size)
+                }
+            }
+        }
         AlertDialog(onDismissRequest = { }, dismissButton = {
             Row {
                 AnimatedVisibility(
@@ -132,8 +154,23 @@ class Alert : AppCompatActivity() {
                 Text(text = getString(android.R.string.ok))
             }
         }, title = { Text(getString(R.string.alert_title)) }, text = {
-            Column {
-                Text(message)
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Row(verticalAlignment = Alignment.Top) {
+                    imageBitmap?.let {
+                        Image(
+                            bitmap = it.asImageBitmap(),
+                            contentDescription = getString(
+                                R.string.pfp_description,
+                                alertModel.from
+                            ),
+                            modifier = Modifier
+                                .size(MainActivity.ICON_SIZE)
+                                .clip(CircleShape)
+                        )
+                        Spacer(modifier = Modifier.width(MainActivity.ICON_SPACING))
+                    }
+                    Text(message)
+                }
                 Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
                 Text(
                     timeSince(since = Calendar.getInstance().apply {

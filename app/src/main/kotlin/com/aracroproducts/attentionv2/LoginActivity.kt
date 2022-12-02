@@ -11,6 +11,8 @@ import android.os.Bundle
 import android.text.Annotation
 import android.text.SpannedString
 import android.util.Log
+import android.view.KeyEvent.KEYCODE_ENTER
+import android.view.KeyEvent.KEYCODE_TAB
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
@@ -29,7 +31,6 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.ClickableText
-import androidx.compose.foundation.text.KeyboardActionScope
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -48,11 +49,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.AutofillNode
 import androidx.compose.ui.autofill.AutofillType
 import androidx.compose.ui.composed
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -79,9 +82,7 @@ import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.CommonStatusCodes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import kotlin.math.min
 import kotlin.math.roundToInt
-
 
 class LoginActivity : AppCompatActivity() {
 
@@ -120,8 +121,8 @@ class LoginActivity : AppCompatActivity() {
             val password = credential.password
             if (loginViewModel.idToken != null) { // Got an ID token from Google. Use it to authenticate
                 // with your backend.
-                loginViewModel.loginWithGoogle(null, null) {
-                    completeSignIn()
+                loginViewModel.loginWithGoogle(null, null) { token ->
+                    completeSignIn(token)
                 }
                 Log.d(TAG, "Got ID token.")
             } else if (password != null) { // Got a saved username and password. Use them to authenticate
@@ -233,8 +234,8 @@ class LoginActivity : AppCompatActivity() {
                 BeginSignInRequest.PasswordRequestOptions.builder().setSupported(true).build()
             ).setGoogleIdTokenRequestOptions(
                 BeginSignInRequest.GoogleIdTokenRequestOptions.builder().setSupported(
-                        true
-                    ) // Your server's client ID, not your Android client ID.
+                    true
+                ) // Your server's client ID, not your Android client ID.
                     .setServerClientId(
                         getString(
                             R.string.client_id
@@ -252,39 +253,39 @@ class LoginActivity : AppCompatActivity() {
                     Log.e(TAG, "Couldn't start One Tap UI: ${e.localizedMessage}")
                 }
             }?.addOnFailureListener(
-                    this
-                ) { e -> // No Google Accounts found. Try to create an account
-                    e.localizedMessage?.let { Log.d(TAG, it) }
-                    val signUpRequest = BeginSignInRequest.builder().setGoogleIdTokenRequestOptions(
-                        BeginSignInRequest.GoogleIdTokenRequestOptions.builder().setSupported(
-                                true
-                            ) // Your server's client ID, not your Android client ID.
-                            .setServerClientId(
-                                getString(
-                                    R.string.client_id
-                                )
-                            ) // Show all accounts on the device.
-                            .setFilterByAuthorizedAccounts(false).build()
-                    ).build()
+                this
+            ) { e -> // No Google Accounts found. Try to create an account
+                e.localizedMessage?.let { Log.d(TAG, it) }
+                val signUpRequest = BeginSignInRequest.builder().setGoogleIdTokenRequestOptions(
+                    BeginSignInRequest.GoogleIdTokenRequestOptions.builder().setSupported(
+                        true
+                    ) // Your server's client ID, not your Android client ID.
+                        .setServerClientId(
+                            getString(
+                                R.string.client_id
+                            )
+                        ) // Show all accounts on the device.
+                        .setFilterByAuthorizedAccounts(false).build()
+                ).build()
 
-                    oneTapClient?.beginSignIn(signUpRequest)?.addOnSuccessListener(this) { result ->
-                            try {
-                                loginResultHandler.launch(
-                                    IntentSenderRequest.Builder(
-                                        result.pendingIntent.intentSender
-                                    ).build()
-                                )
-                            } catch (e: SendIntentException) {
-                                Log.e(
-                                    TAG, "Couldn't start One Tap UI: ${e.localizedMessage}"
-                                )
-                            }
-                        }?.addOnFailureListener(
-                            this
-                        ) { e1 -> // No Google Accounts found. Just continue presenting the signed-out UI.
-                            e1.localizedMessage?.let { Log.d(TAG, it) }
-                        }
+                oneTapClient?.beginSignIn(signUpRequest)?.addOnSuccessListener(this) { result ->
+                    try {
+                        loginResultHandler.launch(
+                            IntentSenderRequest.Builder(
+                                result.pendingIntent.intentSender
+                            ).build()
+                        )
+                    } catch (e: SendIntentException) {
+                        Log.e(
+                            TAG, "Couldn't start One Tap UI: ${e.localizedMessage}"
+                        )
+                    }
+                }?.addOnFailureListener(
+                    this
+                ) { e1 -> // No Google Accounts found. Just continue presenting the signed-out UI.
+                    e1.localizedMessage?.let { Log.d(TAG, it) }
                 }
+            }
 
         }
 
@@ -657,8 +658,7 @@ class LoginActivity : AppCompatActivity() {
         val useDarkIcons = !isSystemInDarkTheme()
 
         DisposableEffect(
-            systemUiController,
-            useDarkIcons
+            systemUiController, useDarkIcons
         ) { // Update all of the system bar colors to be transparent, and use
             // dark icons if we're in light theme
             systemUiController.setNavigationBarColor(
@@ -777,39 +777,43 @@ class LoginActivity : AppCompatActivity() {
     @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
     @Composable
     fun EmailField(model: LoginViewModel) {
-        TextField(
-            value = model.email,
-            onValueChange = {
-                model.email = it.filter { letter ->
-                    letter != '\n'
-                }
-                model.emailCaption = ""
-            },
-            modifier = Modifier.autofill(
-                autofillTypes = listOf(AutofillType.EmailAddress),
-                onFill = {
-                    model.email = it.filter { letter ->
-                        letter != '\n'
-                    }
-                    model.emailCaption = ""
-                }),
-            isError = !(model.email.isEmpty() || android.util.Patterns.EMAIL_ADDRESS.matcher(
-                model.email
-            ).matches()),
-            supportingText = {
-                if (model.emailCaption.isNotBlank()) {
-                    Text(
-                        text = model.emailCaption,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            },
-            singleLine = true,
-            label = { Text(text = getString(R.string.email)) },
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Email,
-                imeAction = ImeAction.Next,
-            )
+        val focusManager = LocalFocusManager.current
+        TextField(value = model.email,
+                  onValueChange = {
+                      model.email = it.filter { letter ->
+                          letter != '\n'
+                      }
+                      model.emailCaption = ""
+                  },
+                  modifier = Modifier
+                      .autofill(autofillTypes = listOf(AutofillType.EmailAddress), onFill = {
+                          model.email = it.filter { letter ->
+                              letter != '\n'
+                          }
+                          model.emailCaption = ""
+                      })
+                      .onKeyEvent {
+                          if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER || it.nativeKeyEvent.keyCode == KEYCODE_TAB) {
+                              focusManager.moveFocus(focusDirection = FocusDirection.Next)
+                              true
+                          } else false
+                      },
+                  isError = !(model.email.isEmpty() || android.util.Patterns.EMAIL_ADDRESS.matcher(
+                      model.email
+                  ).matches()),
+                  supportingText = {
+                      if (model.emailCaption.isNotBlank()) {
+                          Text(
+                              text = model.emailCaption, overflow = TextOverflow.Ellipsis
+                          )
+                      }
+                  },
+                  singleLine = true,
+                  label = { Text(text = getString(R.string.email)) },
+                  keyboardOptions = KeyboardOptions(
+                      keyboardType = KeyboardType.Email,
+                      imeAction = ImeAction.Next,
+                  )
         )
 
     }
@@ -817,19 +821,23 @@ class LoginActivity : AppCompatActivity() {
     @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
     @Composable
     fun FirstNameField(model: LoginViewModel) {
+        val focusManager = LocalFocusManager.current
         TextField(value = model.firstName,
                   onValueChange = {
-                      model.firstName = it.filter { letter ->
-                          letter != '\n'
-                      }
+                      model.firstName = filterSpecialChars(it)
                   },
-                  modifier = Modifier.autofill(
-                      autofillTypes = listOf(AutofillType.PersonFirstName),
-                      onFill = {
+                  modifier = Modifier
+                      .autofill(autofillTypes = listOf(AutofillType.PersonFirstName), onFill = {
                           model.firstName = it.filter { letter ->
                               letter != '\n'
                           }
-                      }),
+                      })
+                      .onKeyEvent {
+                          if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER || it.nativeKeyEvent.keyCode == KEYCODE_TAB) {
+                              focusManager.moveFocus(focusDirection = FocusDirection.Next)
+                              true
+                          } else false
+                      },
                   singleLine = true,
                   label = { Text(text = getString(R.string.first_name)) },
                   keyboardOptions = KeyboardOptions(
@@ -844,19 +852,23 @@ class LoginActivity : AppCompatActivity() {
     @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
     @Composable
     fun LastNameField(model: LoginViewModel) {
+        val focusManager = LocalFocusManager.current
         TextField(value = model.lastName,
                   onValueChange = {
-                      model.lastName = it.filter { letter ->
-                          letter != '\n'
-                      }
+                      model.lastName = filterSpecialChars(it)
                   },
-                  modifier = Modifier.autofill(
-                      autofillTypes = listOf(AutofillType.PersonLastName),
-                      onFill = {
+                  modifier = Modifier
+                      .autofill(autofillTypes = listOf(AutofillType.PersonLastName), onFill = {
                           model.lastName = it.filter { letter ->
                               letter != '\n'
                           }
-                      }),
+                      })
+                      .onKeyEvent {
+                          if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER || it.nativeKeyEvent.keyCode == KEYCODE_TAB) {
+                              focusManager.moveFocus(focusDirection = FocusDirection.Next)
+                              true
+                          } else false
+                      },
                   label = { Text(text = getString(R.string.last_name)) },
                   singleLine = true,
                   keyboardOptions = KeyboardOptions(
@@ -871,49 +883,55 @@ class LoginActivity : AppCompatActivity() {
     @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
     @Composable
     fun OldPasswordField(model: LoginViewModel, passwordFocusRequester: FocusRequester) {
-        TextField(
-            value = model.oldPassword,
-            onValueChange = {
-                onOldPasswordChanged(model, it)
-            },
-            modifier = Modifier.autofill(autofillTypes = listOf(AutofillType.Password), onFill = {
-                onOldPasswordChanged(model, it)
-            }),
-            visualTransformation = if (model.passwordHidden) PasswordVisualTransformation() else VisualTransformation.None,
-            trailingIcon = {
-                IconButton(onClick = { model.passwordHidden = !model.passwordHidden }) {
-                    val visibilityIcon =
-                        if (model.passwordHidden) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                    val description = if (model.passwordHidden) getString(
-                        R.string.show_password
-                    ) else getString(
-                        R.string.hide_password
-                    )
-                    Icon(imageVector = visibilityIcon, contentDescription = description)
-                }
-            },
-            isError = model.passwordCaption.isNotBlank(),
-            label = {
-                Text(text = getString(R.string.password))
-            },
-            singleLine = true,
-            supportingText = {
-                if (model.passwordCaption.isNotBlank()) {
-                    Text(
-                        text = model.oldPasswordCaption,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            },
-            keyboardOptions = KeyboardOptions(
-                autoCorrect = false,
-                imeAction = ImeAction.Next,
-                keyboardType = KeyboardType.Password
-            ),
-            keyboardActions = KeyboardActions(onNext = {
-                passwordFocusRequester.requestFocus()
-            }),
-            enabled = model.uiEnabled
+        val focusManager = LocalFocusManager.current
+        TextField(value = model.oldPassword,
+                  onValueChange = {
+                      onOldPasswordChanged(model, it)
+                  },
+                  modifier = Modifier
+                      .autofill(autofillTypes = listOf(AutofillType.Password), onFill = {
+                          onOldPasswordChanged(model, it)
+                      })
+                      .onKeyEvent {
+                          if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER || it.nativeKeyEvent.keyCode == KEYCODE_TAB) {
+                              focusManager.moveFocus(focusDirection = FocusDirection.Next)
+                              true
+                          } else false
+                      },
+                  visualTransformation = if (model.passwordHidden) PasswordVisualTransformation() else VisualTransformation.None,
+                  trailingIcon = {
+                      IconButton(onClick = { model.passwordHidden = !model.passwordHidden }) {
+                          val visibilityIcon =
+                              if (model.passwordHidden) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                          val description = if (model.passwordHidden) getString(
+                              R.string.show_password
+                          ) else getString(
+                              R.string.hide_password
+                          )
+                          Icon(imageVector = visibilityIcon, contentDescription = description)
+                      }
+                  },
+                  isError = model.passwordCaption.isNotBlank(),
+                  label = {
+                      Text(text = getString(R.string.password))
+                  },
+                  singleLine = true,
+                  supportingText = {
+                      if (model.passwordCaption.isNotBlank()) {
+                          Text(
+                              text = model.oldPasswordCaption, overflow = TextOverflow.Ellipsis
+                          )
+                      }
+                  },
+                  keyboardOptions = KeyboardOptions(
+                      autoCorrect = false,
+                      imeAction = ImeAction.Next,
+                      keyboardType = KeyboardType.Password
+                  ),
+                  keyboardActions = KeyboardActions(onNext = {
+                      passwordFocusRequester.requestFocus()
+                  }),
+                  enabled = model.uiEnabled
         )
 
     }
@@ -928,6 +946,14 @@ class LoginActivity : AppCompatActivity() {
         nextFocusRequester: FocusRequester? = null,
         currentFocusRequester: FocusRequester? = null
     ) {
+        fun done() {
+            model.login(
+                snackbarHostState = snackbarHostState,
+                scope = coroutineScope,
+                onLoggedIn = ::signInWithPassword
+            )
+        }
+
         TextField(value = model.password,
                   onValueChange = {
                       onPasswordChanged(model, it)
@@ -937,7 +963,20 @@ class LoginActivity : AppCompatActivity() {
                       .autofill(autofillTypes = listOf(AutofillType.NewPassword), onFill = {
                           onPasswordChanged(model, it)
                           onConfirmPasswordChanged(model, it)
-                      }),
+                      })
+                      .onKeyEvent {
+                          if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER || it.nativeKeyEvent.keyCode == KEYCODE_TAB) {
+                              when (imeAction) {
+                                  ImeAction.Done -> {
+                                      done()
+                                  }
+                                  ImeAction.Next -> {
+                                      nextFocusRequester?.requestFocus()
+                                  }
+                              }
+                              true
+                          } else false
+                      },
                   visualTransformation = if (model.passwordHidden) PasswordVisualTransformation() else VisualTransformation.None,
                   trailingIcon = {
                       IconButton(onClick = { model.passwordHidden = !model.passwordHidden }) {
@@ -962,18 +1001,13 @@ class LoginActivity : AppCompatActivity() {
                   supportingText = {
                       if (model.passwordCaption.isNotBlank()) {
                           Text(
-                              text = model.passwordCaption,
-                              overflow = TextOverflow.Ellipsis
+                              text = model.passwordCaption, overflow = TextOverflow.Ellipsis
                           )
                       }
                   },
                   keyboardActions = KeyboardActions(onDone = {
                       if (imeAction == ImeAction.Done) {
-                          model.login(
-                              snackbarHostState = snackbarHostState,
-                              scope = coroutineScope,
-                              onLoggedIn = ::signInWithPassword
-                          )
+                          done()
                       }
                   }, onNext = {
                       if (imeAction == ImeAction.Next) {
@@ -991,7 +1025,7 @@ class LoginActivity : AppCompatActivity() {
     fun ConfirmPasswordField(
         model: LoginViewModel,
         confirmPasswordFocusRequester: FocusRequester,
-        onDone: (KeyboardActionScope) -> Unit = {}
+        onDone: () -> Unit = {}
     ) {
         TextField(
             value = model.confirmPassword,
@@ -1018,15 +1052,21 @@ class LoginActivity : AppCompatActivity() {
             label = {
                 Text(text = getString(R.string.confirm_password))
             },
-            modifier = Modifier.focusRequester(confirmPasswordFocusRequester),
+            modifier = Modifier
+                .focusRequester(confirmPasswordFocusRequester)
+                .onKeyEvent {
+                    if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER || it.nativeKeyEvent.keyCode == KEYCODE_TAB) {
+                        onDone()
+                        true
+                    } else false
+                },
             isError = model.confirmPasswordCaption.isNotBlank(),
             singleLine = true,
             supportingText = {
 
                 if (model.confirmPasswordCaption.isNotBlank()) {
                     Text(
-                        text = model.confirmPasswordCaption,
-                        overflow = TextOverflow.Ellipsis
+                        text = model.confirmPasswordCaption, overflow = TextOverflow.Ellipsis
                     )
                 }
             },
@@ -1035,9 +1075,7 @@ class LoginActivity : AppCompatActivity() {
                 imeAction = ImeAction.Done,
                 keyboardType = KeyboardType.Password
             ),
-            keyboardActions = KeyboardActions(
-                onDone = onDone
-            ),
+            keyboardActions = KeyboardActions(onDone = { onDone() }),
             enabled = model.uiEnabled
         )
     }
@@ -1124,7 +1162,7 @@ class LoginActivity : AppCompatActivity() {
     }
 
 
-    private fun signInWithPassword(username: String, password: String) {
+    private fun signInWithPassword(username: String, password: String, token: String) {
         val signInPassword = SignInPassword(username, password)
         val savePasswordRequest =
             SavePasswordRequest.builder().setSignInPassword(signInPassword).build()
@@ -1134,7 +1172,7 @@ class LoginActivity : AppCompatActivity() {
                     IntentSenderRequest.Builder(result.pendingIntent.intentSender).build()
                 )
             }
-        completeSignIn()
+        completeSignIn(token)
     }
 
     private fun signInWithGoogle(
@@ -1176,8 +1214,11 @@ class LoginActivity : AppCompatActivity() {
             }
     }
 
-    private fun completeSignIn() {
+    private fun completeSignIn(token: String) {
         loginViewModel.setTokenUploaded(false)
+        val result = Intent()
+        result.putExtra(MainViewModel.MY_TOKEN, token)
+        setResult(RESULT_OK, result)
         finish()
     }
 
@@ -1219,15 +1260,26 @@ class LoginActivity : AppCompatActivity() {
             caption: String,
             context: Context,
             imeAction: ImeAction = ImeAction.Next,
-            onDone: ((KeyboardActionScope) -> Unit)? = null
+            onDone: (() -> Unit)? = null
         ) {
+            val focusManager = LocalFocusManager.current
             TextField(
                 value = value,
                 onValueChange = { onValueChanged(filterUsername(it)) },
-                modifier = Modifier.autofill(autofillTypes = if (newUsername) listOf(
-                    AutofillType.NewUsername
-                ) else listOf(AutofillType.Username),
-                                             onFill = { onValueChanged(filterUsername(it)) }),
+                modifier = Modifier
+                    .autofill(autofillTypes = if (newUsername) listOf(
+                        AutofillType.NewUsername
+                    ) else listOf(AutofillType.Username),
+                              onFill = { onValueChanged(filterUsername(it)) })
+                    .onKeyEvent {
+                        if ((it.nativeKeyEvent.keyCode == KEYCODE_ENTER || it.nativeKeyEvent.keyCode == KEYCODE_TAB) && imeAction == ImeAction.Next) {
+                            focusManager.moveFocus(FocusDirection.Next)
+                            true
+                        } else if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER && imeAction == ImeAction.Done) {
+                            onDone?.invoke()
+                            true
+                        } else false
+                    },
                 label = { Text(text = context.getString(R.string.username)) },
                 keyboardOptions = KeyboardOptions(
                     autoCorrect = false, imeAction = imeAction
@@ -1236,21 +1288,14 @@ class LoginActivity : AppCompatActivity() {
 
                     if (caption.isNotBlank()) {
                         Text(
-                            text = caption,
-                            overflow = TextOverflow.Ellipsis
+                            text = caption, overflow = TextOverflow.Ellipsis
                         )
                     }
                 },
-                keyboardActions = KeyboardActions(onDone = onDone),
+                keyboardActions = KeyboardActions(onDone = { onDone?.invoke() }),
                 enabled = enabled,
                 isError = error,
             )
-        }
-
-        private fun filterUsername(username: String): String {
-            return username.substring(0, min(username.length, 150)).filter {
-                it.isLetterOrDigit() or (it == '@') or (it == '_') or (it == '-') or (it == '+') or (it == '.')
-            }
         }
 
         private fun onUsernameChanged(model: LoginViewModel, username: String) {
@@ -1266,16 +1311,12 @@ class LoginActivity : AppCompatActivity() {
         }
 
         private fun onConfirmPasswordChanged(model: LoginViewModel, password: String) {
-            model.confirmPassword = password.filter { letter ->
-                letter != '\n'
-            }
+            model.confirmPassword = filterSpecialChars(password)
             model.confirmPasswordCaption = ""
         }
 
         private fun onOldPasswordChanged(model: LoginViewModel, password: String) {
-            model.oldPassword = password.filter { letter ->
-                letter != '\n'
-            }
+            model.oldPassword = filterSpecialChars(password)
             model.oldPasswordCaption = ""
         }
     }

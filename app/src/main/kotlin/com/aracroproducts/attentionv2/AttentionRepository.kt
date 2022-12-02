@@ -21,8 +21,6 @@ class AttentionRepository(private val database: AttentionDB) {
     // Observed Flow will notify the observer when the data has changed.
     fun getFriends() = database.getFriendDAO().getFriends()
 
-    suspend fun getFriendsSnapshot() = database.getFriendDAO().getFriendsSnapshot()
-
     // By default Room runs suspend queries off the main thread, therefore, we don't need to
     // implement anything else to ensure we're not doing long running database work
     // off the main thread.
@@ -115,7 +113,8 @@ class AttentionRepository(private val database: AttentionDB) {
         })
     }
 
-    suspend fun getFriend(id: String): Friend = database.getFriendDAO().getFriend(id)
+    suspend fun getFriend(id: String): Friend =
+        database.getFriendDAO().getFriend(id) ?: Friend(id, name = "")
 
     suspend fun cacheFriend(username: String) {
 
@@ -226,7 +225,7 @@ class AttentionRepository(private val database: AttentionDB) {
                         )
                         alertId?.let {
                             database.getFriendDAO().setMessageStatus(
-                                MessageStatus.SENT, alert_id = alertId, id = message.otherId
+                                MessageStatus.SENT.value, alert_id = alertId, id = message.otherId
                             )
                         }
                         database.getFriendDAO().incrementSent(message.otherId)
@@ -502,14 +501,14 @@ class AttentionRepository(private val database: AttentionDB) {
     suspend fun alertDelivered(username: String?, alertId: String?) {
 
         database.getFriendDAO()
-            .setMessageStatus(MessageStatus.DELIVERED, alert_id = alertId, id = username)
+            .setMessageStatus(MessageStatus.DELIVERED.value, alert_id = alertId, id = username)
 
     }
 
     suspend fun alertRead(username: String?, alertId: String?) {
 
         database.getFriendDAO()
-            .setMessageStatus(MessageStatus.READ, alert_id = alertId, id = username)
+            .setMessageStatus(MessageStatus.READ.value, alert_id = alertId, id = username)
 
     }
 

@@ -91,8 +91,11 @@ enum class MessageStatus(val value: String) {
     companion object {
 
         fun messageStatusForValue(value: String): MessageStatus? {
-            return values().find { status ->
-                status.value == value
+            return when (value) {
+                SENT.value -> SENT
+                DELIVERED.value -> DELIVERED
+                READ.value -> READ
+                else -> null
             }
         }
     }
@@ -119,9 +122,9 @@ interface FriendDAO {
     suspend fun setMessageAlert(message_id: String?, id: String)
 
     @Query(
-        "UPDATE Friend SET last_message_status = :status WHERE id = :id AND " + "last_message_sent_id =" + " :alert_id"
+        "UPDATE Friend SET last_message_status = :status WHERE id = :id AND last_message_sent_id = :alert_id"
     )
-    suspend fun setMessageStatus(status: MessageStatus?, id: String?, alert_id: String?)
+    suspend fun setMessageStatus(status: String?, id: String?, alert_id: String?)
 
     @Query("SELECT * FROM Friend ORDER BY sent DESC")
     fun getFriends(): LiveData<List<Friend>>
@@ -129,11 +132,8 @@ interface FriendDAO {
     @Query("DELETE FROM Friend WHERE id NOT IN (:idList)")
     suspend fun keepOnly(vararg idList: String)
 
-    @Query("SELECT * FROM Friend ORDER BY sent DESC")
-    suspend fun getFriendsSnapshot(): List<Friend>
-
     @Query("SELECT * FROM Friend WHERE id = :id")
-    suspend fun getFriend(id: String): Friend
+    suspend fun getFriend(id: String): Friend?
 }
 
 @Dao

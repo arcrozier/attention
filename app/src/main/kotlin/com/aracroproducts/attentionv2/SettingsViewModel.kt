@@ -17,6 +17,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.IntSize
+import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -310,6 +311,7 @@ class SettingsViewModel(
                 )
             }
             clearAllDatabaseTables()
+            ShortcutManagerCompat.removeAllDynamicShortcuts(getApplication())
         }
     }
 
@@ -348,7 +350,7 @@ class SettingsViewModel(
                                         403 -> {
                                             setUsernameCaption("")
                                             dismissDialog()
-                                            SettingsActivity.launchLogin(
+                                            launchLogin(
                                                 context
                                             )
                                         }
@@ -416,7 +418,7 @@ class SettingsViewModel(
                     R.string.invalid_email
                 }
                 403 -> {
-                    SettingsActivity.launchLogin(context)
+                    launchLogin(context)
                     R.string.confirm_logout_title
                 }
                 429 -> {
@@ -498,7 +500,7 @@ class SettingsViewModel(
                         }
                     }
                 } else {
-                    SettingsActivity.launchLogin(context)
+                    launchLogin(context)
                 }
             }
             return false

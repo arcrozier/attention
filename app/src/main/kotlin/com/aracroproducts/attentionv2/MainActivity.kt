@@ -11,6 +11,7 @@ import android.os.Bundle
 import android.provider.Settings
 import android.util.Base64
 import android.util.Log
+import android.view.KeyEvent.KEYCODE_ENTER
 import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -61,6 +62,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
@@ -73,6 +75,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
+import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -119,9 +122,17 @@ class MainActivity : AppCompatActivity() {
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { // there isn't really anything we can do
         }
 
+    private val loginLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        it.data?.extras?.getString(MainViewModel.MY_TOKEN)?.let { token ->
+            reload(token)
+        }
+        friendModel.waitForLoginResult = false
+    }
+
     private fun launchLogin() {
-        val loginIntent = Intent(this, LoginActivity::class.java)
-        startActivity(loginIntent)
+        launchLogin(this)
     }
 
     /**
@@ -166,7 +177,7 @@ class MainActivity : AppCompatActivity() {
 
 
         if (friendModel.addFriendException) {
-            val tempId = data?.getQueryParameter("username")
+            val tempId = data?.getQueryParameter(USERNAME_QUERY_PARMETER)
             if (tempId == null) {
                 friendModel.showSnackBar(getString(R.string.bad_add_link))
             } else {
@@ -205,10 +216,13 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        if (action == getString(R.string.reopen_failed_alert_action)) {
+        if (action == getString(R.string.reopen_failed_alert_action) || action == Intent.ACTION_SENDTO) {
             lifecycleScope.launch {
                 intent.getStringExtra(MainViewModel.EXTRA_RECIPIENT)?.let {
                     val friend = friendModel.getFriend(it)
+                    if (action == Intent.ACTION_SENDTO) {
+                        ShortcutManagerCompat.reportShortcutUsed(this@MainActivity, friend.id)
+                    }
                     friendModel.appendDialogState(MainViewModel.DialogStatus.AddMessageText(
                         friend
                     ) { message ->
@@ -254,12 +268,16 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun reload() { // token is auth token
-        friendModel.getUserInfo {
-            if (!friendModel.addFriendException) launchLogin()
-        }
-        friendModel.registerDevice()
-        getNotificationPermission()
+    private fun reload(token: String? = null) { // token is auth token
+        friendModel.getUserInfo(onAuthError = {
+            if (!friendModel.addFriendException) {
+                friendModel.waitForLoginResult = true
+                loginLauncher.launch(Intent(this, LoginActivity::class.java))
+            }
+        }, onSuccess = {
+            getNotificationPermission()
+            friendModel.registerDevice()
+        }, token = token)
     }
 
     @ExperimentalFoundationApi
@@ -600,15 +618,19 @@ class MainActivity : AppCompatActivity() {
             mutableStateOf(friend.name)
         }
         var error by remember { mutableStateOf(false) }
+
+        fun done() {
+            val savingName = name.trim()
+            if (savingName.isEmpty()) {
+                error = true
+            } else {
+                friendModel.confirmEditName(friend.id, savingName, ::launchLogin)
+                friendModel.popDialogState()
+            }
+        }
         AlertDialog(onDismissRequest = { friendModel.popDialogState() }, confirmButton = {
             Button(onClick = {
-                val savingName = name.trim()
-                if (savingName.isEmpty()) {
-                    error = true
-                } else {
-                    friendModel.confirmEditName(friend.id, savingName, ::launchLogin)
-                    friendModel.popDialogState()
-                }
+                done()
             }) {
                 Text(text = getString(R.string.save))
             }
@@ -628,13 +650,24 @@ class MainActivity : AppCompatActivity() {
                 textColor = MaterialTheme.colorScheme.onSurfaceVariant
             ),
                               value = name,
-                              onValueChange = { name = it },
+                              onValueChange = { name = filterSpecialChars(it) },
                               keyboardOptions = KeyboardOptions(
                                   keyboardType = KeyboardType.Text,
-                                  capitalization = KeyboardCapitalization.Words
+                                  capitalization = KeyboardCapitalization.Words,
+                                  imeAction = ImeAction.Done
                               ),
+                              keyboardActions = KeyboardActions(onDone = {
+                                  done()
+                              }),
                               singleLine = true,
-                              modifier = Modifier.fillMaxWidth(),
+                              modifier = Modifier
+                                  .fillMaxWidth()
+                                  .onKeyEvent {
+                                      if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER) {
+                                          done()
+                                          true
+                                      } else false
+                                  },
                               label = { Text(text = getString(R.string.name)) },
                               isError = error,
                               placeholder = { Text(text = getString(R.string.new_name)) })
@@ -688,6 +721,8 @@ class MainActivity : AppCompatActivity() {
                     ), responseListener = { _, response ->
                         if (response.isSuccessful) {
                             friendModel.popDialogState()
+                            friendModel.newFriendName = ""
+                            friendModel.addFriendUsername = ""
                             reload()
                         }
                     }, launchLogin = this::launchLogin
@@ -741,7 +776,7 @@ class MainActivity : AppCompatActivity() {
                 ),
                                   value = friendModel.addFriendUsername,
                                   onValueChange = {
-                                      friendModel.addFriendUsername = it
+                                      friendModel.addFriendUsername = filterUsername(it)
                                       friendModel.getFriendName(
                                           it, launchLogin = ::launchLogin
                                       )
@@ -761,7 +796,14 @@ class MainActivity : AppCompatActivity() {
                                   keyboardActions = KeyboardActions(onDone = {
                                       onAddFriend(username = friendModel.addFriendUsername)
                                   }),
-                                  modifier = Modifier.fillMaxWidth(),
+                                  modifier = Modifier
+                                      .fillMaxWidth()
+                                      .onKeyEvent {
+                                          if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER) {
+                                              onAddFriend(username = friendModel.addFriendUsername)
+                                              true
+                                          } else false
+                                      },
                                   singleLine = true,
                                   label = { Text(text = getString(R.string.username)) },
                                   isError = friendModel.usernameCaption.isNotBlank(),
@@ -839,7 +881,7 @@ class MainActivity : AppCompatActivity() {
         val blur by transition.animateDp(label = "friend blur transition") {
             when (it) {
                 State.NORMAL -> 0.dp
-                else -> 3.dp
+                else -> 4.dp
             }
         }
 
@@ -908,7 +950,9 @@ class MainActivity : AppCompatActivity() {
             Row(horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .padding(start = 8.dp, end = 8.dp)
+                    .alpha(alpha)
+                    .blur(blur)
+                    .padding(start = ICON_SPACING, end = ICON_SPACING)
                     .fillMaxSize()
                     .align(Alignment.CenterStart)
                     .semantics(mergeDescendants = true) {}) {
@@ -917,25 +961,28 @@ class MainActivity : AppCompatActivity() {
                         bitmap = it.asImageBitmap(),
                         contentDescription = getString(R.string.pfp_description, friend.name),
                         modifier = Modifier
-                            .size(40.dp)
+                            .size(ICON_SIZE)
                             .clip(CircleShape)
                     )
-                } ?: Spacer(modifier = Modifier.width(40.dp))
-                Spacer(modifier = Modifier.width(8.dp))
+                } ?: Spacer(modifier = Modifier.width(ICON_SIZE))
+                Spacer(modifier = Modifier.width(ICON_SPACING))
                 Column(verticalArrangement = Arrangement.Center,
                        horizontalAlignment = Alignment.Start,
-                       modifier = Modifier.semantics(
-                           mergeDescendants = true
-                       ) {}) {
+                       modifier = Modifier
+                           .semantics(
+                               mergeDescendants = true
+                           ) {}
+                           .weight(1f, fill = true)) {
                     Text(
                         text = friend.name,
                         style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         color = if (cached) MaterialTheme.colorScheme.onBackground.copy(
                             alpha = ContentAlpha.medium
                         ) else MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier
-                            .alpha(alpha)
-                            .blur(blur)
+                            .fillMaxWidth()
                     )
                     if (subtitle.isNotBlank()) Text(
                         text = subtitle,
@@ -949,9 +996,6 @@ class MainActivity : AppCompatActivity() {
                             alpha = ContentAlpha.medium
                         ),
                         style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier
-                            .alpha(alpha)
-                            .blur(blur)
                     )
                 }
             }
@@ -1142,7 +1186,7 @@ class MainActivity : AppCompatActivity() {
     public override fun onResume() {
         super.onResume()
 
-        reload()
+        if (!friendModel.waitForLoginResult) reload()
 
         // if Google API isn't available, do this - it's from the docs, should be correct
         if (!checkPlayServices()) return
@@ -1162,6 +1206,9 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val DELAY_INTERVAL: Long = 100
         private val BUTTON_SPACING = 16.dp
+        val ICON_SPACING = 8.dp
+        val ICON_SIZE = 40.dp
+        const val USERNAME_QUERY_PARMETER = "username"
 
         /**
          * Positions the element such that its center is at (x, y). If this would cause the
