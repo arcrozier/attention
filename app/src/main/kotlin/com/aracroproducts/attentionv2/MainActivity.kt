@@ -881,7 +881,7 @@ class MainActivity : AppCompatActivity() {
         val blur by transition.animateDp(label = "friend blur transition") {
             when (it) {
                 State.NORMAL -> 0.dp
-                else -> 3.dp
+                else -> 4.dp
             }
         }
 
@@ -950,6 +950,8 @@ class MainActivity : AppCompatActivity() {
             Row(horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
+                    .alpha(alpha)
+                    .blur(blur)
                     .padding(start = ICON_SPACING, end = ICON_SPACING)
                     .fillMaxSize()
                     .align(Alignment.CenterStart)
@@ -980,8 +982,6 @@ class MainActivity : AppCompatActivity() {
                             alpha = ContentAlpha.medium
                         ) else MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier
-                            .alpha(alpha)
-                            .blur(blur)
                             .fillMaxWidth()
                     )
                     if (subtitle.isNotBlank()) Text(
@@ -996,9 +996,6 @@ class MainActivity : AppCompatActivity() {
                             alpha = ContentAlpha.medium
                         ),
                         style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier
-                            .alpha(alpha)
-                            .blur(blur)
                     )
                 }
             }
