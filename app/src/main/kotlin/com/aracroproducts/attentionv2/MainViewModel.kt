@@ -96,6 +96,8 @@ class MainViewModel(
     var newFriendName by mutableStateOf("")
     var friendNameLoading by mutableStateOf(false)
 
+    var waitForLoginResult = false
+
     var usernameCaption by mutableStateOf("")
 
     var message by mutableStateOf("")
@@ -470,18 +472,24 @@ class MainViewModel(
         }
     }
 
-    fun getUserInfo(onAuthError: () -> Unit, onSuccess: (() -> Unit)? = null) {
+    fun getUserInfo(
+        onAuthError: () -> Unit, onSuccess: (() -> Unit)? = null, token: String? = null
+    ) {
         isRefreshing = true
         val context = application
         viewModelScope.launch {
-            val token = getToken()
+            token?.let {
+                preferencesRepository.setValue(stringPreferencesKey(MY_TOKEN), token)
+            } // datastore guarantees read-after-write consistency
+            val innerToken = token ?: getToken()
 
             // we want an exception to the login if they opened an add-friend link
             // if opened from a link, the action is ACTION_VIEW, so we delay logging in
-            if (token == null && !addFriendException) {
+            if (innerToken == null && !addFriendException) {
+                Log.d(MainViewModel::class.java.name, "Token null; logging out")
                 onAuthError()
-            } else if (token != null) {
-                attentionRepository.downloadUserInfo(token, { _, response, _ ->
+            } else if (innerToken != null) {
+                attentionRepository.downloadUserInfo(innerToken, { _, response, _ ->
                     setConnectStatus(response.code())
                     when (response.code()) {
                         200 -> {
@@ -904,16 +912,16 @@ class MainViewModel(
             ShortcutManagerCompat.pushDynamicShortcut(
                 context,
                 ShortcutInfoCompat.Builder(context, friend.id).setShortLabel(friend.name).setPerson(
-                        Person.Builder().setName(friend.name).setKey(friend.id).setImportant(true)
-                            .setIcon(icon).build()
-                    ).setIcon(icon).setIntent(Intent(
-                        context, MainActivity::class.java
-                    ).apply {
-                        action = Intent.ACTION_SENDTO
-                        putExtra(EXTRA_RECIPIENT, friend.id)
-                    }).setLongLived(true).setCategories(contactCategories).setPerson(
-                        Person.Builder().setName(friend.name).build()
-                    ).build()
+                    Person.Builder().setName(friend.name).setKey(friend.id).setImportant(true)
+                        .setIcon(icon).build()
+                ).setIcon(icon).setIntent(Intent(
+                    context, MainActivity::class.java
+                ).apply {
+                    action = Intent.ACTION_SENDTO
+                    putExtra(EXTRA_RECIPIENT, friend.id)
+                }).setLongLived(true).setCategories(contactCategories).setPerson(
+                    Person.Builder().setName(friend.name).build()
+                ).build()
             )
         }
 

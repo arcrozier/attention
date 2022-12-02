@@ -53,7 +53,7 @@ class LoginViewModel(
     fun loginWithGoogle(
         snackbarHostState: SnackbarHostState?,
         coroutineScope: CoroutineScope?,
-        onLoggedIn: () -> Unit
+        onLoggedIn: (token: String) -> Unit
     ) {
         val localIdToken = idToken ?: throw IllegalStateException("idToken was null")
         uiEnabled = false
@@ -69,8 +69,8 @@ class LoginViewModel(
                                              username = username.ifBlank { null },
                                              agree = if (agreedToToS) "yes" else null,
                                              responseListener = { _, response, _ ->
-                                                 if (response.code() != 200 && response.body() !=
-                                                     null) uiEnabled = true
+                                                 if (response.code() != 200 && response.body() != null) uiEnabled =
+                                                     true
                                                  when (response.code()) {
                                                      200 -> {
                                                          val body = response.body()
@@ -83,7 +83,7 @@ class LoginViewModel(
                                                          }
                                                          viewModelScope.launch {
                                                              loginFinished(body.token)
-                                                             onLoggedIn()
+                                                             onLoggedIn(body.token)
                                                              uiEnabled = true
                                                          }
                                                      }
@@ -218,15 +218,15 @@ class LoginViewModel(
     fun login(
         snackbarHostState: SnackbarHostState?,
         scope: CoroutineScope?,
-        onLoggedIn: (username: String, password: String) -> Unit
+        onLoggedIn: (username: String, password: String, token: String) -> Unit
     ) {
         uiEnabled = false
         val context = getApplication<Application>()
         attentionRepository.getAuthToken(username = username,
                                          password = password,
                                          responseListener = { _, response, _ ->
-                                             if (response.code() != 200 && response.body() != null)
-                                                 uiEnabled = true
+                                             if (response.code() != 200 && response.body() != null) uiEnabled =
+                                                 true
                                              when (response.code()) {
                                                  200 -> {
                                                      val body = response.body()
@@ -240,7 +240,11 @@ class LoginViewModel(
                                                          val tempUsername = username
                                                          val tempPassword = password
                                                          loginFinished(body.token)
-                                                         onLoggedIn(tempUsername, tempPassword)
+                                                         onLoggedIn(
+                                                             tempUsername,
+                                                             tempPassword,
+                                                             body.token
+                                                         )
                                                          uiEnabled = true
                                                      }
                                                  }
@@ -262,7 +266,7 @@ class LoginViewModel(
     fun createUser(
         snackbarHostState: SnackbarHostState,
         scope: CoroutineScope,
-        onLoggedIn: (username: String, password: String) -> Unit
+        onLoggedIn: (username: String, password: String, token: String) -> Unit
     ) {
         uiEnabled = false
         val context = getApplication<Application>()
@@ -491,11 +495,7 @@ class LoginViewModel(
                                          },
                                          errorListener = { _, t ->
                                              genericErrorHandling(
-                                                 0,
-                                                 snackbarHostState,
-                                                 scope,
-                                                 context,
-                                                 t
+                                                 0, snackbarHostState, scope, context, t
                                              )
                                              uiEnabled = true
 

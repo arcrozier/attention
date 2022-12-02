@@ -122,6 +122,15 @@ class MainActivity : AppCompatActivity() {
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { // there isn't really anything we can do
         }
 
+    private val loginLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        it.data?.extras?.getString(MainViewModel.MY_TOKEN)?.let { token ->
+            reload(token)
+        }
+        friendModel.waitForLoginResult = false
+    }
+
     private fun launchLogin() {
         launchLogin(this)
     }
@@ -259,13 +268,16 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun reload() { // token is auth token
+    private fun reload(token: String? = null) { // token is auth token
         friendModel.getUserInfo(onAuthError = {
-            if (!friendModel.addFriendException) launchLogin()
+            if (!friendModel.addFriendException) {
+                friendModel.waitForLoginResult = true
+                loginLauncher.launch(Intent(this, LoginActivity::class.java))
+            }
         }, onSuccess = {
             getNotificationPermission()
             friendModel.registerDevice()
-        })
+        }, token = token)
     }
 
     @ExperimentalFoundationApi
@@ -648,12 +660,14 @@ class MainActivity : AppCompatActivity() {
                                   done()
                               }),
                               singleLine = true,
-                              modifier = Modifier.fillMaxWidth().onKeyEvent {
-                                  if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER) {
-                                      done()
-                                      true
-                                  } else false
-                              },
+                              modifier = Modifier
+                                  .fillMaxWidth()
+                                  .onKeyEvent {
+                                      if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER) {
+                                          done()
+                                          true
+                                      } else false
+                                  },
                               label = { Text(text = getString(R.string.name)) },
                               isError = error,
                               placeholder = { Text(text = getString(R.string.new_name)) })
@@ -782,12 +796,14 @@ class MainActivity : AppCompatActivity() {
                                   keyboardActions = KeyboardActions(onDone = {
                                       onAddFriend(username = friendModel.addFriendUsername)
                                   }),
-                                  modifier = Modifier.fillMaxWidth().onKeyEvent {
-                                      if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER) {
-                                          onAddFriend(username = friendModel.addFriendUsername)
-                                          true
-                                      } else false
-                                  },
+                                  modifier = Modifier
+                                      .fillMaxWidth()
+                                      .onKeyEvent {
+                                          if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER) {
+                                              onAddFriend(username = friendModel.addFriendUsername)
+                                              true
+                                          } else false
+                                      },
                                   singleLine = true,
                                   label = { Text(text = getString(R.string.username)) },
                                   isError = friendModel.usernameCaption.isNotBlank(),
@@ -950,9 +966,10 @@ class MainActivity : AppCompatActivity() {
                 Spacer(modifier = Modifier.width(ICON_SPACING))
                 Column(verticalArrangement = Arrangement.Center,
                        horizontalAlignment = Alignment.Start,
-                       modifier = Modifier.semantics(
-                           mergeDescendants = true
-                       ) {}
+                       modifier = Modifier
+                           .semantics(
+                               mergeDescendants = true
+                           ) {}
                            .weight(1f, fill = true)) {
                     Text(
                         text = friend.name,
@@ -1172,7 +1189,7 @@ class MainActivity : AppCompatActivity() {
     public override fun onResume() {
         super.onResume()
 
-        reload()
+        if (!friendModel.waitForLoginResult) reload()
 
         // if Google API isn't available, do this - it's from the docs, should be correct
         if (!checkPlayServices()) return

@@ -121,8 +121,8 @@ class LoginActivity : AppCompatActivity() {
             val password = credential.password
             if (loginViewModel.idToken != null) { // Got an ID token from Google. Use it to authenticate
                 // with your backend.
-                loginViewModel.loginWithGoogle(null, null) {
-                    completeSignIn()
+                loginViewModel.loginWithGoogle(null, null) { token ->
+                    completeSignIn(token)
                 }
                 Log.d(TAG, "Got ID token.")
             } else if (password != null) { // Got a saved username and password. Use them to authenticate
@@ -163,11 +163,12 @@ class LoginActivity : AppCompatActivity() {
             if (loginViewModel.idToken != null) { // Got an ID token from Google. Use it to authenticate
                 // with your backend.
                 Log.d(TAG, "Got ID token.")
-                loginViewModel.linkAccount(snackbarHostState = null,
-                                           coroutineScope = null,
-                                           onLoggedIn = {
-                                               finish()
-                                           })
+                loginViewModel.linkAccount(
+                    snackbarHostState = null,
+                    coroutineScope = null,
+                    onLoggedIn = {
+                        finish()
+                    })
             }
         } catch (e: ApiException) {
             when (e.statusCode) {
@@ -1026,55 +1027,57 @@ class LoginActivity : AppCompatActivity() {
         confirmPasswordFocusRequester: FocusRequester,
         onDone: () -> Unit = {}
     ) {
-        TextField(value = model.confirmPassword,
-                  onValueChange = {
-                      onConfirmPasswordChanged(model, it)
-                  },
-                  visualTransformation = if (model.passwordHidden) PasswordVisualTransformation() else VisualTransformation.None,
-                  trailingIcon = {
-                      if (model.confirmPassword.isNotEmpty()) {
-                          lateinit var visibilityIcon: ImageVector
-                          lateinit var description: String
+        TextField(
+            value = model.confirmPassword,
+            onValueChange = {
+                onConfirmPasswordChanged(model, it)
+            },
+            visualTransformation = if (model.passwordHidden) PasswordVisualTransformation() else VisualTransformation.None,
+            trailingIcon = {
+                if (model.confirmPassword.isNotEmpty()) {
+                    lateinit var visibilityIcon: ImageVector
+                    lateinit var description: String
 
-                          if (model.confirmPassword == model.password) {
-                              description = getString(R.string.passwords_match)
-                              visibilityIcon = Icons.Filled.Check
-                          } else {
-                              description = getString(R.string.passwords_different)
-                              visibilityIcon = Icons.Filled.Error
-                          }
+                    if (model.confirmPassword == model.password) {
+                        description = getString(R.string.passwords_match)
+                        visibilityIcon = Icons.Filled.Check
+                    } else {
+                        description = getString(R.string.passwords_different)
+                        visibilityIcon = Icons.Filled.Error
+                    }
 
-                          Icon(imageVector = visibilityIcon, contentDescription = description)
-                      }
-                  },
-                  label = {
-                      Text(text = getString(R.string.confirm_password))
-                  },
-                  modifier = Modifier
-                      .focusRequester(confirmPasswordFocusRequester)
-                      .onKeyEvent {
-                          if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER || it.nativeKeyEvent.keyCode == KEYCODE_TAB) {
-                              onDone()
-                              true
-                          } else false
-                      },
-                  isError = model.confirmPasswordCaption.isNotBlank(),
-                  singleLine = true,
-                  supportingText = {
+                    Icon(imageVector = visibilityIcon, contentDescription = description)
+                }
+            },
+            label = {
+                Text(text = getString(R.string.confirm_password))
+            },
+            modifier = Modifier
+                .focusRequester(confirmPasswordFocusRequester)
+                .onKeyEvent {
+                    if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER || it.nativeKeyEvent.keyCode == KEYCODE_TAB) {
+                        onDone()
+                        true
+                    } else false
+                },
+            isError = model.confirmPasswordCaption.isNotBlank(),
+            singleLine = true,
+            supportingText = {
 
-                      if (model.confirmPasswordCaption.isNotBlank()) {
-                          Text(
-                              text = model.confirmPasswordCaption, overflow = TextOverflow.Ellipsis
-                          )
-                      }
-                  },
-                  keyboardOptions = KeyboardOptions(
-                      autoCorrect = false,
-                      imeAction = ImeAction.Done,
-                      keyboardType = KeyboardType.Password
-                  ),
-                  keyboardActions = KeyboardActions(onDone = { onDone() }),
-                  enabled = model.uiEnabled)
+                if (model.confirmPasswordCaption.isNotBlank()) {
+                    Text(
+                        text = model.confirmPasswordCaption, overflow = TextOverflow.Ellipsis
+                    )
+                }
+            },
+            keyboardOptions = KeyboardOptions(
+                autoCorrect = false,
+                imeAction = ImeAction.Done,
+                keyboardType = KeyboardType.Password
+            ),
+            keyboardActions = KeyboardActions(onDone = { onDone() }),
+            enabled = model.uiEnabled
+        )
     }
 
     @Composable
@@ -1159,7 +1162,7 @@ class LoginActivity : AppCompatActivity() {
     }
 
 
-    private fun signInWithPassword(username: String, password: String) {
+    private fun signInWithPassword(username: String, password: String, token: String) {
         val signInPassword = SignInPassword(username, password)
         val savePasswordRequest =
             SavePasswordRequest.builder().setSignInPassword(signInPassword).build()
@@ -1169,7 +1172,7 @@ class LoginActivity : AppCompatActivity() {
                     IntentSenderRequest.Builder(result.pendingIntent.intentSender).build()
                 )
             }
-        completeSignIn()
+        completeSignIn(token)
     }
 
     private fun signInWithGoogle(
@@ -1211,8 +1214,11 @@ class LoginActivity : AppCompatActivity() {
             }
     }
 
-    private fun completeSignIn() {
+    private fun completeSignIn(token: String) {
         loginViewModel.setTokenUploaded(false)
+        val result = Intent()
+        result.putExtra(MainViewModel.MY_TOKEN, token)
+        setResult(RESULT_OK, result)
         finish()
     }
 
