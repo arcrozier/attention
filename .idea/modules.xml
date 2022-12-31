@@ -4,7 +4,6 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/Attention!.iml" filepath="$PROJECT_DIR$/.idea/modules/Attention!.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/Attention!.app.iml" filepath="$PROJECT_DIR$/.idea/modules/app/Attention!.app.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/Attention!.app.androidTest.iml" filepath="$PROJECT_DIR$/.idea/modules/app/Attention!.app.androidTest.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/Attention!.app.main.iml" filepath="$PROJECT_DIR$/.idea/modules/app/Attention!.app.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/Attention!.app.unitTest.iml" filepath="$PROJECT_DIR$/.idea/modules/app/Attention!.app.unitTest.iml" />
     </modules>

@@ -85,6 +85,7 @@ import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -95,20 +96,23 @@ class MainActivity : AppCompatActivity() {
     private val friendModel: MainViewModel by viewModels(factoryProducer = {
         MainViewModelFactory(
             AttentionRepository(AttentionDB.getDB(this)),
-            (application as AttentionApplication).container.settingsRepository,
+            (application as AttentionApplication).container.settingsRepository, (application as
+                AttentionApplication).container.applicationScope,
             application as AttentionApplication
         )
     })
 
     class MainViewModelFactory(
-        private val attentionRepository: AttentionRepository,
-        private val preferencesRepository: PreferencesRepository,
-        private val application: AttentionApplication
+            private val attentionRepository: AttentionRepository,
+            private val preferencesRepository: PreferencesRepository,
+            private val applicationScope: CoroutineScope,
+            private val application: AttentionApplication
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(MainViewModel::class.java)) {
-                return MainViewModel(attentionRepository, preferencesRepository, application) as T
+                return MainViewModel(attentionRepository, preferencesRepository, applicationScope,
+                        application) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class")
         }
@@ -132,7 +136,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun launchLogin() {
-        launchLogin(this)
+        friendModel.logout(this)
     }
 
     /**

@@ -225,7 +225,8 @@ class LoginViewModel(
         attentionRepository.getAuthToken(username = username,
                                          password = password,
                                          responseListener = { _, response, _ ->
-                                             if (response.code() != 200 && response.body() != null) uiEnabled =
+                                             if (response.code() != 200 || response.body() ==
+                                             null) uiEnabled =
                                                  true
                                              when (response.code()) {
                                                  200 -> {
