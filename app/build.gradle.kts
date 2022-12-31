@@ -66,7 +66,7 @@ android {
 dependencies {
     val lifecycleVersion = "2.5.1"
 
-    implementation("com.google.firebase:firebase-messaging-ktx:23.1.0")
+    implementation("com.google.firebase:firebase-messaging-ktx:23.1.1")
     implementation("com.google.firebase:firebase-analytics:21.2.0")
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     implementation("androidx.appcompat:appcompat:1.5.1")
@@ -119,7 +119,7 @@ dependencies {
     implementation("androidx.compose.runtime:runtime-livedata:$jetpackComposeVersion")
     implementation("androidx.compose.material:material:$jetpackComposeVersion")
     // Animations
-    implementation("androidx.compose.animation:animation:$jetpackComposeVersion")
+    implementation("androidx.compose.animation:animation:1.3.2")
     implementation("androidx.compose.material:material-icons-extended:$jetpackComposeVersion")
     // Tooling support (Previews, etc.)
     implementation("androidx.compose.ui:ui-tooling:$jetpackComposeVersion")
@@ -152,8 +152,7 @@ dependencies {
     // For sharing
     implementation("androidx.sharetarget:sharetarget:1.2.0")
 
-    val accompanistVersion = "0.27.1"
-    implementation("com.google.accompanist:accompanist-swiperefresh:$accompanistVersion")
+    val accompanistVersion = "0.28.0"
     implementation("com.google.accompanist:accompanist-systemuicontroller:$accompanistVersion")
 
     // Sign in with Google
