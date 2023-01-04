@@ -467,7 +467,7 @@ class SettingsActivity : AppCompatActivity() {
                     title = R.string.confirm_logout_title,
                     titleColor = MaterialTheme.colorScheme.error,
                     summary = null,
-                ) { _, _, dismissDialog, context, title ->
+                ) { _, _, dismissDialog, _, title ->
                     AlertDialog(onDismissRequest = { dismissDialog() }, title = {
                         Text(text = title)
                     }, text = {
