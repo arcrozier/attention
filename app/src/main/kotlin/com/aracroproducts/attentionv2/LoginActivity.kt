@@ -169,6 +169,8 @@ class LoginActivity : AppCompatActivity() {
                     onLoggedIn = {
                         finish()
                     })
+            } else {
+                loginViewModel.passwordCaption = "Error: didn't receive credential"
             }
         } catch (e: ApiException) {
             when (e.statusCode) {
@@ -185,6 +187,8 @@ class LoginActivity : AppCompatActivity() {
                         TAG, "Couldn't get credential from result." + " (${e.localizedMessage})"
                     )
                     e.printStackTrace()
+                    loginViewModel.passwordCaption = "Unable to sign in with Google; an " +
+                                                     "unexpected error occurred"
                 }
             }
         }
@@ -487,6 +491,8 @@ class LoginActivity : AppCompatActivity() {
                 ), modifier = Modifier.fillMaxWidth(0.75f)
             )
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING * 2))
+
+            // TODO test this
             OutlinedButton(onClick = {
                 signInWithGoogle(
                     snackbarHostState, coroutineScope, loginResultHandler

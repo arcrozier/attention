@@ -425,13 +425,6 @@ class SettingsActivity : AppCompatActivity() {
                         )
                     },
                 )
-                Preference(value = null, icon = {
-                    Icon(Icons.Outlined.Password, null)
-                }, title = R.string.password, summary = null, onPreferenceClicked = {
-                    val intent = Intent(this, LoginActivity::class.java)
-                    intent.action = getString(R.string.change_password_action)
-                    startActivity(intent)
-                })
                 val usesPassword by rememberPreference(
                     key = booleanPreferencesKey(
                         getString(
@@ -439,6 +432,16 @@ class SettingsActivity : AppCompatActivity() {
                         )
                     ), defaultValue = true, repository = viewModel.preferencesRepository
                 )
+                Preference(value = null, icon = {
+                    Icon(Icons.Outlined.Password, null)
+                }, title = R.string.password, summary = null, enabled=usesPassword,
+                        onPreferenceClicked = {
+                    val intent = Intent(this, LoginActivity::class.java)
+                    intent.action = getString(R.string.change_password_action)
+                    startActivity(intent)
+                })
+
+                // TODO test this
                 Preference(value = null, icon = { enabled ->
                     Image(
                         painter = painterResource(id = R.drawable.ic_btn_google),

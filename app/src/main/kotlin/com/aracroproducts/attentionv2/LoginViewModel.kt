@@ -69,7 +69,7 @@ class LoginViewModel(
                                              username = username.ifBlank { null },
                                              agree = if (agreedToToS) "yes" else null,
                                              responseListener = { _, response, _ ->
-                                                 if (response.code() != 200 && response.body() != null) uiEnabled =
+                                                 if (response.code() != 200 || response.body() == null) uiEnabled =
                                                      true
                                                  when (response.code()) {
                                                      200 -> {
@@ -225,8 +225,7 @@ class LoginViewModel(
         attentionRepository.getAuthToken(username = username,
                                          password = password,
                                          responseListener = { _, response, _ ->
-                                             if (response.code() != 200 || response.body() ==
-                                             null) uiEnabled =
+                                             if (response.code() != 200 || response.body() == null) uiEnabled =
                                                  true
                                              when (response.code()) {
                                                  200 -> {
@@ -242,9 +241,7 @@ class LoginViewModel(
                                                          val tempPassword = password
                                                          loginFinished(body.token)
                                                          onLoggedIn(
-                                                             tempUsername,
-                                                             tempPassword,
-                                                             body.token
+                                                             tempUsername, tempPassword, body.token
                                                          )
                                                          uiEnabled = true
                                                      }
