@@ -2,7 +2,7 @@ plugins {
     id("com.android.application")
     id("kotlin-android")
     // https://mvnrepository.com/artifact/com.google.devtools.ksp/symbol-processing-api
-    id("com.google.devtools.ksp") version "1.8.0-1.0.8"
+    id("com.google.devtools.ksp") version "1.7.20-1.0.7"
     id("com.google.gms.google-services")
 }
 
@@ -163,7 +163,7 @@ dependencies {
     // image cropping library
     implementation("com.github.yalantis:ucrop:2.2.8")
 
-    implementation("com.google.devtools.ksp:symbol-processing-api:1.8.0-1.0.8")
+    implementation("com.google.devtools.ksp:symbol-processing-api:1.7.20-1.0.7")
 
     // Preferences DataStore (SharedPreferences like APIs)
     implementation("androidx.datastore:datastore-preferences:1.0.0")

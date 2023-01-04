@@ -13,22 +13,17 @@
           "package_name": "com.aracroproducts.attention"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "357995852275-0udn3v1auklkvh573710h22a7upm2cbi.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyA5ljTAlRg0h45nWMSGeMwibmIp-NW1M3Y"
+          "current_key": "AIzaSyAGiMvaCCUzsHQiQaEgab5-5McIdLMDuK4"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "357995852275-0udn3v1auklkvh573710h22a7upm2cbi.apps.googleusercontent.com",
+              "client_id": "357995852275-tcfjuvtbrk3c57t5gsuc9a9jdfdn137s.apps.googleusercontent.com",
               "client_type": 3
             }
           ]
@@ -58,22 +53,18 @@
             "package_name": "com.aracroproducts.attentionv2",
             "certificate_hash": "b38df2ed5af683d66003746ddadf08d6e2b324a5"
           }
-        },
-        {
-          "client_id": "357995852275-0udn3v1auklkvh573710h22a7upm2cbi.apps.googleusercontent.com",
-          "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyA5ljTAlRg0h45nWMSGeMwibmIp-NW1M3Y"
+          "current_key": "AIzaSyAGiMvaCCUzsHQiQaEgab5-5McIdLMDuK4"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "357995852275-0udn3v1auklkvh573710h22a7upm2cbi.apps.googleusercontent.com",
+              "client_id": "357995852275-tcfjuvtbrk3c57t5gsuc9a9jdfdn137s.apps.googleusercontent.com",
               "client_type": 3
             }
           ]
