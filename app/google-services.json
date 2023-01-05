@@ -8,30 +8,6 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:357995852275:android:b33c8c78bd82e9dc5f2286",
-        "android_client_info": {
-          "package_name": "com.aracroproducts.attention"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyAGiMvaCCUzsHQiQaEgab5-5McIdLMDuK4"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "357995852275-tcfjuvtbrk3c57t5gsuc9a9jdfdn137s.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
-        }
-      }
-    },
-    {
-      "client_info": {
         "mobilesdk_app_id": "1:357995852275:android:81433d8dcdd982cf5f2286",
         "android_client_info": {
           "package_name": "com.aracroproducts.attentionv2"
