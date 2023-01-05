@@ -116,12 +116,12 @@ class LoginActivity : AppCompatActivity() {
         try {
             credential = oneTapClient?.getSignInCredentialFromIntent(result.data)
                          ?: return@registerForActivityResult
-            loginViewModel.idToken = credential.googleIdToken
+            val idToken = credential.googleIdToken
             val username = credential.id
             val password = credential.password
-            if (loginViewModel.idToken != null) { // Got an ID token from Google. Use it to authenticate
+            if (idToken != null) { // Got an ID token from Google. Use it to authenticate
                 // with your backend.
-                loginViewModel.loginWithGoogle(null, null) { token ->
+                loginViewModel.loginWithGoogle(null, null, idToken) { token ->
                     completeSignIn(token)
                 }
                 Log.d(TAG, "Got ID token.")
@@ -159,13 +159,14 @@ class LoginActivity : AppCompatActivity() {
         try {
             credential = oneTapClient?.getSignInCredentialFromIntent(result.data)
                          ?: return@registerForActivityResult
-            loginViewModel.idToken = credential.googleIdToken
-            if (loginViewModel.idToken != null) { // Got an ID token from Google. Use it to authenticate
+            val idToken = credential.googleIdToken
+            if (idToken != null) { // Got an ID token from Google. Use it to authenticate
                 // with your backend.
                 Log.d(TAG, "Got ID token.")
                 loginViewModel.linkAccount(
                     snackbarHostState = null,
                     coroutineScope = null,
+                    idToken = idToken,
                     onLoggedIn = {
                         finish()
                     })
@@ -336,7 +337,7 @@ class LoginActivity : AppCompatActivity() {
                           context = this@LoginActivity,
                           imeAction = ImeAction.Done,
                           onDone = {
-                              model.loginWithGoogle(snackbarHostState, coroutineScope) {
+                              model.loginWithGoogle(snackbarHostState, coroutineScope, null) {
                                   finish()
                               }
                           })
@@ -345,7 +346,7 @@ class LoginActivity : AppCompatActivity() {
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             Button(
                 onClick = {
-                    model.loginWithGoogle(snackbarHostState, coroutineScope) {
+                    model.loginWithGoogle(snackbarHostState, coroutineScope, null) {
                         finish()
                     }
                 }, enabled = model.uiEnabled, modifier = Modifier.requiredHeight(56.dp)

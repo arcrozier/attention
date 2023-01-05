@@ -29,7 +29,7 @@ class LoginViewModel(
         LOGIN, CREATE_USER, CHANGE_PASSWORD, CHOOSE_USERNAME, LINK_ACCOUNT
     }
 
-    var idToken: String? = null
+    private var savedIdToken: String? = null
     var showOneTapUI = true
     var login by mutableStateOf(State.LOGIN)
 
@@ -53,10 +53,13 @@ class LoginViewModel(
     fun loginWithGoogle(
         snackbarHostState: SnackbarHostState?,
         coroutineScope: CoroutineScope?,
+        idToken: String?,
         onLoggedIn: (token: String) -> Unit
     ) {
-        val localIdToken = idToken ?: throw IllegalStateException("idToken was null")
+        val localIdToken = idToken ?: savedIdToken ?: throw IllegalStateException("idToken was null")
+        savedIdToken = localIdToken
         uiEnabled = false
+        login = State.CHOOSE_USERNAME
 
         if (username.isNotBlank() && !agreedToToS) {
             checkboxError = true
@@ -98,8 +101,11 @@ class LoginViewModel(
                                                          } else usernameCaption =
                                                              context.getString(R.string.username_in_use)
                                                      }
-                                                     401 -> { // need to provide a username
-                                                         login = State.CHOOSE_USERNAME
+                                                     401 -> {
+                                                         Log.d(sTAG, "Selecting username")
+                                                     }
+                                                     403 -> {
+                                                         Log.e(sTAG, "Bad Google token: $idToken")
                                                      }
                                                      else -> {
                                                          genericErrorHandling(
@@ -140,9 +146,9 @@ class LoginViewModel(
     fun linkAccount(
         snackbarHostState: SnackbarHostState?,
         coroutineScope: CoroutineScope?,
+        idToken: String,
         onLoggedIn: () -> Unit
     ) {
-        val localIdToken = idToken ?: throw IllegalStateException("idToken was null")
         uiEnabled = false
         val context = getApplication<Application>()
 
@@ -161,7 +167,7 @@ class LoginViewModel(
                 uiEnabled = true
                 return@launch
             }
-            attentionRepository.linkGoogleAccount(googleToken = localIdToken,
+            attentionRepository.linkGoogleAccount(googleToken = idToken,
                                                   password = password,
                                                   token = token,
                                                   responseListener = { _, response, _ ->
