@@ -1,8 +1,5 @@
 package com.aracroproducts.attentionv2
 
-import android.content.Context
-import android.content.Intent
-import androidx.core.content.pm.ShortcutManagerCompat
 import kotlin.math.min
 
 
@@ -16,10 +13,4 @@ fun filterSpecialChars(string: String): String {
     return string.filter { letter ->
         letter != '\n' && letter != '\t' && letter != '\r'
     }
-}
-
-fun launchLogin(context: Context) {
-    ShortcutManagerCompat.removeAllDynamicShortcuts(context)
-    val loginIntent = Intent(context, LoginActivity::class.java)
-    context.startActivity(loginIntent)
 }

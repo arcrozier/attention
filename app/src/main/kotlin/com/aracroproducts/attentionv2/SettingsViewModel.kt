@@ -17,15 +17,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.IntSize
-import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.aracroproducts.attentionv2.MainViewModel.Companion.MY_TOKEN
 import com.aracroproducts.attentionv2.MainViewModel.Companion.PFP_FILENAME
-import com.aracroproducts.attentionv2.MainViewModel.Companion.TOKEN_UPLOADED
 import kotlinx.coroutines.*
 import java.io.File
 import java.io.FileNotFoundException
@@ -47,6 +44,9 @@ class SettingsViewModel(
         val actionLabel: String? = null,
         val duration: SnackbarDuration = SnackbarDuration.Short
     )
+
+    private val sharedViewModel = SharedViewModel(repository, preferencesRepository,
+            applicationScope, application)
 
     var outstandingRequests by mutableStateOf(0)
 
@@ -80,16 +80,6 @@ class SettingsViewModel(
         }
     }
 
-    private fun clearAllDatabaseTables() = repository.clearTables()
-
-    private fun unregisterDevice(token: String, fcmToken: String) {
-        repository.unregisterDevice(token = token, fcmToken = fcmToken)
-
-        viewModelScope.launch {
-            preferencesRepository.setValue(booleanPreferencesKey(TOKEN_UPLOADED), false)
-        }
-
-    }
 
     suspend fun getImageBitmap(
         uri: Uri, context: Context, size: IntSize, minSize: Boolean
@@ -140,7 +130,7 @@ class SettingsViewModel(
         return job.await()
     }
 
-    fun uploadImage(uri: Uri, context: Context, launchLogin: () -> Unit) {
+    fun uploadImage(uri: Uri, context: Activity) {
         if (!uploadLock.tryLock()) {
             assert(uploading)
             return
@@ -210,7 +200,8 @@ class SettingsViewModel(
                                                             }
                                                             403 -> {
                                                                 uploadDialog = false
-                                                                launchLogin()
+                                                                sharedViewModel.logout(context,
+                                                                        context)
                                                             }
                                                             413 -> {
                                                                 shouldRetryUpload = false
@@ -257,7 +248,7 @@ class SettingsViewModel(
                     uploadLock.unlock()
                 }
             } else {
-                launchLogin()
+                sharedViewModel.logout(context, context)
                 uploadLock.unlock()
                 uploadDialog = false
                 uploading = false
@@ -271,49 +262,8 @@ class SettingsViewModel(
         }
     }
 
-    fun logout(context: Context) {
-        applicationScope.launch {
-            preferencesRepository.let {
-                unregisterDevice(
-                    it.getValue(stringPreferencesKey(MY_TOKEN), ""),
-                    it.getValue(stringPreferencesKey(MainViewModel.FCM_TOKEN), "")
-                )
-            }
-            preferencesRepository.bulkEdit { settings ->
-                settings.remove(stringPreferencesKey(MY_TOKEN))
-                settings.remove(
-                    stringPreferencesKey(
-                        context.getString(
-                            R.string.username_key
-                        )
-                    )
-                )
-                settings.remove(
-                    stringPreferencesKey(
-                        context.getString(
-                            R.string.first_name_key
-                        )
-                    )
-                )
-                settings.remove(
-                    stringPreferencesKey(
-                        context.getString(
-                            R.string.last_name_key
-                        )
-                    )
-                )
-                settings.remove(
-                    stringPreferencesKey(
-                        context.getString(
-                            R.string.email_key
-                        )
-                    )
-                )
-            }
-            clearAllDatabaseTables()
-            ShortcutManagerCompat.removeAllDynamicShortcuts(getApplication())
-        }
-    }
+    fun logout(context: Activity) = sharedViewModel.logout(context, context)
+
 
     fun changeUsername(
         newValue: String,
@@ -321,7 +271,7 @@ class SettingsViewModel(
         setUsernameCaption: (String) -> Unit,
         setStatus: (error: Boolean, loading: Boolean) -> Unit,
         dismissDialog: () -> Unit,
-        context: Context
+        context: Activity
     ) {
         viewModelScope.launch {
             val token = preferencesRepository.getValue(stringPreferencesKey(MY_TOKEN))
@@ -350,9 +300,7 @@ class SettingsViewModel(
                                         403 -> {
                                             setUsernameCaption("")
                                             dismissDialog()
-                                            launchLogin(
-                                                context
-                                            )
+                                            sharedViewModel.logout(context, context)
                                         }
                                         else -> {
                                             setUsernameCaption(
@@ -418,7 +366,7 @@ class SettingsViewModel(
                     R.string.invalid_email
                 }
                 403 -> {
-                    launchLogin(context)
+                    sharedViewModel.logout(context)
                     R.string.confirm_logout_title
                 }
                 429 -> {
@@ -500,7 +448,7 @@ class SettingsViewModel(
                         }
                     }
                 } else {
-                    launchLogin(context)
+                    sharedViewModel.logout(context, context)
                 }
             }
             return false

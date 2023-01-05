@@ -13,8 +13,8 @@ android {
         applicationId = "com.aracroproducts.attentionv2"
         minSdk = 24
         targetSdk = 33
-        versionCode = 33
-        versionName = "2.1.4"
+        versionCode = 34
+        versionName = "2.1.5-beta-1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -66,7 +66,7 @@ android {
 dependencies {
     val lifecycleVersion = "2.5.1"
 
-    implementation("com.google.firebase:firebase-messaging-ktx:23.1.0")
+    implementation("com.google.firebase:firebase-messaging-ktx:23.1.1")
     implementation("com.google.firebase:firebase-analytics:21.2.0")
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     implementation("androidx.appcompat:appcompat:1.5.1")
@@ -74,8 +74,8 @@ dependencies {
     implementation("androidx.navigation:navigation-ui-ktx:2.5.3")
     implementation("androidx.preference:preference-ktx:1.2.0")
     testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test.ext:junit:1.1.4")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.0")
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
     implementation("androidx.core:core-ktx:1.9.0")
     implementation("androidx.core:core-google-shortcuts:1.1.0")
 
@@ -116,20 +116,20 @@ dependencies {
     // Integration with activities
     implementation("androidx.activity:activity-compose:1.6.1")
     // Compose Material Design
-    implementation("androidx.compose.runtime:runtime-livedata:$jetpackComposeVersion")
+    implementation("androidx.compose.runtime:runtime-livedata:1.3.2")
     implementation("androidx.compose.material:material:$jetpackComposeVersion")
     // Animations
-    implementation("androidx.compose.animation:animation:$jetpackComposeVersion")
+    implementation("androidx.compose.animation:animation:1.3.2")
     implementation("androidx.compose.material:material-icons-extended:$jetpackComposeVersion")
     // Tooling support (Previews, etc.)
-    implementation("androidx.compose.ui:ui-tooling:$jetpackComposeVersion")
+    implementation("androidx.compose.ui:ui-tooling:1.3.2")
     // Integration with ViewModels
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:$lifecycleVersion")
     // UI Tests
 
 
     val composeMaterialVersion = "1.0.1"
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4:$jetpackComposeVersion")
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.3.2")
     implementation("androidx.compose.material3:material3:$composeMaterialVersion")
     implementation("androidx.compose.material3:material3-window-size-class:$composeMaterialVersion")
 
@@ -152,8 +152,7 @@ dependencies {
     // For sharing
     implementation("androidx.sharetarget:sharetarget:1.2.0")
 
-    val accompanistVersion = "0.27.1"
-    implementation("com.google.accompanist:accompanist-swiperefresh:$accompanistVersion")
+    val accompanistVersion = "0.28.0"
     implementation("com.google.accompanist:accompanist-systemuicontroller:$accompanistVersion")
 
     // Sign in with Google
@@ -164,7 +163,7 @@ dependencies {
     // image cropping library
     implementation("com.github.yalantis:ucrop:2.2.8")
 
-    implementation("com.google.devtools.ksp:symbol-processing-api:1.7.21-1.0.8")
+    implementation("com.google.devtools.ksp:symbol-processing-api:1.7.20-1.0.7")
 
     // Preferences DataStore (SharedPreferences like APIs)
     implementation("androidx.datastore:datastore-preferences:1.0.0")

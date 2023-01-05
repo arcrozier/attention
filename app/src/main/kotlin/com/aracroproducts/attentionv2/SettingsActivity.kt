@@ -1,5 +1,6 @@
 package com.aracroproducts.attentionv2
 
+import android.app.Activity
 import android.app.Application
 import android.app.NotificationManager
 import android.content.Context
@@ -109,7 +110,7 @@ class SettingsActivity : AppCompatActivity() {
         result.data?.let { data ->
             val uri = UCrop.getOutput(data) ?: return@let
             assert(uri == Uri.fromFile(File(filesDir, TEMP_PFP)))
-            viewModel.uploadImage(uri, this) { launchLogin(this) }
+            viewModel.uploadImage(uri, this)
         }
     }
 
@@ -424,13 +425,6 @@ class SettingsActivity : AppCompatActivity() {
                         )
                     },
                 )
-                Preference(value = null, icon = {
-                    Icon(Icons.Outlined.Password, null)
-                }, title = R.string.password, summary = null, onPreferenceClicked = {
-                    val intent = Intent(this, LoginActivity::class.java)
-                    intent.action = getString(R.string.change_password_action)
-                    startActivity(intent)
-                })
                 val usesPassword by rememberPreference(
                     key = booleanPreferencesKey(
                         getString(
@@ -438,6 +432,15 @@ class SettingsActivity : AppCompatActivity() {
                         )
                     ), defaultValue = true, repository = viewModel.preferencesRepository
                 )
+                Preference(value = null, icon = {
+                    Icon(Icons.Outlined.Password, null)
+                }, title = R.string.password, summary = null, enabled=usesPassword,
+                        onPreferenceClicked = {
+                    val intent = Intent(this, LoginActivity::class.java)
+                    intent.action = getString(R.string.change_password_action)
+                    startActivity(intent)
+                })
+
                 Preference(value = null, icon = { enabled ->
                     Image(
                         painter = painterResource(id = R.drawable.ic_btn_google),
@@ -463,7 +466,7 @@ class SettingsActivity : AppCompatActivity() {
                     title = R.string.confirm_logout_title,
                     titleColor = MaterialTheme.colorScheme.error,
                     summary = null,
-                ) { _, _, dismissDialog, context, title ->
+                ) { _, _, dismissDialog, _, title ->
                     AlertDialog(onDismissRequest = { dismissDialog() }, title = {
                         Text(text = title)
                     }, text = {
@@ -476,11 +479,6 @@ class SettingsActivity : AppCompatActivity() {
                                 val oneTapClient = Identity.getSignInClient(this)
                                 oneTapClient.signOut()
                                 finish()
-                                context.startActivity(
-                                    Intent(
-                                        context, LoginActivity::class.java
-                                    )
-                                )
                                 dismissDialog()
                             }, colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.error,
@@ -863,16 +861,16 @@ class SettingsActivity : AppCompatActivity() {
     @OptIn(ExperimentalComposeUiApi::class, ExperimentalAnimationApi::class)
     @Composable
     fun UploadDialog(
-        uploading: Boolean,
-        uploadStatus: String,
-        shouldRetry: Boolean,
-        uploadSuccess: Boolean?,
-        uploadSuccessCallback: (Boolean?) -> Unit,
-        uploadProgress: Float,
-        onCancel: (() -> Unit)?,
-        dismissDialog: () -> Unit,
-        retry: (Uri, Context, () -> Unit) -> Unit,
-        uri: Uri?
+            uploading: Boolean,
+            uploadStatus: String,
+            shouldRetry: Boolean,
+            uploadSuccess: Boolean?,
+            uploadSuccessCallback: (Boolean?) -> Unit,
+            uploadProgress: Float,
+            onCancel: (() -> Unit)?,
+            dismissDialog: () -> Unit,
+            retry: (Uri, Activity) -> Unit,
+            uri: Uri?
     ) {
         var bitmap: ImageBitmap? by remember {
             mutableStateOf(null)
@@ -889,9 +887,7 @@ class SettingsActivity : AppCompatActivity() {
             if (!uploading) {
                 if (shouldRetry && uri != null) {
                     OutlinedButton(onClick = {
-                        retry(uri, this) {
-                            launchLogin(this)
-                        }
+                        retry(uri, this)
                     }) {
                         Text(text = getString(R.string.retry))
                     }

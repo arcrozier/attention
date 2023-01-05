@@ -40,6 +40,7 @@ import java.io.IOException
 class MainViewModel(
     private val attentionRepository: AttentionRepository,
     private val preferencesRepository: PreferencesRepository,
+    applicationScope: CoroutineScope,
     private val application: AttentionApplication
 ) : ViewModel() {
 
@@ -53,6 +54,9 @@ class MainViewModel(
         }
 
     }
+
+    private val sharedViewModel = SharedViewModel(attentionRepository, preferencesRepository,
+            applicationScope, application)
 
     sealed class DialogStatus(val priority: Int) {
         sealed class FriendStatus(val friend: Friend, priority: Int) : DialogStatus(priority)
@@ -122,6 +126,9 @@ class MainViewModel(
             0
         }
     }
+
+    fun logout(context: Context, launchLoginActivity: Boolean = true) =
+        sharedViewModel.logout(context, launchLoginActivity = launchLoginActivity)
 
     /**
      * Called to get the next expected dialog state

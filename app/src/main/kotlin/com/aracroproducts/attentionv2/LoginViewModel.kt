@@ -29,7 +29,7 @@ class LoginViewModel(
         LOGIN, CREATE_USER, CHANGE_PASSWORD, CHOOSE_USERNAME, LINK_ACCOUNT
     }
 
-    var idToken: String? = null
+    private var savedIdToken: String? = null
     var showOneTapUI = true
     var login by mutableStateOf(State.LOGIN)
 
@@ -53,10 +53,13 @@ class LoginViewModel(
     fun loginWithGoogle(
         snackbarHostState: SnackbarHostState?,
         coroutineScope: CoroutineScope?,
+        idToken: String?,
         onLoggedIn: (token: String) -> Unit
     ) {
-        val localIdToken = idToken ?: throw IllegalStateException("idToken was null")
+        val localIdToken = idToken ?: savedIdToken ?: throw IllegalStateException("idToken was null")
+        savedIdToken = localIdToken
         uiEnabled = false
+        login = State.CHOOSE_USERNAME
 
         if (username.isNotBlank() && !agreedToToS) {
             checkboxError = true
@@ -69,7 +72,7 @@ class LoginViewModel(
                                              username = username.ifBlank { null },
                                              agree = if (agreedToToS) "yes" else null,
                                              responseListener = { _, response, _ ->
-                                                 if (response.code() != 200 && response.body() != null) uiEnabled =
+                                                 if (response.code() != 200 || response.body() == null) uiEnabled =
                                                      true
                                                  when (response.code()) {
                                                      200 -> {
@@ -98,8 +101,11 @@ class LoginViewModel(
                                                          } else usernameCaption =
                                                              context.getString(R.string.username_in_use)
                                                      }
-                                                     401 -> { // need to provide a username
-                                                         login = State.CHOOSE_USERNAME
+                                                     401 -> {
+                                                         Log.d(sTAG, "Selecting username")
+                                                     }
+                                                     403 -> {
+                                                         Log.e(sTAG, "Bad Google token: $idToken")
                                                      }
                                                      else -> {
                                                          genericErrorHandling(
@@ -140,16 +146,16 @@ class LoginViewModel(
     fun linkAccount(
         snackbarHostState: SnackbarHostState?,
         coroutineScope: CoroutineScope?,
+        idToken: String,
         onLoggedIn: () -> Unit
     ) {
-        val localIdToken = idToken ?: throw IllegalStateException("idToken was null")
-        uiEnabled = false
         val context = getApplication<Application>()
 
         if (password.isBlank()) {
             passwordCaption = context.getString(R.string.wrong_password)
             return
         }
+        uiEnabled = false
 
         viewModelScope.launch {
 
@@ -161,7 +167,7 @@ class LoginViewModel(
                 uiEnabled = true
                 return@launch
             }
-            attentionRepository.linkGoogleAccount(googleToken = localIdToken,
+            attentionRepository.linkGoogleAccount(googleToken = idToken,
                                                   password = password,
                                                   token = token,
                                                   responseListener = { _, response, _ ->
@@ -190,6 +196,25 @@ class LoginViewModel(
                                                                   sTAG,
                                                                   response.errorBody().toString()
                                                               )
+                                                              passwordCaption = context.getString(R.string
+                                                                                        .google_account_in_use)
+                                                          }
+                                                          403 -> {
+                                                              val errorBody = response.errorBody().toString()
+                                                              when {
+                                                                  errorBody.contains("password")
+                                                                  -> {
+                                                                      passwordCaption = context
+                                                                          .getString(R.string.wrong_password)
+                                                                  }
+                                                                  errorBody.contains("google",
+                                                                                     true) -> {
+                                                                                         passwordCaption = context.getString(R.string.google_sign_in_failed)
+                                                                                     }
+                                                                  else -> {
+                                                                      login = State.LOGIN
+                                                                  }
+                                                              }
                                                           }
                                                           else -> {
                                                               genericErrorHandling(
@@ -225,7 +250,7 @@ class LoginViewModel(
         attentionRepository.getAuthToken(username = username,
                                          password = password,
                                          responseListener = { _, response, _ ->
-                                             if (response.code() != 200 && response.body() != null) uiEnabled =
+                                             if (response.code() != 200 || response.body() == null) uiEnabled =
                                                  true
                                              when (response.code()) {
                                                  200 -> {
@@ -241,9 +266,7 @@ class LoginViewModel(
                                                          val tempPassword = password
                                                          loginFinished(body.token)
                                                          onLoggedIn(
-                                                             tempUsername,
-                                                             tempPassword,
-                                                             body.token
+                                                             tempUsername, tempPassword, body.token
                                                          )
                                                          uiEnabled = true
                                                      }
