@@ -94,7 +94,7 @@ class LoginActivity : AppCompatActivity() {
         )
     })
 
-    private val oneTapClient: SignInClient = Identity.getSignInClient(this)
+    private lateinit var oneTapClient: SignInClient
 
     private val passwordSaveResultHandler = registerForActivityResult(
         ActivityResultContracts.StartIntentSenderForResult()
@@ -210,6 +210,7 @@ class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        oneTapClient = Identity.getSignInClient(this)
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 when (loginViewModel.login) {
@@ -501,7 +502,6 @@ class LoginActivity : AppCompatActivity() {
             )
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING * 2))
 
-            // TODO test this
             OutlinedButton(onClick = {
                 signInWithGoogle(
                     snackbarHostState, coroutineScope, loginResultHandler
@@ -695,7 +695,8 @@ class LoginActivity : AppCompatActivity() {
 
         val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
         Scaffold(topBar = {
-            if (model.login == LoginViewModel.State.CHANGE_PASSWORD || model.login == LoginViewModel.State.CHOOSE_USERNAME) {
+            if (model.login == LoginViewModel.State.CHANGE_PASSWORD || model.login ==
+                LoginViewModel.State.CHOOSE_USERNAME || model.login == LoginViewModel.State.LINK_ACCOUNT) {
                 TopAppBar(colors = TopAppBarDefaults.smallTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary

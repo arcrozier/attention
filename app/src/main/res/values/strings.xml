@@ -127,6 +127,7 @@
     <string name="yes">Yes</string>
     <string name="add_friend">Add new friend</string>
     <string name="link_account">Link Google Account</string>
+    <string name="google_account_in_use">There is already a user with this Google account</string>
 
     <string name="friend_card_click_label">choose from alert options</string>
     <string name="friend_card_long_click_label">edit or remove friend</string>

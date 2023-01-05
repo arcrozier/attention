@@ -441,7 +441,6 @@ class SettingsActivity : AppCompatActivity() {
                     startActivity(intent)
                 })
 
-                // TODO test this
                 Preference(value = null, icon = { enabled ->
                     Image(
                         painter = painterResource(id = R.drawable.ic_btn_google),

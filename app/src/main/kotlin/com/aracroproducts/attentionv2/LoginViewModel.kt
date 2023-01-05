@@ -149,13 +149,13 @@ class LoginViewModel(
         idToken: String,
         onLoggedIn: () -> Unit
     ) {
-        uiEnabled = false
         val context = getApplication<Application>()
 
         if (password.isBlank()) {
             passwordCaption = context.getString(R.string.wrong_password)
             return
         }
+        uiEnabled = false
 
         viewModelScope.launch {
 
@@ -196,6 +196,25 @@ class LoginViewModel(
                                                                   sTAG,
                                                                   response.errorBody().toString()
                                                               )
+                                                              passwordCaption = context.getString(R.string
+                                                                                        .google_account_in_use)
+                                                          }
+                                                          403 -> {
+                                                              val errorBody = response.errorBody().toString()
+                                                              when {
+                                                                  errorBody.contains("password")
+                                                                  -> {
+                                                                      passwordCaption = context
+                                                                          .getString(R.string.wrong_password)
+                                                                  }
+                                                                  errorBody.contains("google",
+                                                                                     true) -> {
+                                                                                         passwordCaption = context.getString(R.string.google_sign_in_failed)
+                                                                                     }
+                                                                  else -> {
+                                                                      login = State.LOGIN
+                                                                  }
+                                                              }
                                                           }
                                                           else -> {
                                                               genericErrorHandling(
