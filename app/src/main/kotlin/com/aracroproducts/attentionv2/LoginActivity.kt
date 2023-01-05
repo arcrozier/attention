@@ -94,7 +94,7 @@ class LoginActivity : AppCompatActivity() {
         )
     })
 
-    private var oneTapClient: SignInClient? = null
+    private val oneTapClient: SignInClient = Identity.getSignInClient(this)
 
     private val passwordSaveResultHandler = registerForActivityResult(
         ActivityResultContracts.StartIntentSenderForResult()
@@ -114,8 +114,7 @@ class LoginActivity : AppCompatActivity() {
         loginViewModel.uiEnabled = true // handle intent result here
         val credential: SignInCredential?
         try {
-            credential = oneTapClient?.getSignInCredentialFromIntent(result.data)
-                         ?: return@registerForActivityResult
+            credential = oneTapClient.getSignInCredentialFromIntent(result.data)
             val idToken = credential.googleIdToken
             val username = credential.id
             val password = credential.password
@@ -157,8 +156,7 @@ class LoginActivity : AppCompatActivity() {
         loginViewModel.uiEnabled = true // handle intent result here
         val credential: SignInCredential?
         try {
-            credential = oneTapClient?.getSignInCredentialFromIntent(result.data)
-                         ?: return@registerForActivityResult
+            credential = Identity.getSignInClient(this).getSignInCredentialFromIntent(result.data)
             val idToken = credential.googleIdToken
             if (idToken != null) { // Got an ID token from Google. Use it to authenticate
                 // with your backend.
@@ -234,7 +232,6 @@ class LoginActivity : AppCompatActivity() {
         } else if (intent.action == getString(R.string.link_account_action)) {
             loginViewModel.login = LoginViewModel.State.LINK_ACCOUNT
         } else if (loginViewModel.showOneTapUI) {
-            oneTapClient = Identity.getSignInClient(this)
             val signInRequest = BeginSignInRequest.builder().setPasswordRequestOptions(
                 BeginSignInRequest.PasswordRequestOptions.builder().setSupported(true).build()
             ).setGoogleIdTokenRequestOptions(
@@ -249,7 +246,7 @@ class LoginActivity : AppCompatActivity() {
                     .setFilterByAuthorizedAccounts(true).build()
             ) // Automatically sign in when exactly one credential is retrieved.
                 .setAutoSelectEnabled(true).build()
-            oneTapClient?.beginSignIn(signInRequest)?.addOnSuccessListener(this) { result ->
+            oneTapClient.beginSignIn(signInRequest).addOnSuccessListener(this) { result ->
                 try {
                     loginResultHandler.launch(
                         IntentSenderRequest.Builder(result.pendingIntent.intentSender).build()
@@ -257,7 +254,7 @@ class LoginActivity : AppCompatActivity() {
                 } catch (e: SendIntentException) {
                     Log.e(TAG, "Couldn't start One Tap UI: ${e.localizedMessage}")
                 }
-            }?.addOnFailureListener(
+            }.addOnFailureListener(
                 this
             ) { e -> // No Google Accounts found. Try to create an account
                 e.localizedMessage?.let { Log.d(TAG, it) }
@@ -273,7 +270,7 @@ class LoginActivity : AppCompatActivity() {
                         .setFilterByAuthorizedAccounts(false).build()
                 ).build()
 
-                oneTapClient?.beginSignIn(signUpRequest)?.addOnSuccessListener(this) { result ->
+                oneTapClient.beginSignIn(signUpRequest).addOnSuccessListener(this) { result ->
                     try {
                         loginResultHandler.launch(
                             IntentSenderRequest.Builder(
@@ -285,7 +282,7 @@ class LoginActivity : AppCompatActivity() {
                             TAG, "Couldn't start One Tap UI: ${e.localizedMessage}"
                         )
                     }
-                }?.addOnFailureListener(
+                }.addOnFailureListener(
                     this
                 ) { e1 -> // No Google Accounts found. Just continue presenting the signed-out UI.
                     e1.localizedMessage?.let { Log.d(TAG, it) }
@@ -331,7 +328,7 @@ class LoginActivity : AppCompatActivity() {
             UsernameField(value = model.username,
                           onValueChanged = { onUsernameChanged(model, it) },
                           newUsername = true,
-                          error = model.passwordCaption.isNotBlank(),
+                          error = model.usernameCaption.isNotBlank(),
                           caption = model.usernameCaption,
                           enabled = model.uiEnabled,
                           context = this@LoginActivity,
@@ -391,8 +388,13 @@ class LoginActivity : AppCompatActivity() {
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             PasswordField(
                 model = model,
-                snackbarHostState = snackbarHostState,
-                coroutineScope = coroutineScope,
+                done = {
+                    model.login(
+                        snackbarHostState = snackbarHostState,
+                        scope = coroutineScope,
+                        onLoggedIn = ::signInWithPassword
+                    )
+                },
                 imeAction = ImeAction.Next,
                 nextFocusRequester = confirmPasswordFocusRequester,
                 currentFocusRequester = passwordFocusRequester
@@ -464,7 +466,13 @@ class LoginActivity : AppCompatActivity() {
                 context = this@LoginActivity
             )
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
-            PasswordField(model, snackbarHostState, coroutineScope, ImeAction.Done)
+            PasswordField(model, ImeAction.Done, {
+                model.login(
+                    snackbarHostState = snackbarHostState,
+                    scope = coroutineScope,
+                    onLoggedIn = ::signInWithPassword
+                )
+            })
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             Button(
                 onClick = {
@@ -561,8 +569,13 @@ class LoginActivity : AppCompatActivity() {
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             PasswordField(
                 model = model,
-                snackbarHostState = snackbarHostState,
-                coroutineScope = coroutineScope,
+                done = {
+                    model.login(
+                        snackbarHostState = snackbarHostState,
+                        scope = coroutineScope,
+                        onLoggedIn = ::signInWithPassword
+                    )
+                },
                 imeAction = ImeAction.Next,
                 nextFocusRequester = confirmPasswordFocusRequester
             )
@@ -639,8 +652,11 @@ class LoginActivity : AppCompatActivity() {
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING * 2))
             PasswordField(
                 model = model,
-                snackbarHostState = snackbarHostState,
-                coroutineScope = coroutineScope,
+                done = {
+                    signInWithGoogle(
+                        snackbarHostState, coroutineScope, linkResultHandler
+                    )
+                },
                 imeAction = ImeAction.Done
             )
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
@@ -947,19 +963,11 @@ class LoginActivity : AppCompatActivity() {
     @Composable
     fun PasswordField(
         model: LoginViewModel,
-        snackbarHostState: SnackbarHostState,
-        coroutineScope: CoroutineScope,
         imeAction: ImeAction,
+        done: (() -> Unit)? = null,
         nextFocusRequester: FocusRequester? = null,
         currentFocusRequester: FocusRequester? = null
     ) {
-        fun done() {
-            model.login(
-                snackbarHostState = snackbarHostState,
-                scope = coroutineScope,
-                onLoggedIn = ::signInWithPassword
-            )
-        }
 
         TextField(value = model.password,
                   onValueChange = {
@@ -975,7 +983,7 @@ class LoginActivity : AppCompatActivity() {
                           if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER || it.nativeKeyEvent.keyCode == KEYCODE_TAB) {
                               when (imeAction) {
                                   ImeAction.Done -> {
-                                      done()
+                                      done?.invoke()
                                   }
                                   ImeAction.Next -> {
                                       nextFocusRequester?.requestFocus()
@@ -1014,7 +1022,7 @@ class LoginActivity : AppCompatActivity() {
                   },
                   keyboardActions = KeyboardActions(onDone = {
                       if (imeAction == ImeAction.Done) {
-                          done()
+                          done?.invoke()
                       }
                   }, onNext = {
                       if (imeAction == ImeAction.Next) {
