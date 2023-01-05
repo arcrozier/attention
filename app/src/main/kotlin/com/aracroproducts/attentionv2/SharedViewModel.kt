@@ -30,7 +30,7 @@ class SharedViewModel(
 
     private fun clearAllDatabaseTables() = repository.clearTables()
 
-    fun logout(context: Context, activity: Activity? = null) {
+    fun logout(context: Context, activity: Activity? = null, launchLoginActivity: Boolean = true) {
         applicationScope.launch {
             preferencesRepository.let {
                 unregisterDevice(
@@ -73,11 +73,13 @@ class SharedViewModel(
             ShortcutManagerCompat.removeAllDynamicShortcuts(getApplication())
 
             activity?.finish()
-            context.startActivity(
+            if (launchLoginActivity) {
+                context.startActivity(
                     Intent(
-                            context, LoginActivity::class.java
+                        context, LoginActivity::class.java
                     )
-            )
+                )
+            }
         }
     }
 

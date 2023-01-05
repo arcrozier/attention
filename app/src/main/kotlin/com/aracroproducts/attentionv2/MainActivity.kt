@@ -276,6 +276,7 @@ class MainActivity : AppCompatActivity() {
         friendModel.getUserInfo(onAuthError = {
             if (!friendModel.addFriendException) {
                 friendModel.waitForLoginResult = true
+                friendModel.logout(this, false)
                 loginLauncher.launch(Intent(this, LoginActivity::class.java))
             }
         }, onSuccess = {

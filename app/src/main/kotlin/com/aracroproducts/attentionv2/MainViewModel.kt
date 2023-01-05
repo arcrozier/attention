@@ -127,7 +127,8 @@ class MainViewModel(
         }
     }
 
-    fun logout(context: Context) = sharedViewModel.logout(context)
+    fun logout(context: Context, launchLoginActivity: Boolean = true) =
+        sharedViewModel.logout(context, launchLoginActivity = launchLoginActivity)
 
     /**
      * Called to get the next expected dialog state
