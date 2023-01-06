@@ -55,8 +55,9 @@ class MainViewModel(
 
     }
 
-    private val sharedViewModel = SharedViewModel(attentionRepository, preferencesRepository,
-            applicationScope, application)
+    private val sharedViewModel = SharedViewModel(
+        attentionRepository, preferencesRepository, applicationScope, application
+    )
 
     sealed class DialogStatus(val priority: Int) {
         sealed class FriendStatus(val friend: Friend, priority: Int) : DialogStatus(priority)
@@ -127,8 +128,7 @@ class MainViewModel(
         }
     }
 
-    fun logout(context: Context, launchLoginActivity: Boolean = true) =
-        sharedViewModel.logout(context, launchLoginActivity = launchLoginActivity)
+    fun logout(context: Context) = sharedViewModel.logout(context)
 
     /**
      * Called to get the next expected dialog state
@@ -179,32 +179,31 @@ class MainViewModel(
             val token = getToken() ?: return@launch
             val friends: List<CachedFriend> = attentionRepository.getCachedFriendsSnapshot()
             for (friend in friends) {
-                attentionRepository.getName(
-                    token,
-                    friend.username,
-                    responseListener = { _, response, _ ->
-                        connected = true
-                        if (response.isSuccessful) {
-                            response.body()?.data?.name?.let {
-                                attentionRepository.addFriend(friend.username,
-                                                              it,
-                                                              token,
-                                                              responseListener = { _, response, _ ->
-                                                                  if (response.isSuccessful || response.code() == 400) backgroundScope.launch {
-                                                                      attentionRepository.deleteCachedFriend(
-                                                                          friend.username
-                                                                      )
-                                                                  }
-                                                              })
-                            }
-                        } else if (response.code() == 400) {
-                            backgroundScope.launch {
-                                attentionRepository.deleteCachedFriend(
-                                    friend.username
-                                )
-                            }
-                        }
-                    })
+                attentionRepository.getName(token,
+                                            friend.username,
+                                            responseListener = { _, response, _ ->
+                                                connected = true
+                                                if (response.isSuccessful) {
+                                                    response.body()?.data?.name?.let {
+                                                        attentionRepository.addFriend(friend.username,
+                                                                                      it,
+                                                                                      token,
+                                                                                      responseListener = { _, response, _ ->
+                                                                                          if (response.isSuccessful || response.code() == 400) backgroundScope.launch {
+                                                                                              attentionRepository.deleteCachedFriend(
+                                                                                                  friend.username
+                                                                                              )
+                                                                                          }
+                                                                                      })
+                                                    }
+                                                } else if (response.code() == 400) {
+                                                    backgroundScope.launch {
+                                                        attentionRepository.deleteCachedFriend(
+                                                            friend.username
+                                                        )
+                                                    }
+                                                }
+                                            })
             }
         }
     }
@@ -224,28 +223,29 @@ class MainViewModel(
                 return@launch
             }
             addFriendException = false
-            attentionRepository.addFriend(friend.id,
-                                          friend.name,
-                                          token,
-                                          responseListener = { call, response, _ ->
-                                              setConnectStatus(response.code())
-                                              when (response.code()) {
-                                                  200 -> {
-                                                      responseListener?.invoke(call, response)
-                                                  }
-                                                  400 -> {
-                                                      usernameCaption = application.getString(
-                                                          R.string.add_friend_failed
-                                                      )
-                                                  }
-                                                  403 -> {
-                                                      backgroundScope.launch {
-                                                          attentionRepository.cacheFriend(friend.id)
-                                                      }
-                                                      launchLogin()
-                                                  }
-                                              }
-                                          }) { _, _ ->
+            attentionRepository.addFriend(
+                friend.id,
+                friend.name,
+                token,
+                responseListener = { call, response, _ ->
+                    setConnectStatus(response.code())
+                    when (response.code()) {
+                        200 -> {
+                            responseListener?.invoke(call, response)
+                        }
+                        400 -> {
+                            usernameCaption = application.getString(
+                                R.string.add_friend_failed
+                            )
+                        }
+                        403 -> {
+                            backgroundScope.launch {
+                                attentionRepository.cacheFriend(friend.id)
+                            }
+                            launchLogin()
+                        }
+                    }
+                }) { _, _ ->
                 backgroundScope.launch {
                     attentionRepository.cacheFriend(friend.id)
                 }

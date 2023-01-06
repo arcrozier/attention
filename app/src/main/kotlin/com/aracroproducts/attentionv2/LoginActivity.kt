@@ -161,13 +161,12 @@ class LoginActivity : AppCompatActivity() {
             if (idToken != null) { // Got an ID token from Google. Use it to authenticate
                 // with your backend.
                 Log.d(TAG, "Got ID token.")
-                loginViewModel.linkAccount(
-                    snackbarHostState = null,
-                    coroutineScope = null,
-                    idToken = idToken,
-                    onLoggedIn = {
-                        finish()
-                    })
+                loginViewModel.linkAccount(snackbarHostState = null,
+                                           coroutineScope = null,
+                                           idToken = idToken,
+                                           onLoggedIn = {
+                                               finish()
+                                           })
             } else {
                 loginViewModel.passwordCaption = "Error: didn't receive credential"
             }
@@ -186,8 +185,8 @@ class LoginActivity : AppCompatActivity() {
                         TAG, "Couldn't get credential from result." + " (${e.localizedMessage})"
                     )
                     e.printStackTrace()
-                    loginViewModel.passwordCaption = "Unable to sign in with Google; an " +
-                                                     "unexpected error occurred"
+                    loginViewModel.passwordCaption =
+                        "Unable to sign in with Google; an " + "unexpected error occurred"
                 }
             }
         }
@@ -573,16 +572,13 @@ class LoginActivity : AppCompatActivity() {
 
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             PasswordField(
-                model = model,
-                done = {
+                model = model, done = {
                     model.login(
                         snackbarHostState = snackbarHostState,
                         scope = coroutineScope,
                         onLoggedIn = ::signInWithPassword
                     )
-                },
-                imeAction = ImeAction.Next,
-                nextFocusRequester = confirmPasswordFocusRequester
+                }, imeAction = ImeAction.Next, nextFocusRequester = confirmPasswordFocusRequester
             )
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             ConfirmPasswordField(
@@ -656,13 +652,11 @@ class LoginActivity : AppCompatActivity() {
             )
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING * 2))
             PasswordField(
-                model = model,
-                done = {
+                model = model, done = {
                     signInWithGoogle(
                         snackbarHostState, coroutineScope, linkResultHandler
                     )
-                },
-                imeAction = ImeAction.Done
+                }, imeAction = ImeAction.Done
             )
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             OutlinedButton(onClick = {
@@ -700,8 +694,7 @@ class LoginActivity : AppCompatActivity() {
 
         val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
         Scaffold(topBar = {
-            if (model.login == LoginViewModel.State.CHANGE_PASSWORD || model.login ==
-                LoginViewModel.State.CHOOSE_USERNAME || model.login == LoginViewModel.State.LINK_ACCOUNT) {
+            if (model.login == LoginViewModel.State.CHANGE_PASSWORD || model.login == LoginViewModel.State.CHOOSE_USERNAME || model.login == LoginViewModel.State.LINK_ACCOUNT) {
                 TopAppBar(colors = TopAppBarDefaults.smallTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary
@@ -801,8 +794,6 @@ class LoginActivity : AppCompatActivity() {
             }
         }
     }
-
-
 
 
     @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
@@ -1280,9 +1271,17 @@ class LoginActivity : AppCompatActivity() {
 
         @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
         @Composable
-        fun EmailField(value: String, setValue: (String) -> Unit, caption: String, setCaption:
-            (String) -> Unit, enabled: Boolean, context: Context, imeAction: ImeAction =
-            ImeAction.Next, onDone: (() -> Unit)? = null, reserveCaptionSpace: Boolean = false) {
+        fun EmailField(
+            value: String,
+            setValue: (String) -> Unit,
+            caption: String,
+            setCaption: (String) -> Unit,
+            enabled: Boolean,
+            context: Context,
+            imeAction: ImeAction = ImeAction.Next,
+            onDone: (() -> Unit)? = null,
+            reserveCaptionSpace: Boolean = false
+        ) {
             val focusManager = LocalFocusManager.current
             TextField(value = value,
                       onValueChange = {
@@ -1299,9 +1298,7 @@ class LoginActivity : AppCompatActivity() {
                               setCaption("")
                           })
                           .onKeyEvent {
-                              if ((imeAction == ImeAction.Next && it.nativeKeyEvent.keyCode ==
-                                          KEYCODE_ENTER) || it
-                                      .nativeKeyEvent.keyCode == KEYCODE_TAB) {
+                              if ((imeAction == ImeAction.Next && it.nativeKeyEvent.keyCode == KEYCODE_ENTER) || it.nativeKeyEvent.keyCode == KEYCODE_TAB) {
                                   focusManager.moveFocus(focusDirection = FocusDirection.Next)
                                   true
                               } else if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER) {

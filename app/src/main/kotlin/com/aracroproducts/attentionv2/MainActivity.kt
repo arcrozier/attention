@@ -96,23 +96,24 @@ class MainActivity : AppCompatActivity() {
     private val friendModel: MainViewModel by viewModels(factoryProducer = {
         MainViewModelFactory(
             AttentionRepository(AttentionDB.getDB(this)),
-            (application as AttentionApplication).container.settingsRepository, (application as
-                AttentionApplication).container.applicationScope,
+            (application as AttentionApplication).container.settingsRepository,
+            (application as AttentionApplication).container.applicationScope,
             application as AttentionApplication
         )
     })
 
     class MainViewModelFactory(
-            private val attentionRepository: AttentionRepository,
-            private val preferencesRepository: PreferencesRepository,
-            private val applicationScope: CoroutineScope,
-            private val application: AttentionApplication
+        private val attentionRepository: AttentionRepository,
+        private val preferencesRepository: PreferencesRepository,
+        private val applicationScope: CoroutineScope,
+        private val application: AttentionApplication
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(MainViewModel::class.java)) {
-                return MainViewModel(attentionRepository, preferencesRepository, applicationScope,
-                        application) as T
+                return MainViewModel(
+                    attentionRepository, preferencesRepository, applicationScope, application
+                ) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class")
         }
@@ -137,7 +138,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun launchLogin() {
         friendModel.waitForLoginResult = true
-        friendModel.logout(this, false)
+        friendModel.logout(this)
         loginLauncher.launch(Intent(this, LoginActivity::class.java))
     }
 
@@ -987,8 +988,7 @@ class MainActivity : AppCompatActivity() {
                         color = if (cached) MaterialTheme.colorScheme.onBackground.copy(
                             alpha = ContentAlpha.medium
                         ) else MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier
-                            .fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth()
                     )
                     if (subtitle.isNotBlank()) Text(
                         text = subtitle,

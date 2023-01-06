@@ -371,8 +371,8 @@ class SettingsActivity : AppCompatActivity() {
                         fun done() {
                             emailCaption =
                                 if (!(newValue.isEmpty() || android.util.Patterns.EMAIL_ADDRESS.matcher(
-                                            newValue
-                                        ).matches())
+                                        newValue
+                                    ).matches())
                                 ) {
                                     getString(R.string.invalid_email)
                                 } else {
@@ -873,9 +873,8 @@ class SettingsActivity : AppCompatActivity() {
                         .waterfallPadding(),
                     contentPadding = padding
                 ) {
-                    items(
-                        items = preferences,
-                        key = { preference -> preference.first.first }) { preference ->
+                    items(items = preferences,
+                          key = { preference -> preference.first.first }) { preference ->
                         PreferenceGroup(
                             title = preference.first.first,
                             icon = preference.first.second,
@@ -905,9 +904,8 @@ class SettingsActivity : AppCompatActivity() {
                         contentPadding = padding,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        items(
-                            items = preferences,
-                            key = { preference -> preference.first.first }) { preference ->
+                        items(items = preferences,
+                              key = { preference -> preference.first.first }) { preference ->
                             PreferenceGroup(
                                 title = preference.first.first,
                                 icon = preference.first.second,
