@@ -136,7 +136,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun launchLogin() {
-        friendModel.logout(this)
+        friendModel.waitForLoginResult = true
+        friendModel.logout(this, false)
+        loginLauncher.launch(Intent(this, LoginActivity::class.java))
     }
 
     /**
@@ -275,9 +277,7 @@ class MainActivity : AppCompatActivity() {
     private fun reload(token: String? = null) { // token is auth token
         friendModel.getUserInfo(onAuthError = {
             if (!friendModel.addFriendException) {
-                friendModel.waitForLoginResult = true
-                friendModel.logout(this, false)
-                loginLauncher.launch(Intent(this, LoginActivity::class.java))
+                launchLogin()
             }
         }, onSuccess = {
             getNotificationPermission()
@@ -463,6 +463,7 @@ class MainActivity : AppCompatActivity() {
                                         .fillMaxWidth()
                                         .padding(16.dp)
                                         .alpha(ContentAlpha.disabled),
+                                    color = MaterialTheme.colorScheme.onSurface,
                                     textAlign = TextAlign.Center,
                                 )
                             }
