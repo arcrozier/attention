@@ -14,8 +14,8 @@
                         <option name="values">
                           <map>
                             <entry key="assetSourceType" value="FILE" />
-                            <entry key="outputName" value="ic_btn_google" />
-                            <entry key="sourceFile" value="C:\Users\Aragorn\Downloads\btn_google_light_normal_ios.svg" />
+                            <entry key="outputName" value="ap" />
+                            <entry key="sourceFile" value="B:\Repos\attention\ap.svg" />
                           </map>
                         </option>
                       </PersistentState>
