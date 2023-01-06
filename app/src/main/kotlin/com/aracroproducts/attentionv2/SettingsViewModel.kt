@@ -24,6 +24,7 @@ import androidx.lifecycle.viewModelScope
 import com.aracroproducts.attentionv2.MainViewModel.Companion.MY_TOKEN
 import com.aracroproducts.attentionv2.MainViewModel.Companion.PFP_FILENAME
 import kotlinx.coroutines.*
+import retrofit2.Response
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.FileOutputStream
@@ -45,8 +46,9 @@ class SettingsViewModel(
         val duration: SnackbarDuration = SnackbarDuration.Short
     )
 
-    private val sharedViewModel = SharedViewModel(repository, preferencesRepository,
-            applicationScope, application)
+    private val sharedViewModel = SharedViewModel(
+        repository, preferencesRepository, applicationScope, application
+    )
 
     var outstandingRequests by mutableStateOf(0)
 
@@ -200,8 +202,9 @@ class SettingsViewModel(
                                                             }
                                                             403 -> {
                                                                 uploadDialog = false
-                                                                sharedViewModel.logout(context,
-                                                                        context)
+                                                                sharedViewModel.logout(
+                                                                    context, context
+                                                                )
                                                             }
                                                             413 -> {
                                                                 shouldRetryUpload = false
@@ -266,9 +269,11 @@ class SettingsViewModel(
 
 
     fun changeUsername(
-        newValue: String,
-        setValue: (String) -> Unit,
-        setUsernameCaption: (String) -> Unit,
+        username: String? = null,
+        email: String? = null,
+        setUsername: ((String?) -> Unit)? = null,
+        setEmail: ((String?) -> Unit)? = null,
+        setCaption: (String) -> Unit,
         setStatus: (error: Boolean, loading: Boolean) -> Unit,
         dismissDialog: () -> Unit,
         context: Activity
@@ -281,29 +286,33 @@ class SettingsViewModel(
                 return@launch
             }
             repository.editUser(token = token,
-                                username = newValue,
+                                username = username,
+                                email = email,
                                 responseListener = { _, response, _ ->
                                     setStatus(!response.isSuccessful, false)
                                     when (response.code()) {
                                         200 -> {
-                                            setUsernameCaption("")
-                                            setValue(newValue)
+                                            setCaption("")
+                                            setUsername?.invoke(username)
+                                            setEmail?.invoke(email)
                                             dismissDialog()
                                         }
                                         400 -> {
-                                            setUsernameCaption(
-                                                context.getString(
+                                            setCaption(
+                                                if (username != null) context.getString(
                                                     R.string.username_in_use
-                                                )
+                                                ) else if (email != null) context.getString(
+                                                    R.string.email_in_use
+                                                ) else ""
                                             )
                                         }
                                         403 -> {
-                                            setUsernameCaption("")
+                                            setCaption("")
                                             dismissDialog()
                                             sharedViewModel.logout(context, context)
                                         }
                                         else -> {
-                                            setUsernameCaption(
+                                            setCaption(
                                                 context.getString(
                                                     R.string.unknown_error
                                                 )
@@ -349,11 +358,11 @@ class SettingsViewModel(
         private val context: Activity, private val model: SettingsViewModel
     ) {
 
-        private fun <T> onResponse(code: Int, newValue: T, key: Preferences.Key<T>) {
+        private fun <T> onResponse(response: Response<*>, newValue: T, key: Preferences.Key<T>) {
             synchronized(this) {
                 outstandingRequests--
             }
-            val message = when (code) {
+            val message = when (response.code()) {
                 200 -> {
                     applicationScope.launch {
                         preferencesRepository.setValue(key, newValue)
@@ -363,10 +372,14 @@ class SettingsViewModel(
                     } else null
                 }
                 400 -> {
-                    R.string.invalid_email
+                    if (response.errorBody()?.string()?.contains("in use") == true) {
+                        R.string.email_in_use
+                    } else {
+                        R.string.invalid_email
+                    }
                 }
                 403 -> {
-                    sharedViewModel.logout(context)
+                    sharedViewModel.logout(context, context)
                     R.string.confirm_logout_title
                 }
                 429 -> {
@@ -415,7 +428,7 @@ class SettingsViewModel(
                                                 firstName = newValue,
                                                 responseListener = { _, response, _ ->
                                                     onResponse(
-                                                        response.code(), newValue, preference
+                                                        response, newValue, preference
                                                     )
                                                 },
                                                 errorListener = { _, _ ->
@@ -427,7 +440,7 @@ class SettingsViewModel(
                                                 lastName = newValue,
                                                 responseListener = { _, response, _ ->
                                                     onResponse(
-                                                        response.code(), newValue, preference
+                                                        response, newValue, preference
                                                     )
                                                 },
                                                 errorListener = { _, _ ->
@@ -439,7 +452,7 @@ class SettingsViewModel(
                                                 email = newValue,
                                                 responseListener = { _, response, _ ->
                                                     onResponse(
-                                                        response.code(), newValue, preference
+                                                        response, newValue, preference
                                                     )
                                                 },
                                                 errorListener = { _, _ ->

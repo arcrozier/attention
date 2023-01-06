@@ -53,6 +53,7 @@
     <string name="password_updated">Password was updated successfully</string>
     <string name="username_in_use">Username is taken</string>
     <string name="invalid_email">Email is invalid. Enter a valid email or leave blank</string>
+    <string name="email_in_use">Email is in use by another account</string>
     <string name="invalid_username">Enter a valid username. This value may contain only English
         letters, numbers, and @/./+/-/_ characters.</string>
     <string name="invalid_photo">Invalid photo. Photo should be less than 20 MB and a valid
@@ -128,6 +129,7 @@
     <string name="add_friend">Add new friend</string>
     <string name="link_account">Link Google Account</string>
     <string name="google_account_in_use">There is already a user with this Google account</string>
+    <string name="bad_google_token">Invalid Google token</string>
 
     <string name="friend_card_click_label">choose from alert options</string>
     <string name="friend_card_long_click_label">edit or remove friend</string>

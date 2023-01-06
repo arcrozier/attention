@@ -155,4 +155,7 @@
     <string name="delay_label">Tid (s)</string>
     <string name="delay_summary">%1$s s</string>
     <string name="delay_greater_than_zero">Tid må være større eller lik 0</string>
+    <string name="email_in_use">E-post er i bruk av en annen konto</string>
+    <string name="google_account_in_use">Det allerede fins en bruker med denne Google-konto</string>
+    <string name="bad_google_token">Ugyldig Google pollett</string>
 </resources>

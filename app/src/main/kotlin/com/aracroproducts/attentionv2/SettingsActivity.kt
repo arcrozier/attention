@@ -60,8 +60,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
@@ -233,6 +233,32 @@ class SettingsActivity : AppCompatActivity() {
                                            var error by remember { mutableStateOf(false) }
                                            var usernameCaption by remember { mutableStateOf("") }
 
+                                           fun done() {
+                                               if (newValue.isBlank()) {
+                                                   error = true
+                                                   usernameCaption =
+                                                       context.getString(R.string.empty_username)
+                                                   return
+                                               }
+                                               loading = true
+                                               viewModel.changeUsername(username = newValue,
+                                                                        setUsername = {
+                                                                            it?.let {
+                                                                                setValue(it)
+                                                                            }
+                                                                        },
+                                                                        setCaption = {
+                                                                            usernameCaption = it
+                                                                        },
+                                                                        setStatus = { e, l ->
+                                                                            error = e
+                                                                            loading = l
+                                                                        },
+                                                                        dismissDialog = dismissDialog,
+                                                                        context = this
+                                               )
+                                           }
+
                                            AlertDialog(onDismissRequest = { if (!loading) dismissDialog() },
                                                        dismissButton = {
                                                            OutlinedButton(onClick = {
@@ -247,22 +273,7 @@ class SettingsActivity : AppCompatActivity() {
                                                        },
                                                        confirmButton = {
                                                            Button(onClick = {
-                                                               loading = true
-                                                               viewModel.changeUsername(newValue,
-                                                                                        setValue,
-                                                                                        {
-                                                                                            usernameCaption =
-                                                                                                it
-                                                                                        },
-                                                                                        { e, l ->
-                                                                                            error =
-                                                                                                e
-                                                                                            loading =
-                                                                                                l
-                                                                                        },
-                                                                                        dismissDialog,
-                                                                                        this
-                                                               )
+                                                               done()
                                                            }, content = {
                                                                Text(
                                                                    text = if (loading) getString(
@@ -280,12 +291,19 @@ class SettingsActivity : AppCompatActivity() {
                                                        text = {
                                                            UsernameField(
                                                                value = newValue,
-                                                               onValueChanged = { newValue = it },
+                                                               onValueChanged = {
+                                                                   newValue = it
+                                                                   usernameCaption = ""
+                                                                   error = false
+                                                               },
                                                                newUsername = true,
                                                                enabled = !loading,
                                                                error = error,
                                                                caption = usernameCaption,
-                                                               this
+                                                               context = this,
+                                                               imeAction = ImeAction.Done,
+                                                               onDone = ::done,
+                                                               reserveCaptionSpace = true
                                                            )
                                                        })
                                        },
@@ -333,9 +351,7 @@ class SettingsActivity : AppCompatActivity() {
                         getString(
                             R.string.email_key
                         )
-                    ), defaultValue = "", onPreferenceChangeListener = listOf(
-                        userInfoChangeListener::onPreferenceChange
-                    ), repository = viewModel.preferencesRepository
+                    ), defaultValue = "", repository = viewModel.preferencesRepository
                 )
 
                 DialoguePreference(
@@ -348,24 +364,80 @@ class SettingsActivity : AppCompatActivity() {
                     },
                     title = R.string.email,
                     dialog = { value, setValue, dismissDialog, context, title ->
-                        StringPreferenceChange(
-                            value,
-                            setValue,
-                            dismissDialog,
-                            context,
-                            title,
-                            KeyboardOptions(keyboardType = KeyboardType.Email),
-                            R.string.email
-                        ) {
-                            if (!(it.isEmpty() || android.util.Patterns.EMAIL_ADDRESS.matcher(
-                                    it
-                                ).matches())
-                            ) {
-                                getString(R.string.invalid_email)
-                            } else {
-                                ""
+                        var newValue by remember { mutableStateOf(value) }
+                        var loading by remember { mutableStateOf(false) }
+                        var emailCaption by remember { mutableStateOf("") }
+
+                        fun done() {
+                            emailCaption =
+                                if (!(newValue.isEmpty() || android.util.Patterns.EMAIL_ADDRESS.matcher(
+                                        newValue
+                                    ).matches())
+                                ) {
+                                    getString(R.string.invalid_email)
+                                } else {
+                                    ""
+                                }
+                            if (emailCaption.isNotBlank()) {
+                                return
                             }
+                            loading = true
+                            viewModel.changeUsername(email = newValue, setEmail = {
+                                it?.let {
+                                    setValue(it)
+                                }
+                            }, setCaption = {
+                                emailCaption = it
+                            }, setStatus = { _, l ->
+                                loading = l
+                            }, dismissDialog = dismissDialog, context = this
+                            )
                         }
+
+                        AlertDialog(onDismissRequest = { if (!loading) dismissDialog() },
+                                    dismissButton = {
+                                        OutlinedButton(onClick = {
+                                            if (!loading) dismissDialog()
+                                        }, enabled = !loading) {
+                                            Text(
+                                                text = context.getString(
+                                                    android.R.string.cancel
+                                                )
+                                            )
+                                        }
+                                    },
+                                    confirmButton = {
+                                        Button(onClick = {
+                                            done()
+                                        }, content = {
+                                            Text(
+                                                text = if (loading) getString(
+                                                    R.string.saving
+                                                ) else getString(
+                                                    android.R.string.ok
+                                                )
+                                            )
+                                        })
+
+                                    },
+                                    title = {
+                                        Text(text = title)
+                                    },
+                                    text = {
+                                        LoginActivity.EmailField(value = newValue,
+                                                                 setValue = {
+                                                                     newValue = it
+                                                                     emailCaption = ""
+                                                                 },
+                                                                 enabled = !loading,
+                                                                 caption = emailCaption,
+                                                                 setCaption = { emailCaption = it },
+                                                                 context = this,
+                                                                 imeAction = ImeAction.Done,
+                                                                 onDone = ::done,
+                                                                 reserveCaptionSpace = true
+                                        )
+                                    })
                     },
                 )
                 var firstNameValue by rememberPreference(
@@ -432,14 +504,18 @@ class SettingsActivity : AppCompatActivity() {
                         )
                     ), defaultValue = true, repository = viewModel.preferencesRepository
                 )
-                Preference(value = null, icon = {
-                    Icon(Icons.Outlined.Password, null)
-                }, title = R.string.password, summary = null, enabled=usesPassword,
-                        onPreferenceClicked = {
-                    val intent = Intent(this, LoginActivity::class.java)
-                    intent.action = getString(R.string.change_password_action)
-                    startActivity(intent)
-                })
+                Preference(value = null,
+                           icon = {
+                               Icon(Icons.Outlined.Password, null)
+                           },
+                           title = R.string.password,
+                           summary = null,
+                           enabled = usesPassword,
+                           onPreferenceClicked = {
+                               val intent = Intent(this, LoginActivity::class.java)
+                               intent.action = getString(R.string.change_password_action)
+                               startActivity(intent)
+                           })
 
                 Preference(value = null, icon = { enabled ->
                     Image(
@@ -861,16 +937,16 @@ class SettingsActivity : AppCompatActivity() {
     @OptIn(ExperimentalComposeUiApi::class, ExperimentalAnimationApi::class)
     @Composable
     fun UploadDialog(
-            uploading: Boolean,
-            uploadStatus: String,
-            shouldRetry: Boolean,
-            uploadSuccess: Boolean?,
-            uploadSuccessCallback: (Boolean?) -> Unit,
-            uploadProgress: Float,
-            onCancel: (() -> Unit)?,
-            dismissDialog: () -> Unit,
-            retry: (Uri, Activity) -> Unit,
-            uri: Uri?
+        uploading: Boolean,
+        uploadStatus: String,
+        shouldRetry: Boolean,
+        uploadSuccess: Boolean?,
+        uploadSuccessCallback: (Boolean?) -> Unit,
+        uploadProgress: Float,
+        onCancel: (() -> Unit)?,
+        dismissDialog: () -> Unit,
+        retry: (Uri, Activity) -> Unit,
+        uri: Uri?
     ) {
         var bitmap: ImageBitmap? by remember {
             mutableStateOf(null)

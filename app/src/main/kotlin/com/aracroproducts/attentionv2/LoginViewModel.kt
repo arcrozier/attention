@@ -56,18 +56,23 @@ class LoginViewModel(
         idToken: String?,
         onLoggedIn: (token: String) -> Unit
     ) {
-        val localIdToken = idToken ?: savedIdToken ?: throw IllegalStateException("idToken was null")
+        val localIdToken =
+            idToken ?: savedIdToken ?: throw IllegalStateException("idToken was null")
         savedIdToken = localIdToken
+        val context = getApplication<Application>()
+        if (login == State.CHOOSE_USERNAME && username.isBlank()) {
+            usernameCaption = context.getString(R.string.empty_username)
+            return
+        }
         uiEnabled = false
-        login = State.CHOOSE_USERNAME
 
         if (username.isNotBlank() && !agreedToToS) {
             checkboxError = true
             uiEnabled = true
+            login = State.CHOOSE_USERNAME
             return
         }
 
-        val context = getApplication<Application>()
         attentionRepository.signInWithGoogle(userIdToken = localIdToken,
                                              username = username.ifBlank { null },
                                              agree = if (agreedToToS) "yes" else null,
@@ -91,6 +96,7 @@ class LoginViewModel(
                                                          }
                                                      }
                                                      400 -> {
+                                                         login = State.CHOOSE_USERNAME
                                                          Log.e(
                                                              sTAG, response.errorBody().toString()
                                                          )
@@ -102,10 +108,15 @@ class LoginViewModel(
                                                              context.getString(R.string.username_in_use)
                                                      }
                                                      401 -> {
+                                                         login = State.CHOOSE_USERNAME
                                                          Log.d(sTAG, "Selecting username")
                                                      }
                                                      403 -> {
+                                                         login = State.CHOOSE_USERNAME
                                                          Log.e(sTAG, "Bad Google token: $idToken")
+                                                         usernameCaption = context.getString(
+                                                             R.string.bad_google_token
+                                                         )
                                                      }
                                                      else -> {
                                                          genericErrorHandling(
@@ -196,21 +207,24 @@ class LoginViewModel(
                                                                   sTAG,
                                                                   response.errorBody().toString()
                                                               )
-                                                              passwordCaption = context.getString(R.string
-                                                                                        .google_account_in_use)
+                                                              passwordCaption = context.getString(
+                                                                  R.string.google_account_in_use
+                                                              )
                                                           }
                                                           403 -> {
-                                                              val errorBody = response.errorBody().toString()
+                                                              val errorBody =
+                                                                  response.errorBody().toString()
                                                               when {
-                                                                  errorBody.contains("password")
-                                                                  -> {
-                                                                      passwordCaption = context
-                                                                          .getString(R.string.wrong_password)
+                                                                  errorBody.contains("password") -> {
+                                                                      passwordCaption =
+                                                                          context.getString(R.string.wrong_password)
                                                                   }
-                                                                  errorBody.contains("google",
-                                                                                     true) -> {
-                                                                                         passwordCaption = context.getString(R.string.google_sign_in_failed)
-                                                                                     }
+                                                                  errorBody.contains(
+                                                                      "google", true
+                                                                  ) -> {
+                                                                      passwordCaption =
+                                                                          context.getString(R.string.google_sign_in_failed)
+                                                                  }
                                                                   else -> {
                                                                       login = State.LOGIN
                                                                   }
@@ -383,6 +397,13 @@ class LoginViewModel(
                                                          errorBody.contains("password", true) -> {
                                                              passwordCaption =
                                                                  context.getString(R.string.password_validation_failed)
+                                                         }
+                                                         errorBody.contains(
+                                                             "email taken",
+                                                             true
+                                                         ) -> {
+                                                             emailCaption =
+                                                                 context.getString(R.string.email_in_use)
                                                          }
                                                      }
                                                  }

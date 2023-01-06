@@ -161,13 +161,12 @@ class LoginActivity : AppCompatActivity() {
             if (idToken != null) { // Got an ID token from Google. Use it to authenticate
                 // with your backend.
                 Log.d(TAG, "Got ID token.")
-                loginViewModel.linkAccount(
-                    snackbarHostState = null,
-                    coroutineScope = null,
-                    idToken = idToken,
-                    onLoggedIn = {
-                        finish()
-                    })
+                loginViewModel.linkAccount(snackbarHostState = null,
+                                           coroutineScope = null,
+                                           idToken = idToken,
+                                           onLoggedIn = {
+                                               finish()
+                                           })
             } else {
                 loginViewModel.passwordCaption = "Error: didn't receive credential"
             }
@@ -186,8 +185,8 @@ class LoginActivity : AppCompatActivity() {
                         TAG, "Couldn't get credential from result." + " (${e.localizedMessage})"
                     )
                     e.printStackTrace()
-                    loginViewModel.passwordCaption = "Unable to sign in with Google; an " +
-                                                     "unexpected error occurred"
+                    loginViewModel.passwordCaption =
+                        "Unable to sign in with Google; an " + "unexpected error occurred"
                 }
             }
         }
@@ -555,7 +554,7 @@ class LoginActivity : AppCompatActivity() {
                 value = model.username,
                 onValueChanged = { onUsernameChanged(model, it) },
                 newUsername = true,
-                error = model.passwordCaption.isNotBlank(),
+                error = model.usernameCaption.isNotBlank(),
                 caption = model.usernameCaption,
                 enabled = model.uiEnabled,
                 context = this@LoginActivity
@@ -565,19 +564,21 @@ class LoginActivity : AppCompatActivity() {
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             LastNameField(model = model)
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
-            EmailField(model = model)
+            EmailField(value = model.email, setValue = {
+                model.email = it
+            }, caption = model.emailCaption, setCaption = {
+                model.emailCaption = it
+            }, context = this@LoginActivity, enabled = model.uiEnabled)
+
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             PasswordField(
-                model = model,
-                done = {
+                model = model, done = {
                     model.login(
                         snackbarHostState = snackbarHostState,
                         scope = coroutineScope,
                         onLoggedIn = ::signInWithPassword
                     )
-                },
-                imeAction = ImeAction.Next,
-                nextFocusRequester = confirmPasswordFocusRequester
+                }, imeAction = ImeAction.Next, nextFocusRequester = confirmPasswordFocusRequester
             )
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             ConfirmPasswordField(
@@ -651,13 +652,11 @@ class LoginActivity : AppCompatActivity() {
             )
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING * 2))
             PasswordField(
-                model = model,
-                done = {
+                model = model, done = {
                     signInWithGoogle(
                         snackbarHostState, coroutineScope, linkResultHandler
                     )
-                },
-                imeAction = ImeAction.Done
+                }, imeAction = ImeAction.Done
             )
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             OutlinedButton(onClick = {
@@ -695,8 +694,7 @@ class LoginActivity : AppCompatActivity() {
 
         val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
         Scaffold(topBar = {
-            if (model.login == LoginViewModel.State.CHANGE_PASSWORD || model.login ==
-                LoginViewModel.State.CHOOSE_USERNAME || model.login == LoginViewModel.State.LINK_ACCOUNT) {
+            if (model.login == LoginViewModel.State.CHANGE_PASSWORD || model.login == LoginViewModel.State.CHOOSE_USERNAME || model.login == LoginViewModel.State.LINK_ACCOUNT) {
                 TopAppBar(colors = TopAppBarDefaults.smallTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary
@@ -797,50 +795,6 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-
-    @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
-    @Composable
-    fun EmailField(model: LoginViewModel) {
-        val focusManager = LocalFocusManager.current
-        TextField(value = model.email,
-                  onValueChange = {
-                      model.email = it.filter { letter ->
-                          letter != '\n'
-                      }
-                      model.emailCaption = ""
-                  },
-                  modifier = Modifier
-                      .autofill(autofillTypes = listOf(AutofillType.EmailAddress), onFill = {
-                          model.email = it.filter { letter ->
-                              letter != '\n'
-                          }
-                          model.emailCaption = ""
-                      })
-                      .onKeyEvent {
-                          if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER || it.nativeKeyEvent.keyCode == KEYCODE_TAB) {
-                              focusManager.moveFocus(focusDirection = FocusDirection.Next)
-                              true
-                          } else false
-                      },
-                  isError = !(model.email.isEmpty() || android.util.Patterns.EMAIL_ADDRESS.matcher(
-                      model.email
-                  ).matches()),
-                  supportingText = {
-                      if (model.emailCaption.isNotBlank()) {
-                          Text(
-                              text = model.emailCaption, overflow = TextOverflow.Ellipsis
-                          )
-                      }
-                  },
-                  singleLine = true,
-                  label = { Text(text = getString(R.string.email)) },
-                  keyboardOptions = KeyboardOptions(
-                      keyboardType = KeyboardType.Email,
-                      imeAction = ImeAction.Next,
-                  )
-        )
-
-    }
 
     @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
     @Composable
@@ -1276,7 +1230,8 @@ class LoginActivity : AppCompatActivity() {
             caption: String,
             context: Context,
             imeAction: ImeAction = ImeAction.Next,
-            onDone: (() -> Unit)? = null
+            onDone: (() -> Unit)? = null,
+            reserveCaptionSpace: Boolean = false
         ) {
             val focusManager = LocalFocusManager.current
             TextField(
@@ -1302,7 +1257,7 @@ class LoginActivity : AppCompatActivity() {
                 ),
                 supportingText = {
 
-                    if (caption.isNotBlank()) {
+                    if (caption.isNotBlank() || reserveCaptionSpace) {
                         Text(
                             text = caption, overflow = TextOverflow.Ellipsis
                         )
@@ -1312,6 +1267,67 @@ class LoginActivity : AppCompatActivity() {
                 enabled = enabled,
                 isError = error,
             )
+        }
+
+        @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
+        @Composable
+        fun EmailField(
+            value: String,
+            setValue: (String) -> Unit,
+            caption: String,
+            setCaption: (String) -> Unit,
+            enabled: Boolean,
+            context: Context,
+            imeAction: ImeAction = ImeAction.Next,
+            onDone: (() -> Unit)? = null,
+            reserveCaptionSpace: Boolean = false
+        ) {
+            val focusManager = LocalFocusManager.current
+            TextField(value = value,
+                      onValueChange = {
+                          setValue(it.filter { letter ->
+                              letter != '\n'
+                          })
+                          setCaption("")
+                      },
+                      modifier = Modifier
+                          .autofill(autofillTypes = listOf(AutofillType.EmailAddress), onFill = {
+                              setValue(it.filter { letter ->
+                                  letter != '\n'
+                              })
+                              setCaption("")
+                          })
+                          .onKeyEvent {
+                              if ((imeAction == ImeAction.Next && it.nativeKeyEvent.keyCode == KEYCODE_ENTER) || it.nativeKeyEvent.keyCode == KEYCODE_TAB) {
+                                  focusManager.moveFocus(focusDirection = FocusDirection.Next)
+                                  true
+                              } else if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER) {
+                                  onDone?.invoke()
+                                  true
+                              } else false
+                          },
+                      isError = !(value.isEmpty() || android.util.Patterns.EMAIL_ADDRESS.matcher(
+                          value
+                      ).matches()) || caption.isNotBlank(),
+                      enabled = enabled,
+                      supportingText = {
+                          if (caption.isNotBlank() || reserveCaptionSpace) {
+                              Text(
+                                  text = caption, overflow = TextOverflow.Ellipsis
+                              )
+                          }
+                      },
+                      singleLine = true,
+                      label = { Text(text = context.getString(R.string.email)) },
+                      keyboardOptions = KeyboardOptions(
+                          keyboardType = KeyboardType.Email,
+                          imeAction = imeAction,
+                      ),
+                      keyboardActions = KeyboardActions(onDone = {
+                          onDone?.invoke()
+                      })
+            )
+
         }
 
         private fun onUsernameChanged(model: LoginViewModel, username: String) {
