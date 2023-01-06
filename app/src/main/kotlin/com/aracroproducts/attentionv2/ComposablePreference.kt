@@ -8,14 +8,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.materialIcon
-import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.vector.addPathNodes
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -297,20 +293,6 @@ fun multiselectListPreferenceSummary(
     }
     return summaryList.joinToString(", ")
 }
-
-val APIcon: ImageVector
-    get() {
-        if (mAPIcon != null) {
-            return mAPIcon!!
-        }
-        mAPIcon = materialIcon(name = "Outlined.APIcon") {
-            addPath(pathData = addPathNodes(APath))
-            addPath(pathData = addPathNodes(PPath))
-        }
-        return mAPIcon!!
-    }
-
-private var mAPIcon: ImageVector? = null
 
 @Composable
 fun CheckboxAction(value: Boolean, onCheckedChange: (Boolean) -> Unit) {

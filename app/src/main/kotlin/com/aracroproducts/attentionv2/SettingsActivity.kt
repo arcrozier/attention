@@ -762,22 +762,6 @@ class SettingsActivity : AppCompatActivity() {
                            )
                            startActivity(browserIntent)
                        })
-
-                       Preference(
-                           title = R.string.by_ap,
-                           value = null,
-                           summary = null,
-                           onPreferenceClicked = {
-                               val browserIntent = Intent(
-                                   Intent.ACTION_VIEW, Uri.parse(getString(R.string.ap_url))
-                               )
-                               startActivity(browserIntent)
-                           },
-                           icon = {
-                               Icon(ImageVector.vectorResource(id = R.drawable.ap),
-                                    null)
-                           }
-                       )
                        Preference(
                            value = getString(R.string.version_name),
                            title = R.string.app_version,
@@ -785,6 +769,22 @@ class SettingsActivity : AppCompatActivity() {
                                Icon(Icons.Outlined.Update, null)
                            },
                            enabled = false
+                       )
+
+                       Preference(
+                               title = R.string.by_ap,
+                               value = null,
+                               summary = null,
+                               onPreferenceClicked = {
+                                   val browserIntent = Intent(
+                                           Intent.ACTION_VIEW, Uri.parse(getString(R.string.ap_url))
+                                   )
+                                   startActivity(browserIntent)
+                               },
+                               icon = {
+                                   Icon(ImageVector.vectorResource(id = R.drawable.ap),
+                                           null)
+                               }
                        )
                    }
 
