@@ -51,6 +51,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.Layout
@@ -58,6 +59,7 @@ import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -692,7 +694,7 @@ class SettingsActivity : AppCompatActivity() {
                                    }
 
                                }
-                               false
+                               true
                            },
                            repository = viewModel.preferencesRepository
                        )
@@ -703,9 +705,8 @@ class SettingsActivity : AppCompatActivity() {
                                                val intent = Intent(
                                                    ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS
                                                )
-                                               startActivity(intent)
                                                showDNDAlert.value = false
-                                               overrideDNDValue = true
+                                               startActivity(intent)
                                            }, content = {
                                                Text(text = getString(R.string.open_settings))
                                            })
@@ -713,8 +714,14 @@ class SettingsActivity : AppCompatActivity() {
                                        dismissButton = {
                                            OutlinedButton(onClick = {
                                                showDNDAlert.value = false
-                                           }) {}
-                                       })
+                                           }) {
+                                               Text(text = getString(android.R.string.cancel))
+                                           }
+                                       }, title = {
+                                           Text(text = getString(R.string.allow_dnd_title))
+                               }, text = {
+                                   Text(text = getString(R.string.allow_dnd_message))
+                               })
                        }
                        Preference(value = overrideDNDValue, icon = {
                            Icon(Icons.Outlined.DoNotDisturbOn, null)
@@ -727,7 +734,9 @@ class SettingsActivity : AppCompatActivity() {
                                getString(R.string.override_summary_off)
                            }
                        }, action = {
-                           CheckboxAction(value = it)
+                           CheckboxAction(value = it) { checked ->
+                               overrideDNDValue = checked
+                           }
                        })
                    },
                    Pair<Pair<Int, (@Composable () -> Unit)?>, @Composable () -> Unit>(Pair(
@@ -753,11 +762,29 @@ class SettingsActivity : AppCompatActivity() {
                            )
                            startActivity(browserIntent)
                        })
-
                        Preference(
                            value = getString(R.string.version_name),
                            title = R.string.app_version,
+                           icon = {
+                               Icon(Icons.Outlined.Update, null)
+                           },
                            enabled = false
+                       )
+
+                       Preference(
+                               title = R.string.by_ap,
+                               value = null,
+                               summary = null,
+                               onPreferenceClicked = {
+                                   val browserIntent = Intent(
+                                           Intent.ACTION_VIEW, Uri.parse(getString(R.string.ap_url))
+                                   )
+                                   startActivity(browserIntent)
+                               },
+                               icon = {
+                                   Icon(ImageVector.vectorResource(id = R.drawable.ap),
+                                           null)
+                               }
                        )
                    }
 

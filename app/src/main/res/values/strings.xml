@@ -200,6 +200,7 @@
     <string name="app_version">App Version</string>
     <string name="terms_of_service">Terms of Service</string>
     <string name="privacy_policy">Privacy Policy</string>
+    <string name="by_ap">By Aracro Products</string>
 
     <!-- Preference Keys -->
     <string name="name_key" translatable="false">com.aracroproducts.attention.key.preferred_name</string>
@@ -229,4 +230,5 @@
     <!-- URLs -->
     <string name="tos_url" translatable="false">https://aracroproducts.com/legal/tos/</string>
     <string name="privacy_policy_url" translatable="false">https://aracroproducts.com/legal/privacy-policy/attention/</string>
+    <string name="ap_url" translatable="false">https://aracroproducts.com</string>
 </resources>

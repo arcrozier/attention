@@ -295,6 +295,6 @@ fun multiselectListPreferenceSummary(
 }
 
 @Composable
-fun CheckboxAction(value: Boolean) {
-    Switch(checked = value, onCheckedChange = {})
+fun CheckboxAction(value: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Switch(checked = value, onCheckedChange = onCheckedChange)
 }
