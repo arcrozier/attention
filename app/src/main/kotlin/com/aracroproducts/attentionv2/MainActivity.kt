@@ -38,8 +38,8 @@ import androidx.compose.material.Icon
 import androidx.compose.material.ProgressIndicatorDefaults
 import androidx.compose.material.SnackbarResult
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
@@ -424,7 +424,7 @@ class MainActivity : AppCompatActivity() {
                          backgroundColor = MaterialTheme.colorScheme.secondary,
                      ) {
                          Icon(
-                             Icons.Filled.Add,
+                             Icons.Filled.PersonAdd,
                              contentDescription = getString(R.string.add_friend),
                              tint = MaterialTheme.colorScheme.onSecondary
                          )
