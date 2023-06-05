@@ -695,7 +695,7 @@ class LoginActivity : AppCompatActivity() {
         val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
         Scaffold(topBar = {
             if (model.login == LoginViewModel.State.CHANGE_PASSWORD || model.login == LoginViewModel.State.CHOOSE_USERNAME || model.login == LoginViewModel.State.LINK_ACCOUNT) {
-                TopAppBar(colors = TopAppBarDefaults.smallTopAppBarColors(
+                TopAppBar(colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary
                 ), title = {
@@ -718,7 +718,7 @@ class LoginActivity : AppCompatActivity() {
                 )
             } else {
                 TopAppBar(
-                    colors = TopAppBarDefaults.smallTopAppBarColors(
+                    colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         titleContentColor = MaterialTheme.colorScheme.onPrimary
                     ), title = {
@@ -796,7 +796,7 @@ class LoginActivity : AppCompatActivity() {
     }
 
 
-    @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
+    @OptIn(ExperimentalComposeUiApi::class)
     @Composable
     fun FirstNameField(model: LoginViewModel) {
         val focusManager = LocalFocusManager.current
@@ -827,7 +827,7 @@ class LoginActivity : AppCompatActivity() {
         )
     }
 
-    @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
+    @OptIn(ExperimentalComposeUiApi::class)
     @Composable
     fun LastNameField(model: LoginViewModel) {
         val focusManager = LocalFocusManager.current
@@ -858,7 +858,7 @@ class LoginActivity : AppCompatActivity() {
         )
     }
 
-    @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
+    @OptIn(ExperimentalComposeUiApi::class)
     @Composable
     fun OldPasswordField(model: LoginViewModel, passwordFocusRequester: FocusRequester) {
         val focusManager = LocalFocusManager.current
@@ -914,7 +914,7 @@ class LoginActivity : AppCompatActivity() {
 
     }
 
-    @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
+    @OptIn(ExperimentalComposeUiApi::class)
     @Composable
     fun PasswordField(
         model: LoginViewModel,
@@ -990,7 +990,6 @@ class LoginActivity : AppCompatActivity() {
 
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun ConfirmPasswordField(
         model: LoginViewModel,
@@ -1219,7 +1218,7 @@ class LoginActivity : AppCompatActivity() {
             }
         }
 
-        @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
+        @OptIn(ExperimentalComposeUiApi::class)
         @Composable
         fun UsernameField(
             value: String,
@@ -1269,7 +1268,7 @@ class LoginActivity : AppCompatActivity() {
             )
         }
 
-        @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
+        @OptIn(ExperimentalComposeUiApi::class)
         @Composable
         fun EmailField(
             value: String,

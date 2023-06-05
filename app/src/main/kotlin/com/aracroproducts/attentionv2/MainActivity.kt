@@ -51,7 +51,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -539,7 +538,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun AddMessageText(friend: Friend, onSend: (message: String) -> Unit) {
 
@@ -567,8 +565,9 @@ class MainActivity : AppCompatActivity() {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }, text = {
-            OutlinedTextField(colors = TextFieldDefaults.outlinedTextFieldColors(
-                textColor = MaterialTheme.colorScheme.onSurfaceVariant
+            OutlinedTextField(colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
             ),
                               value = friendModel.message,
                               onValueChange = { friendModel.message = it },
@@ -618,7 +617,6 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun EditFriendNameDialog(friend: Friend) {
         var name by rememberSaveable {
@@ -653,8 +651,9 @@ class MainActivity : AppCompatActivity() {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }, text = {
-            OutlinedTextField(colors = TextFieldDefaults.outlinedTextFieldColors(
-                textColor = MaterialTheme.colorScheme.onSurfaceVariant
+            OutlinedTextField(colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
             ),
                               value = name,
                               onValueChange = { name = filterSpecialChars(it) },
@@ -738,7 +737,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun AddFriendDialog() {
         AlertDialog(onDismissRequest = {
@@ -778,8 +776,9 @@ class MainActivity : AppCompatActivity() {
                     else MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
-                OutlinedTextField(colors = TextFieldDefaults.outlinedTextFieldColors(
-                    textColor = MaterialTheme.colorScheme.onSurfaceVariant
+                OutlinedTextField(colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                 ),
                                   value = friendModel.addFriendUsername,
                                   onValueChange = {
@@ -1135,8 +1134,6 @@ class MainActivity : AppCompatActivity() {
                         }
 
                         if (progress >= delay && !triggered) {
-                            @Suppress("UNUSED_VALUE")
-
                             triggered = true
 
                             friendModel.sendAlert(friend,
