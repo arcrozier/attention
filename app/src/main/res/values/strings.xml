@@ -231,4 +231,10 @@
     <string name="tos_url" translatable="false">https://aracroproducts.com/legal/tos/</string>
     <string name="privacy_policy_url" translatable="false">https://aracroproducts.com/legal/privacy-policy/attention/</string>
     <string name="ap_url" translatable="false">https://aracroproducts.com</string>
+
+    <string name="asset_statements" translatable="false">
+  [{
+    \"include\": \"https://attention.aracroproducts.com/.well-known/assetlinks.json\"
+  }]
+  </string>
 </resources>

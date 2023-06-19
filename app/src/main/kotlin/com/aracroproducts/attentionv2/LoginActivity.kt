@@ -84,6 +84,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
+// TODO support passkeys using the CredentialManager API
 class LoginActivity : AppCompatActivity() {
 
     private val loginViewModel: LoginViewModel by viewModels(factoryProducer = {
@@ -122,6 +123,7 @@ class LoginActivity : AppCompatActivity() {
                 // with your backend.
                 loginViewModel.loginWithGoogle(null, null, idToken) { token ->
                     completeSignIn(token)
+                    finish()
                 }
                 Log.d(TAG, "Got ID token.")
             } else if (password != null) { // Got a saved username and password. Use them to authenticate
@@ -1140,7 +1142,7 @@ class LoginActivity : AppCompatActivity() {
                 passwordSaveResultHandler.launch(
                     IntentSenderRequest.Builder(result.pendingIntent.intentSender).build()
                 )
-            }
+            }.addOnFailureListener { finish() }.addOnCanceledListener { finish() }
         completeSignIn(token)
     }
 
