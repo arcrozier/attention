@@ -199,6 +199,7 @@ open class AlertHandler : FirebaseMessagingService() {
                         )
                     }
                 }
+                // TODO friend request
                 else -> {
                     Log.w(TAG, "Unrecognized action: $remoteMessage")
                     return@launch
@@ -269,6 +270,7 @@ open class AlertHandler : FirebaseMessagingService() {
             )
 
             val builder: NotificationCompat.Builder
+            // TODO inline reply?
             if (missed) {
                 createMissedNotificationChannel(this@AlertHandler)
                 builder = NotificationCompat.Builder(this@AlertHandler, CHANNEL_ID)

@@ -1,7 +1,7 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 plugins {
     // https://kotlinlang.org/docs/releases.html#release-details
-    kotlin("jvm") version("1.8.21") apply(false)
+    kotlin("jvm") version("2.0.10") apply(false)
 }
 
 buildscript {
@@ -10,8 +10,8 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath("com.android.tools.build:gradle:8.0.2")
-        classpath("com.google.gms:google-services:4.3.15")
+        classpath("com.android.tools.build:gradle:8.5.2")
+        classpath("com.google.gms:google-services:4.4.2")
         // https://kotlinlang.org/docs/releases.html#release-details
         classpath(kotlin("gradle-plugin", version = "1.8.21"))
 
@@ -29,5 +29,5 @@ allprojects {
 }
 
 tasks.register("clean", Delete::class) {
-    delete(rootProject.buildDir)
+    delete(layout.buildDirectory)
 }

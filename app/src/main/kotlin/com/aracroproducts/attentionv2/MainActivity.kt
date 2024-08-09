@@ -240,7 +240,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onNewIntent(intent: Intent?) {
+    override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         handleIntent(intent)
     }
@@ -444,7 +444,7 @@ class MainActivity : AppCompatActivity() {
                 )
                 AnimatedContent(targetState = friends.isEmpty() && !friendModel.isRefreshing && friendModel.connected,
                                 transitionSpec = {
-                                    fadeIn() with fadeOut()
+                                    fadeIn() togetherWith fadeOut()
                                 }) { targetState ->
                     when (targetState) {
                         true -> {
@@ -478,6 +478,7 @@ class MainActivity : AppCompatActivity() {
                                     .nestedScroll(scrollBehavior.nestedScrollConnection),
                                 contentPadding = it
                             ) {
+                                // TODO pending friends
                                 items(items = friends, key = { friend ->
                                     friend.id
                                 }) { friend ->

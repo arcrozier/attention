@@ -119,6 +119,7 @@ class Alert : AppCompatActivity() {
             }
         }
         AlertDialog(onDismissRequest = { }, dismissButton = {
+            // TODO inline reply
             Row {
                 AnimatedVisibility(
                     visible = !alertModel.silenced, enter = fadeIn(), exit = fadeOut()
