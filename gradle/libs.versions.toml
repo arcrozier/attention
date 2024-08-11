@@ -1,6 +1,101 @@
 [versions]
+accompanistSystemuicontroller = "0.34.0"
+activityCompose = "1.9.1"
+appcompat = "1.7.0"
+composeMaterialVersion = "1.2.1"
+coreGoogleShortcuts = "1.1.0"
+coreKtx = "1.13.1"
+coreTesting = "2.2.0"
+datastorePreferences = "1.1.1"
+espressoCore = "3.6.1"
+firebaseAnalytics = "22.0.2"
+firebaseMessagingKtx = "24.0.0"
+gradle = "8.5.2"
+androidGradlePlugin = "8.5.2"
+gson = "2.11.0"
+jetpackComposeVersion = "1.6.8"
+junit = "4.13.2"
+junitVersion = "1.2.1"
+kotlin = "2.0.10"
+ksp = "2.0.10-1.0.24"
+gmsPlugin = "4.4.2"
+lifecycleVersion = "2.8.4"
+material = "1.12.0"
+navigationUiKtx = "2.7.7"
+okhttpBom = "5.0.0-alpha.14"
+playServicesAuth = "21.2.0"
+preferenceKtx = "1.2.1"
+retrofit = "2.11.0"
+room = "2.6.1"
+sharetarget = "1.2.0"
+ucrop = "2.2.8"
+kotlinVersion = "2.0.10"
 
 [libraries]
+accompanist-systemuicontroller = { module = "com.google.accompanist:accompanist-systemuicontroller", version.ref = "accompanistSystemuicontroller" }
+activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
+androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activityCompose" }
+androidx-animation = { module = "androidx.compose.animation:animation", version.ref = "jetpackComposeVersion" }
+androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
+androidx-material = { module = "androidx.compose.material:material", version.ref = "jetpackComposeVersion" }
+androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "jetpackComposeVersion" }
+androidx-material3 = { module = "androidx.compose.material3:material3", version.ref = "composeMaterialVersion" }
+androidx-material3-window-size = { module = "androidx.compose.material3:material3-window-size-class", version.ref = "composeMaterialVersion" }
+androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
+androidx-room-guava = { module = "androidx.room:room-guava", version.ref = "room" }
+androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
+androidx-room-paging = { module = "androidx.room:room-paging", version.ref = "room" }
+androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
+androidx-room-testing = { module = "androidx.room:room-testing", version.ref = "room" }
+androidx-sharetarget = { module = "androidx.sharetarget:sharetarget", version.ref = "sharetarget" }
+androidx-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4", version.ref = "jetpackComposeVersion" }
+androidx-ui-tooling = { module = "androidx.compose.ui:ui-tooling", version.ref = "jetpackComposeVersion" }
+appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
+converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "retrofit" }
+core-google-shortcuts = { module = "androidx.core:core-google-shortcuts", version.ref = "coreGoogleShortcuts" }
+core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
+core-testing = { module = "androidx.arch.core:core-testing", version.ref = "coreTesting" }
+espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "espressoCore" }
+ext-junit = { module = "androidx.test.ext:junit", version.ref = "junitVersion" }
+firebase-analytics = { module = "com.google.firebase:firebase-analytics", version.ref = "firebaseAnalytics" }
+firebase-messaging-ktx = { module = "com.google.firebase:firebase-messaging-ktx", version.ref = "firebaseMessagingKtx" }
+android-gradlePlugin = { group = "com.android.tools.build", name = "gradle", version.ref = "androidGradlePlugin" }
+compose-gradlePlugin = { module = "org.jetbrains.kotlin:compose-compiler-gradle-plugin", version.ref = "kotlin" }
+gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+junit = { module = "junit:junit", version.ref = "junit" }
+kotlin-gradlePlugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
+ksp-gradlePlugin = { group = "com.google.devtools.ksp", name = "com.google.devtools.ksp.gradle.plugin", version.ref = "ksp" }
+lifecycle-process = { module = "androidx.lifecycle:lifecycle-process", version.ref = "lifecycleVersion" }
+lifecycle-service = { module = "androidx.lifecycle:lifecycle-service", version.ref = "lifecycleVersion" }
+lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleVersion" }
+lifecycle-viewmodel-ktx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycleVersion" }
+lifecycle-viewmodel-savedstate = { module = "androidx.lifecycle:lifecycle-viewmodel-savedstate", version.ref = "lifecycleVersion" }
+logging-interceptor = { module = "com.squareup.okhttp3:logging-interceptor", version.ref = "okhttpBom" }
+material = { module = "com.google.android.material:material", version.ref = "material" }
+navigation-ui-ktx = { module = "androidx.navigation:navigation-ui-ktx", version.ref = "navigationUiKtx" }
+okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttpBom" }
+okhttp-bom = { module = "com.squareup.okhttp3:okhttp-bom", version = "okhttpBom" }
+play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
+preference-ktx = { module = "androidx.preference:preference-ktx", version.ref = "preferenceKtx" }
+retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
+room-gradlePlugin = { group = "androidx.room", name = "room-gradle-plugin", version.ref = "room" }
+runtime-livedata = { module = "androidx.compose.runtime:runtime-livedata", version.ref = "jetpackComposeVersion" }
+symbol-processing-api = { module = "com.google.devtools.ksp:symbol-processing-api", version.ref = "ksp" }
+ucrop = { module = "com.github.yalantis:ucrop", version.ref = "ucrop" }
+
+[bundles]
+room = ["androidx-room-compiler", "androidx-room-guava", "androidx-room-ktx", "androidx-room-paging", "androidx-room-runtime", "androidx-room-testing", "room-gradlePlugin"]
+lifecycle = ["lifecycle-process", "lifecycle-service", "lifecycle-viewmodel-compose", "lifecycle-viewmodel-ktx", "lifecycle-viewmodel-savedstate"]
+compose = ["compose-gradlePlugin", "activity-compose", "androidx-activity-ktx", "androidx-animation", "material", "androidx-material", "androidx-material-icons-extended", "androidx-material3", "androidx-material3-window-size", "androidx-ui-test-junit4", "androidx-ui-tooling", "runtime-livedata"]
 
 [plugins]
-
+android-application = { id = "com.android.application", version.ref = "gradle" }
+android-library = { id = "com.android.library", version.ref = "androidGradlePlugin" }
+android-test = { id = "com.android.test", version.ref = "androidGradlePlugin" }
+compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+gms = { id = "com.google.gms.google-services", version.ref = "gmsPlugin" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+room = { id = "androidx.room", version.ref = "room" }
+jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlinVersion" }

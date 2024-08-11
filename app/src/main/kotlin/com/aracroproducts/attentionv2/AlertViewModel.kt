@@ -1,9 +1,11 @@
 package com.aracroproducts.attentionv2
 
+import android.Manifest
 import android.app.Application
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.media.RingtoneManager
 import android.os.*
@@ -17,6 +19,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -261,6 +264,13 @@ class AlertViewModel(
         }
 
         val notificationManagerCompat = NotificationManagerCompat.from(context)
+        if (ActivityCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
         notificationManagerCompat.notify(System.currentTimeMillis().toInt(), builder.build())
 
     }

@@ -17,7 +17,6 @@
     <string name="delivered">Delivered</string>
     <string name="sending">Sending…</string>
     <string name="send_error">An error occurred</string>
-    <string name="offline">Offline</string>
     <string name="disconnected">Connection error</string>
     <string name="empty_username">Username cannot be empty</string>
     <string name="nonexistent_username">No user with that username exists</string>
@@ -45,7 +44,6 @@
     <string name="wrong_password">Invalid username or password</string>
     <string name="google_sign_in_failed">Unable to log in with Google</string>
     <string name="password_validation_failed">Password must be at least 8 characters</string>
-    <string name="new_password">New password…</string>
     <string name="password_verification_failed">Couldn\'t verify old password. Please login
     again and then try changing your password</string>
     <string name="rate_limited">Too many requests. Please try again later</string>
@@ -60,8 +58,6 @@
     image format</string>
     <string name="photo_too_large">Photo is too large (must not exceed 179 megapixels)</string>
     <string name="account">Account</string>
-    <string name="network_error">An error occurred when connecting to server. Please try
-        again later</string>
     <string name="no_friends">You don\'t have any friends - use the \'+\' button to add
         some!</string>
     <string name="connection_error">Unable to connect to the server. Check your internet
@@ -82,15 +78,12 @@
     <string name="share">Share</string>
     <string name="share_text">Add me on Attention!
         https://attention.aracroproducts.com/app/add?username=%s</string>
-    <string name="name_dialog_title">Please enter your name</string>
     <string name="name">Full name</string>
     <string name="placeholder_name">Name…</string>
-    <string name="no_name">Please enter a name</string>
     <string name="confirm_alert">Send notification</string>
     <string name="add_message">Add message</string>
     <string name="message_hint">Enter message…</string>
     <string name="message_label">Custom message to %s</string>
-    <string name="invalid_id">You did not enter a valid ID</string>
     <string name="invalid_float">Please enter a valid number</string>
     <string name="alert_sent">Successfully sent alert</string>
     <string name="alert_failed">Failed to send</string>
@@ -106,7 +99,6 @@
         connection and try again</string>
     <string name="could_not_ring">Could not ring device as Attention! does not
         have permission to change Do Not Disturb state</string>
-    <string name="general_error">Error: Could not send alert</string>
     <string name="user_registered">Your device has been registered!</string>
     <string name="default_message">%s wants your attention!</string>
     <string name="message_prefix">%1$s says: %2$s</string>
@@ -125,7 +117,6 @@
         need to grant permission in settings.</string>
     <string name="confirm_delete_title">Delete friend</string>
     <string name="confirm_delete_message">Are you sure you want to remove %s from your friends?</string>
-    <string name="yes">Yes</string>
     <string name="add_friend">Add new friend</string>
     <string name="link_account">Link Google Account</string>
     <string name="google_account_in_use">There is already a user with this Google account</string>
@@ -152,22 +143,18 @@
     <string name="alert_channel_description">Notifies you of new alerts</string>
 
 
-    <string name="allow">Allow</string>
-    <string name="deny">Deny</string>
     <string name="draw_title">Allow Attention! to draw overlays?</string>
     <string name="draw_message">This is required to show alerts while your device is in use. To enable it, open settings</string>
     <string name="open_settings">Open settings</string>
     <string name="do_not_ask_again">Do not ask again</string>
 
     <string name="msg_token_fmt" translatable="false">Generated token: %s</string>
-    <string name="log_sending_msg" translatable="false">Sending message to server</string>
 
     <string name="no_play_services">No Google Play Services were found on your device</string>
     <string name="title_activity_settings">Settings</string>
 
     <!-- Preference Titles -->
     <string name="notifications_title">Notifications</string>
-    <string name="user_title">User</string>
     <string name="app_preference_category">App</string>
 
     <!-- Notification Preferences -->
@@ -187,7 +174,6 @@
     <string name="ring">Ring</string>
 
     <!-- User Preferences -->
-    <string name="display_name">Display name</string>
 
     <!-- App Preferences -->
     <string name="delay_title">Time to cancel a message</string>
@@ -203,7 +189,6 @@
     <string name="by_ap">By Aracro Products</string>
 
     <!-- Preference Keys -->
-    <string name="name_key" translatable="false">com.aracroproducts.attention.key.preferred_name</string>
     <string name="override_dnd_key" translatable="false">com.aracroproducts.attention.key.override_dnd</string>
     <string name="ring_preference_key" translatable="false">com.aracroproducts.attention.key.ring</string>
     <string name="vibrate_preference_key" translatable="false">com.aracroproducts.attention.key.vibrate</string>
@@ -215,15 +200,12 @@
         .last_name</string>
     <string name="password_key" translatable="false">com.aracroproducts.attention.key
         .password</string>
-    <string name="link_account_key" translatable="false">com.aracroproducts.attention.key
-        .link_account</string>
     <string name="alert_title">Attention!</string>
     <string name="change_password_action" translatable="false">com.aracroproducts.attention.action.change_password</string>
     <string name="link_account_action" translatable="false">com.aracroproducts.attention
         .action.link_account</string>
     <string name="reopen_failed_alert_action" translatable="false">com.aracroproducts
         .attention.action.resend_alert</string>
-    <string name="logout_key" translatable="false">com.aracroproducts.attention.key.logout</string>
     <string name="delay_key" translatable="false">com.aracroproducts.attention.key.delay</string>
     <string name="client_id" translatable="false">357995852275-tcfjuvtbrk3c57t5gsuc9a9jdfdn137s.apps.googleusercontent.com</string>
 
@@ -232,9 +214,4 @@
     <string name="privacy_policy_url" translatable="false">https://aracroproducts.com/legal/privacy-policy/attention/</string>
     <string name="ap_url" translatable="false">https://aracroproducts.com</string>
 
-    <string name="asset_statements" translatable="false">
-  [{
-    \"include\": \"https://attention.aracroproducts.com/.well-known/assetlinks.json\"
-  }]
-  </string>
 </resources>

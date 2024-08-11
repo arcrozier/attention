@@ -1,9 +1,10 @@
 plugins {
-    id("com.android.application")
-    id("kotlin-android")
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.ksp)
     // https://mvnrepository.com/artifact/com.google.devtools.ksp/symbol-processing-api
-    id("com.google.devtools.ksp") version "2.0.10-1.0.24"
-    id("com.google.gms.google-services")
+    alias(libs.plugins.gms)
+    alias(libs.plugins.jetbrains.kotlin.android)
+    alias(libs.plugins.compose)
 }
 
 android {
@@ -14,7 +15,7 @@ android {
         minSdk = 24
         targetSdk = 35
         versionCode = 39
-        versionName = "2.1.7-beta2"
+        versionName = "2.2.0-beta2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -27,6 +28,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     buildTypes {
@@ -50,123 +52,120 @@ android {
         targetCompatibility = JavaVersion.VERSION_18
     }
 
-    kotlinOptions {
-        jvmTarget = "18"
-        freeCompilerArgs = freeCompilerArgs + "-opt-in=kotlin.RequiresOptIn" + "-Xjvm-default=all"
-    }
-
     composeOptions {
         // https://developer.android.com/jetpack/androidx/releases/compose-compiler
         kotlinCompilerExtensionVersion = "1.4.7"
     }
 
     namespace = "com.aracroproducts.attentionv2"
+
+    kotlinOptions {
+        jvmTarget = "17"
+        freeCompilerArgs += "-opt-in=kotlin.RequiresOptIn" + "-Xjvm-default=all"
+    }
 }
 
 dependencies {
-    val lifecycleVersion = "2.8.4"
 
-    implementation("com.google.firebase:firebase-messaging-ktx:24.0.0")
-    implementation("com.google.firebase:firebase-analytics:22.0.2")
+    compileOnly(libs.android.gradlePlugin)
+
+    implementation(libs.bundles.compose)
+    implementation(libs.bundles.room)
+    implementation(libs.bundles.lifecycle)
+
+    implementation(libs.firebase.messaging.ktx)
+    implementation(libs.firebase.analytics)
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
-    implementation("androidx.appcompat:appcompat:1.7.0")
-    implementation("com.google.android.material:material:1.12.0")
-    implementation("androidx.navigation:navigation-ui-ktx:2.7.7")
-    implementation("androidx.preference:preference-ktx:1.2.1")
-    testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test.ext:junit:1.2.1")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
-    implementation("androidx.core:core-ktx:1.13.1")
-    implementation("androidx.core:core-google-shortcuts:1.1.0")
+    implementation(libs.appcompat)
+    implementation(libs.material)
+    implementation(libs.navigation.ui.ktx)
+    implementation(libs.preference.ktx)
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.ext.junit)
+    androidTestImplementation(libs.espresso.core)
+    implementation(libs.core.ktx)
+    implementation(libs.core.google.shortcuts)
 
-    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation(libs.retrofit)
 
     // define a BOM and its version
-    implementation(platform("com.squareup.okhttp3:okhttp-bom:5.0.0-alpha.14"))
+    implementation(platform(libs.okhttp.bom))
 
     // define any required OkHttp artifacts without version
-    implementation("com.squareup.okhttp3:okhttp")
-    implementation("com.squareup.okhttp3:logging-interceptor")
+    implementation(libs.okhttp)
+    implementation(libs.logging.interceptor)
 
-    val gsonVersion = "2.11.0"
-    implementation("com.squareup.retrofit2:converter-gson:$gsonVersion")
-    implementation("com.google.code.gson:gson:2.11.0")
+    implementation(libs.converter.gson)
+    implementation(libs.gson)
 
 
     // ViewModel
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycleVersion")
+    implementation(libs.lifecycle.viewmodel.ktx)
     // ViewModel utilities for Compose
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:$lifecycleVersion")
+    implementation(libs.lifecycle.viewmodel.compose)
 
     // Saved state module for ViewModel
-    implementation("androidx.lifecycle:lifecycle-viewmodel-savedstate:$lifecycleVersion")
+    implementation(libs.lifecycle.viewmodel.savedstate)
 
     // optional - helpers for implementing LifecycleOwner in a Service
-    implementation("androidx.lifecycle:lifecycle-service:$lifecycleVersion")
+    implementation(libs.lifecycle.service)
 
     // optional - ProcessLifecycleOwner provides a lifecycle for the whole application process
-    implementation("androidx.lifecycle:lifecycle-process:$lifecycleVersion")
+    implementation(libs.lifecycle.process)
 
     // optional - Test helpers for LiveData
-    testImplementation("androidx.arch.core:core-testing:2.2.0")
+    testImplementation(libs.core.testing)
 
-    val jetpackComposeVersion = "1.6.8"
     // Integration with activities
-    implementation("androidx.activity:activity-compose:1.9.1")
+    implementation(libs.activity.compose)
     // Compose Material Design
-    implementation("androidx.compose.runtime:runtime-livedata:$jetpackComposeVersion")
-    implementation("androidx.compose.material:material:$jetpackComposeVersion")
+    implementation(libs.runtime.livedata)
+    implementation(libs.androidx.material)
     // Animations
-    implementation("androidx.compose.animation:animation:$jetpackComposeVersion")
-    implementation("androidx.compose.material:material-icons-extended:$jetpackComposeVersion")
+    implementation(libs.androidx.animation)
+    implementation(libs.androidx.material.icons.extended)
     // Tooling support (Previews, etc.)
-    implementation("androidx.compose.ui:ui-tooling:$jetpackComposeVersion")
+    implementation(libs.androidx.ui.tooling)
     // Integration with ViewModels
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:$lifecycleVersion")
+    implementation(libs.lifecycle.viewmodel.compose)
     // UI Tests
 
 
-    val composeMaterialVersion = "1.2.1"
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4:$jetpackComposeVersion")
-    implementation("androidx.compose.material3:material3:$composeMaterialVersion")
-    implementation("androidx.compose.material3:material3-window-size-class:$composeMaterialVersion")
+    androidTestImplementation(libs.androidx.ui.test.junit4)
+    implementation(libs.androidx.material3)
+    implementation(libs.androidx.material3.window.size)
 
-    val roomVersion = "2.6.1"
 
-    implementation("androidx.room:room-runtime:$roomVersion")
-    implementation("androidx.room:room-ktx:$roomVersion")
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
     // To use Kotlin annotation processing tool (kapt)
-    ksp("androidx.room:room-compiler:$roomVersion")
+    ksp(libs.androidx.room.compiler)
 
     // optional - Guava support for Room, including Optional and ListenableFuture
-    implementation("androidx.room:room-guava:$roomVersion")
+    implementation(libs.androidx.room.guava)
 
     // optional - Test helpers
-    testImplementation("androidx.room:room-testing:$roomVersion")
+    testImplementation(libs.androidx.room.testing)
 
     // optional - Paging 3 Integration
-    implementation("androidx.room:room-paging:$roomVersion")
+    implementation(libs.androidx.room.paging)
 
     // For sharing
-    implementation("androidx.sharetarget:sharetarget:1.2.0")
+    implementation(libs.androidx.sharetarget)
 
-    implementation("com.google.accompanist:accompanist-systemuicontroller:0.34.0")
+    implementation(libs.accompanist.systemuicontroller)
 
     // Sign in with Google
-    implementation("com.google.android.gms:play-services-auth:21.2.0")
+    implementation(libs.play.services.auth)
 
-    implementation("androidx.activity:activity-ktx:1.9.1")
+    implementation(libs.androidx.activity.ktx)
 
     // image cropping library
-    implementation("com.github.yalantis:ucrop:2.2.8")
+    implementation(libs.ucrop)
 
     // must match ksp version at top of file
-    implementation("com.google.devtools.ksp:symbol-processing-api:2.0.10-1.0.24")
+    implementation(libs.symbol.processing.api)
 
     // Preferences DataStore (SharedPreferences like APIs)
-    implementation("androidx.datastore:datastore-preferences:1.1.1")
-}
-
-repositories {
-    mavenCentral()
+    implementation(libs.androidx.datastore.preferences)
 }

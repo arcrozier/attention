@@ -1010,7 +1010,7 @@ class MainActivity : AppCompatActivity() {
                 val enterTransition = when (targetState) {
                     State.EDIT -> {
                         slideIntoContainer(
-                            towards = AnimatedContentScope.SlideDirection.Right
+                            towards = AnimatedContentTransitionScope.SlideDirection.Right
                         ) + fadeIn()
                     }
                     State.CONFIRM -> {
@@ -1026,7 +1026,7 @@ class MainActivity : AppCompatActivity() {
                 val exitTransition = when (initialState) {
                     State.EDIT -> {
                         slideOutOfContainer(
-                            towards = AnimatedContentScope.SlideDirection.Left
+                            towards = AnimatedContentTransitionScope.SlideDirection.Left
                         ) + fadeOut()
                     }
                     State.CONFIRM -> {
@@ -1039,7 +1039,7 @@ class MainActivity : AppCompatActivity() {
                         fadeOut()
                     }
                 }
-                enterTransition with exitTransition
+                enterTransition togetherWith exitTransition
             }, modifier = Modifier.centerAt(x = loc)) { targetState ->
                 if (transition.currentState == transition.targetState) {
                     animating = false

@@ -1,16 +1,19 @@
 package com.aracroproducts.attentionv2
 
+import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
 import android.provider.Settings.SettingNotFoundException
 import android.util.Log
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.Person
@@ -287,6 +290,13 @@ open class AlertHandler : FirebaseMessagingService() {
                 .setPriority(NotificationCompat.PRIORITY_MAX).setContentIntent(pendingIntent)
                 .setAutoCancel(true)
             val notificationManagerCompat = NotificationManagerCompat.from(this@AlertHandler)
+            if (ActivityCompat.checkSelfPermission(
+                    this@AlertHandler,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                return@launch
+            }
             notificationManagerCompat.notify(notificationID, builder.build())
         }
         return notificationID

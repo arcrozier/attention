@@ -1,10 +1,12 @@
 package com.aracroproducts.attentionv2
 
+import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.*
 import android.os.Build
 import android.os.VibrationEffect
@@ -19,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.Person
@@ -458,6 +461,13 @@ class MainViewModel(
 
             val notificationID = System.currentTimeMillis().toInt()
             val notificationManagerCompat = NotificationManagerCompat.from(context)
+            if (ActivityCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                return@launch
+            }
             notificationManagerCompat.notify(notificationID, builder.build())
         }
     }
@@ -542,7 +552,7 @@ class MainViewModel(
                                 )
                             }
                             viewModelScope.launch {
-                                @Suppress("BlockingMethodInNonBlockingContext") withContext(
+                                withContext(
                                     Dispatchers.IO
                                 ) {
                                     val file = File(
