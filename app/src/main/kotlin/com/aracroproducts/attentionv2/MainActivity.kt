@@ -13,44 +13,80 @@ import android.util.Base64
 import android.util.Log
 import android.view.KeyEvent.KEYCODE_ENTER
 import android.widget.Toast
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.animation.*
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.animateDp
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.updateTransition
-import androidx.compose.foundation.*
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredHeight
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.waterfallPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.*
-import androidx.compose.material.Divider
-import androidx.compose.material.Icon
-import androidx.compose.material.ProgressIndicatorDefaults
-import androidx.compose.material.SnackbarResult
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.ContentAlpha
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.pullrefresh.PullRefreshIndicator
-import androidx.compose.material.pullrefresh.pullRefresh
-import androidx.compose.material.pullrefresh.rememberPullRefreshState
-import androidx.compose.material3.*
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.ProgressIndicatorDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -59,8 +95,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.layout
@@ -72,7 +108,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -81,7 +116,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
 import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
-import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import kotlinx.coroutines.CoroutineScope
@@ -89,6 +123,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.lang.Integer.max
+import kotlin.collections.set
 import kotlin.math.min
 
 class MainActivity : AppCompatActivity() {
@@ -150,6 +185,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        enableEdgeToEdge(navigationBarStyle = SystemBarStyle.auto(0xFFFFFFFF.toInt(), 0x000000FF))
 
         setContent {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -302,9 +338,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     @OptIn(
-        ExperimentalAnimationApi::class,
-        ExperimentalMaterial3Api::class,
-        ExperimentalMaterialApi::class
+        ExperimentalMaterial3Api::class
     )
     @ExperimentalFoundationApi
     @Composable
@@ -316,38 +350,24 @@ class MainActivity : AppCompatActivity() {
         dialogState: MainViewModel.DialogStatus,
         showSnackbar: String
     ) {
+        enableEdgeToEdge(navigationBarStyle = SystemBarStyle.auto(MaterialTheme.colorScheme.scrim.toArgb(), MaterialTheme.colorScheme.scrim.toArgb()))
+
         val cachedFriends by friendModel.cachedFriends.observeAsState(listOf())
-        val scaffoldState = rememberScaffoldState()
+        val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
         val scope = rememberCoroutineScope()
         if (showSnackbar.isNotBlank()) {
-            LaunchedEffect(scaffoldState.snackbarHostState) {
+            LaunchedEffect(showSnackbar) {
                 scope.launch { // cancels by default after a short amount of time
 
-                    when (scaffoldState.snackbarHostState.showSnackbar(message = showSnackbar)) {
+                    when (snackbarHostState.showSnackbar(message = showSnackbar)) {
                         SnackbarResult.Dismissed -> {
                             friendModel.dismissSnackBar()
                         }
+
                         else -> {}
                     }
                 }
             }
-        }
-
-        // Remember a SystemUiController
-        val systemUiController = rememberSystemUiController()
-        val useDarkIcons = !isSystemInDarkTheme()
-
-        DisposableEffect(
-            systemUiController, useDarkIcons
-        ) { // Update all of the system bar colors to be transparent, and use
-            // dark icons if we're in light theme
-            systemUiController.setNavigationBarColor(
-                color = Color.Transparent, darkIcons = useDarkIcons
-            )
-
-            // setStatusBarColor() and setNavigationBarColor() also exist
-
-            onDispose {}
         }
 
         when (dialogState) {
@@ -376,8 +396,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-        Scaffold(scaffoldState = scaffoldState,
-                 topBar = {
+        Scaffold(topBar = {
                      LargeTopAppBar(colors = TopAppBarDefaults.largeTopAppBarColors(
                          containerColor = MaterialTheme.colorScheme.primary,
                          titleContentColor = MaterialTheme.colorScheme.onPrimary,
@@ -409,7 +428,7 @@ class MainActivity : AppCompatActivity() {
                      }, scrollBehavior = scrollBehavior
                      )
                  },
-                 backgroundColor = MaterialTheme.colorScheme.background,
+                 contentColor = MaterialTheme.colorScheme.background,
                  modifier = Modifier.nestedScroll(
                      scrollBehavior.nestedScrollConnection
                  ),
@@ -420,7 +439,7 @@ class MainActivity : AppCompatActivity() {
                                  MainViewModel.DialogStatus.AddFriend
                              )
                          },
-                         backgroundColor = MaterialTheme.colorScheme.secondary,
+                         containerColor = MaterialTheme.colorScheme.secondary,
                      ) {
                          Icon(
                              Icons.Filled.PersonAdd,
@@ -430,22 +449,18 @@ class MainActivity : AppCompatActivity() {
                      }
                  }) {
             val refreshState =
-                rememberPullRefreshState(friendModel.isRefreshing, onRefresh = { reload() })
-            Box(
-                modifier = Modifier.pullRefresh(refreshState),
+                rememberPullToRefreshState()
+            PullToRefreshBox(
+                isRefreshing = friendModel.isRefreshing,
+                state = refreshState,
+                onRefresh = {reload()},
+                modifier = Modifier.padding(it),
             ) {
-
-                PullRefreshIndicator(
-                    friendModel.isRefreshing,
-                    refreshState,
-                    Modifier
-                        .align(Alignment.TopCenter)
-                        .zIndex(1f)
-                )
                 AnimatedContent(targetState = friends.isEmpty() && !friendModel.isRefreshing && friendModel.connected,
                                 transitionSpec = {
                                     fadeIn() togetherWith fadeOut()
-                                }) { targetState ->
+                                }, label = "friendsList"
+                ) { targetState ->
                     when (targetState) {
                         true -> {
                             Column(
@@ -486,14 +501,14 @@ class MainActivity : AppCompatActivity() {
                                                onLongPress = onLongPress,
                                                onEditName = onEditName,
                                                onDeletePrompt = onDeletePrompt,
-                                               modifier = Modifier.animateItemPlacement(),
+                                               modifier = Modifier.animateItem(),
                                                state = friendModel.cardStatus.getOrDefault(
                                                    friend.id, State.NORMAL
                                                ),
                                                onStateChange = { newState ->
                                                    friendModel.cardStatus[friend.id] = newState
                                                })
-                                    Divider(
+                                    HorizontalDivider(
                                         color = MaterialTheme.colorScheme.outline.copy(
                                             alpha = ContentAlpha.disabled
                                         ), modifier = Modifier.padding(start = 16.dp, end = 16.dp)
@@ -515,7 +530,7 @@ class MainActivity : AppCompatActivity() {
                                                }
 
                                     )
-                                    Divider(
+                                    HorizontalDivider(
                                         color = MaterialTheme.colorScheme.outline.copy(
                                             alpha = ContentAlpha.disabled
                                         ), modifier = Modifier.padding(start = 16.dp, end = 16.dp)
@@ -789,9 +804,9 @@ class MainActivity : AppCompatActivity() {
                                       )
                                   },
                                   keyboardOptions = KeyboardOptions(
-                                      keyboardType = KeyboardType.Text,
-                                      autoCorrect = false,
                                       capitalization = KeyboardCapitalization.None,
+                                      autoCorrectEnabled = false,
+                                      keyboardType = KeyboardType.Text,
                                       imeAction = ImeAction.Done
                                   ),
                                   supportingText = {
@@ -852,7 +867,6 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    @OptIn(ExperimentalAnimationApi::class)
     @ExperimentalFoundationApi
     @Composable
     fun FriendCard(
@@ -1040,7 +1054,7 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 enterTransition togetherWith exitTransition
-            }, modifier = Modifier.centerAt(x = loc)) { targetState ->
+            }, modifier = Modifier.centerAt(x = loc), label = "Friend card") { targetState ->
                 if (transition.currentState == transition.targetState) {
                     animating = false
                 }
@@ -1122,7 +1136,8 @@ class MainActivity : AppCompatActivity() {
                             targetValue = min(progress.toFloat() / delay, 1f).let {
                                 if (it.isNaN()) 1f
                                 else it
-                            }, animationSpec = ProgressIndicatorDefaults.ProgressAnimationSpec
+                            }, animationSpec = ProgressIndicatorDefaults.ProgressAnimationSpec,
+                            label = "Send progress"
                         )
                         var progressEnabled by remember { mutableStateOf(true) }
                         var triggered by remember { mutableStateOf(false) }

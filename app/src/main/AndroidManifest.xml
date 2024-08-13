@@ -24,6 +24,7 @@
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:theme="@style/Theme.Material3.DayNight.NoActionBar"
         tools:targetApi="33">
+        <meta-data android:name="asset_statements" android:resource="@string/asset_statements" />
         <activity
             android:name=".SettingsActivity"
             android:exported="false"

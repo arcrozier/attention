@@ -64,14 +64,14 @@ class MainViewModel(
 
     sealed class DialogStatus(val priority: Int) {
         sealed class FriendStatus(val friend: Friend, priority: Int) : DialogStatus(priority)
-        object AddFriend : DialogStatus(0)
-        object OverlayPermission : DialogStatus(1)
+        data object AddFriend : DialogStatus(0)
+        data object OverlayPermission : DialogStatus(1)
         class AddMessageText(friend: Friend, val onSend: (String) -> Unit) : FriendStatus(friend, 2)
         class FriendName(friend: Friend) : FriendStatus(friend, 3)
         class ConfirmDelete(friend: Friend) : FriendStatus(friend, 4)
         class ConfirmDeleteCached(friend: Friend) : FriendStatus(friend, 5)
         data class PermissionRationale(val permission: String) : DialogStatus(6)
-        object None : DialogStatus(7)
+        data object None : DialogStatus(7)
     }
 
     val friends = attentionRepository.getFriends()
@@ -907,7 +907,7 @@ class MainViewModel(
                 Log.d(MainViewModel::class.java.name, "${bitmap.width} x ${bitmap.height}")
                 val canvas = Canvas(output)
 
-                val color: UInt = 0xff424242u
+                val color = 0xff424242u
                 val paint = Paint()
                 val rect = Rect(0, 0, bitmap.width, bitmap.height)
 

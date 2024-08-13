@@ -67,22 +67,29 @@ android {
 
 dependencies {
 
+    implementation(libs.googleid)
+    compileOnly(libs.android.tools.common)
     compileOnly(libs.android.gradlePlugin)
+    compileOnly(libs.kotlin.gradlePlugin)
+    compileOnly(libs.compose.gradlePlugin)
+    compileOnly(libs.ksp.gradlePlugin)
+    compileOnly(libs.room.gradlePlugin)
 
     implementation(libs.bundles.compose)
     implementation(libs.bundles.room)
     implementation(libs.bundles.lifecycle)
+    implementation(libs.bundles.credentials)
 
     implementation(libs.firebase.messaging.ktx)
     implementation(libs.firebase.analytics)
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     implementation(libs.appcompat)
-    implementation(libs.material)
     implementation(libs.navigation.ui.ktx)
     implementation(libs.preference.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
+    androidTestImplementation(libs.androidx.ui.test.junit4)
     implementation(libs.core.ktx)
     implementation(libs.core.google.shortcuts)
 
@@ -100,55 +107,31 @@ dependencies {
 
 
     // ViewModel
-    implementation(libs.lifecycle.viewmodel.ktx)
     // ViewModel utilities for Compose
-    implementation(libs.lifecycle.viewmodel.compose)
 
     // Saved state module for ViewModel
-    implementation(libs.lifecycle.viewmodel.savedstate)
 
     // optional - helpers for implementing LifecycleOwner in a Service
-    implementation(libs.lifecycle.service)
 
     // optional - ProcessLifecycleOwner provides a lifecycle for the whole application process
-    implementation(libs.lifecycle.process)
 
     // optional - Test helpers for LiveData
     testImplementation(libs.core.testing)
 
     // Integration with activities
-    implementation(libs.activity.compose)
     // Compose Material Design
-    implementation(libs.runtime.livedata)
-    implementation(libs.androidx.material)
     // Animations
-    implementation(libs.androidx.animation)
-    implementation(libs.androidx.material.icons.extended)
     // Tooling support (Previews, etc.)
-    implementation(libs.androidx.ui.tooling)
     // Integration with ViewModels
-    implementation(libs.lifecycle.viewmodel.compose)
     // UI Tests
 
-
-    androidTestImplementation(libs.androidx.ui.test.junit4)
-    implementation(libs.androidx.material3)
-    implementation(libs.androidx.material3.window.size)
-
-
-    implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
     // To use Kotlin annotation processing tool (kapt)
-    ksp(libs.androidx.room.compiler)
 
     // optional - Guava support for Room, including Optional and ListenableFuture
-    implementation(libs.androidx.room.guava)
 
     // optional - Test helpers
-    testImplementation(libs.androidx.room.testing)
 
     // optional - Paging 3 Integration
-    implementation(libs.androidx.room.paging)
 
     // For sharing
     implementation(libs.androidx.sharetarget)
@@ -158,7 +141,6 @@ dependencies {
     // Sign in with Google
     implementation(libs.play.services.auth)
 
-    implementation(libs.androidx.activity.ktx)
 
     // image cropping library
     implementation(libs.ucrop)

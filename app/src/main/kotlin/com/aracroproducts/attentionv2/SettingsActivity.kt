@@ -11,7 +11,9 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS
 import android.util.Log
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -19,7 +21,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.EaseInOutCubic
 import androidx.compose.animation.core.TweenSpec
 import androidx.compose.animation.core.animateFloatAsState
@@ -28,7 +29,6 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -95,11 +95,11 @@ import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSiz
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -113,6 +113,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
@@ -134,6 +135,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
 import androidx.core.view.WindowCompat
+import androidx.credentials.ClearCredentialRequestTypes
+import androidx.credentials.ClearCredentialStateRequest
+import androidx.credentials.CredentialManager
+import androidx.credentials.exceptions.ClearCredentialException
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -144,11 +149,10 @@ import com.aracroproducts.attentionv2.LoginActivity.Companion.LIST_ELEMENT_PADDI
 import com.aracroproducts.attentionv2.LoginActivity.Companion.UsernameField
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
 import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
-import com.google.accompanist.systemuicontroller.rememberSystemUiController
-import com.google.android.gms.auth.api.identity.Identity
 import com.yalantis.ucrop.UCrop
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.io.File
 import java.lang.Integer.max
 
@@ -197,6 +201,8 @@ class SettingsActivity : AppCompatActivity() {
             Log.d("PhotoPicker", "No media selected")
         }
     }
+
+    private val credentialManager = CredentialManager.create(this)
 
     class SettingsViewModelFactory(
         private val attentionRepository: AttentionRepository,
@@ -607,6 +613,7 @@ class SettingsActivity : AppCompatActivity() {
                     titleColor = MaterialTheme.colorScheme.error,
                     summary = null,
                 ) { _, _, dismissDialog, _, title ->
+                    val scope = rememberCoroutineScope()
                     AlertDialog(onDismissRequest = { dismissDialog() }, title = {
                         Text(text = title)
                     }, text = {
@@ -616,8 +623,16 @@ class SettingsActivity : AppCompatActivity() {
                             onClick = {
                                 viewModel.logout(this)
 
-                                val oneTapClient = Identity.getSignInClient(this)
-                                oneTapClient.signOut()
+                                scope.launch {
+                                    try {
+                                        credentialManager.clearCredentialState(
+                                            ClearCredentialStateRequest(ClearCredentialRequestTypes.CLEAR_CREDENTIAL_STATE)
+                                        )
+                                    } catch (e: ClearCredentialException) {
+                                        // not really much we can do
+                                        Log.e(this@SettingsActivity::class.qualifiedName, "Error clearing credentials: $e")
+                                    }
+                                }
                                 finish()
                                 dismissDialog()
                             }, colors = ButtonDefaults.buttonColors(
@@ -864,7 +879,7 @@ class SettingsActivity : AppCompatActivity() {
         )
     }
 
-    @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun PreferenceScreen(
         preferences: List<Pair<Pair<Int, (@Composable () -> Unit)?>, @Composable () -> Unit>>,
@@ -874,11 +889,7 @@ class SettingsActivity : AppCompatActivity() {
         onGroupSelected: (key: Int, preferences: @Composable () -> Unit) -> Unit,
         snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
     ) {
-
-        // Remember a SystemUiController
-        val systemUiController = rememberSystemUiController()
-        val useDarkIcons = !isSystemInDarkTheme()
-        val scrim = MaterialTheme.colorScheme.scrim
+        enableEdgeToEdge(navigationBarStyle = SystemBarStyle.auto(MaterialTheme.colorScheme.scrim.toArgb(), MaterialTheme.colorScheme.scrim.toArgb()))
 
         if (selected == 0) {
             onGroupSelected(preferences.firstOrNull()?.first?.first ?: 0,
@@ -886,20 +897,6 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         val phone = screenClass == WindowWidthSizeClass.Compact
-
-        DisposableEffect(
-            systemUiController, useDarkIcons
-        ) { // Update all of the system bar colors to be transparent, and use
-            // dark icons if we're in light theme
-            systemUiController.setNavigationBarColor(
-                color = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) Color.Transparent
-                else scrim, darkIcons = useDarkIcons
-            )
-
-            // setStatusBarColor() and setNavigationBarColor() also exist
-
-            onDispose {}
-        }
 
         val phoneScrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
         val tabletScrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -1012,7 +1009,7 @@ class SettingsActivity : AppCompatActivity() {
                         slideIntoContainer(
                             towards = AnimatedContentTransitionScope.SlideDirection.Start
                         ) togetherWith fadeOut()
-                    }) { targetPreferenceGroup ->
+                    }, label = "animated preference group") { targetPreferenceGroup ->
                         Column(modifier = Modifier.weight(1f, true)) {
                             Spacer(modifier = Modifier.height(padding.calculateTopPadding()))
                             targetPreferenceGroup()
@@ -1023,7 +1020,6 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
-    @OptIn(ExperimentalAnimationApi::class)
     @Composable
     fun UploadDialog(
         uploading: Boolean,
@@ -1098,7 +1094,7 @@ class SettingsActivity : AppCompatActivity() {
                     Crossfade(
                         targetState = uploading, animationSpec = TweenSpec(
                             FADE_DURATION, 0, EaseInOutCubic
-                        )
+                        ), label = "animate upload progress"
                     ) { targetState ->
                         when (targetState) {
                             true -> {
@@ -1165,7 +1161,7 @@ class SettingsActivity : AppCompatActivity() {
                                         .align(Alignment.Center)
                                         .fillMaxSize(0.25f)
                                         .aspectRatio(1f)
-                                        .zIndex(1f)
+                                        .zIndex(1f), label = "animate upload success indicator"
                                 ) { success ->
                                     when (success) {
                                         null -> {}
@@ -1389,9 +1385,9 @@ class SettingsActivity : AppCompatActivity() {
             mutableStateOf(false)
         }
         if (editing.value) {
-            dialog(value = value, setValue = setValue, dismissDialog = {
+            dialog(value, setValue, {
                 editing.value = false
-            }, context = this@SettingsActivity, title = getString(title))
+            }, this@SettingsActivity, getString(title))
         }
         Preference(
             value = value,
