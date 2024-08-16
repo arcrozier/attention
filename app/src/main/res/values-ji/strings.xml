@@ -3,23 +3,17 @@
     <string name="action_settings">Settings</string>
     <!-- Strings used for fragments for navigation -->
 
-    <string name="name_dialog_title">Bite ingebt zayer nomen</string>
     <string name="name">Gantze nomen</string>
-    <string name="no_name">Bite ingebt a nomen</string>
     <string name="confirm_alert">Shikt onzog?</string>
     <string name="add_message">Leygt onzog</string>
     <string name="message_hint">Leygt onzog…</string>
-    <string name="invalid_id">Ir hot nisht ingegebn a gut numer</string>
     <string name="alert_sent">Onzog hatzlochedik geshikt</string>
-    <string name="general_error">Grayz: Onzog ken nisht shikn</string>
     <string name="user_registered">Zayer registratziye iz gut!</string>
     <string name="default_message">%s veln zayer ufmerkzamkayt!</string>
     <string name="message_prefix">%1$s zogt: %2$s</string>
 
     <string name="confirm_delete_title">Oysmekn chaver</string>
     <string name="confirm_delete_message">Zent ir zikher vos ir veln tzu oysmekn %s fun zayer chaverim?</string>
-    <string name="yes">Ya</string>
-
     <string name="delete">Oysmekn</string>
     <string name="rename">Redagirn nomen</string>
     <string name="new_name">Ingebn naye nomen</string>
@@ -33,8 +27,6 @@
     <string name="alert_channel_description">Onzogn ir af naye onzogn</string>
 
 
-    <string name="allow">Lozn</string>
-    <string name="deny">Leykenen</string>
     <string name="draw_title">Vayzn iberlign</string>
     <string name="draw_message">Lozn Akhtung! tzu vayzn iberlign? Das lozn vayzning fun onzogn ven zayer aparat iz geveynt</string>
     <string name="open_settings">Efn settings</string>
@@ -45,8 +37,6 @@
 
     <!-- Preference Titles -->
     <string name="notifications_title">Onzogn</string>
-    <string name="user_title">User</string>
-
     <!-- Notification Preferences -->
     <string name="override_dnd">Iberstoyern Do Not Disturb</string>
     <string name="override_summary_off">Onzogn vel nisht vayzn ven Do Not Disturb iz aktiv</string>
@@ -58,7 +48,6 @@
     <string name="ring">Klingen</string>
 
     <!-- User Preferences -->
-    <string name="display_name">Aroysvayz nomen</string>
     <string name="add_friend">TODO: NOT YET TRANSLATED</string>
 
     <!-- Preference Keys -->
