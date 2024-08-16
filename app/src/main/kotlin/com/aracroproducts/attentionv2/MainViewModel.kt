@@ -80,6 +80,7 @@ class MainViewModel(
     val cachedFriends = attentionRepository.getCachedFriends()
 
     var isRefreshing by mutableStateOf(false)
+        private set
 
     var isSnackBarShowing by mutableStateOf("")
         private set
@@ -183,30 +184,30 @@ class MainViewModel(
             val friends: List<CachedFriend> = attentionRepository.getCachedFriendsSnapshot()
             for (friend in friends) {
                 attentionRepository.getName(token,
-                                            friend.username,
-                                            responseListener = { _, response, _ ->
-                                                connected = true
-                                                if (response.isSuccessful) {
-                                                    response.body()?.data?.name?.let {
-                                                        attentionRepository.addFriend(friend.username,
-                                                                                      it,
-                                                                                      token,
-                                                                                      responseListener = { _, response, _ ->
-                                                                                          if (response.isSuccessful || response.code() == 400) backgroundScope.launch {
-                                                                                              attentionRepository.deleteCachedFriend(
-                                                                                                  friend.username
-                                                                                              )
-                                                                                          }
-                                                                                      })
-                                                    }
-                                                } else if (response.code() == 400) {
-                                                    backgroundScope.launch {
-                                                        attentionRepository.deleteCachedFriend(
-                                                            friend.username
-                                                        )
-                                                    }
-                                                }
-                                            })
+                    friend.username,
+                    responseListener = { _, response, _ ->
+                        connected = true
+                        if (response.isSuccessful) {
+                            response.body()?.data?.name?.let {
+                                attentionRepository.addFriend(friend.username,
+                                    it,
+                                    token,
+                                    responseListener = { _, response, _ ->
+                                        if (response.isSuccessful || response.code() == 400) backgroundScope.launch {
+                                            attentionRepository.deleteCachedFriend(
+                                                friend.username
+                                            )
+                                        }
+                                    })
+                            }
+                        } else if (response.code() == 400) {
+                            backgroundScope.launch {
+                                attentionRepository.deleteCachedFriend(
+                                    friend.username
+                                )
+                            }
+                        }
+                    })
             }
         }
     }
@@ -236,11 +237,13 @@ class MainViewModel(
                         200 -> {
                             responseListener?.invoke(call, response)
                         }
+
                         400 -> {
                             usernameCaption = application.getString(
                                 R.string.add_friend_failed
                             )
                         }
+
                         403 -> {
                             backgroundScope.launch {
                                 attentionRepository.cacheFriend(friend.id)
@@ -292,11 +295,13 @@ class MainViewModel(
                             usernameCaption = ""
                             responseListener?.invoke(newFriendName)
                         }
+
                         400 -> {
                             usernameCaption = application.getString(
                                 R.string.nonexistent_username
                             )
                         }
+
                         403 -> {
                             if (!addFriendException) launchLogin()
                             else responseListener?.invoke(
@@ -368,25 +373,26 @@ class MainViewModel(
                 return@launch
             }
             attentionRepository.edit(Friend(id = id, name = name),
-                                     token,
-                                     responseListener = { _, response, _ ->
-                                         val context = application
-                                         setConnectStatus(response.code())
-                                         when (response.code()) {
-                                             400 -> {
-                                                 showSnackBar(context.getString(R.string.edit_friend_name_failed))
-                                             }
-                                             403 -> {
-                                                 val loginIntent =
-                                                     Intent(context, LoginActivity::class.java)
-                                                 context.startActivity(loginIntent)
-                                             }
-                                         }
+                token,
+                responseListener = { _, response, _ ->
+                    val context = application
+                    setConnectStatus(response.code())
+                    when (response.code()) {
+                        400 -> {
+                            showSnackBar(context.getString(R.string.edit_friend_name_failed))
+                        }
 
-                                     },
-                                     errorListener = { _, _ ->
-                                         setConnectStatus(null)
-                                     })
+                        403 -> {
+                            val loginIntent =
+                                Intent(context, LoginActivity::class.java)
+                            context.startActivity(loginIntent)
+                        }
+                    }
+
+                },
+                errorListener = { _, _ ->
+                    setConnectStatus(null)
+                })
         }
 
     }
@@ -570,15 +576,20 @@ class MainViewModel(
                             }
                             uploadCachedFriends()
                         }
+
                         403 -> {
                             onAuthError()
                         }
                     }
-                    isRefreshing = false
+                    viewModelScope.launch {
+                        // todo this is janky as hell
+                        delay(100)
+                        isRefreshing = false
+                    }
                 }, { _, _ ->
-                                                         isRefreshing = false
-                                                         setConnectStatus(null)
-                                                     })
+                    isRefreshing = false
+                    setConnectStatus(null)
+                })
             } else {
                 isRefreshing = false
             }
@@ -610,13 +621,14 @@ class MainViewModel(
                                 )
                             }
                         }
+
                         else -> {
                             Log.e(sTAG, "Error uploading token: $errorBody")
                         }
                     }
                 }, { _, _ ->
-                                                       setConnectStatus(null)
-                                                   })
+                    setConnectStatus(null)
+                })
             } else if (fcmToken == null) { // We don't have a token, so let's get one
                 getToken(context)
             }
@@ -710,6 +722,7 @@ class MainViewModel(
                             )
                             onSuccess?.invoke()
                         }
+
                         400 -> {
                             if (errorBody == null) {
                                 Log.e(
@@ -727,6 +740,7 @@ class MainViewModel(
                                         )
                                     )
                                 }
+
                                 else -> {
                                     notifyUser(
                                         context.getString(
@@ -737,6 +751,7 @@ class MainViewModel(
                             }
                             onError?.invoke()
                         }
+
                         403 -> {
                             if (errorBody == null) {
                                 Log.e(
@@ -754,10 +769,12 @@ class MainViewModel(
                                         )
                                     )
                                 }
+
                                 else -> launchLogin()
                             }
                             onError?.invoke()
                         }
+
                         429 -> {
                             notifyUser(
                                 context.getString(
@@ -767,6 +784,7 @@ class MainViewModel(
                             onError?.invoke()
 
                         }
+
                         else -> {
                             notifyUser(
                                 context.getString(
@@ -777,15 +795,15 @@ class MainViewModel(
                         }
                     }
                 }, { _, _ ->
-                                                    notifyUser(
-                                                        context.getString(
-                                                            R.string.alert_failed_no_connection,
-                                                            to.name
-                                                        ), message
-                                                    )
-                                                    onError?.invoke()
-                                                    setConnectStatus(null)
-                                                })
+                    notifyUser(
+                        context.getString(
+                            R.string.alert_failed_no_connection,
+                            to.name
+                        ), message
+                    )
+                    onError?.invoke()
+                    setConnectStatus(null)
+                })
             }
         }
 
@@ -855,12 +873,14 @@ class MainViewModel(
                 }
                 connected = true
             }
+
             null -> { // no internet
                 connected = false
                 if (connectionState != context.getString(R.string.sharing)) {
                     connectionState = application.getString(R.string.disconnected)
                 }
             }
+
             else -> { // 500 errors, other weird stuff
                 if (connectionState != context.getString(R.string.sharing)) {
                     connectionState = context.getString(R.string.server_error)

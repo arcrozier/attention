@@ -48,13 +48,20 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_18
-        targetCompatibility = JavaVersion.VERSION_18
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     composeOptions {
         // https://developer.android.com/jetpack/androidx/releases/compose-compiler
         kotlinCompilerExtensionVersion = "1.4.7"
+    }
+
+    configurations {
+        create("cleanedAnnotations")
+        implementation {
+            exclude(group = "org.jetbrains", module = "annotations")
+        }
     }
 
     namespace = "com.aracroproducts.attentionv2"
@@ -67,8 +74,10 @@ android {
 
 dependencies {
 
+    ksp(libs.androidx.room.compiler)
+
     implementation(libs.googleid)
-    compileOnly(libs.android.tools.common)
+//    compileOnly(libs.android.tools.common)
     compileOnly(libs.android.gradlePlugin)
     compileOnly(libs.kotlin.gradlePlugin)
     compileOnly(libs.compose.gradlePlugin)
@@ -136,7 +145,7 @@ dependencies {
     // For sharing
     implementation(libs.androidx.sharetarget)
 
-    implementation(libs.accompanist.systemuicontroller)
+//    implementation(libs.accompanist.systemuicontroller)
 
     // Sign in with Google
     implementation(libs.play.services.auth)

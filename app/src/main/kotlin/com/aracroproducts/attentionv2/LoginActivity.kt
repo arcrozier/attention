@@ -23,13 +23,14 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.width
@@ -114,8 +115,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
 import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
-import com.google.android.gms.auth.api.identity.Identity
-import com.google.android.gms.auth.api.identity.SignInClient
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
@@ -136,10 +135,9 @@ class LoginActivity : AppCompatActivity() {
         )
     })
 
-    private lateinit var oneTapClient: SignInClient
     private val credentialManager = CredentialManager.create(this)
 
-    private fun handleSignIn(result: GetCredentialResponse) {
+    private fun handleSignIn(result: GetCredentialResponse, linkExisting: Boolean = false) {
         when (val credential = result.credential) {
             is PasswordCredential -> {
                 // got a saved username/password
@@ -147,6 +145,7 @@ class LoginActivity : AppCompatActivity() {
                 loginViewModel.password = credential.password
                 loginViewModel.login(null, null, ::signInWithPassword)
             }
+
             is CustomCredential -> {
                 if (credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
                     try {
@@ -154,9 +153,24 @@ class LoginActivity : AppCompatActivity() {
                         // authenticate on your server.
                         val googleIdTokenCredential = GoogleIdTokenCredential
                             .createFrom(credential.data)
-                        loginViewModel.loginWithGoogle(null, null, googleIdTokenCredential.idToken) { token ->
-                            completeSignIn(token)
-                            finish()
+
+                        if (linkExisting) {
+                            loginViewModel.linkAccount(
+                                null,
+                                null,
+                                googleIdTokenCredential.idToken
+                            ) {
+                                finish()
+                            }
+                        } else {
+                            loginViewModel.loginWithGoogle(
+                                null,
+                                null,
+                                googleIdTokenCredential.idToken
+                            ) { token ->
+                                completeSignIn(token)
+                                finish()
+                            }
                         }
                     } catch (e: GoogleIdTokenParsingException) {
                         Log.e(TAG, "Received an invalid google id token response", e)
@@ -165,10 +179,12 @@ class LoginActivity : AppCompatActivity() {
                     // Catch any unrecognized custom credential type here.
                     Log.e(TAG, "Unexpected type of credential")
                 }
-            } else -> {
-            // Catch any unrecognized credential type here.
-            Log.e(TAG, "Unexpected type of credential")
-        }
+            }
+
+            else -> {
+                // Catch any unrecognized credential type here.
+                Log.e(TAG, "Unexpected type of credential")
+            }
         }
     }
 
@@ -189,16 +205,17 @@ class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        oneTapClient = Identity.getSignInClient(this)
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 when (loginViewModel.login) {
                     LoginViewModel.State.CHOOSE_USERNAME -> {
                         loginViewModel.login = LoginViewModel.State.LOGIN
                     }
+
                     LoginViewModel.State.CHANGE_PASSWORD, LoginViewModel.State.LINK_ACCOUNT -> {
                         finish()
                     }
+
                     else -> {
                         moveTaskToBack(true)
                     }
@@ -207,25 +224,37 @@ class LoginActivity : AppCompatActivity() {
 
         })
 
-        if (intent.action == getString(R.string.change_password_action)) {
-            loginViewModel.login = LoginViewModel.State.CHANGE_PASSWORD
-        } else if (intent.action == getString(R.string.link_account_action)) {
-            loginViewModel.login = LoginViewModel.State.LINK_ACCOUNT
-        } else {
-            val getPasswordOption = GetPasswordOption()
-            val googleIdOption: GetGoogleIdOption = GetGoogleIdOption.Builder()
-                .setFilterByAuthorizedAccounts(true)
-                .setServerClientId(getString(R.string.client_id))
-                .setAutoSelectEnabled(true)
-                .build()
-            val getCredRequest = GetCredentialRequest(listOf(getPasswordOption, googleIdOption), preferImmediatelyAvailableCredentials = true)
+        when (intent.action) {
+            getString(R.string.change_password_action) -> {
+                loginViewModel.login = LoginViewModel.State.CHANGE_PASSWORD
+            }
 
-            MainScope().launch {
-                try {
-                    val result = credentialManager.getCredential(context = this@LoginActivity, request = getCredRequest)
-                    handleSignIn(result)
-                } catch (_: GetCredentialException) {
-                    // some sort of error with getting a credential (including no previously saved password) - ignore, since this is happening opportunistically
+            getString(R.string.link_account_action) -> {
+                loginViewModel.login = LoginViewModel.State.LINK_ACCOUNT
+            }
+
+            else -> {
+                val getPasswordOption = GetPasswordOption()
+                val googleIdOption: GetGoogleIdOption = GetGoogleIdOption.Builder()
+                    .setFilterByAuthorizedAccounts(true)
+                    .setServerClientId(getString(R.string.client_id))
+                    .setAutoSelectEnabled(true)
+                    .build()
+                val getCredRequest = GetCredentialRequest(
+                    listOf(getPasswordOption, googleIdOption),
+                    preferImmediatelyAvailableCredentials = true
+                )
+
+                MainScope().launch {
+                    try {
+                        val result = credentialManager.getCredential(
+                            context = this@LoginActivity,
+                            request = getCredRequest
+                        )
+                        handleSignIn(result)
+                    } catch (_: GetCredentialException) {
+                        // some sort of error with getting a credential (including no previously saved password) - ignore, since this is happening opportunistically
+                    }
                 }
             }
         }
@@ -247,13 +276,11 @@ class LoginActivity : AppCompatActivity() {
     fun ChooseUsername(
         model: LoginViewModel,
         snackbarHostState: SnackbarHostState,
-        coroutineScope: CoroutineScope,
-        paddingValues: PaddingValues
+        coroutineScope: CoroutineScope
     ) {
         Column(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier
-                .padding(paddingValues)
                 .fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -265,18 +292,18 @@ class LoginActivity : AppCompatActivity() {
             )
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING * 2))
             UsernameField(value = model.username,
-                          onValueChanged = { onUsernameChanged(model, it) },
-                          newUsername = true,
-                          error = model.usernameCaption.isNotBlank(),
-                          caption = model.usernameCaption,
-                          enabled = model.uiEnabled,
-                          context = this@LoginActivity,
-                          imeAction = ImeAction.Done,
-                          onDone = {
-                              model.loginWithGoogle(snackbarHostState, coroutineScope, null) {
-                                  finish()
-                              }
-                          })
+                onValueChanged = { onUsernameChanged(model, it) },
+                newUsername = true,
+                error = model.usernameCaption.isNotBlank(),
+                caption = model.usernameCaption,
+                enabled = model.uiEnabled,
+                context = this@LoginActivity,
+                imeAction = ImeAction.Done,
+                onDone = {
+                    model.loginWithGoogle(snackbarHostState, coroutineScope, null) {
+                        finish()
+                    }
+                })
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             ToSCheckbox(model = model)
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
@@ -304,15 +331,13 @@ class LoginActivity : AppCompatActivity() {
     fun ChangePassword(
         model: LoginViewModel,
         snackbarHostState: SnackbarHostState,
-        coroutineScope: CoroutineScope,
-        paddingValues: PaddingValues
+        coroutineScope: CoroutineScope
     ) {
         val passwordFocusRequester = FocusRequester()
         val confirmPasswordFocusRequester = FocusRequester()
         Column(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier
-                .padding(paddingValues)
                 .fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -377,14 +402,12 @@ class LoginActivity : AppCompatActivity() {
     fun Login(
         model: LoginViewModel,
         snackbarHostState: SnackbarHostState,
-        coroutineScope: CoroutineScope,
-        paddingValues: PaddingValues
+        coroutineScope: CoroutineScope
     ) {
         Column(
             verticalArrangement = centerWithBottomElement,
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .padding(paddingValues)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState()),
         ) {
@@ -469,15 +492,13 @@ class LoginActivity : AppCompatActivity() {
     fun CreateUser(
         model: LoginViewModel,
         snackbarHostState: SnackbarHostState,
-        coroutineScope: CoroutineScope,
-        paddingValues: PaddingValues
+        coroutineScope: CoroutineScope
     ) {
         val confirmPasswordFocusRequester = FocusRequester()
         val focusManager = LocalFocusManager.current
         Column(
             verticalArrangement = centerWithBottomElement,
             modifier = Modifier
-                .padding(paddingValues)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -568,13 +589,11 @@ class LoginActivity : AppCompatActivity() {
     fun LinkAccount(
         model: LoginViewModel,
         snackbarHostState: SnackbarHostState,
-        coroutineScope: CoroutineScope,
-        paddingValues: PaddingValues
+        coroutineScope: CoroutineScope
     ) {
         Column(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier
-                .padding(paddingValues)
                 .fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -593,14 +612,14 @@ class LoginActivity : AppCompatActivity() {
             PasswordField(
                 model = model, done = {
                     signInWithGoogle(
-                        snackbarHostState, coroutineScope
+                        snackbarHostState, coroutineScope, linkExisting = true
                     )
                 }, imeAction = ImeAction.Done
             )
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             OutlinedButton(onClick = {
                 signInWithGoogle(
-                    snackbarHostState, coroutineScope
+                    snackbarHostState, coroutineScope, linkExisting = true
                 )
             }, enabled = model.uiEnabled) {
                 Text(text = getString(R.string.sign_in_w_google))
@@ -614,104 +633,117 @@ class LoginActivity : AppCompatActivity() {
         val snackbarHostState = remember { SnackbarHostState() }
         val coroutineScope = rememberCoroutineScope()
 
-        enableEdgeToEdge(navigationBarStyle = SystemBarStyle.auto(MaterialTheme.colorScheme.scrim.toArgb(), MaterialTheme.colorScheme.scrim.toArgb()))
+        enableEdgeToEdge(
+            navigationBarStyle = SystemBarStyle.auto(
+                MaterialTheme.colorScheme.scrim.toArgb(),
+                MaterialTheme.colorScheme.scrim.toArgb()
+            )
+        )
 
         val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-        Scaffold(topBar = {
-            if (model.login == LoginViewModel.State.CHANGE_PASSWORD || model.login == LoginViewModel.State.CHOOSE_USERNAME || model.login == LoginViewModel.State.LINK_ACCOUNT) {
-                TopAppBar(colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary
-                ), title = {
-                    Text(
-                        getString(R.string.app_name)
-                    )
-                }, navigationIcon = {
-                    IconButton(onClick = {
-                        onBackPressedDispatcher.onBackPressed()
-                    }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack, getString(
-                                R.string.back
-                            ), tint = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
-                }, modifier = Modifier.nestedScroll(
-                    scrollBehavior.nestedScrollConnection
-                ), scrollBehavior = scrollBehavior
-                )
-            } else {
-                TopAppBar(
-                    colors = TopAppBarDefaults.topAppBarColors(
+        Scaffold(
+            topBar = {
+                if (model.login == LoginViewModel.State.CHANGE_PASSWORD || model.login == LoginViewModel.State.CHOOSE_USERNAME || model.login == LoginViewModel.State.LINK_ACCOUNT) {
+                    TopAppBar(colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         titleContentColor = MaterialTheme.colorScheme.onPrimary
                     ), title = {
                         Text(
                             getString(R.string.app_name)
                         )
+                    }, navigationIcon = {
+                        IconButton(onClick = {
+                            onBackPressedDispatcher.onBackPressed()
+                        }) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack, getString(
+                                    R.string.back
+                                ), tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
                     }, modifier = Modifier.nestedScroll(
                         scrollBehavior.nestedScrollConnection
                     ), scrollBehavior = scrollBehavior
-                )
-            }
-        },
-                 snackbarHost = { SnackbarHost(snackbarHostState) },
-                 containerColor = MaterialTheme.colorScheme.background
-        ) {
-            AnimatedContent(targetState = model.login, transitionSpec = {
-                if (targetState == LoginViewModel.State.LOGIN) {
-                    slideIntoContainer(
-                        towards = AnimatedContentTransitionScope.SlideDirection.Right
-                    ) togetherWith slideOutOfContainer(
-                        towards = AnimatedContentTransitionScope.SlideDirection.Right
                     )
                 } else {
-                    slideIntoContainer(
-                        towards = AnimatedContentTransitionScope.SlideDirection.Left
-                    ) togetherWith slideOutOfContainer(
-                        towards = AnimatedContentTransitionScope.SlideDirection.Left
+                    TopAppBar(
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            titleContentColor = MaterialTheme.colorScheme.onPrimary
+                        ), title = {
+                            Text(
+                                getString(R.string.app_name)
+                            )
+                        }, modifier = Modifier.nestedScroll(
+                            scrollBehavior.nestedScrollConnection
+                        ), scrollBehavior = scrollBehavior
                     )
                 }
-            }) { targetState ->
+            },
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            containerColor = MaterialTheme.colorScheme.background
+        ) { paddingValues ->
+            AnimatedContent(
+                targetState = model.login,
+                transitionSpec = {
+                    if (targetState == LoginViewModel.State.LOGIN) {
+                        slideIntoContainer(
+                            towards = AnimatedContentTransitionScope.SlideDirection.Right
+                        ) togetherWith slideOutOfContainer(
+                            towards = AnimatedContentTransitionScope.SlideDirection.Right
+                        )
+                    } else {
+                        slideIntoContainer(
+                            towards = AnimatedContentTransitionScope.SlideDirection.Left
+                        ) togetherWith slideOutOfContainer(
+                            towards = AnimatedContentTransitionScope.SlideDirection.Left
+                        )
+                    }
+                },
+                label = "animate swap between screens",
+                modifier = Modifier
+                    .padding(paddingValues)
+                    .consumeWindowInsets(paddingValues)
+                    .imePadding()
+            ) { targetState ->
                 when (targetState) {
                     LoginViewModel.State.LOGIN -> {
                         Login(
                             model,
                             snackbarHostState = snackbarHostState,
-                            coroutineScope = coroutineScope,
-                            it
+                            coroutineScope = coroutineScope
                         )
                     }
+
                     LoginViewModel.State.CREATE_USER -> {
                         CreateUser(
                             model,
                             snackbarHostState = snackbarHostState,
-                            coroutineScope = coroutineScope,
-                            it
+                            coroutineScope = coroutineScope
                         )
                     }
+
                     LoginViewModel.State.CHANGE_PASSWORD -> {
                         ChangePassword(
                             model = model,
                             snackbarHostState = snackbarHostState,
-                            coroutineScope = coroutineScope,
-                            it
+                            coroutineScope = coroutineScope
                         )
                     }
+
                     LoginViewModel.State.CHOOSE_USERNAME -> {
                         ChooseUsername(
                             model = model,
                             snackbarHostState = snackbarHostState,
-                            coroutineScope = coroutineScope,
-                            paddingValues = it
+                            coroutineScope = coroutineScope
                         )
                     }
+
                     LoginViewModel.State.LINK_ACCOUNT -> {
                         LinkAccount(
                             model = model,
                             snackbarHostState = snackbarHostState,
-                            coroutineScope = coroutineScope,
-                            paddingValues = it
+                            coroutineScope = coroutineScope
                         )
                     }
                 }
@@ -724,30 +756,31 @@ class LoginActivity : AppCompatActivity() {
     @Composable
     fun FirstNameField(model: LoginViewModel) {
         val focusManager = LocalFocusManager.current
-        TextField(value = model.firstName,
-                  onValueChange = {
-                      model.firstName = filterSpecialChars(it)
-                  },
-                  modifier = Modifier
-                      .autofill(autofillTypes = listOf(AutofillType.PersonFirstName), onFill = {
-                          model.firstName = it.filter { letter ->
-                              letter != '\n'
-                          }
-                      })
-                      .onKeyEvent {
-                          if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER || it.nativeKeyEvent.keyCode == KEYCODE_TAB) {
-                              focusManager.moveFocus(focusDirection = FocusDirection.Next)
-                              true
-                          } else false
-                      },
-                  singleLine = true,
-                  label = { Text(text = getString(R.string.first_name)) },
-                  keyboardOptions = KeyboardOptions(
-                      capitalization = KeyboardCapitalization.Words,
-                      autoCorrectEnabled = true,
-                      imeAction = ImeAction.Next
-                  ),
-                  enabled = model.uiEnabled
+        TextField(
+            value = model.firstName,
+            onValueChange = {
+                model.firstName = filterSpecialChars(it)
+            },
+            modifier = Modifier
+                .autofill(autofillTypes = listOf(AutofillType.PersonFirstName), onFill = {
+                    model.firstName = it.filter { letter ->
+                        letter != '\n'
+                    }
+                })
+                .onKeyEvent {
+                    if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER || it.nativeKeyEvent.keyCode == KEYCODE_TAB) {
+                        focusManager.moveFocus(focusDirection = FocusDirection.Next)
+                        true
+                    } else false
+                },
+            singleLine = true,
+            label = { Text(text = getString(R.string.first_name)) },
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.Words,
+                autoCorrectEnabled = true,
+                imeAction = ImeAction.Next
+            ),
+            enabled = model.uiEnabled
         )
     }
 
@@ -755,30 +788,31 @@ class LoginActivity : AppCompatActivity() {
     @Composable
     fun LastNameField(model: LoginViewModel) {
         val focusManager = LocalFocusManager.current
-        TextField(value = model.lastName,
-                  onValueChange = {
-                      model.lastName = filterSpecialChars(it)
-                  },
-                  modifier = Modifier
-                      .autofill(autofillTypes = listOf(AutofillType.PersonLastName), onFill = {
-                          model.lastName = it.filter { letter ->
-                              letter != '\n'
-                          }
-                      })
-                      .onKeyEvent {
-                          if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER || it.nativeKeyEvent.keyCode == KEYCODE_TAB) {
-                              focusManager.moveFocus(focusDirection = FocusDirection.Next)
-                              true
-                          } else false
-                      },
-                  label = { Text(text = getString(R.string.last_name)) },
-                  singleLine = true,
-                  keyboardOptions = KeyboardOptions(
-                      capitalization = KeyboardCapitalization.Words,
-                      autoCorrectEnabled = true,
-                      imeAction = ImeAction.Next
-                  ),
-                  enabled = model.uiEnabled
+        TextField(
+            value = model.lastName,
+            onValueChange = {
+                model.lastName = filterSpecialChars(it)
+            },
+            modifier = Modifier
+                .autofill(autofillTypes = listOf(AutofillType.PersonLastName), onFill = {
+                    model.lastName = it.filter { letter ->
+                        letter != '\n'
+                    }
+                })
+                .onKeyEvent {
+                    if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER || it.nativeKeyEvent.keyCode == KEYCODE_TAB) {
+                        focusManager.moveFocus(focusDirection = FocusDirection.Next)
+                        true
+                    } else false
+                },
+            label = { Text(text = getString(R.string.last_name)) },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.Words,
+                autoCorrectEnabled = true,
+                imeAction = ImeAction.Next
+            ),
+            enabled = model.uiEnabled
         )
     }
 
@@ -786,54 +820,55 @@ class LoginActivity : AppCompatActivity() {
     @Composable
     fun OldPasswordField(model: LoginViewModel, passwordFocusRequester: FocusRequester) {
         val focusManager = LocalFocusManager.current
-        TextField(value = model.oldPassword,
-                  onValueChange = {
-                      onOldPasswordChanged(model, it)
-                  },
-                  modifier = Modifier
-                      .autofill(autofillTypes = listOf(AutofillType.Password), onFill = {
-                          onOldPasswordChanged(model, it)
-                      })
-                      .onKeyEvent {
-                          if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER || it.nativeKeyEvent.keyCode == KEYCODE_TAB) {
-                              focusManager.moveFocus(focusDirection = FocusDirection.Next)
-                              true
-                          } else false
-                      },
-                  visualTransformation = if (model.passwordHidden) PasswordVisualTransformation() else VisualTransformation.None,
-                  trailingIcon = {
-                      IconButton(onClick = { model.passwordHidden = !model.passwordHidden }) {
-                          val visibilityIcon =
-                              if (model.passwordHidden) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                          val description = if (model.passwordHidden) getString(
-                              R.string.show_password
-                          ) else getString(
-                              R.string.hide_password
-                          )
-                          Icon(imageVector = visibilityIcon, contentDescription = description)
-                      }
-                  },
-                  isError = model.passwordCaption.isNotBlank(),
-                  label = {
-                      Text(text = getString(R.string.password))
-                  },
-                  singleLine = true,
-                  supportingText = {
-                      if (model.passwordCaption.isNotBlank()) {
-                          Text(
-                              text = model.oldPasswordCaption, overflow = TextOverflow.Ellipsis
-                          )
-                      }
-                  },
-                  keyboardOptions = KeyboardOptions(
-                      autoCorrectEnabled = false,
-                      keyboardType = KeyboardType.Password,
-                      imeAction = ImeAction.Next
-                  ),
-                  keyboardActions = KeyboardActions(onNext = {
-                      passwordFocusRequester.requestFocus()
-                  }),
-                  enabled = model.uiEnabled
+        TextField(
+            value = model.oldPassword,
+            onValueChange = {
+                onOldPasswordChanged(model, it)
+            },
+            modifier = Modifier
+                .autofill(autofillTypes = listOf(AutofillType.Password), onFill = {
+                    onOldPasswordChanged(model, it)
+                })
+                .onKeyEvent {
+                    if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER || it.nativeKeyEvent.keyCode == KEYCODE_TAB) {
+                        focusManager.moveFocus(focusDirection = FocusDirection.Next)
+                        true
+                    } else false
+                },
+            visualTransformation = if (model.passwordHidden) PasswordVisualTransformation() else VisualTransformation.None,
+            trailingIcon = {
+                IconButton(onClick = { model.passwordHidden = !model.passwordHidden }) {
+                    val visibilityIcon =
+                        if (model.passwordHidden) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                    val description = if (model.passwordHidden) getString(
+                        R.string.show_password
+                    ) else getString(
+                        R.string.hide_password
+                    )
+                    Icon(imageVector = visibilityIcon, contentDescription = description)
+                }
+            },
+            isError = model.passwordCaption.isNotBlank(),
+            label = {
+                Text(text = getString(R.string.password))
+            },
+            singleLine = true,
+            supportingText = {
+                if (model.passwordCaption.isNotBlank()) {
+                    Text(
+                        text = model.oldPasswordCaption, overflow = TextOverflow.Ellipsis
+                    )
+                }
+            },
+            keyboardOptions = KeyboardOptions(
+                autoCorrectEnabled = false,
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Next
+            ),
+            keyboardActions = KeyboardActions(onNext = {
+                passwordFocusRequester.requestFocus()
+            }),
+            enabled = model.uiEnabled
         )
 
     }
@@ -848,68 +883,70 @@ class LoginActivity : AppCompatActivity() {
         currentFocusRequester: FocusRequester? = null
     ) {
 
-        TextField(value = model.password,
-                  onValueChange = {
-                      onPasswordChanged(model, it)
-                  },
-                  modifier = Modifier
-                      .focusRequester(currentFocusRequester ?: FocusRequester())
-                      .autofill(autofillTypes = listOf(AutofillType.NewPassword), onFill = {
-                          onPasswordChanged(model, it)
-                          onConfirmPasswordChanged(model, it)
-                      })
-                      .onKeyEvent {
-                          if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER || it.nativeKeyEvent.keyCode == KEYCODE_TAB) {
-                              when (imeAction) {
-                                  ImeAction.Done -> {
-                                      done?.invoke()
-                                  }
-                                  ImeAction.Next -> {
-                                      nextFocusRequester?.requestFocus()
-                                  }
-                              }
-                              true
-                          } else false
-                      },
-                  visualTransformation = if (model.passwordHidden) PasswordVisualTransformation() else VisualTransformation.None,
-                  trailingIcon = {
-                      IconButton(onClick = { model.passwordHidden = !model.passwordHidden }) {
-                          val visibilityIcon =
-                              if (model.passwordHidden) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                          val description = if (model.passwordHidden) getString(
-                              R.string.show_password
-                          ) else getString(
-                              R.string.hide_password
-                          )
-                          Icon(imageVector = visibilityIcon, contentDescription = description)
-                      }
-                  },
-                  label = {
-                      Text(text = getString(R.string.password))
-                  },
-                  keyboardOptions = KeyboardOptions(
-                      autoCorrectEnabled = false,
-                      keyboardType = KeyboardType.Password,
-                      imeAction = imeAction
-                  ),
-                  supportingText = {
-                      if (model.passwordCaption.isNotBlank()) {
-                          Text(
-                              text = model.passwordCaption, overflow = TextOverflow.Ellipsis
-                          )
-                      }
-                  },
-                  keyboardActions = KeyboardActions(onDone = {
-                      if (imeAction == ImeAction.Done) {
-                          done?.invoke()
-                      }
-                  }, onNext = {
-                      if (imeAction == ImeAction.Next) {
-                          nextFocusRequester?.requestFocus()
-                      }
-                  }),
-                  enabled = model.uiEnabled,
-                  isError = model.passwordCaption.isNotBlank()
+        TextField(
+            value = model.password,
+            onValueChange = {
+                onPasswordChanged(model, it)
+            },
+            modifier = Modifier
+                .focusRequester(currentFocusRequester ?: FocusRequester())
+                .autofill(autofillTypes = listOf(AutofillType.NewPassword), onFill = {
+                    onPasswordChanged(model, it)
+                    onConfirmPasswordChanged(model, it)
+                })
+                .onKeyEvent {
+                    if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER || it.nativeKeyEvent.keyCode == KEYCODE_TAB) {
+                        when (imeAction) {
+                            ImeAction.Done -> {
+                                done?.invoke()
+                            }
+
+                            ImeAction.Next -> {
+                                nextFocusRequester?.requestFocus()
+                            }
+                        }
+                        true
+                    } else false
+                },
+            visualTransformation = if (model.passwordHidden) PasswordVisualTransformation() else VisualTransformation.None,
+            trailingIcon = {
+                IconButton(onClick = { model.passwordHidden = !model.passwordHidden }) {
+                    val visibilityIcon =
+                        if (model.passwordHidden) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                    val description = if (model.passwordHidden) getString(
+                        R.string.show_password
+                    ) else getString(
+                        R.string.hide_password
+                    )
+                    Icon(imageVector = visibilityIcon, contentDescription = description)
+                }
+            },
+            label = {
+                Text(text = getString(R.string.password))
+            },
+            keyboardOptions = KeyboardOptions(
+                autoCorrectEnabled = false,
+                keyboardType = KeyboardType.Password,
+                imeAction = imeAction
+            ),
+            supportingText = {
+                if (model.passwordCaption.isNotBlank()) {
+                    Text(
+                        text = model.passwordCaption, overflow = TextOverflow.Ellipsis
+                    )
+                }
+            },
+            keyboardActions = KeyboardActions(onDone = {
+                if (imeAction == ImeAction.Done) {
+                    done?.invoke()
+                }
+            }, onNext = {
+                if (imeAction == ImeAction.Next) {
+                    nextFocusRequester?.requestFocus()
+                }
+            }),
+            enabled = model.uiEnabled,
+            isError = model.passwordCaption.isNotBlank()
         )
 
     }
@@ -993,18 +1030,24 @@ class LoginActivity : AppCompatActivity() {
                 val spanStart = spannedString.getSpanStart(annotation)
                 val spanEnd = spannedString.getSpanEnd(annotation)
                 resultBuilder.addLink(
-                    url = LinkAnnotation.Url(getString(R.string.tos_url), TextLinkStyles(SpanStyle(
-                        color = MaterialTheme.colorScheme.primary
-                    ))),
+                    url = LinkAnnotation.Url(
+                        getString(R.string.tos_url), TextLinkStyles(
+                            SpanStyle(
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        )
+                    ),
                     start = spanStart,
                     end = spanEnd
                 )
             }
 
             val newText = resultBuilder.toAnnotatedString()
-            Text(text = newText, style = TextStyle(
-                color = if (model.checkboxError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground
-            ), modifier = Modifier.align(Alignment.CenterVertically))
+            Text(
+                text = newText, style = TextStyle(
+                    color = if (model.checkboxError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground
+                ), modifier = Modifier.align(Alignment.CenterVertically)
+            )
         }
     }
 
@@ -1044,14 +1087,15 @@ class LoginActivity : AppCompatActivity() {
         // Create credential and handle result.
         MainScope().launch {
             try {
-                    credentialManager.createCredential(
-                        // Use an activity based context to avoid undefined
-                        // system UI launching behavior.
-                        this@LoginActivity,
-                        createPasswordRequest
-                    )
+                credentialManager.createCredential(
+                    // Use an activity based context to avoid undefined
+                    // system UI launching behavior.
+                    this@LoginActivity,
+                    createPasswordRequest
+                )
                 finish()
             } catch (e: CreateCredentialException) {
+                Log.e(TAG, "Unable to save password: $e")
                 finish()
             }
         }
@@ -1060,16 +1104,24 @@ class LoginActivity : AppCompatActivity() {
 
     private fun signInWithGoogle(
         snackbarHostState: SnackbarHostState,
-        coroutineScope: CoroutineScope
+        coroutineScope: CoroutineScope,
+        linkExisting: Boolean = false
     ) {
         loginViewModel.uiEnabled = false
-        val signInWithGoogleOption: GetSignInWithGoogleOption = GetSignInWithGoogleOption.Builder(getString(R.string.client_id)).build()
+        val signInWithGoogleOption: GetSignInWithGoogleOption =
+            GetSignInWithGoogleOption.Builder(getString(R.string.client_id)).build()
 
-        val getCredRequest = GetCredentialRequest(listOf(signInWithGoogleOption), preferImmediatelyAvailableCredentials = true)
+        val getCredRequest = GetCredentialRequest(
+            listOf(signInWithGoogleOption),
+            preferImmediatelyAvailableCredentials = true
+        )
 
         MainScope().launch {
             try {
-                val result = credentialManager.getCredential(context = this@LoginActivity, request = getCredRequest)
+                val result = credentialManager.getCredential(
+                    context = this@LoginActivity,
+                    request = getCredRequest
+                )
                 handleSignIn(result)
             } catch (e: GetCredentialException) {
                 Log.e(TAG, "Google Sign-in failed: $e")
@@ -1142,7 +1194,7 @@ class LoginActivity : AppCompatActivity() {
                     .autofill(autofillTypes = if (newUsername) listOf(
                         AutofillType.NewUsername
                     ) else listOf(AutofillType.Username),
-                              onFill = { onValueChanged(filterUsername(it)) })
+                        onFill = { onValueChanged(filterUsername(it)) })
                     .onKeyEvent {
                         if ((it.nativeKeyEvent.keyCode == KEYCODE_ENTER || it.nativeKeyEvent.keyCode == KEYCODE_TAB) && imeAction == ImeAction.Next) {
                             focusManager.moveFocus(FocusDirection.Next)
@@ -1184,49 +1236,50 @@ class LoginActivity : AppCompatActivity() {
             reserveCaptionSpace: Boolean = false
         ) {
             val focusManager = LocalFocusManager.current
-            TextField(value = value,
-                      onValueChange = {
-                          setValue(it.filter { letter ->
-                              letter != '\n'
-                          })
-                          setCaption("")
-                      },
-                      modifier = Modifier
-                          .autofill(autofillTypes = listOf(AutofillType.EmailAddress), onFill = {
-                              setValue(it.filter { letter ->
-                                  letter != '\n'
-                              })
-                              setCaption("")
-                          })
-                          .onKeyEvent {
-                              if ((imeAction == ImeAction.Next && it.nativeKeyEvent.keyCode == KEYCODE_ENTER) || it.nativeKeyEvent.keyCode == KEYCODE_TAB) {
-                                  focusManager.moveFocus(focusDirection = FocusDirection.Next)
-                                  true
-                              } else if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER) {
-                                  onDone?.invoke()
-                                  true
-                              } else false
-                          },
-                      isError = !(value.isEmpty() || android.util.Patterns.EMAIL_ADDRESS.matcher(
-                          value
-                      ).matches()) || caption.isNotBlank(),
-                      enabled = enabled,
-                      supportingText = {
-                          if (caption.isNotBlank() || reserveCaptionSpace) {
-                              Text(
-                                  text = caption, overflow = TextOverflow.Ellipsis
-                              )
-                          }
-                      },
-                      singleLine = true,
-                      label = { Text(text = context.getString(R.string.email)) },
-                      keyboardOptions = KeyboardOptions(
-                          keyboardType = KeyboardType.Email,
-                          imeAction = imeAction,
-                      ),
-                      keyboardActions = KeyboardActions(onDone = {
-                          onDone?.invoke()
-                      })
+            TextField(
+                value = value,
+                onValueChange = {
+                    setValue(it.filter { letter ->
+                        letter != '\n'
+                    })
+                    setCaption("")
+                },
+                modifier = Modifier
+                    .autofill(autofillTypes = listOf(AutofillType.EmailAddress), onFill = {
+                        setValue(it.filter { letter ->
+                            letter != '\n'
+                        })
+                        setCaption("")
+                    })
+                    .onKeyEvent {
+                        if ((imeAction == ImeAction.Next && it.nativeKeyEvent.keyCode == KEYCODE_ENTER) || it.nativeKeyEvent.keyCode == KEYCODE_TAB) {
+                            focusManager.moveFocus(focusDirection = FocusDirection.Next)
+                            true
+                        } else if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER) {
+                            onDone?.invoke()
+                            true
+                        } else false
+                    },
+                isError = !(value.isEmpty() || android.util.Patterns.EMAIL_ADDRESS.matcher(
+                    value
+                ).matches()) || caption.isNotBlank(),
+                enabled = enabled,
+                supportingText = {
+                    if (caption.isNotBlank() || reserveCaptionSpace) {
+                        Text(
+                            text = caption, overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                },
+                singleLine = true,
+                label = { Text(text = context.getString(R.string.email)) },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    imeAction = imeAction,
+                ),
+                keyboardActions = KeyboardActions(onDone = {
+                    onDone?.invoke()
+                })
             )
 
         }

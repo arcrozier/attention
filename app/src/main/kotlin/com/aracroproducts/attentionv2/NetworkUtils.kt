@@ -16,15 +16,31 @@ import java.io.InputStream
 const val BASE_URL: String = BuildConfig.BASE_URL
 
 
-class NameResult(@SerializedName("name") val name: String)
+class NameResult(@SerializedName("name") val name: String) {
+    override fun toString(): String {
+        return mapOf("name" to name).toString()
+    }
+}
 
-class TokenResult(@SerializedName("token") val token: String)
+class TokenResult(@SerializedName("token") val token: String) {
+    override fun toString(): String {
+        return mapOf("token" to token).toString()
+    }
+}
 
 class GenericResult<T>(
     @SerializedName("message") val message: String, @SerializedName("data") val data: T
-)
+) {
+    override fun toString(): String {
+        return mapOf("message" to message, "data" to data).toString()
+    }
+}
 
-class AlertResult(@SerializedName("id") val id: String)
+class AlertResult(@SerializedName("id") val id: String) {
+    override fun toString(): String {
+        return mapOf("id" to id).toString()
+    }
+}
 
 class UserDataResult(
     @SerializedName("username") val username: String,
@@ -34,7 +50,19 @@ class UserDataResult(
     @SerializedName("password_login") val password: Boolean,
     @SerializedName("photo") val photo: String?,
     @SerializedName("friends") val friends: List<Friend>
-)
+) {
+    override fun toString(): String {
+        return mapOf(
+            "username" to username,
+            "first_name" to firstName,
+            "last_name" to lastName,
+            "email" to email,
+            "password_login" to password,
+            "photo" to (photo != null),
+            "friends" to friends
+        ).toString()
+    }
+}
 
 class APIClient {
 

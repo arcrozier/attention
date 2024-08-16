@@ -44,6 +44,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -292,6 +293,7 @@ class MainActivity : AppCompatActivity() {
                     this, POST_NOTIFICATIONS
                 ) == PackageManager.PERMISSION_GRANTED -> { // You can use the API that requires the permission.
                 }
+
                 shouldShowRequestPermissionRationale(POST_NOTIFICATIONS) -> { // In an educational UI, explain to the user why your app requires this
                     // permission for a specific feature to behave as expected. In this UI,
                     // include a "cancel" or "no thanks" button that allows the user to
@@ -300,6 +302,7 @@ class MainActivity : AppCompatActivity() {
                         MainViewModel.DialogStatus.PermissionRationale(POST_NOTIFICATIONS)
                     )
                 }
+
                 else -> { // You can directly ask for the permission.
                     // The registered ActivityResultCallback gets the result of this request.
                     requestPermissionLauncher.launch(
@@ -328,12 +331,13 @@ class MainActivity : AppCompatActivity() {
         val showSnackbar = model.isSnackBarShowing
 
         val friends by model.friends.observeAsState(listOf())
-        Home(friends = friends,
-             onLongPress = { model.onLongPress() },
-             onEditName = { model.onEditName(it) },
-             onDeletePrompt = { model.onDeleteFriend(it) },
-             dialogState = displayDialog,
-             showSnackbar = showSnackbar
+        Home(
+            friends = friends,
+            onLongPress = { model.onLongPress() },
+            onEditName = { model.onEditName(it) },
+            onDeletePrompt = { model.onDeleteFriend(it) },
+            dialogState = displayDialog,
+            showSnackbar = showSnackbar
         )
     }
 
@@ -350,7 +354,12 @@ class MainActivity : AppCompatActivity() {
         dialogState: MainViewModel.DialogStatus,
         showSnackbar: String
     ) {
-        enableEdgeToEdge(navigationBarStyle = SystemBarStyle.auto(MaterialTheme.colorScheme.scrim.toArgb(), MaterialTheme.colorScheme.scrim.toArgb()))
+        enableEdgeToEdge(
+            navigationBarStyle = SystemBarStyle.auto(
+                MaterialTheme.colorScheme.scrim.toArgb(),
+                MaterialTheme.colorScheme.scrim.toArgb()
+            )
+        )
 
         val cachedFriends by friendModel.cachedFriends.observeAsState(listOf())
         val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
@@ -376,90 +385,92 @@ class MainActivity : AppCompatActivity() {
             is MainViewModel.DialogStatus.AddMessageText -> {
                 AddMessageText(friend = dialogState.friend, onSend = dialogState.onSend)
             }
+
             is MainViewModel.DialogStatus.FriendName -> {
                 EditFriendNameDialog(
                     friend = dialogState.friend
                 )
             }
+
             is MainViewModel.DialogStatus.ConfirmDelete -> {
                 DeleteFriendDialog(
                     friend = dialogState.friend
                 )
             }
+
             is MainViewModel.DialogStatus.ConfirmDeleteCached -> {
                 DeleteFriendDialog(friend = dialogState.friend)
             }
+
             is MainViewModel.DialogStatus.PermissionRationale -> {
                 PermissionRationale(permission = dialogState.permission) {}
             }
+
             is MainViewModel.DialogStatus.None -> {}
         }
 
         val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
         Scaffold(topBar = {
-                     LargeTopAppBar(colors = TopAppBarDefaults.largeTopAppBarColors(
-                         containerColor = MaterialTheme.colorScheme.primary,
-                         titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                         scrolledContainerColor = MaterialTheme.colorScheme.primary
-                     ), title = {
-                         Column {
-                             Text(
-                                 getString(R.string.app_name)
-                             )
-                             if (friendModel.connectionState.isNotBlank()) Text(
-                                 friendModel.connectionState,
-                                 style = MaterialTheme.typography.labelSmall,
-                             )
-                         }
-                     }, actions = {
-                         IconButton(onClick = {
-                             val intent = Intent(
-                                 applicationContext, SettingsActivity::class.java
-                             )
-                             startActivity(intent)
-                         }) {
-                             Icon(
-                                 Icons.Filled.Settings, contentDescription = getString(
-                                     R.string.action_settings
-                                 ), tint = MaterialTheme.colorScheme.onPrimary
-                             )
+            LargeTopAppBar(colors = TopAppBarDefaults.largeTopAppBarColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                scrolledContainerColor = MaterialTheme.colorScheme.primary
+            ), title = {
+                Column {
+                    Text(
+                        getString(R.string.app_name)
+                    )
+                    if (friendModel.connectionState.isNotBlank()) Text(
+                        friendModel.connectionState,
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
+            }, actions = {
+                IconButton(onClick = {
+                    val intent = Intent(
+                        applicationContext, SettingsActivity::class.java
+                    )
+                    startActivity(intent)
+                }) {
+                    Icon(
+                        Icons.Filled.Settings, contentDescription = getString(
+                            R.string.action_settings
+                        ), tint = MaterialTheme.colorScheme.onPrimary
+                    )
 
-                         }
-                     }, scrollBehavior = scrollBehavior
-                     )
-                 },
-                 contentColor = MaterialTheme.colorScheme.background,
-                 modifier = Modifier.nestedScroll(
-                     scrollBehavior.nestedScrollConnection
-                 ),
-                 floatingActionButton = {
-                     FloatingActionButton(
-                         onClick = {
-                             friendModel.appendDialogState(
-                                 MainViewModel.DialogStatus.AddFriend
-                             )
-                         },
-                         containerColor = MaterialTheme.colorScheme.secondary,
-                     ) {
-                         Icon(
-                             Icons.Filled.PersonAdd,
-                             contentDescription = getString(R.string.add_friend),
-                             tint = MaterialTheme.colorScheme.onSecondary
-                         )
-                     }
-                 }) {
-            val refreshState =
-                rememberPullToRefreshState()
+                }
+            }, scrollBehavior = scrollBehavior
+            )
+        },
+            contentColor = MaterialTheme.colorScheme.background,
+            modifier = Modifier.nestedScroll(
+                scrollBehavior.nestedScrollConnection
+            ),
+            floatingActionButton = {
+                FloatingActionButton(
+                    onClick = {
+                        friendModel.appendDialogState(
+                            MainViewModel.DialogStatus.AddFriend
+                        )
+                    },
+                    containerColor = MaterialTheme.colorScheme.secondary,
+                ) {
+                    Icon(
+                        Icons.Filled.PersonAdd,
+                        contentDescription = getString(R.string.add_friend),
+                        tint = MaterialTheme.colorScheme.onSecondary
+                    )
+                }
+            }) { paddingValues ->
             PullToRefreshBox(
                 isRefreshing = friendModel.isRefreshing,
-                state = refreshState,
-                onRefresh = {reload()},
-                modifier = Modifier.padding(it),
+                onRefresh = { reload() },
             ) {
-                AnimatedContent(targetState = friends.isEmpty() && !friendModel.isRefreshing && friendModel.connected,
-                                transitionSpec = {
-                                    fadeIn() togetherWith fadeOut()
-                                }, label = "friendsList"
+                AnimatedContent(
+                    targetState = friends.isEmpty() && !friendModel.isRefreshing && friendModel.connected,
+                    transitionSpec = {
+                        fadeIn() togetherWith fadeOut()
+                    }, label = "friendsList"
                 ) { targetState ->
                     when (targetState) {
                         true -> {
@@ -469,6 +480,8 @@ class MainActivity : AppCompatActivity() {
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .waterfallPadding()
+                                    .padding(paddingValues)
+                                    .consumeWindowInsets(paddingValues)
                                     .nestedScroll(scrollBehavior.nestedScrollConnection)
                                     .verticalScroll(rememberScrollState()),
                             ) {
@@ -484,6 +497,7 @@ class MainActivity : AppCompatActivity() {
                             }
 
                         }
+
                         false -> {
                             LazyColumn(
                                 modifier = Modifier
@@ -491,23 +505,23 @@ class MainActivity : AppCompatActivity() {
                                     .waterfallPadding()
                                     .fillMaxSize()
                                     .nestedScroll(scrollBehavior.nestedScrollConnection),
-                                contentPadding = it
+                                contentPadding = paddingValues
                             ) {
                                 // TODO pending friends
                                 items(items = friends, key = { friend ->
                                     friend.id
                                 }) { friend ->
                                     FriendCard(friend = friend,
-                                               onLongPress = onLongPress,
-                                               onEditName = onEditName,
-                                               onDeletePrompt = onDeletePrompt,
-                                               modifier = Modifier.animateItem(),
-                                               state = friendModel.cardStatus.getOrDefault(
-                                                   friend.id, State.NORMAL
-                                               ),
-                                               onStateChange = { newState ->
-                                                   friendModel.cardStatus[friend.id] = newState
-                                               })
+                                        onLongPress = onLongPress,
+                                        onEditName = onEditName,
+                                        onDeletePrompt = onDeletePrompt,
+                                        modifier = Modifier.animateItem(),
+                                        state = friendModel.cardStatus.getOrDefault(
+                                            friend.id, State.NORMAL
+                                        ),
+                                        onStateChange = { newState ->
+                                            friendModel.cardStatus[friend.id] = newState
+                                        })
                                     HorizontalDivider(
                                         color = MaterialTheme.colorScheme.outline.copy(
                                             alpha = ContentAlpha.disabled
@@ -518,16 +532,16 @@ class MainActivity : AppCompatActivity() {
                                     FriendCard(friend = Friend(
                                         cachedFriend.username, cachedFriend.username
                                     ),
-                                               onLongPress = {},
-                                               onEditName = {},
-                                               onDeletePrompt = {},
-                                               state = friendModel.cardStatus.getOrDefault(
-                                                   cachedFriend.username, State.NORMAL
-                                               ),
-                                               onStateChange = { newState ->
-                                                   friendModel.cardStatus[cachedFriend.username] =
-                                                       newState
-                                               }
+                                        onLongPress = {},
+                                        onEditName = {},
+                                        onDeletePrompt = {},
+                                        state = friendModel.cardStatus.getOrDefault(
+                                            cachedFriend.username, State.NORMAL
+                                        ),
+                                        onStateChange = { newState ->
+                                            friendModel.cardStatus[cachedFriend.username] =
+                                                newState
+                                        }
 
                                     )
                                     HorizontalDivider(
@@ -585,22 +599,22 @@ class MainActivity : AppCompatActivity() {
                 focusedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 unfocusedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
             ),
-                              value = friendModel.message,
-                              onValueChange = { friendModel.message = it },
-                              keyboardOptions = KeyboardOptions(
-                                  keyboardType = KeyboardType.Text,
-                                  capitalization = KeyboardCapitalization.Sentences
-                              ),
-                              modifier = Modifier.fillMaxWidth(),
-                              singleLine = false,
-                              label = {
-                                  Text(
-                                      text = getString(
-                                          R.string.message_label, friend.name
-                                      )
-                                  )
-                              },
-                              placeholder = { Text(text = getString(R.string.message_hint)) })
+                value = friendModel.message,
+                onValueChange = { friendModel.message = it },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text,
+                    capitalization = KeyboardCapitalization.Sentences
+                ),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = false,
+                label = {
+                    Text(
+                        text = getString(
+                            R.string.message_label, friend.name
+                        )
+                    )
+                },
+                placeholder = { Text(text = getString(R.string.message_hint)) })
         })
     }
 
@@ -671,28 +685,28 @@ class MainActivity : AppCompatActivity() {
                 focusedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 unfocusedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
             ),
-                              value = name,
-                              onValueChange = { name = filterSpecialChars(it) },
-                              keyboardOptions = KeyboardOptions(
-                                  keyboardType = KeyboardType.Text,
-                                  capitalization = KeyboardCapitalization.Words,
-                                  imeAction = ImeAction.Done
-                              ),
-                              keyboardActions = KeyboardActions(onDone = {
-                                  done()
-                              }),
-                              singleLine = true,
-                              modifier = Modifier
-                                  .fillMaxWidth()
-                                  .onKeyEvent {
-                                      if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER) {
-                                          done()
-                                          true
-                                      } else false
-                                  },
-                              label = { Text(text = getString(R.string.name)) },
-                              isError = error,
-                              placeholder = { Text(text = getString(R.string.new_name)) })
+                value = name,
+                onValueChange = { name = filterSpecialChars(it) },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text,
+                    capitalization = KeyboardCapitalization.Words,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(onDone = {
+                    done()
+                }),
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onKeyEvent {
+                        if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER) {
+                            done()
+                            true
+                        } else false
+                    },
+                label = { Text(text = getString(R.string.name)) },
+                isError = error,
+                placeholder = { Text(text = getString(R.string.new_name)) })
         })
     }
 
@@ -796,40 +810,40 @@ class MainActivity : AppCompatActivity() {
                     focusedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     unfocusedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                 ),
-                                  value = friendModel.addFriendUsername,
-                                  onValueChange = {
-                                      friendModel.addFriendUsername = filterUsername(it)
-                                      friendModel.getFriendName(
-                                          it, launchLogin = ::launchLogin
-                                      )
-                                  },
-                                  keyboardOptions = KeyboardOptions(
-                                      capitalization = KeyboardCapitalization.None,
-                                      autoCorrectEnabled = false,
-                                      keyboardType = KeyboardType.Text,
-                                      imeAction = ImeAction.Done
-                                  ),
-                                  supportingText = {
-                                      Text(
-                                          text = friendModel.usernameCaption,
-                                          overflow = TextOverflow.Ellipsis
-                                      )
-                                  },
-                                  keyboardActions = KeyboardActions(onDone = {
-                                      onAddFriend(username = friendModel.addFriendUsername)
-                                  }),
-                                  modifier = Modifier
-                                      .fillMaxWidth()
-                                      .onKeyEvent {
-                                          if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER) {
-                                              onAddFriend(username = friendModel.addFriendUsername)
-                                              true
-                                          } else false
-                                      },
-                                  singleLine = true,
-                                  label = { Text(text = getString(R.string.username)) },
-                                  isError = friendModel.usernameCaption.isNotBlank(),
-                                  placeholder = { Text(text = getString(R.string.placeholder_name)) })
+                    value = friendModel.addFriendUsername,
+                    onValueChange = {
+                        friendModel.addFriendUsername = filterUsername(it)
+                        friendModel.getFriendName(
+                            it, launchLogin = ::launchLogin
+                        )
+                    },
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.None,
+                        autoCorrectEnabled = false,
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.Done
+                    ),
+                    supportingText = {
+                        Text(
+                            text = friendModel.usernameCaption,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
+                    keyboardActions = KeyboardActions(onDone = {
+                        onAddFriend(username = friendModel.addFriendUsername)
+                    }),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onKeyEvent {
+                            if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER) {
+                                onAddFriend(username = friendModel.addFriendUsername)
+                                true
+                            } else false
+                        },
+                    singleLine = true,
+                    label = { Text(text = getString(R.string.username)) },
+                    isError = friendModel.usernameCaption.isNotBlank(),
+                    placeholder = { Text(text = getString(R.string.placeholder_name)) })
 
             }
         })
@@ -988,12 +1002,12 @@ class MainActivity : AppCompatActivity() {
                 } ?: Spacer(modifier = Modifier.width(ICON_SIZE))
                 Spacer(modifier = Modifier.width(ICON_SPACING))
                 Column(verticalArrangement = Arrangement.Center,
-                       horizontalAlignment = Alignment.Start,
-                       modifier = Modifier
-                           .semantics(
-                               mergeDescendants = true
-                           ) {}
-                           .weight(1f, fill = true)) {
+                    horizontalAlignment = Alignment.Start,
+                    modifier = Modifier
+                        .semantics(
+                            mergeDescendants = true
+                        ) {}
+                        .weight(1f, fill = true)) {
                     Text(
                         text = friend.name,
                         style = MaterialTheme.typography.titleMedium,
@@ -1027,12 +1041,15 @@ class MainActivity : AppCompatActivity() {
                             towards = AnimatedContentTransitionScope.SlideDirection.Right
                         ) + fadeIn()
                     }
+
                     State.CONFIRM -> {
                         scaleIn() + fadeIn()
                     }
+
                     State.CANCEL -> {
                         fadeIn()
                     }
+
                     else -> {
                         fadeIn()
                     }
@@ -1043,12 +1060,15 @@ class MainActivity : AppCompatActivity() {
                             towards = AnimatedContentTransitionScope.SlideDirection.Left
                         ) + fadeOut()
                     }
+
                     State.CONFIRM -> {
                         scaleOut() + fadeOut()
                     }
+
                     State.CANCEL -> {
                         fadeOut()
                     }
+
                     else -> {
                         fadeOut()
                     }
@@ -1095,6 +1115,7 @@ class MainActivity : AppCompatActivity() {
                             }
                         }
                     }
+
                     State.EDIT -> {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(BUTTON_SPACING),
@@ -1127,6 +1148,7 @@ class MainActivity : AppCompatActivity() {
                             }
                         }
                     }
+
                     State.CANCEL -> {
                         val delay: Long by remember {
                             mutableStateOf((friendModel.delay * 1000).toLong())
@@ -1153,14 +1175,14 @@ class MainActivity : AppCompatActivity() {
                             triggered = true
 
                             friendModel.sendAlert(friend,
-                                                  body = message,
-                                                  launchLogin = ::launchLogin,
-                                                  onError = {
-                                                      sendingStatus = getString(R.string.send_error)
-                                                  },
-                                                  onSuccess = {
-                                                      sendingStatus = null
-                                                  })
+                                body = message,
+                                launchLogin = ::launchLogin,
+                                onError = {
+                                    sendingStatus = getString(R.string.send_error)
+                                },
+                                onSuccess = {
+                                    sendingStatus = null
+                                })
                             onStateChange(State.NORMAL)
                             progressEnabled = false
                             sendingStatus = getString(R.string.sending)
