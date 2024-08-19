@@ -14,7 +14,7 @@ android {
         applicationId = "com.aracroproducts.attentionv2"
         minSdk = 24
         targetSdk = 35
-        versionCode = 39
+        versionCode = 40
         versionName = "2.2.0-beta2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -45,6 +45,10 @@ android {
             resValue("string", "version_name", "${defaultConfig.versionName}")
             buildConfigField("String", "BASE_URL", "\"https://attention.aracroproducts" +
             ".com/api/v2/\"")
+
+            ndk {
+                debugSymbolLevel = "FULL"
+            }
         }
     }
     compileOptions {
