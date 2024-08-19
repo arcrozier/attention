@@ -302,11 +302,13 @@ open class AlertHandler : FirebaseMessagingService() {
                     Intent(this@AlertHandler, Alert.AlertBroadCastReceiver::class.java).apply {
                         action = getString(R.string.dismiss_action)
                         putExtra(ASSOCIATED_NOTIFICATION, notificationID)
+                        putExtra(Alert.EXTRA_ALERT_ID, alertId)
                     }
                 val silenceIntent =
                     Intent(this@AlertHandler, Alert.AlertBroadCastReceiver::class.java).apply {
                         action = getString(R.string.silence_action)
                         putExtra(ASSOCIATED_NOTIFICATION, notificationID)
+                        putExtra(Alert.EXTRA_ALERT_ID, alertId)
                     }
                 val dismissPendingIntent: PendingIntent =
                     PendingIntent.getBroadcast(

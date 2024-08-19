@@ -1,6 +1,5 @@
 package com.aracroproducts.attentionv2
 
-import android.app.Activity
 import android.app.Application
 import android.app.NotificationManager
 import android.content.BroadcastReceiver
@@ -21,13 +20,27 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.ContentAlpha
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,7 +59,7 @@ import java.text.DateFormat
 import java.time.Duration
 import java.time.Instant
 import java.time.temporal.ChronoUnit
-import java.util.*
+import java.util.Calendar
 
 /**
  * An Activity that displays the pop up dialog for an alert
@@ -67,6 +80,7 @@ class Alert : AppCompatActivity() {
     // todo ondestroy unregister receiver
 
     inner class AlertBroadCastReceiver: BroadcastReceiver() {
+        private val sTAG = javaClass.name
         /**
          * This method is called when the BroadcastReceiver is receiving an Intent
          * broadcast.  During this time you can use the other methods on
@@ -115,6 +129,7 @@ class Alert : AppCompatActivity() {
                 return
             }
 
+            // todo also need to check alertID
             when (intent.action) {
                 context.getString(R.string.dismiss_action) -> {
                     alertModel.ok()
@@ -358,5 +373,9 @@ class Alert : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         unregisterReceiver(receiver)
+    }
+
+    companion object {
+        const val EXTRA_ALERT_ID = "com.aracroproducts.attention.extras.ALERT_ID"
     }
 }
