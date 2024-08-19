@@ -129,6 +129,10 @@ class AlertViewModel(
         }
     }
 
+    /**
+     * Silences the alert and sends read receipt. If the alert should be dismissed, caller is
+     * responsible for calling Activity::finish()
+     */
     fun ok() {
         silence()
         isFinishing = true

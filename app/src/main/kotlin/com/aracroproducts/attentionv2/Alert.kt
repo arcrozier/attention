@@ -1,8 +1,12 @@
 package com.aracroproducts.attentionv2
 
+import android.app.Activity
 import android.app.Application
 import android.app.NotificationManager
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Build
@@ -29,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.AnnotatedString
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.aracroproducts.attentionv2.LoginActivity.Companion.LIST_ELEMENT_PADDING
@@ -61,6 +66,74 @@ class Alert : AppCompatActivity() {
 // todo oncreate register a broadcast receiver to handle the user pressing "ok" on the notification and dismiss this activity
     // todo ondestroy unregister receiver
 
+    inner class AlertBroadCastReceiver: BroadcastReceiver() {
+        /**
+         * This method is called when the BroadcastReceiver is receiving an Intent
+         * broadcast.  During this time you can use the other methods on
+         * BroadcastReceiver to view/modify the current result values.  This method
+         * is always called within the main thread of its process, unless you
+         * explicitly asked for it to be scheduled on a different thread using
+         * [android.content.Context.registerReceiver]. When it runs on the main
+         * thread you should
+         * never perform long-running operations in it (there is a timeout of
+         * 10 seconds that the system allows before considering the receiver to
+         * be blocked and a candidate to be killed). You cannot launch a popup dialog
+         * in your implementation of onReceive().
+         *
+         *
+         * **If this BroadcastReceiver was launched through a &lt;receiver&gt; tag,
+         * then the object is no longer alive after returning from this
+         * function.** This means you should not perform any operations that
+         * return a result to you asynchronously. If you need to perform any follow up
+         * background work, schedule a [android.app.job.JobService] with
+         * [android.app.job.JobScheduler].
+         *
+         * If you wish to interact with a service that is already running and previously
+         * bound using [bindService()][android.content.Context.bindService],
+         * you can use [.peekService].
+         *
+         *
+         * The Intent filters used in [android.content.Context.registerReceiver]
+         * and in application manifests are *not* guaranteed to be exclusive. They
+         * are hints to the operating system about how to find suitable recipients. It is
+         * possible for senders to force delivery to specific recipients, bypassing filter
+         * resolution.  For this reason, [onReceive()][.onReceive]
+         * implementations should respond only to known actions, ignoring any unexpected
+         * Intents that they may receive.
+         *
+         * @param context The Context in which the receiver is running.
+         * @param intent The Intent being received.
+         */
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (context == null) {
+                Log.e(sTAG, "null context for receiver")
+                return
+            }
+
+            if (intent == null) {
+                Log.w(sTAG, "Null intent")
+                return
+            }
+
+            when (intent.action) {
+                context.getString(R.string.dismiss_action) -> {
+                    alertModel.ok()
+                    this@Alert.finish()
+                }
+                context.getString(R.string.silence_action) -> {
+                    alertModel.ok()
+                }
+                else -> {
+                    Log.w(sTAG, "Unexpected action: ${intent.action}")
+                    return
+                }
+            }
+        }
+
+    }
+
+    private val receiver = AlertBroadCastReceiver()
+
     inner class AlertViewModelFactory(
         private val intent: Intent,
         private val attentionRepository: AttentionRepository,
@@ -85,6 +158,9 @@ class Alert : AppCompatActivity() {
      */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        ContextCompat.registerReceiver(this, receiver, IntentFilter().apply { addAction(getString(R.string.silence_action))
+        addAction(getString(R.string.dismiss_action))}, ContextCompat.RECEIVER_NOT_EXPORTED)
 
         // don't let users dismiss by tapping outside the dialog - prevent accidental dismissals
         setFinishOnTouchOutside(false)
@@ -279,8 +355,8 @@ class Alert : AppCompatActivity() {
         return minutes * secondsToMillis(60)
     }
 
-    companion object {
-        const val REQUEST_DISMISS_ALERT = 1
-        const val REQUEST_SILENCE_ALERT = 2
+    override fun onDestroy() {
+        super.onDestroy()
+        unregisterReceiver(receiver)
     }
 }

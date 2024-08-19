@@ -15,7 +15,6 @@ import android.provider.Settings
 import android.provider.Settings.SettingNotFoundException
 import android.util.Base64
 import android.util.Log
-import androidx.compose.material.icons.Icons
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -31,7 +30,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import java.util.concurrent.ConcurrentHashMap
 
 
 /**
@@ -300,23 +298,22 @@ open class AlertHandler : FirebaseMessagingService() {
                 builder.setSmallIcon(R.drawable.app_icon_foreground)
                     .setContentTitle(getString(R.string.notification_title, sender.name))
             } else {
-
                 val dismissIntent =
-                    Intent(this@AlertHandler, TODO()).apply {
+                    Intent(this@AlertHandler, Alert.AlertBroadCastReceiver::class.java).apply {
                         action = getString(R.string.dismiss_action)
                         putExtra(ASSOCIATED_NOTIFICATION, notificationID)
                     }
                 val silenceIntent =
-                    Intent(this@AlertHandler, TODO()).apply {
+                    Intent(this@AlertHandler, Alert.AlertBroadCastReceiver::class.java).apply {
                         action = getString(R.string.silence_action)
                         putExtra(ASSOCIATED_NOTIFICATION, notificationID)
                     }
                 val dismissPendingIntent: PendingIntent =
                     PendingIntent.getBroadcast(
-                        this@AlertHandler, Alert.REQUEST_DISMISS_ALERT, dismissIntent,
+                        this@AlertHandler, REQUEST_REPLY, dismissIntent,
                         PendingIntent.FLAG_IMMUTABLE
                     )
-                val silencePendingIntent = PendingIntent.getBroadcast(this@AlertHandler, Alert.REQUEST_SILENCE_ALERT, silenceIntent, PendingIntent.FLAG_IMMUTABLE)
+                val silencePendingIntent = PendingIntent.getBroadcast(this@AlertHandler, REQUEST_REPLY, silenceIntent, PendingIntent.FLAG_IMMUTABLE)
                 createNotificationChannel()
                 builder = NotificationCompat.Builder(this@AlertHandler, ALERT_CHANNEL_ID)
                 builder.setSmallIcon(R.drawable.app_icon_foreground)
