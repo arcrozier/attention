@@ -180,7 +180,7 @@ class MainViewModel(
 
     private fun uploadCachedFriends() {
         backgroundScope.launch {
-            val token = getToken() ?: return@launch
+            val token = preferencesRepository.getToken() ?: return@launch
             val friends: List<CachedFriend> = attentionRepository.getCachedFriendsSnapshot()
             for (friend in friends) {
                 attentionRepository.getName(token,
@@ -218,7 +218,7 @@ class MainViewModel(
         ) -> Unit)? = null, launchLogin: () -> Unit
     ) {
         viewModelScope.launch {
-            val token = getToken()
+            val token = preferencesRepository.getToken()
             if (token == null) {
                 backgroundScope.launch { attentionRepository.cacheFriend(friend.id) }
                 addFriendException = false
@@ -272,7 +272,7 @@ class MainViewModel(
         launchLogin: () -> Unit
     ) {
         viewModelScope.launch {
-            val token = getToken()
+            val token = preferencesRepository.getToken()
             if (token == null) {
                 if (!addFriendException) launchLogin()
                 else {
@@ -336,7 +336,7 @@ class MainViewModel(
      */
     fun confirmDeleteFriend(friend: Friend, launchLogin: () -> Unit) {
         viewModelScope.launch {
-            val token = getToken()
+            val token = preferencesRepository.getToken()
             if (token == null) {
                 launchLogin()
                 return@launch
@@ -367,7 +367,7 @@ class MainViewModel(
      */
     fun confirmEditName(id: String, name: String, launchLogin: () -> Unit) {
         viewModelScope.launch {
-            val token = getToken()
+            val token = preferencesRepository.getToken()
             if (token == null) {
                 launchLogin()
                 return@launch
@@ -399,10 +399,6 @@ class MainViewModel(
 
     suspend fun getFriend(id: String): Friend {
         return attentionRepository.getFriend(id)
-    }
-
-    private suspend fun getToken(): String? {
-        return preferencesRepository.getValue(stringPreferencesKey(MY_TOKEN))
     }
 
     private suspend fun getFCMToken(): String? {
@@ -445,36 +441,7 @@ class MainViewModel(
      */
     private fun notifyUser(text: String, message: Message? = null) {
         viewModelScope.launch {
-            val context = application
-
-            val intent = Intent(context, MainActivity::class.java)
-            if (message != null) {
-                intent.action = context.getString(R.string.reopen_failed_alert_action)
-                intent.putExtra(EXTRA_RECIPIENT, message.otherId)
-                intent.putExtra(EXTRA_BODY, message.message)
-            }
-
-            val pendingIntent =
-                PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
-
-            createFailedAlertNotificationChannel(context)
-            val builder: NotificationCompat.Builder =
-                NotificationCompat.Builder(context, FAILED_ALERT_CHANNEL_ID)
-            builder.setSmallIcon(R.drawable.app_icon_foreground)
-                .setContentTitle(context.getString(R.string.alert_failed)).setContentText(text)
-                .setPriority(NotificationCompat.PRIORITY_MAX).setContentIntent(pendingIntent)
-                .setAutoCancel(true)
-
-            val notificationID = System.currentTimeMillis().toInt()
-            val notificationManagerCompat = NotificationManagerCompat.from(context)
-            if (ActivityCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                return@launch
-            }
-            notificationManagerCompat.notify(notificationID, builder.build())
+            notifyUser(application, text, message)
         }
     }
 
@@ -504,7 +471,7 @@ class MainViewModel(
             token?.let {
                 preferencesRepository.setValue(stringPreferencesKey(MY_TOKEN), token)
             } // datastore guarantees read-after-write consistency
-            val innerToken = token ?: getToken()
+            val innerToken = token ?: preferencesRepository.getToken()
 
             // we want an exception to the login if they opened an add-friend link
             // if opened from a link, the action is ACTION_VIEW, so we delay logging in
@@ -602,7 +569,7 @@ class MainViewModel(
             val context = application
 
             // token is auth token
-            val token = getToken()
+            val token = preferencesRepository.getToken()
 
             val fcmToken: String? = preferencesRepository.getValue(stringPreferencesKey(FCM_TOKEN))
             val fcmTokenUploaded: Boolean = preferencesRepository.getValue(
@@ -685,23 +652,23 @@ class MainViewModel(
     fun sendAlert(
         to: Friend,
         body: String?,
-        launchLogin: () -> Unit,
+        launchLogin: (Intent?) -> Unit,
         onError: (() -> Unit)? = null,
         onSuccess: (() -> Unit)? = null
     ) {
         viewModelScope.launch {
             val context = application
-            val token = getToken()
-            if (token == null) {
-                launchLogin()
-                return@launch
-            }
+            val token = preferencesRepository.getToken()
             val message = Message(
                 timestamp = System.currentTimeMillis(),
                 otherId = to.id,
                 message = body,
                 direction = DIRECTION.Outgoing
             )
+            if (token == null) {
+                launchLogin(getSendIntent(context, message))
+                return@launch
+            }
             backgroundScope.launch {
                 pushFriendShortcut(context, to)
                 attentionRepository.sendMessage(message, token = token, { _, response, errorBody ->
@@ -770,7 +737,7 @@ class MainViewModel(
                                     )
                                 }
 
-                                else -> launchLogin()
+                                else -> launchLogin(getSendIntent(context, message))
                             }
                             onError?.invoke()
                         }
@@ -827,7 +794,7 @@ class MainViewModel(
                 Log.d(sTAG, "Got token! $token")
 
                 val fcmToken = getFCMToken()
-                val authToken = getToken()
+                val authToken = preferencesRepository.getToken()
                 if (token != null && token != fcmToken) {
                     preferencesRepository.bulkEdit { settings ->
                         settings[stringPreferencesKey(FCM_TOKEN)] = token

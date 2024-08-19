@@ -102,6 +102,11 @@
         <activity
             android:name="com.yalantis.ucrop.UCropActivity"
             android:theme="@style/Theme.Material3.DayNight.NoActionBar"/>
+        <receiver android:name=".SendMessageReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="com.aracroproducts.attention.broadcast.REPLY" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

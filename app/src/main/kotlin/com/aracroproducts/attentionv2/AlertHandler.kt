@@ -8,23 +8,30 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.BitmapFactory
 import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
 import android.provider.Settings.SettingNotFoundException
+import android.util.Base64
 import android.util.Log
+import androidx.compose.material.icons.Icons
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.Person
+import androidx.core.app.RemoteInput
+import androidx.core.graphics.drawable.IconCompat
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.android.build.gradle.internal.utils.toImmutableSet
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import java.util.concurrent.ConcurrentHashMap
 
 
 /**
@@ -69,11 +76,11 @@ open class AlertHandler : FirebaseMessagingService() {
                         Log.e(TAG, "An error occurred when uploading token: $errorBody")
                     }
                 }, { _, t ->
-                                              Log.e(
-                                                  TAG,
-                                                  "An error occurred when uploading token: ${t.message}"
-                                              )
-                                          })
+                    Log.e(
+                        TAG,
+                        "An error occurred when uploading token: ${t.message}"
+                    )
+                })
             }
         }
     }
@@ -94,9 +101,9 @@ open class AlertHandler : FirebaseMessagingService() {
                     val message = Message(timestamp = messageData[ALERT_TIMESTAMP]?.toLong()?.let {
                         it * 1000
                     } ?: System.currentTimeMillis(),
-                                          otherId = messageData[REMOTE_FROM] ?: return@launch,
-                                          direction = DIRECTION.Incoming,
-                                          message = messageData[REMOTE_MESSAGE])
+                        otherId = messageData[REMOTE_FROM] ?: return@launch,
+                        direction = DIRECTION.Incoming,
+                        message = messageData[REMOTE_MESSAGE])
                     val username = preferencesRepository.getValue(
                         stringPreferencesKey(
                             getString(
@@ -113,6 +120,9 @@ open class AlertHandler : FirebaseMessagingService() {
                     }
                     val sender = repository.getFriend(message.otherId)
                     val senderName = repository.getFriend(message.otherId).name
+                    val topKFriends = repository.getTopKFriends()
+                    val important =
+                        sender in topKFriends.toImmutableSet() || topKFriends.size < MAX_IMPORTANT_PEOPLE
 
                     val display = if (message.message == "None") getString(
                         R.string.default_message, sender.name
@@ -140,7 +150,7 @@ open class AlertHandler : FirebaseMessagingService() {
                             TAG,
                             "App is disabled from showing notifications or interruption filter is set to block notifications"
                         )
-                        showNotification(display, sender, alertId, true)
+                        showNotification(display, sender, alertId, true, important)
                         return@launch
                     }
                     try {
@@ -149,7 +159,7 @@ open class AlertHandler : FirebaseMessagingService() {
                             ) > 1
                         ) { // a variant of do not disturb
                             Log.d(TAG, "Device's zen mode is enabled")
-                            showNotification(display, sender, alertId, true)
+                            showNotification(display, sender, alertId, true, important)
                             return@launch
                         }
                     } catch (e: SettingNotFoundException) {
@@ -158,9 +168,9 @@ open class AlertHandler : FirebaseMessagingService() {
                     val pm = getSystemService(POWER_SERVICE) as PowerManager
 
                     // Stores the id so the notification can be cancelled by the user
-                    val id = showNotification(display, sender, alertId, false)
+                    val id = showNotification(display, sender, alertId, false, important)
 
-                    repository.incrementReceived(message.otherId)
+//                    repository.incrementReceived(message.otherId)
 
                     // Device should only show pop up if the device is off or if it has the ability to draw overlays (required to show pop up if screen is on)
                     if (!pm.isInteractive || Settings.canDrawOverlays(this@AlertHandler) || AttentionApplication.isActivityVisible()) {
@@ -186,11 +196,13 @@ open class AlertHandler : FirebaseMessagingService() {
                         startActivity(intent)
                     }
                 }
+
                 "delivered" -> {
                     repository.alertDelivered(
                         username = messageData["username_to"], alertId = messageData["alert_id"]
                     )
                 }
+
                 "read" -> {
                     repository.alertRead(
                         username = messageData["username_to"], alertId = messageData["alert_id"]
@@ -227,9 +239,9 @@ open class AlertHandler : FirebaseMessagingService() {
             ) else null
         return (manager.areNotificationsEnabled() && // all app notifications disabled
                 ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) && channel?.importance != NotificationManager.IMPORTANCE_NONE)) && // specifically this channel is disabled
-               (overrideDND || // Checks whether it should not be overriding Do Not Disturb
-                ((manager.currentInterruptionFilter == NotificationManager.INTERRUPTION_FILTER_ALL || // Do not disturb is on
-                  manager.currentInterruptionFilter == NotificationManager.INTERRUPTION_FILTER_UNKNOWN) || (Build.VERSION.SDK_INT < Build.VERSION_CODES.R || (manager.consolidatedNotificationPolicy.priorityCategories and NotificationManager.Policy.PRIORITY_CATEGORY_MESSAGES != 0 || manager.consolidatedNotificationPolicy.priorityMessageSenders == NotificationManager.Policy.PRIORITY_SENDERS_ANY))))
+                (overrideDND || // Checks whether it should not be overriding Do Not Disturb
+                        ((manager.currentInterruptionFilter == NotificationManager.INTERRUPTION_FILTER_ALL || // Do not disturb is on
+                                manager.currentInterruptionFilter == NotificationManager.INTERRUPTION_FILTER_UNKNOWN) || (Build.VERSION.SDK_INT < Build.VERSION_CODES.R || (manager.consolidatedNotificationPolicy.priorityCategories and NotificationManager.Policy.PRIORITY_CATEGORY_MESSAGES != 0 || manager.consolidatedNotificationPolicy.priorityMessageSenders == NotificationManager.Policy.PRIORITY_SENDERS_ANY))))
 
     }
 
@@ -241,7 +253,7 @@ open class AlertHandler : FirebaseMessagingService() {
      * @return              - Returns the ID of the notification
      */
     private fun showNotification(
-        message: String, sender: Friend, alertId: String, missed: Boolean
+        message: String, sender: Friend, alertId: String, missed: Boolean, important: Boolean
     ): Int {
         val notificationID = System.currentTimeMillis().toInt()
         (application as AttentionApplication).container.applicationScope.launch(
@@ -259,8 +271,17 @@ open class AlertHandler : FirebaseMessagingService() {
             // https://developer.android.com/develop/ui/views/notifications/conversations#api-notifications
             MainViewModel.pushFriendShortcut(this@AlertHandler, sender)
 
+            val icon = if (sender.photo != null) {
+                val imageDecoded = Base64.decode(sender.photo, Base64.DEFAULT)
+                val imageBitmap = BitmapFactory.decodeByteArray(imageDecoded, 0, imageDecoded.size)
+                IconCompat.createWithBitmap(imageBitmap)
+            } else {
+                null
+            }
+
             val person =
-                Person.Builder().setName(sender.name).setKey(sender.id).setImportant(true).build()
+                Person.Builder().setName(sender.name).setKey(sender.id).setImportant(important)
+                    .setIcon(icon).build()
 
             val messagingStyle = NotificationCompat.MessagingStyle(person).addMessage(
                 NotificationCompat.MessagingStyle.Message(
@@ -273,22 +294,70 @@ open class AlertHandler : FirebaseMessagingService() {
             )
 
             val builder: NotificationCompat.Builder
-            // TODO inline reply?
             if (missed) {
                 createMissedNotificationChannel(this@AlertHandler)
                 builder = NotificationCompat.Builder(this@AlertHandler, CHANNEL_ID)
                 builder.setSmallIcon(R.drawable.app_icon_foreground)
                     .setContentTitle(getString(R.string.notification_title, sender.name))
             } else {
+
+                val dismissIntent =
+                    Intent(this@AlertHandler, TODO()).apply {
+                        action = getString(R.string.dismiss_action)
+                        putExtra(ASSOCIATED_NOTIFICATION, notificationID)
+                    }
+                val silenceIntent =
+                    Intent(this@AlertHandler, TODO()).apply {
+                        action = getString(R.string.silence_action)
+                        putExtra(ASSOCIATED_NOTIFICATION, notificationID)
+                    }
+                val dismissPendingIntent: PendingIntent =
+                    PendingIntent.getBroadcast(
+                        this@AlertHandler, Alert.REQUEST_DISMISS_ALERT, dismissIntent,
+                        PendingIntent.FLAG_IMMUTABLE
+                    )
+                val silencePendingIntent = PendingIntent.getBroadcast(this@AlertHandler, Alert.REQUEST_SILENCE_ALERT, silenceIntent, PendingIntent.FLAG_IMMUTABLE)
                 createNotificationChannel()
                 builder = NotificationCompat.Builder(this@AlertHandler, ALERT_CHANNEL_ID)
                 builder.setSmallIcon(R.drawable.app_icon_foreground)
                     .setContentTitle(getString(R.string.alert_notification_title, sender.name))
+                    .addAction(
+                        R.drawable.baseline_mark_chat_read_24,
+                        getString(R.string.mark_as_read),
+                        dismissPendingIntent
+                    )
+                    .addAction(
+                        R.drawable.baseline_notifications_off_24,
+                        getString(R.string.silence),
+                        silencePendingIntent
+                    )
             }
+
+            val remoteInput: RemoteInput = RemoteInput.Builder(SendMessageReceiver.KEY_TEXT_REPLY).run {
+                setLabel(getString(R.string.reply))
+                build()
+            }
+
+            val replyPendingIntent: PendingIntent =
+                PendingIntent.getBroadcast(
+                    applicationContext,
+                    REQUEST_REPLY,
+                    ReplyIntent(sender.id, notificationID, alertId),
+                    PendingIntent.FLAG_UPDATE_CURRENT
+                )
+            val action = NotificationCompat.Action.Builder(
+                R.drawable.baseline_reply_24,
+                getString(R.string.reply),
+                replyPendingIntent
+            ).addRemoteInput(remoteInput).extend(  // something something helps with wear OS? todo might break things though
+                NotificationCompat.Action.WearableExtender().setHintDisplayActionInline(true)
+                    .setHintLaunchesActivity(false)
+            ).build()
             builder.setShortcutId(sender.id).setContentText(message)
                 .setCategory(Notification.CATEGORY_MESSAGE).setStyle(messagingStyle)
                 .setPriority(NotificationCompat.PRIORITY_MAX).setContentIntent(pendingIntent)
                 .setAutoCancel(true)
+                .addAction(action)
             val notificationManagerCompat = NotificationManagerCompat.from(this@AlertHandler)
             if (ActivityCompat.checkSelfPermission(
                     this@AlertHandler,
@@ -333,6 +402,7 @@ open class AlertHandler : FirebaseMessagingService() {
         const val ALERT_TIMESTAMP = "alert_timestamp"
         const val ASSOCIATED_NOTIFICATION = "notification_id"
         const val SHOULD_VIBRATE = "vibrate"
+        const val REQUEST_REPLY = 0
 
         /**
          * Creates the missed alerts notification channel on Android O and later
@@ -344,12 +414,31 @@ open class AlertHandler : FirebaseMessagingService() {
                 val name: CharSequence = context.getString(R.string.channel_name)
                 val description = context.getString(R.string.channel_description)
                 val importance = NotificationManager.IMPORTANCE_HIGH
-                val channel = NotificationChannel(CHANNEL_ID, name, importance)
-                channel.description =
-                    description // Register the channel with the system; you can't change the importance
+
+                // Register the channel with the system; you can't change the importance
                 // or other notification behaviors after this
+                val channel = NotificationChannel(CHANNEL_ID, name, importance)
+                channel.description = description
                 val notificationManager = context.getSystemService(NotificationManager::class.java)
                 notificationManager.createNotificationChannel(channel)
+            }
+        }
+
+        class ReplyIntent(val sender: String, notificationId: Int, alertId: String) :
+            Intent(SendMessageReceiver.ACTION_REPLY) {
+
+            init {
+                putExtra(SendMessageReceiver.EXTRA_SENDER, sender)
+                putExtra(SendMessageReceiver.EXTRA_NOTIFICATION_ID, notificationId)
+                putExtra(SendMessageReceiver.EXTRA_ALERT_ID, alertId)
+            }
+
+            override fun equals(other: Any?): Boolean {
+                return super.equals(other) && other is ReplyIntent && other.sender == sender
+            }
+
+            override fun hashCode(): Int {
+                return super.hashCode() xor sender.hashCode()
             }
         }
     }

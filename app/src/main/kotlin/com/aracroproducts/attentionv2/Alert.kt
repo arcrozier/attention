@@ -58,6 +58,9 @@ class Alert : AppCompatActivity() {
         )
     })
 
+// todo oncreate register a broadcast receiver to handle the user pressing "ok" on the notification and dismiss this activity
+    // todo ondestroy unregister receiver
+
     inner class AlertViewModelFactory(
         private val intent: Intent,
         private val attentionRepository: AttentionRepository,
@@ -274,5 +277,10 @@ class Alert : AppCompatActivity() {
 
     private fun minutesToMillis(minutes: Long = 1): Long {
         return minutes * secondsToMillis(60)
+    }
+
+    companion object {
+        const val REQUEST_DISMISS_ALERT = 1
+        const val REQUEST_SILENCE_ALERT = 2
     }
 }

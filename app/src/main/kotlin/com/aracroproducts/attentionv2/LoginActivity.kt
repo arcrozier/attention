@@ -188,6 +188,13 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
+    private val returnedIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        intent?.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java)
+    } else {
+        @Suppress("DEPRECATION")
+        intent?.getParcelableExtra(Intent.EXTRA_INTENT) as? Intent
+    }
+
     class LoginViewModelFactory(
         private val attentionRepository: AttentionRepository,
         private val preferencesRepository: PreferencesRepository,
@@ -1141,6 +1148,9 @@ class LoginActivity : AppCompatActivity() {
         loginViewModel.setTokenUploaded(false)
         val result = Intent()
         result.putExtra(MainViewModel.MY_TOKEN, token)
+        if (returnedIntent != null) {
+            result.putExtra(Intent.EXTRA_INTENT, returnedIntent)
+        }
         setResult(RESULT_OK, result)
         finish()
     }

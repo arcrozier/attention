@@ -34,11 +34,6 @@ class AttentionRepository(private val database: AttentionDB) {
         }
     }
 
-    suspend fun incrementReceived(from: String) {
-        database.getFriendDAO().incrementReceived(from)
-    }
-
-
     fun delete(
         friend: Friend,
         token: String,
@@ -134,6 +129,8 @@ class AttentionRepository(private val database: AttentionDB) {
 
     }
 
+    suspend fun getTopKFriends() = database.getFriendDAO().getTopKFriends()
+
     fun getMessages(friend: Friend) = database.getMessageDAO().getMessagesFromUser(friend.id)
 
     suspend fun appendMessage(message: Message, save: Boolean = false) {
@@ -150,7 +147,10 @@ class AttentionRepository(private val database: AttentionDB) {
 
         when (message.direction) {
             DIRECTION.Incoming -> database.getFriendDAO().incrementReceived(message.otherId)
-            DIRECTION.Outgoing -> database.getFriendDAO().incrementSent(message.otherId)
+            DIRECTION.Outgoing -> {
+                database.getFriendDAO().incrementSent(message.otherId)
+                database.getFriendDAO().scaleImportance()
+            }
         }
 
     }
@@ -225,7 +225,7 @@ class AttentionRepository(private val database: AttentionDB) {
                         )
                         alertId?.let {
                             database.getFriendDAO().setMessageStatus(
-                                MessageStatus.SENT.value, alert_id = alertId, id = message.otherId
+                                MessageStatus.SENT.value, alertId = alertId, id = message.otherId
                             )
                         }
                         database.getFriendDAO().incrementSent(message.otherId)
@@ -501,14 +501,14 @@ class AttentionRepository(private val database: AttentionDB) {
     suspend fun alertDelivered(username: String?, alertId: String?) {
 
         database.getFriendDAO()
-            .setMessageStatus(MessageStatus.DELIVERED.value, alert_id = alertId, id = username)
+            .setMessageStatus(MessageStatus.DELIVERED.value, alertId = alertId, id = username)
 
     }
 
     suspend fun alertRead(username: String?, alertId: String?) {
 
         database.getFriendDAO()
-            .setMessageStatus(MessageStatus.READ.value, alert_id = alertId, id = username)
+            .setMessageStatus(MessageStatus.READ.value, alertId = alertId, id = username)
 
     }
 

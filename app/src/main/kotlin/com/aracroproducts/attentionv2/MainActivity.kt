@@ -87,7 +87,6 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -162,6 +161,7 @@ class MainActivity : AppCompatActivity() {
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { // there isn't really anything we can do
         }
 
+    // TODO test what actually happens a) if a user gets signed out in the background as they send an alert b) a user gets signed out but replies to an alert in the notification
     private val loginLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
@@ -169,12 +169,23 @@ class MainActivity : AppCompatActivity() {
             reload(token)
         }
         friendModel.waitForLoginResult = false
+
+        val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            it.data?.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            it.data?.getParcelableExtra(Intent.EXTRA_INTENT) as? Intent
+        }
+
+        if (intent != null) {
+            handleIntent(intent, null)
+        }
     }
 
-    private fun launchLogin() {
+    private fun launchLogin(resume: Intent? = null) {
         friendModel.waitForLoginResult = true
         friendModel.logout(this)
-        loginLauncher.launch(Intent(this, LoginActivity::class.java))
+        loginLauncher.launch(Intent(this, LoginActivity::class.java).putExtra(Intent.EXTRA_INTENT, resume))
     }
 
     /**
@@ -896,7 +907,7 @@ class MainActivity : AppCompatActivity() {
         var message: String? by remember { mutableStateOf(null) }
         val transition = updateTransition(state, label = "friend state transition")
 
-        val receipt = when (friend.last_message_status) {
+        val receipt = when (friend.lastMessageStatus) {
             MessageStatus.SENT -> getString(R.string.sent)
             MessageStatus.DELIVERED -> getString(R.string.delivered)
             MessageStatus.READ -> getString(R.string.read)
@@ -934,7 +945,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         var loc: Float by rememberSaveable {
-            mutableStateOf(0f)
+            mutableFloatStateOf(0f)
         }
         val interactionSource = remember { MutableInteractionSource() }
         var animating: Boolean by rememberSaveable {
