@@ -137,6 +137,7 @@ class AlertViewModel(
         silence()
         isFinishing = true
 
+
         viewModelScope.launch(context = Dispatchers.IO) {
 
             // token is auth token

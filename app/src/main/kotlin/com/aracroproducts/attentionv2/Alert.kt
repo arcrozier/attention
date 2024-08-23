@@ -129,10 +129,17 @@ class Alert : AppCompatActivity() {
                 return
             }
 
-            // todo also need to check alertID
+            if (intent.getStringExtra(EXTRA_ALERT_ID) != alertModel.alertId) {
+                return
+            }
+
             when (intent.action) {
                 context.getString(R.string.dismiss_action) -> {
                     alertModel.ok()
+                    val notificationManager = context.getSystemService(
+                        NOTIFICATION_SERVICE
+                    ) as NotificationManager
+                    notificationManager.cancel(alertModel.id)
                     this@Alert.finish()
                 }
                 context.getString(R.string.silence_action) -> {

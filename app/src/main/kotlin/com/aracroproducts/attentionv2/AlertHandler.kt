@@ -24,6 +24,7 @@ import androidx.core.graphics.drawable.IconCompat
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.android.build.gradle.internal.utils.toImmutableSet
+import com.aracroproducts.attentionv2.AlertViewModel.Companion.NO_ID
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.Dispatchers
@@ -248,6 +249,8 @@ open class AlertHandler : FirebaseMessagingService() {
      * @param message       - The message to show
      * @param sender        - The sender of the message
      * @param missed        - Whether the alert was missed
+     * @param alertId       - The alert associated with the notification
+     * @param important     - Whether the sender is important to the user or not
      * @return              - Returns the ID of the notification
      */
     private fun showNotification(
@@ -316,7 +319,7 @@ open class AlertHandler : FirebaseMessagingService() {
                         PendingIntent.FLAG_IMMUTABLE
                     )
                 val silencePendingIntent = PendingIntent.getBroadcast(this@AlertHandler, REQUEST_REPLY, silenceIntent, PendingIntent.FLAG_IMMUTABLE)
-                createNotificationChannel()
+                createNotificationChannel(this@AlertHandler)
                 builder = NotificationCompat.Builder(this@AlertHandler, ALERT_CHANNEL_ID)
                 builder.setSmallIcon(R.drawable.app_icon_foreground)
                     .setContentTitle(getString(R.string.alert_notification_title, sender.name))
@@ -370,24 +373,6 @@ open class AlertHandler : FirebaseMessagingService() {
         return notificationID
     }
 
-    /**
-     * Creates the notification channel for notifications that are displayed alongside dialogs
-     */
-    private fun createNotificationChannel() { // Create the NotificationChannel, but only on API 26+ because
-        // the NotificationChannel class is new and not in the support library
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name: CharSequence = getString(R.string.alert_channel_name)
-            val description = getString(R.string.alert_channel_description)
-            val importance = NotificationManager.IMPORTANCE_HIGH
-            val channel = NotificationChannel(ALERT_CHANNEL_ID, name, importance)
-            channel.description =
-                description // Register the channel with the system; you can't change the importance
-            // or other notification behaviors after this
-            val notificationManager = getSystemService(NotificationManager::class.java)
-            notificationManager.createNotificationChannel(channel)
-        }
-    }
-
 
     companion object {
         private val TAG = AlertHandler::class.java.name
@@ -402,6 +387,26 @@ open class AlertHandler : FirebaseMessagingService() {
         const val ASSOCIATED_NOTIFICATION = "notification_id"
         const val SHOULD_VIBRATE = "vibrate"
         const val REQUEST_REPLY = 0
+
+        class NotificationFlags {
+
+            companion object {
+                /**
+                 * Set this flag to display a "silence" option in the notification. Has no effect if {@link MISSED} is also set
+                 */
+                const val ACTION_SILENCE = 0b1
+
+                /**
+                 * Set this flag to display a "missed alert from"-type message. Will not show "silence" or "ok" actions
+                 */
+                const val MISSED = 0b1 shl 3
+
+                /**
+                 * Whether the message is from an important sender
+                 */
+                const val IMPORTANT = 0b1 shl 4
+            }
+        }
 
         /**
          * Creates the missed alerts notification channel on Android O and later
@@ -439,6 +444,165 @@ open class AlertHandler : FirebaseMessagingService() {
             override fun hashCode(): Int {
                 return super.hashCode() xor sender.hashCode()
             }
+        }
+
+        /**
+         * Helper method to show the notification
+         * @param message       - The message to show
+         * @param sender        - The sender of the message
+         * @param alertId       - The alert associated with the notification
+         * @param flags         - Flags for the notifications {@link AlertHandler#NotificationFlags}
+         * @return              - Returns the ID of the notification
+         */
+        private fun showNotification(
+            applicationContext: Context, message: String, sender: Friend, alertId: String, flags: Int = NotificationFlags.ACTION_SILENCE, notificationId: Int? = null
+        ): Int {
+            val notificationID = notificationId ?: System.currentTimeMillis().toInt()
+            val important = flagSet(flags, NotificationFlags.IMPORTANT)
+            val missed = flagSet(flags, NotificationFlags.MISSED)
+            val silenceAction = flagSet(flags, NotificationFlags.ACTION_SILENCE)
+            val intent = Intent(applicationContext, Alert::class.java).apply {
+                    putExtra(REMOTE_MESSAGE, message)
+                    putExtra(REMOTE_FROM, sender.name)
+                    putExtra(SHOULD_VIBRATE, false)
+                    putExtra(REMOTE_FROM_USERNAME, sender.id)
+                    putExtra(ALERT_ID, alertId)
+                }
+
+                // for more on the conversation api, see
+                // https://developer.android.com/develop/ui/views/notifications/conversations#api-notifications
+                MainViewModel.pushFriendShortcut(applicationContext, sender)
+
+                val icon = if (sender.photo != null) {
+                    val imageDecoded = Base64.decode(sender.photo, Base64.DEFAULT)
+                    val imageBitmap = BitmapFactory.decodeByteArray(imageDecoded, 0, imageDecoded.size)
+                    IconCompat.createWithBitmap(imageBitmap)
+                } else {
+                    null
+                }
+
+                val person =
+                    Person.Builder().setName(sender.name).setKey(sender.id).setImportant(important)
+                        .setIcon(icon).build()
+
+                val messagingStyle = NotificationCompat.MessagingStyle(person).addMessage(
+                    NotificationCompat.MessagingStyle.Message(
+                        message, System.currentTimeMillis(), person
+                    )
+                )
+
+                val pendingIntent = PendingIntent.getActivity(
+                    applicationContext, 0, intent, PendingIntent.FLAG_IMMUTABLE
+                )
+
+                val builder: NotificationCompat.Builder
+                if (missed) {
+                    createMissedNotificationChannel(applicationContext)
+                    builder = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
+                    builder.setSmallIcon(R.drawable.app_icon_foreground)
+                        .setContentTitle(applicationContext.getString(R.string.notification_title, sender.name))
+                } else {
+                    val dismissIntent =
+                        Intent(applicationContext, Alert.AlertBroadCastReceiver::class.java).apply {
+                            action = applicationContext.getString(R.string.dismiss_action)
+                            putExtra(ASSOCIATED_NOTIFICATION, notificationID)
+                            putExtra(Alert.EXTRA_ALERT_ID, alertId)
+                        }
+                    val silenceIntent =
+                        Intent(applicationContext, Alert.AlertBroadCastReceiver::class.java).apply {
+                            action = applicationContext.getString(R.string.silence_action)
+                            putExtra(ASSOCIATED_NOTIFICATION, notificationID)
+                            putExtra(Alert.EXTRA_ALERT_ID, alertId)
+                        }
+                    val dismissPendingIntent: PendingIntent =
+                        PendingIntent.getBroadcast(
+                            applicationContext, REQUEST_REPLY, dismissIntent,
+                            PendingIntent.FLAG_IMMUTABLE
+                        )
+                    val silencePendingIntent = PendingIntent.getBroadcast(applicationContext, REQUEST_REPLY, silenceIntent, PendingIntent.FLAG_IMMUTABLE)
+                    createNotificationChannel(applicationContext)
+                    builder = NotificationCompat.Builder(applicationContext, ALERT_CHANNEL_ID)
+                    builder.setSmallIcon(R.drawable.app_icon_foreground)
+                        .setContentTitle(applicationContext.getString(R.string.alert_notification_title, sender.name))
+                        .addAction(
+                            R.drawable.baseline_mark_chat_read_24,
+                            applicationContext.getString(R.string.mark_as_read),
+                            dismissPendingIntent
+                        )
+                        .addAction(
+                            R.drawable.baseline_notifications_off_24,
+                            applicationContext.getString(R.string.silence),
+                            silencePendingIntent
+                        )
+                }
+
+                val remoteInput: RemoteInput = RemoteInput.Builder(SendMessageReceiver.KEY_TEXT_REPLY).run {
+                    setLabel(applicationContext.getString(R.string.reply))
+                    build()
+                }
+
+                val replyPendingIntent: PendingIntent =
+                    PendingIntent.getBroadcast(
+                        applicationContext,
+                        REQUEST_REPLY,
+                        ReplyIntent(sender.id, notificationID, alertId),
+                        PendingIntent.FLAG_UPDATE_CURRENT
+                    )
+                val action = NotificationCompat.Action.Builder(
+                    R.drawable.baseline_reply_24,
+                    applicationContext.getString(R.string.reply),
+                    replyPendingIntent
+                ).addRemoteInput(remoteInput).extend(  // something something helps with wear OS? todo might break things though
+                    NotificationCompat.Action.WearableExtender().setHintDisplayActionInline(true)
+                        .setHintLaunchesActivity(false)
+                ).build()
+                builder.setShortcutId(sender.id).setContentText(message)
+                    .setCategory(Notification.CATEGORY_MESSAGE).setStyle(messagingStyle)
+                    .setPriority(NotificationCompat.PRIORITY_MAX).setContentIntent(pendingIntent)
+                    .setAutoCancel(true)
+                    .addAction(action)
+                val notificationManagerCompat = NotificationManagerCompat.from(applicationContext)
+                if (ActivityCompat.checkSelfPermission(
+                        applicationContext,
+                        Manifest.permission.POST_NOTIFICATIONS
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    return NO_ID
+                }
+                notificationManagerCompat.notify(notificationID, builder.build())
+            return notificationID
+        }
+
+
+        /**
+         * Creates the notification channel for notifications that are displayed alongside dialogs
+         */
+        private fun createNotificationChannel(context: Context) { // Create the NotificationChannel, but only on API 26+ because
+            // the NotificationChannel class is new and not in the support library
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val name: CharSequence = context.getString(R.string.alert_channel_name)
+                val description = context.getString(R.string.alert_channel_description)
+                val importance = NotificationManager.IMPORTANCE_HIGH
+                val channel = NotificationChannel(ALERT_CHANNEL_ID, name, importance)
+                channel.description =
+                    description // Register the channel with the system; you can't change the importance
+                // or other notification behaviors after this
+                val notificationManager = context.getSystemService(NotificationManager::class.java)
+                notificationManager.createNotificationChannel(channel)
+            }
+        }
+
+        /**
+         * Returns whether the given flag is set in flags
+         *
+         * @param flags the set flags. This may have 0 or more bits set
+         * @param flag the flag to test for in flags. This must have exactly one bit set
+         *
+         * @return true iff the set bit in flag is also set in flags, false otherwise
+         */
+        private fun flagSet(flags: Int, flag: Int): Boolean {
+            assert(flag.countOneBits() == 1)
+            return flags and flag != 0
         }
     }
 }
