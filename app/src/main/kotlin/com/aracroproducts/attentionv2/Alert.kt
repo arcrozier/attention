@@ -76,11 +76,9 @@ class Alert : AppCompatActivity() {
         )
     })
 
-// todo oncreate register a broadcast receiver to handle the user pressing "ok" on the notification and dismiss this activity
-    // todo ondestroy unregister receiver
-
-    inner class AlertBroadCastReceiver: BroadcastReceiver() {
+    inner class AlertBroadCastReceiver : BroadcastReceiver() {
         private val sTAG = javaClass.name
+
         /**
          * This method is called when the BroadcastReceiver is receiving an Intent
          * broadcast.  During this time you can use the other methods on
@@ -136,15 +134,21 @@ class Alert : AppCompatActivity() {
             when (intent.action) {
                 context.getString(R.string.dismiss_action) -> {
                     alertModel.ok()
-                    val notificationManager = context.getSystemService(
-                        NOTIFICATION_SERVICE
-                    ) as NotificationManager
-                    notificationManager.cancel(alertModel.id)
-                    this@Alert.finish()
+                    finish()
                 }
+
                 context.getString(R.string.silence_action) -> {
                     alertModel.ok()
+                    AlertHandler.showNotification(
+                        application,
+                        alertModel.message.text,
+                        alertModel.sender,
+                        alertModel.alertId,
+                        0,
+                        alertModel.id
+                    )
                 }
+
                 else -> {
                     Log.w(sTAG, "Unexpected action: ${intent.action}")
                     return
@@ -181,8 +185,10 @@ class Alert : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        ContextCompat.registerReceiver(this, receiver, IntentFilter().apply { addAction(getString(R.string.silence_action))
-        addAction(getString(R.string.dismiss_action))}, ContextCompat.RECEIVER_NOT_EXPORTED)
+        ContextCompat.registerReceiver(this, receiver, IntentFilter().apply {
+            addAction(getString(R.string.silence_action))
+            addAction(getString(R.string.dismiss_action))
+        }, ContextCompat.RECEIVER_NOT_EXPORTED)
 
         // don't let users dismiss by tapping outside the dialog - prevent accidental dismissals
         setFinishOnTouchOutside(false)
@@ -210,8 +216,8 @@ class Alert : AppCompatActivity() {
         var imageBitmap: Bitmap? by remember {
             mutableStateOf(null)
         }
-        LaunchedEffect(key1 = alertModel.sender?.photo) {
-            val photo = alertModel.sender?.photo
+        LaunchedEffect(key1 = alertModel.sender.photo) {
+            val photo = alertModel.sender.photo
             if (photo != null) {
                 launch(context = Dispatchers.Default) {
                     val imageDecoded = Base64.decode(photo, Base64.DEFAULT)
@@ -225,7 +231,10 @@ class Alert : AppCompatActivity() {
                 AnimatedVisibility(
                     visible = !alertModel.silenced, enter = fadeIn(), exit = fadeOut()
                 ) {
-                    TextButton(onClick = { alertModel.silence() }) {
+                    TextButton(onClick = {
+                        alertModel.ok()
+                        alertModel.clearNotification()
+                    }) {
                         Text(text = getString(R.string.silence))
                     }
                 }
@@ -327,6 +336,7 @@ class Alert : AppCompatActivity() {
                         ) - duration.nano / 1e6.toLong()
                     )
                 }
+
                 duration.toMinutes() < 60 -> {
                     return Pair(
                         getString(R.string.minutes_ago, duration.toMinutes()),
@@ -335,6 +345,7 @@ class Alert : AppCompatActivity() {
                         ) else duration.seconds % 60
                     )
                 }
+
                 since.toInstant().truncatedTo(ChronoUnit.DAYS) == now.truncatedTo(
                     ChronoUnit.DAYS
                 ) -> {
@@ -349,6 +360,7 @@ class Alert : AppCompatActivity() {
                         ).toMillis()
                     ) // This returns the amount of time (in milliseconds) until tomorrow
                 }
+
                 else -> {
                     return Pair(
                         getString(

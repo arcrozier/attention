@@ -55,7 +55,7 @@ class AlertViewModel(
     private val fromUsername = intent.getStringExtra(AlertHandler.REMOTE_FROM_USERNAME) ?: ""
     private var ringerMode: Int? = null
 
-    var sender: Friend? by mutableStateOf(null)
+    var sender: Friend by mutableStateOf(Friend(fromUsername, ""))
 
     init {
         viewModelScope.launch {
@@ -118,8 +118,8 @@ class AlertViewModel(
                 val ring = preferencesRepository.getValue(
                     stringSetPreferencesKey(
                         context.getString(
-                                R.string.ring_preference_key
-                            )
+                            R.string.ring_preference_key
+                        )
                     ), HashSet()
                 )
 
@@ -244,12 +244,7 @@ class AlertViewModel(
     override fun onCleared() {
         super.onCleared()
         val context = getApplication<Application>()
-        if (id != NO_ID) {
-            val notificationManager = context.getSystemService(
-                AppCompatActivity.NOTIFICATION_SERVICE
-            ) as NotificationManager
-            notificationManager.cancel(id)
-        }
+        clearNotification()
         if (isFinishing) return  // prevent this notification from being shown when the user clicks "ok"
         val intent = Intent(context, Alert::class.java)
         intent.putExtra("alert_message", message)
@@ -278,6 +273,15 @@ class AlertViewModel(
         }
         notificationManagerCompat.notify(System.currentTimeMillis().toInt(), builder.build())
 
+    }
+
+    fun clearNotification() {
+        if (id != NO_ID) {
+            val notificationManager = getApplication<Application>().getSystemService(
+                AppCompatActivity.NOTIFICATION_SERVICE
+            ) as NotificationManager
+            notificationManager.cancel(id)
+        }
     }
 
     companion object {

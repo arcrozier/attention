@@ -24,6 +24,7 @@ import androidx.core.graphics.drawable.IconCompat
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.android.build.gradle.internal.utils.toImmutableSet
+import com.aracroproducts.attentionv2.Alert.Companion.EXTRA_ALERT_ID
 import com.aracroproducts.attentionv2.AlertViewModel.Companion.NO_ID
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
@@ -207,11 +208,11 @@ open class AlertHandler : FirebaseMessagingService() {
                         username = messageData["username_to"], alertId = messageData["alert_id"]
                     )
 
-                    if (AttentionApplication.shownAlertID == messageData["alert_id"]) {
-                        (application as? AttentionApplication)?.activity?.finish() ?: Log.e(
-                            TAG, "Couldn't finish application"
-                        )
-                    }
+                    sendBroadcast(Intent().apply {
+                        setAction(getString(R.string.dismiss_action))
+                        putExtra(EXTRA_ALERT_ID, messageData["alert_id"])
+                        setPackage(this@AlertHandler.packageName)
+                    })
                 }
                 // TODO friend request
                 else -> {
@@ -260,115 +261,16 @@ open class AlertHandler : FirebaseMessagingService() {
         (application as AttentionApplication).container.applicationScope.launch(
             context = Dispatchers.Default
         ) {
-            val intent = Intent(this@AlertHandler, Alert::class.java).apply {
-                putExtra(REMOTE_MESSAGE, message)
-                putExtra(REMOTE_FROM, sender.name)
-                putExtra(SHOULD_VIBRATE, false)
-                putExtra(REMOTE_FROM_USERNAME, sender.id)
-                putExtra(ALERT_ID, alertId)
-            }
-
-            // for more on the conversation api, see
-            // https://developer.android.com/develop/ui/views/notifications/conversations#api-notifications
-            MainViewModel.pushFriendShortcut(this@AlertHandler, sender)
-
-            val icon = if (sender.photo != null) {
-                val imageDecoded = Base64.decode(sender.photo, Base64.DEFAULT)
-                val imageBitmap = BitmapFactory.decodeByteArray(imageDecoded, 0, imageDecoded.size)
-                IconCompat.createWithBitmap(imageBitmap)
-            } else {
-                null
-            }
-
-            val person =
-                Person.Builder().setName(sender.name).setKey(sender.id).setImportant(important)
-                    .setIcon(icon).build()
-
-            val messagingStyle = NotificationCompat.MessagingStyle(person).addMessage(
-                NotificationCompat.MessagingStyle.Message(
-                    message, System.currentTimeMillis(), person
-                )
+            val flags =
+                NotificationFlags.ACTION_SILENCE or (if (missed) NotificationFlags.MISSED else 0) or (if (important) NotificationFlags.IMPORTANT else 0)
+            Companion.showNotification(
+                applicationContext,
+                message,
+                sender,
+                alertId,
+                flags,
+                notificationID
             )
-
-            val pendingIntent = PendingIntent.getActivity(
-                this@AlertHandler, 0, intent, PendingIntent.FLAG_IMMUTABLE
-            )
-
-            val builder: NotificationCompat.Builder
-            if (missed) {
-                createMissedNotificationChannel(this@AlertHandler)
-                builder = NotificationCompat.Builder(this@AlertHandler, CHANNEL_ID)
-                builder.setSmallIcon(R.drawable.app_icon_foreground)
-                    .setContentTitle(getString(R.string.notification_title, sender.name))
-            } else {
-                val dismissIntent =
-                    Intent(this@AlertHandler, Alert.AlertBroadCastReceiver::class.java).apply {
-                        action = getString(R.string.dismiss_action)
-                        putExtra(ASSOCIATED_NOTIFICATION, notificationID)
-                        putExtra(Alert.EXTRA_ALERT_ID, alertId)
-                    }
-                val silenceIntent =
-                    Intent(this@AlertHandler, Alert.AlertBroadCastReceiver::class.java).apply {
-                        action = getString(R.string.silence_action)
-                        putExtra(ASSOCIATED_NOTIFICATION, notificationID)
-                        putExtra(Alert.EXTRA_ALERT_ID, alertId)
-                    }
-                val dismissPendingIntent: PendingIntent =
-                    PendingIntent.getBroadcast(
-                        this@AlertHandler, REQUEST_REPLY, dismissIntent,
-                        PendingIntent.FLAG_IMMUTABLE
-                    )
-                val silencePendingIntent = PendingIntent.getBroadcast(this@AlertHandler, REQUEST_REPLY, silenceIntent, PendingIntent.FLAG_IMMUTABLE)
-                createNotificationChannel(this@AlertHandler)
-                builder = NotificationCompat.Builder(this@AlertHandler, ALERT_CHANNEL_ID)
-                builder.setSmallIcon(R.drawable.app_icon_foreground)
-                    .setContentTitle(getString(R.string.alert_notification_title, sender.name))
-                    .addAction(
-                        R.drawable.baseline_mark_chat_read_24,
-                        getString(R.string.mark_as_read),
-                        dismissPendingIntent
-                    )
-                    .addAction(
-                        R.drawable.baseline_notifications_off_24,
-                        getString(R.string.silence),
-                        silencePendingIntent
-                    )
-            }
-
-            val remoteInput: RemoteInput = RemoteInput.Builder(SendMessageReceiver.KEY_TEXT_REPLY).run {
-                setLabel(getString(R.string.reply))
-                build()
-            }
-
-            val replyPendingIntent: PendingIntent =
-                PendingIntent.getBroadcast(
-                    applicationContext,
-                    REQUEST_REPLY,
-                    ReplyIntent(sender.id, notificationID, alertId),
-                    PendingIntent.FLAG_UPDATE_CURRENT
-                )
-            val action = NotificationCompat.Action.Builder(
-                R.drawable.baseline_reply_24,
-                getString(R.string.reply),
-                replyPendingIntent
-            ).addRemoteInput(remoteInput).extend(  // something something helps with wear OS? todo might break things though
-                NotificationCompat.Action.WearableExtender().setHintDisplayActionInline(true)
-                    .setHintLaunchesActivity(false)
-            ).build()
-            builder.setShortcutId(sender.id).setContentText(message)
-                .setCategory(Notification.CATEGORY_MESSAGE).setStyle(messagingStyle)
-                .setPriority(NotificationCompat.PRIORITY_MAX).setContentIntent(pendingIntent)
-                .setAutoCancel(true)
-                .addAction(action)
-            val notificationManagerCompat = NotificationManagerCompat.from(this@AlertHandler)
-            if (ActivityCompat.checkSelfPermission(
-                    this@AlertHandler,
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                return@launch
-            }
-            notificationManagerCompat.notify(notificationID, builder.build())
         }
         return notificationID
     }
@@ -454,122 +356,147 @@ open class AlertHandler : FirebaseMessagingService() {
          * @param flags         - Flags for the notifications {@link AlertHandler#NotificationFlags}
          * @return              - Returns the ID of the notification
          */
-        private fun showNotification(
-            applicationContext: Context, message: String, sender: Friend, alertId: String, flags: Int = NotificationFlags.ACTION_SILENCE, notificationId: Int? = null
+        fun showNotification(
+            applicationContext: Context,
+            message: String,
+            sender: Friend,
+            alertId: String,
+            flags: Int = NotificationFlags.ACTION_SILENCE,
+            notificationId: Int? = null
         ): Int {
             val notificationID = notificationId ?: System.currentTimeMillis().toInt()
             val important = flagSet(flags, NotificationFlags.IMPORTANT)
             val missed = flagSet(flags, NotificationFlags.MISSED)
             val silenceAction = flagSet(flags, NotificationFlags.ACTION_SILENCE)
             val intent = Intent(applicationContext, Alert::class.java).apply {
-                    putExtra(REMOTE_MESSAGE, message)
-                    putExtra(REMOTE_FROM, sender.name)
-                    putExtra(SHOULD_VIBRATE, false)
-                    putExtra(REMOTE_FROM_USERNAME, sender.id)
-                    putExtra(ALERT_ID, alertId)
-                }
+                putExtra(REMOTE_MESSAGE, message)
+                putExtra(REMOTE_FROM, sender.name)
+                putExtra(SHOULD_VIBRATE, false)
+                putExtra(REMOTE_FROM_USERNAME, sender.id)
+                putExtra(ALERT_ID, alertId)
+            }
 
-                // for more on the conversation api, see
-                // https://developer.android.com/develop/ui/views/notifications/conversations#api-notifications
-                MainViewModel.pushFriendShortcut(applicationContext, sender)
+            // for more on the conversation api, see
+            // https://developer.android.com/develop/ui/views/notifications/conversations#api-notifications
+            MainViewModel.pushFriendShortcut(applicationContext, sender)
 
-                val icon = if (sender.photo != null) {
-                    val imageDecoded = Base64.decode(sender.photo, Base64.DEFAULT)
-                    val imageBitmap = BitmapFactory.decodeByteArray(imageDecoded, 0, imageDecoded.size)
-                    IconCompat.createWithBitmap(imageBitmap)
-                } else {
-                    null
-                }
+            val icon = if (sender.photo != null) {
+                val imageDecoded = Base64.decode(sender.photo, Base64.DEFAULT)
+                val imageBitmap = BitmapFactory.decodeByteArray(imageDecoded, 0, imageDecoded.size)
+                IconCompat.createWithBitmap(imageBitmap)
+            } else {
+                null
+            }
 
-                val person =
-                    Person.Builder().setName(sender.name).setKey(sender.id).setImportant(important)
-                        .setIcon(icon).build()
+            val person =
+                Person.Builder().setName(sender.name).setKey(sender.id).setImportant(important)
+                    .setIcon(icon).build()
 
-                val messagingStyle = NotificationCompat.MessagingStyle(person).addMessage(
-                    NotificationCompat.MessagingStyle.Message(
-                        message, System.currentTimeMillis(), person
+            val messagingStyle = NotificationCompat.MessagingStyle(person).addMessage(
+                NotificationCompat.MessagingStyle.Message(
+                    message, System.currentTimeMillis(), person
+                )
+            )
+
+            val pendingIntent = PendingIntent.getActivity(
+                applicationContext, 0, intent, PendingIntent.FLAG_IMMUTABLE
+            )
+
+            val builder: NotificationCompat.Builder
+            if (missed) {
+                createMissedNotificationChannel(applicationContext)
+                builder = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
+                builder.setSmallIcon(R.drawable.app_icon_foreground)
+                    .setContentTitle(
+                        applicationContext.getString(
+                            R.string.notification_title,
+                            sender.name
+                        )
                     )
-                )
+            } else {
+                val dismissIntent =
+                    Intent(applicationContext, Alert.AlertBroadCastReceiver::class.java).apply {
+                        action = applicationContext.getString(R.string.dismiss_action)
+                        putExtra(ASSOCIATED_NOTIFICATION, notificationID)
+                        putExtra(Alert.EXTRA_ALERT_ID, alertId)
+                    }
+                val dismissPendingIntent: PendingIntent =
+                    PendingIntent.getBroadcast(
+                        applicationContext, REQUEST_REPLY, dismissIntent,
+                        PendingIntent.FLAG_IMMUTABLE
+                    )
+                createNotificationChannel(applicationContext)
+                builder = NotificationCompat.Builder(applicationContext, ALERT_CHANNEL_ID)
+                builder.setSmallIcon(R.drawable.app_icon_foreground)
+                    .setContentTitle(
+                        applicationContext.getString(
+                            R.string.alert_notification_title,
+                            sender.name
+                        )
+                    )
+                    .addAction(
+                        R.drawable.baseline_mark_chat_read_24,
+                        applicationContext.getString(R.string.mark_as_read),
+                        dismissPendingIntent
+                    )
 
-                val pendingIntent = PendingIntent.getActivity(
-                    applicationContext, 0, intent, PendingIntent.FLAG_IMMUTABLE
-                )
-
-                val builder: NotificationCompat.Builder
-                if (missed) {
-                    createMissedNotificationChannel(applicationContext)
-                    builder = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
-                    builder.setSmallIcon(R.drawable.app_icon_foreground)
-                        .setContentTitle(applicationContext.getString(R.string.notification_title, sender.name))
-                } else {
-                    val dismissIntent =
-                        Intent(applicationContext, Alert.AlertBroadCastReceiver::class.java).apply {
-                            action = applicationContext.getString(R.string.dismiss_action)
-                            putExtra(ASSOCIATED_NOTIFICATION, notificationID)
-                            putExtra(Alert.EXTRA_ALERT_ID, alertId)
-                        }
+                if (silenceAction) {
                     val silenceIntent =
                         Intent(applicationContext, Alert.AlertBroadCastReceiver::class.java).apply {
                             action = applicationContext.getString(R.string.silence_action)
                             putExtra(ASSOCIATED_NOTIFICATION, notificationID)
                             putExtra(Alert.EXTRA_ALERT_ID, alertId)
                         }
-                    val dismissPendingIntent: PendingIntent =
-                        PendingIntent.getBroadcast(
-                            applicationContext, REQUEST_REPLY, dismissIntent,
-                            PendingIntent.FLAG_IMMUTABLE
-                        )
-                    val silencePendingIntent = PendingIntent.getBroadcast(applicationContext, REQUEST_REPLY, silenceIntent, PendingIntent.FLAG_IMMUTABLE)
-                    createNotificationChannel(applicationContext)
-                    builder = NotificationCompat.Builder(applicationContext, ALERT_CHANNEL_ID)
-                    builder.setSmallIcon(R.drawable.app_icon_foreground)
-                        .setContentTitle(applicationContext.getString(R.string.alert_notification_title, sender.name))
-                        .addAction(
-                            R.drawable.baseline_mark_chat_read_24,
-                            applicationContext.getString(R.string.mark_as_read),
-                            dismissPendingIntent
-                        )
-                        .addAction(
-                            R.drawable.baseline_notifications_off_24,
-                            applicationContext.getString(R.string.silence),
-                            silencePendingIntent
-                        )
+                    val silencePendingIntent = PendingIntent.getBroadcast(
+                        applicationContext,
+                        REQUEST_REPLY,
+                        silenceIntent,
+                        PendingIntent.FLAG_IMMUTABLE
+                    )
+                    builder.addAction(
+                        R.drawable.baseline_notifications_off_24,
+                        applicationContext.getString(R.string.silence),
+                        silencePendingIntent
+                    )
                 }
+            }
 
-                val remoteInput: RemoteInput = RemoteInput.Builder(SendMessageReceiver.KEY_TEXT_REPLY).run {
+            val remoteInput: RemoteInput =
+                RemoteInput.Builder(SendMessageReceiver.KEY_TEXT_REPLY).run {
                     setLabel(applicationContext.getString(R.string.reply))
                     build()
                 }
 
-                val replyPendingIntent: PendingIntent =
-                    PendingIntent.getBroadcast(
-                        applicationContext,
-                        REQUEST_REPLY,
-                        ReplyIntent(sender.id, notificationID, alertId),
-                        PendingIntent.FLAG_UPDATE_CURRENT
-                    )
-                val action = NotificationCompat.Action.Builder(
-                    R.drawable.baseline_reply_24,
-                    applicationContext.getString(R.string.reply),
-                    replyPendingIntent
-                ).addRemoteInput(remoteInput).extend(  // something something helps with wear OS? todo might break things though
+            val replyPendingIntent: PendingIntent =
+                PendingIntent.getBroadcast(
+                    applicationContext,
+                    REQUEST_REPLY,
+                    ReplyIntent(sender.id, notificationID, alertId),
+                    PendingIntent.FLAG_UPDATE_CURRENT
+                )
+            val action = NotificationCompat.Action.Builder(
+                R.drawable.baseline_reply_24,
+                applicationContext.getString(R.string.reply),
+                replyPendingIntent
+            ).addRemoteInput(remoteInput)
+                .extend(  // something something helps with wear OS? todo might break things though
                     NotificationCompat.Action.WearableExtender().setHintDisplayActionInline(true)
                         .setHintLaunchesActivity(false)
                 ).build()
-                builder.setShortcutId(sender.id).setContentText(message)
-                    .setCategory(Notification.CATEGORY_MESSAGE).setStyle(messagingStyle)
-                    .setPriority(NotificationCompat.PRIORITY_MAX).setContentIntent(pendingIntent)
-                    .setAutoCancel(true)
-                    .addAction(action)
-                val notificationManagerCompat = NotificationManagerCompat.from(applicationContext)
-                if (ActivityCompat.checkSelfPermission(
-                        applicationContext,
-                        Manifest.permission.POST_NOTIFICATIONS
-                    ) != PackageManager.PERMISSION_GRANTED
-                ) {
-                    return NO_ID
-                }
-                notificationManagerCompat.notify(notificationID, builder.build())
+            builder.setShortcutId(sender.id).setContentText(message)
+                .setCategory(Notification.CATEGORY_MESSAGE).setStyle(messagingStyle)
+                .setPriority(NotificationCompat.PRIORITY_MAX).setContentIntent(pendingIntent)
+                .setAutoCancel(true)
+                .addAction(action)
+            val notificationManagerCompat = NotificationManagerCompat.from(applicationContext)
+            if (ActivityCompat.checkSelfPermission(
+                    applicationContext,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                return NO_ID
+            }
+            notificationManagerCompat.notify(notificationID, builder.build())
             return notificationID
         }
 
