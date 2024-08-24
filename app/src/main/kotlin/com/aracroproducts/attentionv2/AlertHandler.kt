@@ -31,6 +31,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import retrofit2.HttpException
 
 
 /**
@@ -60,26 +61,21 @@ open class AlertHandler : FirebaseMessagingService() {
                         MainViewModel.MY_TOKEN
                     )
                 ) ?: return@launch
-                repository.registerDevice(authToken, token, { _, response, errorBody ->
-                    if (response.isSuccessful) {
-                        Log.d(TAG, "Successfully uploaded token")
-                        MainScope().launch {
-                            preferencesRepository.setValue(
-                                booleanPreferencesKey(
-                                    MainViewModel.TOKEN_UPLOADED
-                                ), true
-                            )
-                        }
-
-                    } else {
-                        Log.e(TAG, "An error occurred when uploading token: $errorBody")
-                    }
-                }, { _, t ->
+                try {
+                    repository.registerDevice(authToken, token)
+                    preferencesRepository.setValue(
+                        booleanPreferencesKey(
+                            MainViewModel.TOKEN_UPLOADED
+                        ), true
+                    )
+                } catch (e: HttpException) {
+                    Log.e(TAG, "An error occurred when uploading token: ${e.response()?.errorBody()}")
+                } catch (e: Exception) {
                     Log.e(
                         TAG,
-                        "An error occurred when uploading token: ${t.message}"
+                        "An error occurred when uploading token: ${e.message}"
                     )
-                })
+                }
             }
         }
     }

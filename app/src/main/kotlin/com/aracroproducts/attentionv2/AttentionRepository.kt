@@ -141,7 +141,7 @@ class AttentionRepository(private val database: AttentionDB) {
         password: String? = null,
         oldPassword: String? = null,
         email: String? = null
-    ): GenericResult<Void> {
+    ): GenericResult<TokenResult> {
         return apiInterface.editUser(
             username = username,
             firstName = firstName,

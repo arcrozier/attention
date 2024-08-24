@@ -1,9 +1,8 @@
 package com.aracroproducts.attentionv2
 
-import android.Manifest
+import android.Manifest.permission.POST_NOTIFICATIONS
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -21,10 +20,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.core.app.ActivityCompat
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.Person
+import androidx.core.content.ContextCompat
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
@@ -36,7 +33,7 @@ import com.google.android.gms.tasks.Task
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.*
 import retrofit2.Call
-import retrofit2.Response
+import retrofit2.HttpException
 import java.io.File
 import java.io.IOException
 
@@ -111,7 +108,7 @@ class MainViewModel(
 
     var message by mutableStateOf("")
 
-    private var lastNameRequest: Call<GenericResult<NameResult>>? = null
+    private var lastNameRequest: Job? = null
 
     var delay = DEFAULT_DELAY
 
@@ -183,39 +180,33 @@ class MainViewModel(
             val token = preferencesRepository.getToken() ?: return@launch
             val friends: List<CachedFriend> = attentionRepository.getCachedFriendsSnapshot()
             for (friend in friends) {
-                attentionRepository.getName(token,
-                    friend.username,
-                    responseListener = { _, response, _ ->
+                backgroundScope.launch {
+                    try {
+                        val nameResponse = attentionRepository.getName(
+                            token,
+                            friend.username
+                        )
                         connected = true
-                        if (response.isSuccessful) {
-                            response.body()?.data?.name?.let {
-                                attentionRepository.addFriend(friend.username,
-                                    it,
-                                    token,
-                                    responseListener = { _, response, _ ->
-                                        if (response.isSuccessful || response.code() == 400) backgroundScope.launch {
-                                            attentionRepository.deleteCachedFriend(
-                                                friend.username
-                                            )
-                                        }
-                                    })
-                            }
-                        } else if (response.code() == 400) {
-                            backgroundScope.launch {
-                                attentionRepository.deleteCachedFriend(
-                                    friend.username
-                                )
-                            }
+                        attentionRepository.addFriend(
+                            friend.username,
+                            nameResponse.data.name,
+                            token
+                        )
+                        attentionRepository.deleteCachedFriend(friend.username)
+                    } catch (e: HttpException) {
+                        if (e.code() == 400) {
+                            attentionRepository.deleteCachedFriend(friend.username)
                         }
-                    })
+                    } catch (_: Exception) {
+
+                    }
+                }
             }
         }
     }
 
     fun onAddFriend(
-        friend: Friend, responseListener: ((
-            Call<GenericResult<Void>>, Response<GenericResult<Void>>
-        ) -> Unit)? = null, launchLogin: () -> Unit
+        friend: Friend, onSuccess: (() -> Unit)? = null, launchLogin: () -> Unit
     ) {
         viewModelScope.launch {
             val token = preferencesRepository.getToken()
@@ -227,34 +218,34 @@ class MainViewModel(
                 return@launch
             }
             addFriendException = false
-            attentionRepository.addFriend(
-                friend.id,
-                friend.name,
-                token,
-                responseListener = { call, response, _ ->
-                    setConnectStatus(response.code())
-                    when (response.code()) {
-                        200 -> {
-                            responseListener?.invoke(call, response)
-                        }
-
-                        400 -> {
-                            usernameCaption = application.getString(
-                                R.string.add_friend_failed
-                            )
-                        }
-
-                        403 -> {
-                            backgroundScope.launch {
-                                attentionRepository.cacheFriend(friend.id)
-                            }
-                            launchLogin()
-                        }
+            try {
+                attentionRepository.addFriend(
+                    friend.id,
+                    friend.name,
+                    token
+                )
+                onSuccess?.invoke()
+                setConnectStatus(200)
+            } catch (e: HttpException) {
+                when (e.response()?.code()) {
+                    400 -> {
+                        usernameCaption = application.getString(
+                            R.string.add_friend_failed
+                        )
                     }
-                }) { _, _ ->
-                backgroundScope.launch {
-                    attentionRepository.cacheFriend(friend.id)
+
+                    403 -> {
+                        backgroundScope.launch {
+                            attentionRepository.cacheFriend(friend.id)
+                        }
+                        launchLogin()
+                    }
+                    else -> {
+                         setConnectStatus(null)
+                    }
                 }
+            } catch (_: Exception) {
+                attentionRepository.cacheFriend(friend.id)
                 setConnectStatus(null)
             }
         }
@@ -271,7 +262,10 @@ class MainViewModel(
         responseListener: ((name: String) -> Unit)? = null,
         launchLogin: () -> Unit
     ) {
-        viewModelScope.launch {
+        synchronized(this) {
+        val temp = viewModelScope.launch {
+            lastNameRequest?.cancelAndJoin()
+            lastNameRequest = // todo
             val token = preferencesRepository.getToken()
             if (token == null) {
                 if (!addFriendException) launchLogin()
@@ -282,40 +276,58 @@ class MainViewModel(
                 return@launch
             }
 
-            lastNameRequest?.cancel()
             friendNameLoading = true
-            lastNameRequest =
-                attentionRepository.getName(token, username, responseListener = { _, response, _ ->
-                    setConnectStatus(response.code())
-                    lastNameRequest = null
-                    newFriendName = response.body()?.data?.name ?: ""
-                    friendNameLoading = false
-                    when (response.code()) {
-                        200 -> {
-                            usernameCaption = ""
-                            responseListener?.invoke(newFriendName)
-                        }
+            try {
+                val response =
+                    attentionRepository.getName(
+                        token,
+                        username)
+                usernameCaption = ""
+                setConnectStatus(200)
+                newFriendName = response.data.name
+                responseListener?.invoke(newFriendName) // todo see if we can fold this in
+                        responseListener = { _, response, _ ->
+                            setConnectStatus(response.code())
+                            lastNameRequest = null
+                            newFriendName = response.body()?.data?.name ?: ""
+                            friendNameLoading = false
+                            when (response.code()) {
+                                200 -> {
 
-                        400 -> {
-                            usernameCaption = application.getString(
-                                R.string.nonexistent_username
-                            )
-                        }
+                                }
 
-                        403 -> {
-                            if (!addFriendException) launchLogin()
-                            else responseListener?.invoke(
-                                username
-                            )
-                        }
-                    }
-                }, errorListener = { _, t ->
-                    if (t is IOException) return@getName
-                    lastNameRequest = null
-                    friendNameLoading = false
-                    newFriendName = ""
-                    setConnectStatus(null)
-                })
+                                400 -> {
+                                    usernameCaption = application.getString(
+                                        R.string.nonexistent_username
+                                    )
+                                }
+
+                                403 -> {
+                                    if (!addFriendException) launchLogin()
+                                    else responseListener?.invoke(
+                                        username
+                                    )
+                                }
+                            }
+                        },
+                        errorListener = { _, t ->
+
+                        })
+            } catch (e: HttpException) {
+
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                if (e is IOException) return@launch
+                lastNameRequest = null
+                friendNameLoading = false
+                newFriendName = ""
+                setConnectStatus(null)
+            } finally {
+                lastNameRequest = null
+                friendNameLoading = false
+            }
+        }
         }
 
     }

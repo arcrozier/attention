@@ -158,7 +158,7 @@ interface APIV2 {
         @Field("password") password: String?,
         @Field("old_password") oldPassword: String?,
         @Header("Authorization") token: String
-    ): GenericResult<Void>
+    ): GenericResult<TokenResult>
 
     @Multipart
     @PUT("photo/")

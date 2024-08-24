@@ -288,20 +288,22 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        handleIntent(intent)
-    }
-
-    private fun checkOverlayDisplay() {
-        friendModel.checkOverlayPermission()
+    private fun reload(token: String? = null) { // token is auth token
+        friendModel.getUserInfo(onAuthError = {
+            if (!friendModel.addFriendException) {
+                launchLogin()
+            }
+        }, onSuccess = {
+            getNotificationPermission()
+            friendModel.registerDevice()
+        }, token = token)
     }
 
     private fun getNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             when {
                 ContextCompat.checkSelfPermission(
-                    this, POST_NOTIFICATIONS
+                    application, POST_NOTIFICATIONS
                 ) == PackageManager.PERMISSION_GRANTED -> { // You can use the API that requires the permission.
                 }
 
@@ -324,16 +326,15 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun reload(token: String? = null) { // token is auth token
-        friendModel.getUserInfo(onAuthError = {
-            if (!friendModel.addFriendException) {
-                launchLogin()
-            }
-        }, onSuccess = {
-            getNotificationPermission()
-            friendModel.registerDevice()
-        }, token = token)
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIntent(intent)
     }
+
+    private fun checkOverlayDisplay() {
+        friendModel.checkOverlayPermission()
+    }
+
 
     @ExperimentalFoundationApi
     @Composable
@@ -765,13 +766,11 @@ class MainActivity : AppCompatActivity() {
                 friendModel.onAddFriend(
                     Friend(
                         username, it
-                    ), responseListener = { _, response ->
-                        if (response.isSuccessful) {
-                            friendModel.popDialogState()
+                    ), onSuccess = {
+                        friendModel.popDialogState()
                             friendModel.newFriendName = ""
                             friendModel.addFriendUsername = ""
                             reload()
-                        }
                     }, launchLogin = this::launchLogin
                 )
             }, launchLogin = ::launchLogin)
