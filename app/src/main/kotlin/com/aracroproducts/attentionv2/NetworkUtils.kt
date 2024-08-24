@@ -81,76 +81,76 @@ interface APIV2 {
 
     @FormUrlEncoded
     @POST("google_auth/")
-    fun googleSignIn(
+    suspend fun googleSignIn(
         @Field("id_token") userId: String,
         @Field("username") username: String?,
         @Field("tos_agree") agree: String?,
-    ): Call<TokenResult>
+    ): TokenResult
 
     @FormUrlEncoded
     @POST("api_token_auth/")
-    fun getToken(
+    suspend fun getToken(
         @Field("username") username: String, @Field("password") password: String
-    ): Call<TokenResult>
+    ): TokenResult
 
     @FormUrlEncoded
     @POST("send_alert/")
-    fun sendAlert(
+    suspend fun sendAlert(
         @Field("to") to: String,
         @Field("message") message: String?,
         @Header("Authorization") token: String
-    ): Call<GenericResult<AlertResult>>
+    ): GenericResult<AlertResult>
 
     @FormUrlEncoded
     @POST("register_device/")
-    fun registerDevice(
+    suspend fun registerDevice(
         @Field("fcm_token") fcmToken: String, @Header("Authorization") token: String
-    ): Call<GenericResult<Void>>
+    ): GenericResult<Void>
 
     @FormUrlEncoded
     @POST("unregister_device/")
-    fun unregisterDevice(
+    suspend fun unregisterDevice(
         @Field("fcm_token") fcmToken: String, @Header("Authorization") token: String
-    ): Call<GenericResult<Void>>
+    ): GenericResult<Void>
 
     @FormUrlEncoded
     @POST("register_user/")
-    fun registerUser(
+    suspend fun registerUser(
         @Field("first_name") firstName: String,
         @Field("last_name") lastName: String,
         @Field("username") username: String,
         @Field("password") password: String,
         @Field("email") email: String?,
         @Field("tos_agree") tosAgree: String = "yes"
-    ): Call<GenericResult<Void>>
+    ): GenericResult<Void>
 
     @FormUrlEncoded
     @POST("add_friend/")
-    fun addFriend(
+    suspend fun addFriend(
         @Field("username") username: String, @Header("Authorization") token: String
-    ): Call<GenericResult<Void>>
+    ): GenericResult<Void>
 
     @FormUrlEncoded
     @PUT("edit_friend_name/")
-    fun editFriendName(
+    suspend fun editFriendName(
         @Field("username") username: String,
         @Field("new_name") newName: String,
         @Header("Authorization") token: String
-    ): Call<GenericResult<Void>>
+    ): GenericResult<Void>
 
     @GET("get_name/")
-    fun getName(
+    suspend fun getName(
         @Query("username") username: String, @Header("Authorization") token: String
-    ): Call<GenericResult<NameResult>>
+    ): GenericResult<NameResult>
 
     @DELETE("delete_friend/{id}/")
-    fun deleteFriend(
+    suspend fun deleteFriend(
         @Path("id") friend: String, @Header("Authorization") token: String
-    ): Call<GenericResult<Void>>
+    ): GenericResult<Void>
 
     @FormUrlEncoded
     @PUT("edit/")
-    fun editUser(
+    suspend fun editUser(
         @Field("username") username: String?,
         @Field("first_name") firstName: String?,
         @Field("last_name") lastName: String?,
@@ -158,41 +158,41 @@ interface APIV2 {
         @Field("password") password: String?,
         @Field("old_password") oldPassword: String?,
         @Header("Authorization") token: String
-    ): Call<GenericResult<Void>>
+    ): GenericResult<Void>
 
     @Multipart
     @PUT("photo/")
-    fun editPhoto(
+    suspend fun editPhoto(
         @Part photo: MultipartBody.Part?, @Header("Authorization") token: String
-    ): Call<GenericResult<Void>>
+    ): GenericResult<Void>
 
     @GET("get_info/")
-    fun getUserInfo(@Header("Authorization") token: String): Call<GenericResult<UserDataResult>>
+    suspend fun getUserInfo(@Header("Authorization") token: String): GenericResult<UserDataResult>
 
     @FormUrlEncoded
     @POST("alert_read/")
-    fun alertRead(
+    suspend fun alertRead(
         @Field("alert_id") alertId: String,
         @Field("from") from: String,
         @Field("fcm_token") fcmToken: String,
         @Header("Authorization") token: String
-    ): Call<GenericResult<Void>>
+    ): GenericResult<Void>
 
     @FormUrlEncoded
     @POST("alert_delivered/")
-    fun alertDelivered(
+    suspend fun alertDelivered(
         @Field("alert_id") alertId: String,
         @Field("from") from: String,
         @Header("Authorization") token: String
-    ): Call<GenericResult<Void>>
+    ): GenericResult<Void>
 
     @FormUrlEncoded
     @POST("link_google_account/")
-    fun linkAccount(
+    suspend fun linkAccount(
         @Field("password") password: String,
-        @Field("id_token") id_token: String,
+        @Field("id_token") idToken: String,
         @Header("Authorization") token: String
-    ): Call<GenericResult<Void>>
+    ): GenericResult<Void>
 }
 
 class ProgressRequestBody(
