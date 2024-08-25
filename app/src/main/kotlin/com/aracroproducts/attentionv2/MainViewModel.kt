@@ -1,13 +1,16 @@
 package com.aracroproducts.attentionv2
 
-import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.graphics.*
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
+import android.graphics.Rect
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -21,22 +24,30 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.core.app.ActivityCompat
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.Person
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
-import androidx.datastore.preferences.core.*
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aracroproducts.attentionv2.SettingsActivity.Companion.DEFAULT_DELAY
 import com.google.android.gms.tasks.Task
 import com.google.firebase.messaging.FirebaseMessaging
-import kotlinx.coroutines.*
-import retrofit2.Call
-import retrofit2.Response
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import retrofit2.HttpException
 import java.io.File
 import java.io.IOException
 
@@ -111,7 +122,7 @@ class MainViewModel(
 
     var message by mutableStateOf("")
 
-    private var lastNameRequest: Call<GenericResult<NameResult>>? = null
+    private var lastNameRequest: Job? = null
 
     var delay = DEFAULT_DELAY
 
@@ -183,39 +194,33 @@ class MainViewModel(
             val token = preferencesRepository.getToken() ?: return@launch
             val friends: List<CachedFriend> = attentionRepository.getCachedFriendsSnapshot()
             for (friend in friends) {
-                attentionRepository.getName(token,
-                    friend.username,
-                    responseListener = { _, response, _ ->
+                backgroundScope.launch {
+                    try {
+                        val nameResponse = attentionRepository.getName(
+                            token,
+                            friend.username
+                        )
                         connected = true
-                        if (response.isSuccessful) {
-                            response.body()?.data?.name?.let {
-                                attentionRepository.addFriend(friend.username,
-                                    it,
-                                    token,
-                                    responseListener = { _, response, _ ->
-                                        if (response.isSuccessful || response.code() == 400) backgroundScope.launch {
-                                            attentionRepository.deleteCachedFriend(
-                                                friend.username
-                                            )
-                                        }
-                                    })
-                            }
-                        } else if (response.code() == 400) {
-                            backgroundScope.launch {
-                                attentionRepository.deleteCachedFriend(
-                                    friend.username
-                                )
-                            }
+                        attentionRepository.addFriend(
+                            friend.username,
+                            nameResponse.data.name,
+                            token
+                        )
+                        attentionRepository.deleteCachedFriend(friend.username)
+                    } catch (e: HttpException) {
+                        if (e.code() == 400) {
+                            attentionRepository.deleteCachedFriend(friend.username)
                         }
-                    })
+                    } catch (_: Exception) {
+
+                    }
+                }
             }
         }
     }
 
     fun onAddFriend(
-        friend: Friend, responseListener: ((
-            Call<GenericResult<Void>>, Response<GenericResult<Void>>
-        ) -> Unit)? = null, launchLogin: () -> Unit
+        friend: Friend, onSuccess: (() -> Unit)? = null, launchLogin: () -> Unit
     ) {
         viewModelScope.launch {
             val token = preferencesRepository.getToken()
@@ -227,34 +232,35 @@ class MainViewModel(
                 return@launch
             }
             addFriendException = false
-            attentionRepository.addFriend(
-                friend.id,
-                friend.name,
-                token,
-                responseListener = { call, response, _ ->
-                    setConnectStatus(response.code())
-                    when (response.code()) {
-                        200 -> {
-                            responseListener?.invoke(call, response)
-                        }
-
-                        400 -> {
-                            usernameCaption = application.getString(
-                                R.string.add_friend_failed
-                            )
-                        }
-
-                        403 -> {
-                            backgroundScope.launch {
-                                attentionRepository.cacheFriend(friend.id)
-                            }
-                            launchLogin()
-                        }
+            try {
+                attentionRepository.addFriend(
+                    friend.id,
+                    friend.name,
+                    token
+                )
+                onSuccess?.invoke()
+                setConnectStatus(200)
+            } catch (e: HttpException) {
+                when (e.response()?.code()) {
+                    400 -> {
+                        usernameCaption = application.getString(
+                            R.string.add_friend_failed
+                        )
                     }
-                }) { _, _ ->
-                backgroundScope.launch {
-                    attentionRepository.cacheFriend(friend.id)
+
+                    403 -> {
+                        backgroundScope.launch {
+                            attentionRepository.cacheFriend(friend.id)
+                        }
+                        launchLogin()
+                    }
+
+                    else -> {
+                        setConnectStatus(null)
+                    }
                 }
+            } catch (_: Exception) {
+                attentionRepository.cacheFriend(friend.id)
                 setConnectStatus(null)
             }
         }
@@ -272,6 +278,7 @@ class MainViewModel(
         launchLogin: () -> Unit
     ) {
         viewModelScope.launch {
+            lastNameRequest?.cancelAndJoin()
             val token = preferencesRepository.getToken()
             if (token == null) {
                 if (!addFriendException) launchLogin()
@@ -282,20 +289,22 @@ class MainViewModel(
                 return@launch
             }
 
-            lastNameRequest?.cancel()
             friendNameLoading = true
-            lastNameRequest =
-                attentionRepository.getName(token, username, responseListener = { _, response, _ ->
-                    setConnectStatus(response.code())
+            lastNameRequest = viewModelScope.launch {
+                try {
+                    val response =
+                        attentionRepository.getName(
+                            token,
+                            username
+                        )
+                    usernameCaption = ""
+                    setConnectStatus(200)
+                    newFriendName = response.data.name
+                    responseListener?.invoke(newFriendName)
+                } catch (e: HttpException) {
                     lastNameRequest = null
-                    newFriendName = response.body()?.data?.name ?: ""
                     friendNameLoading = false
-                    when (response.code()) {
-                        200 -> {
-                            usernameCaption = ""
-                            responseListener?.invoke(newFriendName)
-                        }
-
+                    when (e.response()?.code()) {
                         400 -> {
                             usernameCaption = application.getString(
                                 R.string.nonexistent_username
@@ -309,14 +318,19 @@ class MainViewModel(
                             )
                         }
                     }
-                }, errorListener = { _, t ->
-                    if (t is IOException) return@getName
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
                     lastNameRequest = null
                     friendNameLoading = false
-                    newFriendName = ""
-                    setConnectStatus(null)
-                })
+                    if (e !is IOException) {
+                        newFriendName = ""
+                        setConnectStatus(null)
+                    }
+                }
+            }
         }
+
 
     }
 
@@ -372,27 +386,29 @@ class MainViewModel(
                 launchLogin()
                 return@launch
             }
-            attentionRepository.edit(Friend(id = id, name = name),
-                token,
-                responseListener = { _, response, _ ->
-                    val context = application
-                    setConnectStatus(response.code())
-                    when (response.code()) {
-                        400 -> {
-                            showSnackBar(context.getString(R.string.edit_friend_name_failed))
-                        }
+            try {
+                attentionRepository.edit(
+                    Friend(id = id, name = name),
+                    token
+                )
+                setConnectStatus(200)
 
-                        403 -> {
-                            val loginIntent =
-                                Intent(context, LoginActivity::class.java)
-                            context.startActivity(loginIntent)
-                        }
+            } catch (e: HttpException) {
+                setConnectStatus(e.response()?.code())
+                when (e.response()?.code()) {
+                    400 -> {
+                        showSnackBar(application.getString(R.string.edit_friend_name_failed))
                     }
 
-                },
-                errorListener = { _, _ ->
-                    setConnectStatus(null)
-                })
+                    403 -> {
+                        val loginIntent =
+                            Intent(application, LoginActivity::class.java)
+                        application.startActivity(loginIntent)
+                    }
+                }
+            } catch (e: Exception) {
+                setConnectStatus(null)
+            }
         }
 
     }
@@ -479,84 +495,71 @@ class MainViewModel(
                 Log.d(MainViewModel::class.java.name, "Token null; logging out")
                 onAuthError()
             } else if (innerToken != null) {
-                attentionRepository.downloadUserInfo(innerToken, { _, response, _ ->
-                    setConnectStatus(response.code())
-                    when (response.code()) {
-                        200 -> {
-                            Log.d(sTAG, response.body().toString())
-                            val data = response.body()?.data
-                            if (data == null) {
-                                Log.e(sTAG, "Got user info but body was null!")
-                                return@downloadUserInfo
-                            }
-                            onSuccess?.invoke()
-                            viewModelScope.launch {
-                                preferencesRepository.bulkEdit { settings ->
-                                    settings[stringPreferencesKey(
-                                        context.getString(
-                                            R.string.username_key
-                                        )
-                                    )] = data.username
-                                    settings[stringPreferencesKey(
-                                        context.getString(
-                                            R.string.first_name_key
-                                        )
-                                    )] = data.firstName
-                                    settings[stringPreferencesKey(
-                                        context.getString(
-                                            R.string.last_name_key
-                                        )
-                                    )] = data.lastName
-                                    settings[stringPreferencesKey(
-                                        context.getString(
-                                            R.string.email_key
-                                        )
-                                    )] = data.email
-                                    settings[booleanPreferencesKey(
-                                        context.getString(
-                                            R.string.password_key
-                                        )
-                                    )] = data.password
-                                }
-                            }
-                            viewModelScope.launch {
-                                attentionRepository.updateUserInfo(
-                                    data.friends
+                try {
+                    val data = attentionRepository.downloadUserInfo(innerToken).data
+                    setConnectStatus(200)
+                    onSuccess?.invoke()
+                    preferencesRepository.bulkEdit { settings ->
+                        settings[stringPreferencesKey(
+                            context.getString(
+                                R.string.username_key
+                            )
+                        )] = data.username
+                        settings[stringPreferencesKey(
+                            context.getString(
+                                R.string.first_name_key
+                            )
+                        )] = data.firstName
+                        settings[stringPreferencesKey(
+                            context.getString(
+                                R.string.last_name_key
+                            )
+                        )] = data.lastName
+                        settings[stringPreferencesKey(
+                            context.getString(
+                                R.string.email_key
+                            )
+                        )] = data.email
+                        settings[booleanPreferencesKey(
+                            context.getString(
+                                R.string.password_key
+                            )
+                        )] = data.password
+                    }
+                    attentionRepository.updateUserInfo(
+                        data.friends
+                    )
+                    viewModelScope.launch {
+                        withContext(
+                            Dispatchers.IO
+                        ) {
+                            val file = File(
+                                context.filesDir, PFP_FILENAME
+                            ).apply { createNewFile() }
+
+                            data.photo?.let {
+                                file.writeBytes(
+                                    Base64.decode(
+                                        data.photo, Base64.DEFAULT
+                                    )
                                 )
-                            }
-                            viewModelScope.launch {
-                                withContext(
-                                    Dispatchers.IO
-                                ) {
-                                    val file = File(
-                                        context.filesDir, PFP_FILENAME
-                                    ).apply { createNewFile() }
-
-                                    data.photo?.let {
-                                        file.writeBytes(
-                                            Base64.decode(
-                                                data.photo, Base64.DEFAULT
-                                            )
-                                        )
-                                    } ?: file.writeBytes(ByteArray(0))
-                                }
-                            }
-                            uploadCachedFriends()
+                            } ?: file.writeBytes(ByteArray(0))
                         }
-
+                    }
+                    uploadCachedFriends()
+                } catch (e: HttpException) {
+                    val response = e.response()
+                    setConnectStatus(response?.code())
+                    when (response?.code()) {
                         403 -> {
                             onAuthError()
                         }
                     }
-                    viewModelScope.launch {
-                        // todo this is janky as hell
-                        delay(100)
-                        isRefreshing = false
-                    }
-                }, { _, _ ->
-                    isRefreshing = false
+                } catch (e: Exception) {
                     setConnectStatus(null)
-                })
+                } finally {
+                    isRefreshing = false
+                }
             } else {
                 isRefreshing = false
             }
@@ -577,25 +580,23 @@ class MainViewModel(
             ) // Do we need to upload a token (note we don't want to upload if we don't have a token yet)
 
             if (fcmToken != null && !fcmTokenUploaded && token != null) {
-                attentionRepository.registerDevice(token, fcmToken, { _, response, errorBody ->
-                    setConnectStatus(response.code())
-                    when (response.code()) {
-                        200 -> {
-                            Log.d(sTAG, "Successfully uploaded token")
-                            viewModelScope.launch {
-                                preferencesRepository.setValue(
-                                    booleanPreferencesKey(TOKEN_UPLOADED), true
-                                )
-                            }
-                        }
-
-                        else -> {
-                            Log.e(sTAG, "Error uploading token: $errorBody")
-                        }
+                try {
+                    attentionRepository.registerDevice(token, fcmToken)
+                    setConnectStatus(200)
+                    Log.d(sTAG, "Successfully uploaded token")
+                    viewModelScope.launch {
+                        preferencesRepository.setValue(
+                            booleanPreferencesKey(TOKEN_UPLOADED), true
+                        )
                     }
-                }, { _, _ ->
+                } catch (e: HttpException) {
+                    val response = e.response()
+                    val errorBody = response?.errorBody()
+                    setConnectStatus(response?.code())
+                    Log.e(sTAG, "Error uploading token: $errorBody")
+                } catch (e: Exception) {
                     setConnectStatus(null)
-                })
+                }
             } else if (fcmToken == null) { // We don't have a token, so let's get one
                 getToken(context)
             }
@@ -669,33 +670,30 @@ class MainViewModel(
                 launchLogin(getSendIntent(context, message))
                 return@launch
             }
-            backgroundScope.launch {
+            backgroundScope.launch background@{
                 pushFriendShortcut(context, to)
-                attentionRepository.sendMessage(message, token = token, { _, response, errorBody ->
-                    setConnectStatus(response.code())
-                    when (response.code()) {
-                        200 -> {
-                            val responseBody = response.body()
-                            if (responseBody == null) {
-                                Log.e(
-                                    sTAG, "Got response but body was null"
-                                )
-                                return@sendMessage
-                            }
-                            showSnackBar(
-                                application.getString(
-                                    R.string.alert_sent
-                                )
-                            )
-                            onSuccess?.invoke()
-                        }
-
+                try {
+                    attentionRepository.sendMessage(
+                        message,
+                        token = token
+                    )
+                    showSnackBar(
+                        application.getString(
+                            R.string.alert_sent
+                        )
+                    )
+                    onSuccess?.invoke()
+                } catch (e: HttpException) {
+                    val response = e.response()
+                    val errorBody = e.response()?.errorBody()?.string()
+                    setConnectStatus(response?.code())
+                    when (response?.code()) {
                         400 -> {
                             if (errorBody == null) {
                                 Log.e(
                                     sTAG, "Got response but body was null"
                                 )
-                                return@sendMessage
+                                return@background
                             }
                             when {
                                 errorBody.contains(
@@ -724,7 +722,7 @@ class MainViewModel(
                                 Log.e(
                                     sTAG, "Got response but body was null"
                                 )
-                                return@sendMessage
+                                return@background
                             }
                             when {
                                 errorBody.contains(
@@ -761,7 +759,7 @@ class MainViewModel(
                             onError?.invoke()
                         }
                     }
-                }, { _, _ ->
+                } catch (e: Exception) {
                     notifyUser(
                         context.getString(
                             R.string.alert_failed_no_connection,
@@ -770,7 +768,7 @@ class MainViewModel(
                     )
                     onError?.invoke()
                     setConnectStatus(null)
-                })
+                }
             }
         }
 
@@ -801,24 +799,25 @@ class MainViewModel(
                         settings[booleanPreferencesKey(TOKEN_UPLOADED)] = false
                     }
                     if (authToken != null) {
-                        attentionRepository.registerDevice(authToken, token, { _, response, _ ->
-                            setConnectStatus(response.code())
-                            when (response.code()) {
-                                200 -> {
-                                    viewModelScope.launch {
-                                        preferencesRepository.setValue(
-                                            booleanPreferencesKey(TOKEN_UPLOADED), true
-                                        )
-                                    }
-
-                                    Toast.makeText(
-                                        context,
-                                        context.getString(R.string.user_registered),
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
+                        try {
+                            attentionRepository.registerDevice(authToken, token)
+                            setConnectStatus(200)
+                            viewModelScope.launch {
+                                preferencesRepository.setValue(
+                                    booleanPreferencesKey(TOKEN_UPLOADED), true
+                                )
                             }
-                        })
+
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.user_registered),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        } catch (e: HttpException) {
+                            setConnectStatus(e.response()?.code())
+                        } catch (_: Exception) {
+
+                        }
                     }
                 }
 
