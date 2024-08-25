@@ -1,12 +1,16 @@
 package com.aracroproducts.attentionv2
 
-import android.Manifest.permission.POST_NOTIFICATIONS
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.graphics.*
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
+import android.graphics.Rect
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -21,18 +25,28 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.app.Person
-import androidx.core.content.ContextCompat
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
-import androidx.datastore.preferences.core.*
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aracroproducts.attentionv2.SettingsActivity.Companion.DEFAULT_DELAY
 import com.google.android.gms.tasks.Task
 import com.google.firebase.messaging.FirebaseMessaging
-import kotlinx.coroutines.*
-import retrofit2.Call
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import retrofit2.HttpException
 import java.io.File
 import java.io.IOException
@@ -566,25 +580,23 @@ class MainViewModel(
             ) // Do we need to upload a token (note we don't want to upload if we don't have a token yet)
 
             if (fcmToken != null && !fcmTokenUploaded && token != null) {
-                attentionRepository.registerDevice(token, fcmToken, { _, response, errorBody ->
-                    setConnectStatus(response.code())
-                    when (response.code()) {
-                        200 -> {
-                            Log.d(sTAG, "Successfully uploaded token")
-                            viewModelScope.launch {
-                                preferencesRepository.setValue(
-                                    booleanPreferencesKey(TOKEN_UPLOADED), true
-                                )
-                            }
-                        }
-
-                        else -> {
-                            Log.e(sTAG, "Error uploading token: $errorBody")
-                        }
+                try {
+                    attentionRepository.registerDevice(token, fcmToken)
+                    setConnectStatus(200)
+                    Log.d(sTAG, "Successfully uploaded token")
+                    viewModelScope.launch {
+                        preferencesRepository.setValue(
+                            booleanPreferencesKey(TOKEN_UPLOADED), true
+                        )
                     }
-                }, { _, _ ->
+                } catch (e: HttpException) {
+                    val response = e.response()
+                    val errorBody = response?.errorBody()
+                    setConnectStatus(response?.code())
+                    Log.e(sTAG, "Error uploading token: $errorBody")
+                } catch (e: Exception) {
                     setConnectStatus(null)
-                })
+                }
             } else if (fcmToken == null) { // We don't have a token, so let's get one
                 getToken(context)
             }
@@ -786,24 +798,25 @@ class MainViewModel(
                         settings[booleanPreferencesKey(TOKEN_UPLOADED)] = false
                     }
                     if (authToken != null) {
-                        attentionRepository.registerDevice(authToken, token, { _, response, _ ->
-                            setConnectStatus(response.code())
-                            when (response.code()) {
-                                200 -> {
-                                    viewModelScope.launch {
-                                        preferencesRepository.setValue(
-                                            booleanPreferencesKey(TOKEN_UPLOADED), true
-                                        )
-                                    }
-
-                                    Toast.makeText(
-                                        context,
-                                        context.getString(R.string.user_registered),
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
+                        try {
+                            attentionRepository.registerDevice(authToken, token)
+                            setConnectStatus(200)
+                            viewModelScope.launch {
+                                preferencesRepository.setValue(
+                                    booleanPreferencesKey(TOKEN_UPLOADED), true
+                                )
                             }
-                        })
+
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.user_registered),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        } catch (e: HttpException) {
+                            setConnectStatus(e.response()?.code())
+                        } catch (_: Exception) {
+
+                        }
                     }
                 }
 
