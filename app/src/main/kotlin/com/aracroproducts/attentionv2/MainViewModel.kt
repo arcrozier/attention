@@ -675,7 +675,8 @@ class MainViewModel(
                 try {
                     attentionRepository.sendMessage(
                         message,
-                        token = token)
+                        token = token
+                    )
                     showSnackBar(
                         application.getString(
                             R.string.alert_sent

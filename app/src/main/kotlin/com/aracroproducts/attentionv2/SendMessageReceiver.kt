@@ -9,6 +9,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.RemoteInput
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.runBlocking
+import retrofit2.HttpException
 
 class SendMessageReceiver : BroadcastReceiver() {
     /**
@@ -56,11 +57,17 @@ class SendMessageReceiver : BroadcastReceiver() {
         val recipient = intent.getStringExtra(EXTRA_SENDER) ?: return
         val alertId = intent.getStringExtra(EXTRA_ALERT_ID)
         val notificationId = intent.getIntExtra(EXTRA_NOTIFICATION_ID, 0)
-        val messageStr = RemoteInput.getResultsFromIntent(intent)?.getCharSequence(KEY_TEXT_REPLY) ?: return
+        val messageStr =
+            RemoteInput.getResultsFromIntent(intent)?.getCharSequence(KEY_TEXT_REPLY) ?: return
         val repository = AttentionRepository(AttentionDB.getDB(context))
         val preferencesRepository = PreferencesRepository(getDataStore(context.applicationContext))
 
-        val message = Message(otherId = recipient, timestamp = System.currentTimeMillis(), direction = DIRECTION.Outgoing, message = messageStr.toString())
+        val message = Message(
+            otherId = recipient,
+            timestamp = System.currentTimeMillis(),
+            direction = DIRECTION.Outgoing,
+            message = messageStr.toString()
+        )
         runBlocking {
             val token = preferencesRepository.getToken()
             val fcmToken = preferencesRepository.getValue(
@@ -74,43 +81,40 @@ class SendMessageReceiver : BroadcastReceiver() {
             }
             val to = repository.getFriend(recipient)
             if (alertId != null && fcmToken != null) {
-                repository.sendReadReceipt(alertId, recipient,
-                    fcmToken, token, responseListener = {_, _, _ -> }, errorListener = {_, _ ->})
+                repository.sendReadReceipt(
+                    alertId, recipient,
+                    fcmToken, token
+                )
             }
-            repository.sendMessage(Message(otherId = recipient, timestamp = System.currentTimeMillis(), message = message.toString(), direction = DIRECTION.Outgoing), token, responseListener = { _, response, errorBody ->
-                when (response.code()) {
-                    200 -> {
-                        (context.getSystemService(
-                            AppCompatActivity.NOTIFICATION_SERVICE
-                        ) as NotificationManager).cancel(notificationId)
-                    }
-                }
-                when (response.code()) {
-                    200 -> {
-                        val responseBody = response.body()
-                        if (responseBody == null) {
-                            Log.e(
-                                sTAG, "Got response but body was null"
-                            )
-                            return@sendMessage
-                        }
-                        (context.getSystemService(
-                            AppCompatActivity.NOTIFICATION_SERVICE
-                        ) as NotificationManager).cancel(notificationId)
-                    }
-
+            try {
+                repository.sendMessage(
+                    Message(
+                        otherId = recipient,
+                        timestamp = System.currentTimeMillis(),
+                        message = message.toString(),
+                        direction = DIRECTION.Outgoing
+                    ), token
+                )
+                (context.getSystemService(
+                    AppCompatActivity.NOTIFICATION_SERVICE
+                ) as NotificationManager).cancel(notificationId)
+            } catch (e: HttpException) {
+                val response = e.response()
+                val errorBody = response?.errorBody()?.string()
+                when (response?.code()) {
                     400 -> {
                         if (errorBody == null) {
                             Log.e(
                                 sTAG, "Got response but body was null"
                             )
-                            return@sendMessage
+                            return@runBlocking
                         }
                         when {
                             errorBody.contains(
                                 "Could not find user", true
                             ) -> {
-                                notifyUser(context,
+                                notifyUser(
+                                    context,
                                     context.getString(
                                         R.string.alert_failed_no_user, to.name
                                     )
@@ -118,7 +122,8 @@ class SendMessageReceiver : BroadcastReceiver() {
                             }
 
                             else -> {
-                                notifyUser(context,
+                                notifyUser(
+                                    context,
                                     context.getString(
                                         R.string.alert_failed_bad_request, to.name
                                     )
@@ -132,25 +137,31 @@ class SendMessageReceiver : BroadcastReceiver() {
                             Log.e(
                                 sTAG, "Got response but body was null"
                             )
-                            return@sendMessage
+                            return@runBlocking
                         }
                         when {
                             errorBody.contains(
                                 "does not have you as a friend", true
                             ) -> {
-                                notifyUser(context,
+                                notifyUser(
+                                    context,
                                     context.getString(
                                         R.string.alert_failed_not_friend, to.name
                                     )
                                 )
                             }
 
-                            else -> notifyUser(context, context.getString(R.string.alert_failed_signed_out), message)
+                            else -> notifyUser(
+                                context,
+                                context.getString(R.string.alert_failed_signed_out),
+                                message
+                            )
                         }
                     }
 
                     429 -> {
-                        notifyUser(context,
+                        notifyUser(
+                            context,
                             context.getString(
                                 R.string.alert_rate_limited
                             ), message
@@ -159,17 +170,21 @@ class SendMessageReceiver : BroadcastReceiver() {
                     }
 
                     else -> {
-                        notifyUser(context,
+                        notifyUser(
+                            context,
                             context.getString(
                                 R.string.alert_failed_server_error, to.name
                             )
                         )
                     }
                 }
-            }, errorListener = { _, e ->
-                Log.e(sTAG, "An error occurred: ${e.message}\n${e.stackTrace.joinToString(separator = "\n")}")
+            } catch (e: Exception) {
+                Log.e(
+                    sTAG,
+                    "An error occurred: ${e.message}\n${e.stackTrace.joinToString(separator = "\n")}"
+                )
                 notifyUser(context, context.getString(R.string.alert_failed), message)
-            })
+            }
         }
 
         // 1. get recipient

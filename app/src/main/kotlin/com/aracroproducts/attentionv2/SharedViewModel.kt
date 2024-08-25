@@ -19,9 +19,9 @@ class SharedViewModel(
 ) : AndroidViewModel(application) {
 
     private fun unregisterDevice(token: String, fcmToken: String) {
-        repository.unregisterDevice(token = token, fcmToken = fcmToken)
 
         viewModelScope.launch {
+            repository.unregisterDevice(token = token, fcmToken = fcmToken)
             preferencesRepository.setValue(
                 booleanPreferencesKey(MainViewModel.TOKEN_UPLOADED),
                 false
