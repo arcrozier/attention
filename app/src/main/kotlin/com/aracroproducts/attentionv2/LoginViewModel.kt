@@ -94,8 +94,7 @@ class LoginViewModel(
                         Log.e(
                             sTAG, response.errorBody().toString()
                         )
-                        if (response.errorBody().toString()
-                                .contains("terms of service")
+                        if (response.errorBody()?.string()?.contains("terms of service") == true
                         ) {
                             checkboxError = true
                         } else usernameCaption =
@@ -202,16 +201,16 @@ class LoginViewModel(
 
                     403 -> {
                         val errorBody =
-                            response.errorBody().toString()
+                            response.errorBody()?.string()
                         when {
-                            errorBody.contains("password") -> {
+                            errorBody?.contains("password") == true -> {
                                 passwordCaption =
                                     context.getString(R.string.wrong_password)
                             }
 
-                            errorBody.contains(
+                            errorBody?.contains(
                                 "google", true
-                            ) -> {
+                            ) == true -> {
                                 passwordCaption =
                                     context.getString(R.string.google_sign_in_failed)
                             }
@@ -361,7 +360,7 @@ class LoginViewModel(
                 login(snackbarHostState, scope, onLoggedIn)
             } catch (e: HttpException) {
                 val response = e.response()
-                val errorBody = response?.errorBody()?.toString()
+                val errorBody = response?.errorBody()?.string()
                 when (response?.code()) {
                     400 -> {
                         if (errorBody == null) {

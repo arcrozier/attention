@@ -240,8 +240,9 @@ class MainViewModel(
                         }
                         launchLogin()
                     }
+
                     else -> {
-                         setConnectStatus(null)
+                        setConnectStatus(null)
                     }
                 }
             } catch (_: Exception) {
@@ -262,10 +263,8 @@ class MainViewModel(
         responseListener: ((name: String) -> Unit)? = null,
         launchLogin: () -> Unit
     ) {
-        synchronized(this) {
-        val temp = viewModelScope.launch {
+        viewModelScope.launch {
             lastNameRequest?.cancelAndJoin()
-            lastNameRequest = // todo
             val token = preferencesRepository.getToken()
             if (token == null) {
                 if (!addFriendException) launchLogin()
@@ -277,58 +276,47 @@ class MainViewModel(
             }
 
             friendNameLoading = true
-            try {
-                val response =
-                    attentionRepository.getName(
-                        token,
-                        username)
-                usernameCaption = ""
-                setConnectStatus(200)
-                newFriendName = response.data.name
-                responseListener?.invoke(newFriendName) // todo see if we can fold this in
-                        responseListener = { _, response, _ ->
-                            setConnectStatus(response.code())
-                            lastNameRequest = null
-                            newFriendName = response.body()?.data?.name ?: ""
-                            friendNameLoading = false
-                            when (response.code()) {
-                                200 -> {
+            lastNameRequest = viewModelScope.launch {
+                try {
+                    val response =
+                        attentionRepository.getName(
+                            token,
+                            username
+                        )
+                    usernameCaption = ""
+                    setConnectStatus(200)
+                    newFriendName = response.data.name
+                    responseListener?.invoke(newFriendName)
+                } catch (e: HttpException) {
+                    lastNameRequest = null
+                    friendNameLoading = false
+                    when (e.response()?.code()) {
+                        400 -> {
+                            usernameCaption = application.getString(
+                                R.string.nonexistent_username
+                            )
+                        }
 
-                                }
-
-                                400 -> {
-                                    usernameCaption = application.getString(
-                                        R.string.nonexistent_username
-                                    )
-                                }
-
-                                403 -> {
-                                    if (!addFriendException) launchLogin()
-                                    else responseListener?.invoke(
-                                        username
-                                    )
-                                }
-                            }
-                        },
-                        errorListener = { _, t ->
-
-                        })
-            } catch (e: HttpException) {
-
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                if (e is IOException) return@launch
-                lastNameRequest = null
-                friendNameLoading = false
-                newFriendName = ""
-                setConnectStatus(null)
-            } finally {
-                lastNameRequest = null
-                friendNameLoading = false
+                        403 -> {
+                            if (!addFriendException) launchLogin()
+                            else responseListener?.invoke(
+                                username
+                            )
+                        }
+                    }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    lastNameRequest = null
+                    friendNameLoading = false
+                    if (e !is IOException) {
+                        newFriendName = ""
+                        setConnectStatus(null)
+                    }
+                }
             }
         }
-        }
+
 
     }
 
@@ -384,27 +372,29 @@ class MainViewModel(
                 launchLogin()
                 return@launch
             }
-            attentionRepository.edit(Friend(id = id, name = name),
-                token,
-                responseListener = { _, response, _ ->
-                    val context = application
-                    setConnectStatus(response.code())
-                    when (response.code()) {
-                        400 -> {
-                            showSnackBar(context.getString(R.string.edit_friend_name_failed))
-                        }
+            try {
+                attentionRepository.edit(
+                    Friend(id = id, name = name),
+                    token
+                )
+                setConnectStatus(200)
 
-                        403 -> {
-                            val loginIntent =
-                                Intent(context, LoginActivity::class.java)
-                            context.startActivity(loginIntent)
-                        }
+            } catch (e: HttpException) {
+                setConnectStatus(e.response()?.code())
+                when (e.response()?.code()) {
+                    400 -> {
+                        showSnackBar(application.getString(R.string.edit_friend_name_failed))
                     }
 
-                },
-                errorListener = { _, _ ->
-                    setConnectStatus(null)
-                })
+                    403 -> {
+                        val loginIntent =
+                            Intent(application, LoginActivity::class.java)
+                        application.startActivity(loginIntent)
+                    }
+                }
+            } catch (e: Exception) {
+                setConnectStatus(null)
+            }
         }
 
     }
@@ -491,84 +481,71 @@ class MainViewModel(
                 Log.d(MainViewModel::class.java.name, "Token null; logging out")
                 onAuthError()
             } else if (innerToken != null) {
-                attentionRepository.downloadUserInfo(innerToken, { _, response, _ ->
-                    setConnectStatus(response.code())
-                    when (response.code()) {
-                        200 -> {
-                            Log.d(sTAG, response.body().toString())
-                            val data = response.body()?.data
-                            if (data == null) {
-                                Log.e(sTAG, "Got user info but body was null!")
-                                return@downloadUserInfo
-                            }
-                            onSuccess?.invoke()
-                            viewModelScope.launch {
-                                preferencesRepository.bulkEdit { settings ->
-                                    settings[stringPreferencesKey(
-                                        context.getString(
-                                            R.string.username_key
-                                        )
-                                    )] = data.username
-                                    settings[stringPreferencesKey(
-                                        context.getString(
-                                            R.string.first_name_key
-                                        )
-                                    )] = data.firstName
-                                    settings[stringPreferencesKey(
-                                        context.getString(
-                                            R.string.last_name_key
-                                        )
-                                    )] = data.lastName
-                                    settings[stringPreferencesKey(
-                                        context.getString(
-                                            R.string.email_key
-                                        )
-                                    )] = data.email
-                                    settings[booleanPreferencesKey(
-                                        context.getString(
-                                            R.string.password_key
-                                        )
-                                    )] = data.password
-                                }
-                            }
-                            viewModelScope.launch {
-                                attentionRepository.updateUserInfo(
-                                    data.friends
+                try {
+                    val data = attentionRepository.downloadUserInfo(innerToken).data
+                    setConnectStatus(200)
+                    onSuccess?.invoke()
+                    preferencesRepository.bulkEdit { settings ->
+                        settings[stringPreferencesKey(
+                            context.getString(
+                                R.string.username_key
+                            )
+                        )] = data.username
+                        settings[stringPreferencesKey(
+                            context.getString(
+                                R.string.first_name_key
+                            )
+                        )] = data.firstName
+                        settings[stringPreferencesKey(
+                            context.getString(
+                                R.string.last_name_key
+                            )
+                        )] = data.lastName
+                        settings[stringPreferencesKey(
+                            context.getString(
+                                R.string.email_key
+                            )
+                        )] = data.email
+                        settings[booleanPreferencesKey(
+                            context.getString(
+                                R.string.password_key
+                            )
+                        )] = data.password
+                    }
+                    attentionRepository.updateUserInfo(
+                        data.friends
+                    )
+                    viewModelScope.launch {
+                        withContext(
+                            Dispatchers.IO
+                        ) {
+                            val file = File(
+                                context.filesDir, PFP_FILENAME
+                            ).apply { createNewFile() }
+
+                            data.photo?.let {
+                                file.writeBytes(
+                                    Base64.decode(
+                                        data.photo, Base64.DEFAULT
+                                    )
                                 )
-                            }
-                            viewModelScope.launch {
-                                withContext(
-                                    Dispatchers.IO
-                                ) {
-                                    val file = File(
-                                        context.filesDir, PFP_FILENAME
-                                    ).apply { createNewFile() }
-
-                                    data.photo?.let {
-                                        file.writeBytes(
-                                            Base64.decode(
-                                                data.photo, Base64.DEFAULT
-                                            )
-                                        )
-                                    } ?: file.writeBytes(ByteArray(0))
-                                }
-                            }
-                            uploadCachedFriends()
+                            } ?: file.writeBytes(ByteArray(0))
                         }
-
+                    }
+                    uploadCachedFriends()
+                } catch (e: HttpException) {
+                    val response = e.response()
+                    setConnectStatus(response?.code())
+                    when (response?.code()) {
                         403 -> {
                             onAuthError()
                         }
                     }
-                    viewModelScope.launch {
-                        // todo this is janky as hell
-                        delay(100)
-                        isRefreshing = false
-                    }
-                }, { _, _ ->
-                    isRefreshing = false
+                } catch (e: Exception) {
                     setConnectStatus(null)
-                })
+                } finally {
+                    isRefreshing = false
+                }
             } else {
                 isRefreshing = false
             }
@@ -681,33 +658,29 @@ class MainViewModel(
                 launchLogin(getSendIntent(context, message))
                 return@launch
             }
-            backgroundScope.launch {
+            backgroundScope.launch background@{
                 pushFriendShortcut(context, to)
-                attentionRepository.sendMessage(message, token = token, { _, response, errorBody ->
-                    setConnectStatus(response.code())
-                    when (response.code()) {
-                        200 -> {
-                            val responseBody = response.body()
-                            if (responseBody == null) {
-                                Log.e(
-                                    sTAG, "Got response but body was null"
-                                )
-                                return@sendMessage
-                            }
-                            showSnackBar(
-                                application.getString(
-                                    R.string.alert_sent
-                                )
-                            )
-                            onSuccess?.invoke()
-                        }
-
+                try {
+                    attentionRepository.sendMessage(
+                        message,
+                        token = token)
+                    showSnackBar(
+                        application.getString(
+                            R.string.alert_sent
+                        )
+                    )
+                    onSuccess?.invoke()
+                } catch (e: HttpException) {
+                    val response = e.response()
+                    val errorBody = e.response()?.errorBody()?.string()
+                    setConnectStatus(response?.code())
+                    when (response?.code()) {
                         400 -> {
                             if (errorBody == null) {
                                 Log.e(
                                     sTAG, "Got response but body was null"
                                 )
-                                return@sendMessage
+                                return@background
                             }
                             when {
                                 errorBody.contains(
@@ -736,7 +709,7 @@ class MainViewModel(
                                 Log.e(
                                     sTAG, "Got response but body was null"
                                 )
-                                return@sendMessage
+                                return@background
                             }
                             when {
                                 errorBody.contains(
@@ -773,7 +746,7 @@ class MainViewModel(
                             onError?.invoke()
                         }
                     }
-                }, { _, _ ->
+                } catch (e: Exception) {
                     notifyUser(
                         context.getString(
                             R.string.alert_failed_no_connection,
@@ -782,7 +755,7 @@ class MainViewModel(
                     )
                     onError?.invoke()
                     setConnectStatus(null)
-                })
+                }
             }
         }
 
