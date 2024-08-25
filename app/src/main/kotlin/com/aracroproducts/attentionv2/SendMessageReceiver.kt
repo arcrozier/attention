@@ -12,15 +12,11 @@ import com.aracroproducts.attentionv2.AlertViewModel.Companion.NO_ID
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.time.withTimeout
 import kotlinx.coroutines.withTimeout
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.seconds
 import retrofit2.HttpException
+import kotlin.time.Duration.Companion.seconds
 
 class SendMessageReceiver : BroadcastReceiver() {
     /**
@@ -68,7 +64,7 @@ class SendMessageReceiver : BroadcastReceiver() {
 
         val recipient = intent.getStringExtra(EXTRA_SENDER) ?: return
         val alertId = intent.getStringExtra(EXTRA_ALERT_ID)
-        val notificationId = intent.getIntExtra(EXTRA_NOTIFICATION_ID, 0)
+        val notificationId = intent.getIntExtra(EXTRA_NOTIFICATION_ID, NO_ID)
         val messageStr =
             RemoteInput.getResultsFromIntent(intent)?.getCharSequence(KEY_TEXT_REPLY) ?: return
         val repository = AttentionRepository(AttentionDB.getDB(context))
