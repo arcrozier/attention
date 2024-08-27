@@ -70,3 +70,6 @@ fun getSendIntent(context: Context, message: Message?): Intent {
     }
     return intent
 }
+
+const val EXTRA_ALERT_ID = "com.aracroproducts.attention.extra.ALERT_ID"
+

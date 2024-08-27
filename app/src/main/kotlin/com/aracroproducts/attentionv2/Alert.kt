@@ -393,8 +393,4 @@ class Alert : AppCompatActivity() {
         super.onDestroy()
         unregisterReceiver(receiver)
     }
-
-    companion object {
-        const val EXTRA_ALERT_ID = "com.aracroproducts.attention.extras.ALERT_ID"
-    }
 }

@@ -144,6 +144,8 @@
     <string name="alert_notification_title">Alert from %s</string>
     <string name="alert_channel_name">Alerts</string>
     <string name="alert_channel_description">Notifies you of new alerts</string>
+    <string name="service_channel_name">Sending message</string>
+    <string name="service_channel_description">Indicates that an alert is being sent</string>
 
 
     <string name="draw_title">Allow Attention! to draw overlays?</string>

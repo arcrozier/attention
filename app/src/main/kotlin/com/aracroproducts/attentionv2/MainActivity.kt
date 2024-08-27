@@ -213,6 +213,8 @@ class MainActivity : AppCompatActivity() {
 
         // Creates a notification channel for displaying failed-to-send notifications
         MainViewModel.createFailedAlertNotificationChannel(this)
+        MainViewModel.createNotificationChannel(this)
+        MainViewModel.createForegroundServiceNotificationChannel(this)
 
         handleIntent(intent, savedInstanceState)
 

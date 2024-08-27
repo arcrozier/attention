@@ -24,7 +24,6 @@ import androidx.core.graphics.drawable.IconCompat
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.android.build.gradle.internal.utils.toImmutableSet
-import com.aracroproducts.attentionv2.Alert.Companion.EXTRA_ALERT_ID
 import com.aracroproducts.attentionv2.AlertViewModel.Companion.NO_ID
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
@@ -332,7 +331,7 @@ open class AlertHandler : FirebaseMessagingService() {
             init {
                 putExtra(SendMessageReceiver.EXTRA_SENDER, sender)
                 putExtra(SendMessageReceiver.EXTRA_NOTIFICATION_ID, notificationId)
-                putExtra(SendMessageReceiver.EXTRA_ALERT_ID, alertId)
+                putExtra(EXTRA_ALERT_ID, alertId)
             }
 
             override fun equals(other: Any?): Boolean {
@@ -414,14 +413,14 @@ open class AlertHandler : FirebaseMessagingService() {
                     Intent(applicationContext, Alert.AlertBroadCastReceiver::class.java).apply {
                         action = applicationContext.getString(R.string.dismiss_action)
                         putExtra(ASSOCIATED_NOTIFICATION, notificationID)
-                        putExtra(Alert.EXTRA_ALERT_ID, alertId)
+                        putExtra(EXTRA_ALERT_ID, alertId)
                     }
                 val dismissPendingIntent: PendingIntent =
                     PendingIntent.getBroadcast(
                         applicationContext, REQUEST_REPLY, dismissIntent,
                         PendingIntent.FLAG_IMMUTABLE
                     )
-                createNotificationChannel(applicationContext)
+                MainViewModel.createNotificationChannel(applicationContext)
                 builder = NotificationCompat.Builder(applicationContext, ALERT_CHANNEL_ID)
                 builder.setSmallIcon(R.drawable.app_icon_foreground)
                     .setContentTitle(
@@ -441,7 +440,7 @@ open class AlertHandler : FirebaseMessagingService() {
                         Intent(applicationContext, Alert.AlertBroadCastReceiver::class.java).apply {
                             action = applicationContext.getString(R.string.silence_action)
                             putExtra(ASSOCIATED_NOTIFICATION, notificationID)
-                            putExtra(Alert.EXTRA_ALERT_ID, alertId)
+                            putExtra(EXTRA_ALERT_ID, alertId)
                         }
                     val silencePendingIntent = PendingIntent.getBroadcast(
                         applicationContext,
@@ -494,25 +493,6 @@ open class AlertHandler : FirebaseMessagingService() {
             }
             notificationManagerCompat.notify(notificationID, builder.build())
             return notificationID
-        }
-
-
-        /**
-         * Creates the notification channel for notifications that are displayed alongside dialogs
-         */
-        private fun createNotificationChannel(context: Context) { // Create the NotificationChannel, but only on API 26+ because
-            // the NotificationChannel class is new and not in the support library
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val name: CharSequence = context.getString(R.string.alert_channel_name)
-                val description = context.getString(R.string.alert_channel_description)
-                val importance = NotificationManager.IMPORTANCE_HIGH
-                val channel = NotificationChannel(ALERT_CHANNEL_ID, name, importance)
-                channel.description =
-                    description // Register the channel with the system; you can't change the importance
-                // or other notification behaviors after this
-                val notificationManager = context.getSystemService(NotificationManager::class.java)
-                notificationManager.createNotificationChannel(channel)
-            }
         }
 
         /**

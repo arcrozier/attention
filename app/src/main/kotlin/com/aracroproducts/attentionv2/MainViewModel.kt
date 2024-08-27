@@ -35,6 +35,8 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.aracroproducts.attentionv2.AlertHandler.Companion.ALERT_CHANNEL_ID
+import com.aracroproducts.attentionv2.AlertSendService.Companion.SERVICE_CHANNEL_ID
 import com.aracroproducts.attentionv2.SettingsActivity.Companion.DEFAULT_DELAY
 import com.google.android.gms.tasks.Task
 import com.google.firebase.messaging.FirebaseMessaging
@@ -657,6 +659,7 @@ class MainViewModel(
         onError: (() -> Unit)? = null,
         onSuccess: (() -> Unit)? = null
     ) {
+        // todo start the sending service, register a broadcast listener to get the result; it should receive success or show login
         viewModelScope.launch {
             val context = application
             val token = preferencesRepository.getToken()
@@ -939,6 +942,38 @@ class MainViewModel(
                 val description = context.getString(R.string.alert_failed_channel_description)
                 val importance = NotificationManager.IMPORTANCE_HIGH
                 val channel = NotificationChannel(FAILED_ALERT_CHANNEL_ID, name, importance)
+                channel.description =
+                    description // Register the channel with the system; you can't change the importance
+                // or other notification behaviors after this
+                val notificationManager = context.getSystemService(NotificationManager::class.java)
+                notificationManager.createNotificationChannel(channel)
+            }
+        }
+
+        fun createForegroundServiceNotificationChannel(context: Context) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val name: CharSequence = context.getString(R.string.service_channel_name)
+                val description = context.getString(R.string.service_channel_description)
+                val importance = NotificationManager.IMPORTANCE_LOW
+                val channel = NotificationChannel(SERVICE_CHANNEL_ID, name, importance)
+                channel.description =
+                    description // Register the channel with the system; you can't change the importance
+                // or other notification behaviors after this
+                val notificationManager = context.getSystemService(NotificationManager::class.java)
+                notificationManager.createNotificationChannel(channel)
+            }
+        }
+
+        /**
+         * Creates the notification channel for notifications that are displayed alongside dialogs
+         */
+        fun createNotificationChannel(context: Context) { // Create the NotificationChannel, but only on API 26+ because
+            // the NotificationChannel class is new and not in the support library
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val name: CharSequence = context.getString(R.string.alert_channel_name)
+                val description = context.getString(R.string.alert_channel_description)
+                val importance = NotificationManager.IMPORTANCE_HIGH
+                val channel = NotificationChannel(ALERT_CHANNEL_ID, name, importance)
                 channel.description =
                     description // Register the channel with the system; you can't change the importance
                 // or other notification behaviors after this

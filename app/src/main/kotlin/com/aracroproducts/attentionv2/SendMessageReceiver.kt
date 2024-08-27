@@ -4,6 +4,7 @@ import android.app.NotificationManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.RemoteInput
@@ -67,159 +68,16 @@ class SendMessageReceiver : BroadcastReceiver() {
         val notificationId = intent.getIntExtra(EXTRA_NOTIFICATION_ID, NO_ID)
         val messageStr =
             RemoteInput.getResultsFromIntent(intent)?.getCharSequence(KEY_TEXT_REPLY) ?: return
-        val repository = AttentionRepository(AttentionDB.getDB(context))
-        val preferencesRepository = PreferencesRepository(getDataStore(context.applicationContext))
-
-        val message = Message(
-            otherId = recipient,
-            timestamp = System.currentTimeMillis(),
-            direction = DIRECTION.Outgoing,
-            message = messageStr.toString()
-        )
-        val pendingResult = goAsync()
-        GlobalScope.launch(Dispatchers.IO) {
-            try {
-                withTimeout(9.seconds) {
-                    val token = preferencesRepository.getToken()
-                    val fcmToken = preferencesRepository.getValue(
-                        stringPreferencesKey(
-                            MainViewModel.FCM_TOKEN
-                        )
-                    )
-                    if (token == null) {
-                        notifyUser(
-                            context,
-                            context.getString(R.string.alert_failed_signed_out),
-                            message
-                        )
-                        return@withTimeout
-                    }
-                    val to = repository.getFriend(recipient)
-                    if (alertId != null && fcmToken != null) {
-                        repository.sendReadReceipt(
-                            alertId, recipient,
-                            fcmToken, token
-                        )
-                    }
-                    try {
-                        repository.sendMessage(
-                            Message(
-                                otherId = recipient,
-                                timestamp = System.currentTimeMillis(),
-                                message = message.toString(),
-                                direction = DIRECTION.Outgoing
-                            ), token
-                        )
-                        (context.getSystemService(
-                            AppCompatActivity.NOTIFICATION_SERVICE
-                        ) as NotificationManager).cancel(notificationId)
-                    } catch (e: HttpException) {
-                        val response = e.response()
-                        val errorBody = response?.errorBody()?.string()
-                        when (response?.code()) {
-                            400 -> {
-                                if (errorBody == null) {
-                                    Log.e(
-                                        sTAG, "Got response but body was null"
-                                    )
-                                    return@withTimeout
-                                }
-                                when {
-                                    errorBody.contains(
-                                        "Could not find user", true
-                                    ) -> {
-                                        notifyUser(
-                                            context,
-                                            context.getString(
-                                                R.string.alert_failed_no_user, to.name
-                                            )
-                                        )
-                                    }
-
-                                    else -> {
-                                        notifyUser(
-                                            context,
-                                            context.getString(
-                                                R.string.alert_failed_bad_request, to.name
-                                            )
-                                        )
-                                    }
-                                }
-                            }
-
-                            403 -> {
-                                if (errorBody == null) {
-                                    Log.e(
-                                        sTAG, "Got response but body was null"
-                                    )
-                                    return@withTimeout
-                                }
-                                when {
-                                    errorBody.contains(
-                                        "does not have you as a friend", true
-                                    ) -> {
-                                        notifyUser(
-                                            context,
-                                            context.getString(
-                                                R.string.alert_failed_not_friend, to.name
-                                            )
-                                        )
-                                    }
-
-                                    else -> notifyUser(
-                                        context,
-                                        context.getString(R.string.alert_failed_signed_out),
-                                        message
-                                    )
-                                }
-                            }
-
-                            429 -> {
-                                notifyUser(
-                                    context,
-                                    context.getString(
-                                        R.string.alert_rate_limited
-                                    ), message
-                                )
-
-                            }
-
-                            else -> {
-                                notifyUser(
-                                    context,
-                                    context.getString(
-                                        R.string.alert_failed_server_error, to.name
-                                    )
-                                )
-                            }
-                        }
-                    } catch (e: Exception) {
-                        Log.e(
-                            sTAG,
-                            "An error occurred: ${e.message}\n${e.stackTrace.joinToString(separator = "\n")}"
-                        )
-                        notifyUser(context, context.getString(R.string.alert_failed), message)
-                    }
-                }
-            } catch (e: TimeoutCancellationException) {
-                Log.e(
-                    sTAG,
-                    "An error occurred: ${e.message}\n${
-                        e.stackTrace.joinToString(
-                            separator = "\n"
-                        )
-                    }"
-                )
-                notifyUser(context, context.getString(R.string.alert_failed), message)
-            } finally {
-                pendingResult.finish()
-            }
-
-            // 1. get recipient
-            // 2. get the message with getResultsFromIntent
-            // 3. show cancel progress?
-            // 4. call repository.sendMessage
-            // 5. dismiss the notification
+        val serviceIntent = Intent(context, AlertSendService::class.java).apply {
+            putExtra(EXTRA_SENDER, recipient)
+            putExtra(EXTRA_ALERT_ID, alertId)
+            putExtra(EXTRA_NOTIFICATION_ID, notificationId)
+            putExtra(KEY_TEXT_REPLY, messageStr)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(serviceIntent)
+        } else {
+            context.startService(serviceIntent)
         }
     }
 
@@ -227,7 +85,6 @@ class SendMessageReceiver : BroadcastReceiver() {
         const val ACTION_REPLY = "com.aracroproducts.attention.broadcast.REPLY"
         const val EXTRA_SENDER = "com.aracroproducts.attention.extra.RECIPIENT"
         const val EXTRA_NOTIFICATION_ID = "com.aracroproducts.attention.extra.NOTIFICATION_ID"
-        const val EXTRA_ALERT_ID = "com.aracroproducts.attention.extra.ALERT_ID"
         const val KEY_TEXT_REPLY = "key_text_reply"
         val sTAG = SendMessageReceiver::class.qualifiedName ?: ""
     }
