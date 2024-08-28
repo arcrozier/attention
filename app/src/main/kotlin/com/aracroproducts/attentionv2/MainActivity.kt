@@ -1,7 +1,10 @@
 package com.aracroproducts.attentionv2
 
 import android.Manifest.permission.POST_NOTIFICATIONS
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -114,6 +117,8 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import com.aracroproducts.attentionv2.AlertSendService.Companion.ACTION_LOGIN
+import com.aracroproducts.attentionv2.AlertSendService.Companion.ACTION_SUCCESS
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
 import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
 import com.google.android.gms.common.ConnectionResult
@@ -135,6 +140,35 @@ class MainActivity : AppCompatActivity() {
             application as AttentionApplication
         )
     })
+
+    inner class AlertSentReceiver: BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent?) {
+            if (intent == null) return
+
+            when (intent.action) {
+                ACTION_SUCCESS -> {
+                    friendModel.showSnackBar(getString(R.string.alert_sent))
+                }
+                ACTION_LOGIN -> {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        val temp = intent.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java)
+                        launchLogin(
+                            temp
+                        )
+                    } else {
+                        @Suppress("DEPRECATION")
+                        launchLogin(intent.getParcelableExtra(Intent.EXTRA_INTENT))
+                    }
+                }
+                else -> {
+                    Log.e(MainActivity::class.java.name, "Unexpected action ${intent.action}")
+                }
+            }
+        }
+
+    }
+
+    val alertSentReceiver = AlertSentReceiver()
 
     class MainViewModelFactory(
         private val attentionRepository: AttentionRepository,
@@ -893,6 +927,7 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
+    // todo the error send status should come from the view model, not janky callbacks
     @ExperimentalFoundationApi
     @Composable
     fun FriendCard(
@@ -1241,8 +1276,18 @@ class MainActivity : AppCompatActivity() {
 
         if (!friendModel.waitForLoginResult) reload()
 
+        ContextCompat.registerReceiver(this, alertSentReceiver, IntentFilter().apply {
+            addAction(ACTION_LOGIN)
+            addAction(ACTION_SUCCESS)
+        }, ContextCompat.RECEIVER_NOT_EXPORTED)
+
         // if Google API isn't available, do this - it's from the docs, should be correct
         if (!checkPlayServices()) return
+    }
+
+    override fun onPause() {
+        super.onPause()
+        unregisterReceiver(alertSentReceiver)
     }
 
     private fun checkPlayServices(): Boolean {

@@ -37,6 +37,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aracroproducts.attentionv2.AlertHandler.Companion.ALERT_CHANNEL_ID
 import com.aracroproducts.attentionv2.AlertSendService.Companion.SERVICE_CHANNEL_ID
+import com.aracroproducts.attentionv2.SendMessageReceiver.Companion.EXTRA_NOTIFICATION_ID
+import com.aracroproducts.attentionv2.SendMessageReceiver.Companion.EXTRA_SENDER
+import com.aracroproducts.attentionv2.SendMessageReceiver.Companion.KEY_TEXT_REPLY
 import com.aracroproducts.attentionv2.SettingsActivity.Companion.DEFAULT_DELAY
 import com.google.android.gms.tasks.Task
 import com.google.firebase.messaging.FirebaseMessaging
@@ -659,7 +662,6 @@ class MainViewModel(
         onError: (() -> Unit)? = null,
         onSuccess: (() -> Unit)? = null
     ) {
-        // todo start the sending service, register a broadcast listener to get the result; it should receive success or show login
         viewModelScope.launch {
             val context = application
             val token = preferencesRepository.getToken()
@@ -673,105 +675,14 @@ class MainViewModel(
                 launchLogin(getSendIntent(context, message))
                 return@launch
             }
-            backgroundScope.launch background@{
-                pushFriendShortcut(context, to)
-                try {
-                    attentionRepository.sendMessage(
-                        message,
-                        token = token
-                    )
-                    showSnackBar(
-                        application.getString(
-                            R.string.alert_sent
-                        )
-                    )
-                    onSuccess?.invoke()
-                } catch (e: HttpException) {
-                    val response = e.response()
-                    val errorBody = e.response()?.errorBody()?.string()
-                    setConnectStatus(response?.code())
-                    when (response?.code()) {
-                        400 -> {
-                            if (errorBody == null) {
-                                Log.e(
-                                    sTAG, "Got response but body was null"
-                                )
-                                return@background
-                            }
-                            when {
-                                errorBody.contains(
-                                    "Could not find user", true
-                                ) -> {
-                                    notifyUser(
-                                        context.getString(
-                                            R.string.alert_failed_no_user, to.name
-                                        )
-                                    )
-                                }
-
-                                else -> {
-                                    notifyUser(
-                                        context.getString(
-                                            R.string.alert_failed_bad_request, to.name
-                                        )
-                                    )
-                                }
-                            }
-                            onError?.invoke()
-                        }
-
-                        403 -> {
-                            if (errorBody == null) {
-                                Log.e(
-                                    sTAG, "Got response but body was null"
-                                )
-                                return@background
-                            }
-                            when {
-                                errorBody.contains(
-                                    "does not have you as a friend", true
-                                ) -> {
-                                    notifyUser(
-                                        context.getString(
-                                            R.string.alert_failed_not_friend, to.name
-                                        )
-                                    )
-                                }
-
-                                else -> launchLogin(getSendIntent(context, message))
-                            }
-                            onError?.invoke()
-                        }
-
-                        429 -> {
-                            notifyUser(
-                                context.getString(
-                                    R.string.alert_rate_limited
-                                ), message
-                            )
-                            onError?.invoke()
-
-                        }
-
-                        else -> {
-                            notifyUser(
-                                context.getString(
-                                    R.string.alert_failed_server_error, to.name
-                                )
-                            )
-                            onError?.invoke()
-                        }
-                    }
-                } catch (e: Exception) {
-                    notifyUser(
-                        context.getString(
-                            R.string.alert_failed_no_connection,
-                            to.name
-                        ), message
-                    )
-                    onError?.invoke()
-                    setConnectStatus(null)
-                }
+            val serviceIntent = Intent(context, AlertSendService::class.java).apply {
+                putExtra(EXTRA_SENDER, to.id)
+                putExtra(KEY_TEXT_REPLY, body)
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(serviceIntent)
+            } else {
+                context.startService(serviceIntent)
             }
         }
 

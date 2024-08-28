@@ -12,6 +12,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.aracroproducts.attentionv2.AlertViewModel.Companion.NO_ID
+import com.aracroproducts.attentionv2.MainViewModel.Companion.EXTRA_RECIPIENT
 import com.aracroproducts.attentionv2.SendMessageReceiver.Companion.EXTRA_NOTIFICATION_ID
 import com.aracroproducts.attentionv2.SendMessageReceiver.Companion.EXTRA_SENDER
 import com.aracroproducts.attentionv2.SendMessageReceiver.Companion.KEY_TEXT_REPLY
@@ -106,6 +107,9 @@ class AlertSendService : Service() {
                 this.getString(R.string.alert_failed_signed_out),
                 message
             )
+
+            sendLoginBroadcast(message)
+
             return
         }
         val to = repository.getFriend(recipient)
@@ -115,21 +119,23 @@ class AlertSendService : Service() {
                 fcmToken, token
             )
         }
+
         try {
             repository.sendMessage(
-                Message(
-                    otherId = recipient,
-                    timestamp = System.currentTimeMillis(),
-                    message = message.toString(),
-                    direction = DIRECTION.Outgoing
-                ), token
+                message, token
             )
-            (getSystemService(
-                AppCompatActivity.NOTIFICATION_SERVICE
-            ) as NotificationManager).cancel(notificationId)
+            if (notificationId != NO_ID) {
+                (getSystemService(
+                    AppCompatActivity.NOTIFICATION_SERVICE
+                ) as NotificationManager).cancel(notificationId)
+            }
+            sendBroadcast(ACTION_SUCCESS, message.otherId)
         } catch (e: HttpException) {
             val response = e.response()
             val errorBody = response?.errorBody()?.string()
+            if (response?.code() != 403) {
+                sendBroadcast(ACTION_ERROR, message.otherId)
+            }
             when (response?.code()) {
                 400 -> {
                     if (errorBody == null) {
@@ -178,13 +184,17 @@ class AlertSendService : Service() {
                                     R.string.alert_failed_not_friend, to.name
                                 )
                             )
+                            sendBroadcast(ACTION_ERROR, message.otherId)
                         }
 
-                        else -> notifyUser(
-                            this,
-                            getString(R.string.alert_failed_signed_out),
-                            message
-                        )
+                        else -> {
+                            notifyUser(
+                                this,
+                                getString(R.string.alert_failed_signed_out),
+                                message
+                            )
+                            sendLoginBroadcast(message)
+                        }
                     }
                 }
 
@@ -213,6 +223,7 @@ class AlertSendService : Service() {
                 "An error occurred: ${e.message}\n${e.stackTrace.joinToString(separator = "\n")}"
             )
             notifyUser(this, getString(R.string.alert_failed), message)
+            sendBroadcast(ACTION_ERROR, message.otherId)
         } catch (e: TimeoutCancellationException) {
             Log.e(
                 sTAG,
@@ -223,6 +234,7 @@ class AlertSendService : Service() {
                 }"
             )
             notifyUser(this, getString(R.string.alert_failed), message)
+            sendBroadcast(ACTION_ERROR, message.otherId)
         }
 
         // 1. get recipient
@@ -239,8 +251,27 @@ class AlertSendService : Service() {
         return null
     }
 
+    private fun sendBroadcast(action: String, recipient: String) {
+        sendBroadcast(Intent().apply {
+            this.action = action
+            putExtra(EXTRA_RECIPIENT, recipient)
+            setPackage(this@AlertSendService.packageName)
+        })
+    }
+
+    private fun sendLoginBroadcast(message: Message) {
+        sendBroadcast(Intent().apply {
+            action = ACTION_LOGIN
+            putExtra(Intent.EXTRA_INTENT, getSendIntent(this@AlertSendService, message))
+            setPackage(this@AlertSendService.packageName)
+        })
+    }
+
     companion object {
         const val SERVICE_CHANNEL_ID = "service_alert"
+        const val ACTION_SUCCESS = "com.aracroproducts.attention.broadcast.SUCCESS"
+        const val ACTION_LOGIN = "com.aracroproducts.attention.broadcast.LOGIN"
+        const val ACTION_ERROR = "com.aracroproducts.attention.broadcast.ERROR"
         private val sTAG = AlertSendService::class.java.name
     }
 }

@@ -204,7 +204,7 @@ open class AlertHandler : FirebaseMessagingService() {
                     )
 
                     sendBroadcast(Intent().apply {
-                        setAction(getString(R.string.dismiss_action))
+                        action = getString(R.string.dismiss_action)
                         putExtra(EXTRA_ALERT_ID, messageData["alert_id"])
                         setPackage(this@AlertHandler.packageName)
                     })
