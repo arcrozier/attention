@@ -26,6 +26,8 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.aracroproducts.attentionv2.SendMessageReceiver.Companion.EXTRA_SENDER
+import com.aracroproducts.attentionv2.SendMessageReceiver.Companion.KEY_TEXT_REPLY
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -56,6 +58,8 @@ class AlertViewModel(
     private var ringerMode: Int? = null
 
     var sender: Friend by mutableStateOf(Friend(fromUsername, ""))
+    var showReply: Boolean by mutableStateOf(false)
+    var replyMessage: String by mutableStateOf("")
 
     init {
         viewModelScope.launch {
@@ -281,6 +285,19 @@ class AlertViewModel(
                 AppCompatActivity.NOTIFICATION_SERVICE
             ) as NotificationManager
             notificationManager.cancel(id)
+        }
+    }
+
+    fun sendAlert() {
+        val context = getApplication<Application>()
+        val serviceIntent = Intent(context, AlertSendService::class.java).apply {
+            putExtra(EXTRA_SENDER, sender.id)
+            putExtra(KEY_TEXT_REPLY, replyMessage)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(serviceIntent)
+        } else {
+            context.startService(serviceIntent)
         }
     }
 

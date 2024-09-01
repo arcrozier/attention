@@ -17,22 +17,46 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.ContentAlpha
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Reply
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialogDefaults
+import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -46,6 +70,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -210,6 +235,7 @@ class Alert : AppCompatActivity() {
         Log.d(sTAG, "${alertModel.timestamp} ${System.currentTimeMillis()}")
     }
 
+    @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
     @Composable
     fun Dialog(message: AnnotatedString) {
 
@@ -225,73 +251,145 @@ class Alert : AppCompatActivity() {
                 }
             }
         }
-        AlertDialog(onDismissRequest = { }, dismissButton = {
-            // TODO inline reply
-            Row {
-                AnimatedVisibility(
-                    visible = !alertModel.silenced, enter = fadeIn(), exit = fadeOut()
-                ) {
-                    TextButton(onClick = {
-                        alertModel.ok()
-                        alertModel.clearNotification()
-                    }) {
-                        Text(text = getString(R.string.silence))
-                    }
-                }
-
-                AnimatedVisibility(
-                    visible = alertModel.showDNDButton && (getSystemService(
-                        NOTIFICATION_SERVICE
-                    ) as NotificationManager).isNotificationPolicyAccessGranted,
-                    enter = fadeIn(),
-                    exit = fadeOut()
-                ) {
-                    TextButton(onClick = {
-                        alertModel.silence()
-                        val intent = Intent(
-                            Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS
-                        )
-                        startActivity(intent)
-                    }) {
-                        Text(text = getString(R.string.open_settings))
-                    }
-                }
-            }
-        }, confirmButton = {
-            Button(onClick = {
-                alertModel.ok()
-                finish()
-            }) {
-                Text(text = getString(android.R.string.ok))
-            }
-        }, title = { Text(getString(R.string.alert_title)) }, text = {
-            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                Row(verticalAlignment = Alignment.Top) {
-                    imageBitmap?.let {
-                        Image(
-                            bitmap = it.asImageBitmap(),
-                            contentDescription = getString(
-                                R.string.pfp_description,
-                                alertModel.from
-                            ),
-                            modifier = Modifier
-                                .size(MainActivity.ICON_SIZE)
-                                .clip(CircleShape)
-                        )
-                        Spacer(modifier = Modifier.width(MainActivity.ICON_SPACING))
-                    }
-                    Text(message)
-                }
-                Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
-                Text(
-                    timeSince(since = Calendar.getInstance().apply {
-                        timeInMillis = alertModel.timestamp
-                    }), color = MaterialTheme.colorScheme.onSurface.copy(
-                        alpha = ContentAlpha.medium
+        BasicAlertDialog(onDismissRequest = { }) {
+            Surface(
+                modifier = Modifier
+                    .wrapContentWidth()
+                    .wrapContentHeight(),
+                shape = MaterialTheme.shapes.large,
+                tonalElevation = AlertDialogDefaults.TonalElevation
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Icon(imageVector = Icons.Filled.Warning, contentDescription = null)
+                    Text(
+                        text = getString(R.string.alert_title),
+                        style = MaterialTheme.typography.titleLarge
                     )
-                )
+                    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                        Row(verticalAlignment = Alignment.Top) {
+                            imageBitmap?.let {
+                                Image(
+                                    bitmap = it.asImageBitmap(),
+                                    contentDescription = getString(
+                                        R.string.pfp_description,
+                                        alertModel.from
+                                    ),
+                                    modifier = Modifier
+                                        .size(MainActivity.ICON_SIZE)
+                                        .clip(CircleShape)
+                                )
+                                Spacer(modifier = Modifier.width(MainActivity.ICON_SPACING))
+                            }
+                            Text(message)
+                        }
+                        Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
+                        Text(
+                            timeSince(since = Calendar.getInstance().apply {
+                                timeInMillis = alertModel.timestamp
+                            }), color = MaterialTheme.colorScheme.onSurface.copy(
+                                alpha = ContentAlpha.medium
+                            )
+                        )
+                        Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
+                        AnimatedVisibility(
+                            visible = alertModel.showDNDButton && (getSystemService(
+                                NOTIFICATION_SERVICE
+                            ) as NotificationManager).isNotificationPolicyAccessGranted,
+                            enter = fadeIn(),
+                            exit = fadeOut()
+                        ) {
+                            TextButton(onClick = {
+                                alertModel.silence()
+                                val intent = Intent(
+                                    Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS
+                                )
+                                startActivity(intent)
+                            }) {
+                                Text(text = getString(R.string.open_settings))
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    AnimatedVisibility(visible = alertModel.showReply, enter = expandVertically(), exit = shrinkVertically()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .wrapContentHeight()
+                        ) {
+                            OutlinedTextField(
+                                modifier = Modifier.weight(1f, fill = true),
+                                value = alertModel.replyMessage,
+                                onValueChange = {
+                                    alertModel.replyMessage = it
+                                },
+                                label = {
+                                    Text(
+                                        text = getString(
+                                            R.string.message_label,
+                                            alertModel.sender.name
+                                        )
+                                    )
+                                })
+                            IconButton(onClick = {
+                                alertModel.sendAlert()
+                                alertModel.clearNotification()
+                                finish()
+                            }, modifier = Modifier.fillMaxHeight()) {
+                                Icon(Icons.AutoMirrored.Filled.Send, getString(R.string.send))
+                            }
+                        }
+                    }
+                    FlowRow(horizontalArrangement = Arrangement.End) {
+                        AnimatedVisibility(
+                            visible = !alertModel.silenced, enter = fadeIn(), exit = fadeOut()
+                        ) {
+                            TextButton(onClick = {
+                                alertModel.ok()
+                                alertModel.clearNotification()
+                            }) {
+                                Text(text = getString(R.string.silence))
+                            }
+                        }
+
+                        AnimatedVisibility(
+                            visible = !alertModel.showReply,
+                            enter = fadeIn() + scaleIn(),
+                            exit = fadeOut() + scaleOut()
+                        ) {
+                            Button(onClick = {
+                                alertModel.ok()
+                                alertModel.showReply = true
+                            }) {
+                                Row(Modifier.wrapContentSize()) {
+                                    Icon(Icons.AutoMirrored.Filled.Reply, null)
+                                    Text(text = getString(R.string.reply))
+                                }
+                            }
+                        }
+
+                        Button(onClick = {
+                            alertModel.ok()
+                            finish()
+                        }) {
+                            when (alertModel.showReply) {
+                                false -> {
+                                    Text(text = getString(android.R.string.ok))
+                                }
+
+                                true -> {
+                                    Row(Modifier.wrapContentSize()) {
+                                        Icon(Icons.Filled.Close, null)
+                                        Text(text = getString(R.string.close))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
-        })
+
+        }
     }
 
     @Composable

@@ -117,6 +117,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import com.aracroproducts.attentionv2.AlertSendService.Companion.ACTION_ERROR
 import com.aracroproducts.attentionv2.AlertSendService.Companion.ACTION_LOGIN
 import com.aracroproducts.attentionv2.AlertSendService.Companion.ACTION_SUCCESS
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
@@ -141,7 +142,7 @@ class MainActivity : AppCompatActivity() {
         )
     })
 
-    inner class AlertSentReceiver: BroadcastReceiver() {
+    inner class AlertSentReceiver : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent?) {
             if (intent == null) return
 
@@ -149,9 +150,11 @@ class MainActivity : AppCompatActivity() {
                 ACTION_SUCCESS -> {
                     friendModel.showSnackBar(getString(R.string.alert_sent))
                 }
+
                 ACTION_LOGIN -> {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        val temp = intent.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java)
+                        val temp =
+                            intent.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java)
                         launchLogin(
                             temp
                         )
@@ -160,6 +163,11 @@ class MainActivity : AppCompatActivity() {
                         launchLogin(intent.getParcelableExtra(Intent.EXTRA_INTENT))
                     }
                 }
+
+                ACTION_ERROR -> {
+
+                }
+
                 else -> {
                     Log.e(MainActivity::class.java.name, "Unexpected action ${intent.action}")
                 }
@@ -219,7 +227,12 @@ class MainActivity : AppCompatActivity() {
     private fun launchLogin(resume: Intent? = null) {
         friendModel.waitForLoginResult = true
         friendModel.logout(this)
-        loginLauncher.launch(Intent(this, LoginActivity::class.java).putExtra(Intent.EXTRA_INTENT, resume))
+        loginLauncher.launch(
+            Intent(this, LoginActivity::class.java).putExtra(
+                Intent.EXTRA_INTENT,
+                resume
+            )
+        )
     }
 
     /**
@@ -804,9 +817,9 @@ class MainActivity : AppCompatActivity() {
                         username, it
                     ), onSuccess = {
                         friendModel.popDialogState()
-                            friendModel.newFriendName = ""
-                            friendModel.addFriendUsername = ""
-                            reload()
+                        friendModel.newFriendName = ""
+                        friendModel.addFriendUsername = ""
+                        reload()
                     }, launchLogin = this::launchLogin
                 )
             }, launchLogin = ::launchLogin)
@@ -927,7 +940,6 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    // todo the error send status should come from the view model, not janky callbacks
     @ExperimentalFoundationApi
     @Composable
     fun FriendCard(
@@ -943,16 +955,15 @@ class MainActivity : AppCompatActivity() {
         var message: String? by remember { mutableStateOf(null) }
         val transition = updateTransition(state, label = "friend state transition")
 
+        val isError = friend.lastMessageStatus == MessageStatus.ERROR
         val receipt = when (friend.lastMessageStatus) {
             MessageStatus.SENT -> getString(R.string.sent)
             MessageStatus.DELIVERED -> getString(R.string.delivered)
             MessageStatus.READ -> getString(R.string.read)
-            else -> ""
+            MessageStatus.ERROR -> getString(R.string.alert_failed)
+            MessageStatus.SENDING -> getString(R.string.sending)
+            null -> ""
         }
-
-        var sendingStatus: String? by remember { mutableStateOf(null) }
-
-        val subtitle = sendingStatus ?: receipt
 
         val alpha by transition.animateFloat(label = "friend alpha transition") {
             when (it) {
@@ -1065,11 +1076,9 @@ class MainActivity : AppCompatActivity() {
                         ) else MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.fillMaxWidth()
                     )
-                    if (subtitle.isNotBlank()) Text(
-                        text = subtitle,
-                        color = if (subtitle == getString(
-                                R.string.send_error
-                            )
+                    if (receipt.isNotBlank()) Text(
+                        text = receipt,
+                        color = if (isError
                         ) MaterialTheme.colorScheme.error.copy(
                             alpha = ContentAlpha.medium
                         )
@@ -1221,18 +1230,13 @@ class MainActivity : AppCompatActivity() {
                         if (progress >= delay && !triggered) {
                             triggered = true
 
-                            friendModel.sendAlert(friend,
+                            friendModel.sendAlert(
+                                friend,
                                 body = message,
-                                launchLogin = ::launchLogin,
-                                onError = {
-                                    sendingStatus = getString(R.string.send_error)
-                                },
-                                onSuccess = {
-                                    sendingStatus = null
-                                })
+                                launchLogin = ::launchLogin
+                            )
                             onStateChange(State.NORMAL)
                             progressEnabled = false
-                            sendingStatus = getString(R.string.sending)
                         }
                         CancelBar(progress = animatedProgress, modifier = Modifier
                             .clickable {

@@ -80,6 +80,9 @@ data class Message(
 enum class DIRECTION { Outgoing, Incoming }
 
 enum class MessageStatus(val value: String) {
+    @SerializedName("Sending")
+    SENDING("Sending"),
+
     @SerializedName("Sent")
     SENT("Sent"),
 
@@ -87,7 +90,10 @@ enum class MessageStatus(val value: String) {
     DELIVERED("Delivered"),
 
     @SerializedName("Read")
-    READ("Read");
+    READ("Read"),
+
+    @SerializedName("Error")
+    ERROR("Error");
 
     companion object {
 
@@ -96,6 +102,8 @@ enum class MessageStatus(val value: String) {
                 SENT.value -> SENT
                 DELIVERED.value -> DELIVERED
                 READ.value -> READ
+                ERROR.value -> ERROR
+                SENDING.value -> SENDING
                 else -> null
             }
         }
@@ -128,11 +136,8 @@ interface FriendDAO {
     @Query("SELECT * FROM Friend ORDER BY importance DESC LIMIT $MAX_IMPORTANT_PEOPLE")
     suspend fun getTopKFriends(): List<Friend>
 
-    @Query("UPDATE Friend SET lastMessageSentId = :messageId WHERE id = :id")
-    suspend fun setMessageAlert(messageId: String?, id: String)
-
     @Query(
-        "UPDATE Friend SET lastMessageStatus = :status WHERE id = :id AND lastMessageSentId = :alertId"
+        "UPDATE Friend SET lastMessageStatus = :status WHERE id = :id AND (lastMessageSentId = :alertId OR :alertId IS NULL)"
     )
     suspend fun setMessageStatus(status: String?, id: String?, alertId: String?)
 

@@ -121,6 +121,7 @@ class AlertSendService : Service() {
         }
 
         try {
+            repository.alertSending(message.otherId)
             repository.sendMessage(
                 message, token
             )
@@ -133,6 +134,7 @@ class AlertSendService : Service() {
         } catch (e: HttpException) {
             val response = e.response()
             val errorBody = response?.errorBody()?.string()
+            repository.alertError(message.otherId)
             if (response?.code() != 403) {
                 sendBroadcast(ACTION_ERROR, message.otherId)
             }
@@ -184,6 +186,7 @@ class AlertSendService : Service() {
                                     R.string.alert_failed_not_friend, to.name
                                 )
                             )
+                            repository.alertError(message.otherId)
                             sendBroadcast(ACTION_ERROR, message.otherId)
                         }
 
@@ -223,6 +226,7 @@ class AlertSendService : Service() {
                 "An error occurred: ${e.message}\n${e.stackTrace.joinToString(separator = "\n")}"
             )
             notifyUser(this, getString(R.string.alert_failed), message)
+            repository.alertError(message.otherId)
             sendBroadcast(ACTION_ERROR, message.otherId)
         } catch (e: TimeoutCancellationException) {
             Log.e(
@@ -234,6 +238,7 @@ class AlertSendService : Service() {
                 }"
             )
             notifyUser(this, getString(R.string.alert_failed), message)
+            repository.alertError(message.otherId)
             sendBroadcast(ACTION_ERROR, message.otherId)
         }
 

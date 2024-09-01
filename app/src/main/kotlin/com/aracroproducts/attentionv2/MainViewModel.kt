@@ -37,7 +37,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aracroproducts.attentionv2.AlertHandler.Companion.ALERT_CHANNEL_ID
 import com.aracroproducts.attentionv2.AlertSendService.Companion.SERVICE_CHANNEL_ID
-import com.aracroproducts.attentionv2.SendMessageReceiver.Companion.EXTRA_NOTIFICATION_ID
 import com.aracroproducts.attentionv2.SendMessageReceiver.Companion.EXTRA_SENDER
 import com.aracroproducts.attentionv2.SendMessageReceiver.Companion.KEY_TEXT_REPLY
 import com.aracroproducts.attentionv2.SettingsActivity.Companion.DEFAULT_DELAY
@@ -454,18 +453,6 @@ class MainViewModel(
         }
     }
 
-    /**
-     * Notifies the user that an alert was not successfully sent
-     *
-     * @param text  - The message to display in the body of the notification
-     * @requires    - Code is one of ErrorType.SERVER_ERROR or ErrorType.BAD_REQUEST
-     */
-    private fun notifyUser(text: String, message: Message? = null) {
-        viewModelScope.launch {
-            notifyUser(application, text, message)
-        }
-    }
-
     fun checkOverlayPermission() {
         viewModelScope.launch {
             if (!Settings.canDrawOverlays(application) && preferencesRepository.getValue(
@@ -658,9 +645,7 @@ class MainViewModel(
     fun sendAlert(
         to: Friend,
         body: String?,
-        launchLogin: (Intent?) -> Unit,
-        onError: (() -> Unit)? = null,
-        onSuccess: (() -> Unit)? = null
+        launchLogin: (Intent?) -> Unit
     ) {
         viewModelScope.launch {
             val context = application
