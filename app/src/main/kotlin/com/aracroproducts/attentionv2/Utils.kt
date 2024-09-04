@@ -8,12 +8,10 @@ import android.content.pm.PackageManager
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.lifecycle.viewModelScope
 import com.aracroproducts.attentionv2.MainViewModel.Companion.EXTRA_BODY
 import com.aracroproducts.attentionv2.MainViewModel.Companion.EXTRA_RECIPIENT
 import com.aracroproducts.attentionv2.MainViewModel.Companion.FAILED_ALERT_CHANNEL_ID
 import com.aracroproducts.attentionv2.MainViewModel.Companion.createFailedAlertNotificationChannel
-import kotlinx.coroutines.launch
 import kotlin.math.min
 
 
