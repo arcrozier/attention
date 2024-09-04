@@ -38,7 +38,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.ContentAlpha
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
@@ -465,7 +464,7 @@ class LoginActivity : AppCompatActivity() {
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING * 2))
             HorizontalDivider(
                 color = MaterialTheme.colorScheme.outline.copy(
-                    alpha = ContentAlpha.disabled
+                    alpha = DISABLED_ALPHA
                 ), modifier = Modifier.fillMaxWidth(0.75f)
             )
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING * 2))
@@ -1129,7 +1128,7 @@ class LoginActivity : AppCompatActivity() {
                     context = this@LoginActivity,
                     request = getCredRequest
                 )
-                handleSignIn(result)
+                handleSignIn(result, linkExisting)
             } catch (e: GetCredentialException) {
                 Log.e(TAG, "Google Sign-in failed: $e")
                 loginViewModel.uiEnabled = true

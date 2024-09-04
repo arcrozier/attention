@@ -29,6 +29,9 @@ fun filterSpecialChars(string: String): String {
     }
 }
 
+const val DISABLED_ALPHA = 0.38f
+const val HIGH_ALPHA = 1f
+
 /**
  * Notifies the user that an alert was not successfully sent
  *

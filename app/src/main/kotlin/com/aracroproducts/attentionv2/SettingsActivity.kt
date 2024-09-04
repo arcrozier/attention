@@ -52,7 +52,6 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.ContentAlpha
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Logout
@@ -91,6 +90,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
@@ -1173,7 +1173,7 @@ class SettingsActivity : AppCompatActivity() {
                                                     .clip(RoundedCornerShape(10))
                                                     .background(
                                                         Color.Black.copy(
-                                                            alpha = ContentAlpha.disabled
+                                                            alpha = DISABLED_ALPHA
                                                         )
                                                     )
                                             ) {
@@ -1341,11 +1341,11 @@ class SettingsActivity : AppCompatActivity() {
             ) {
                 largePreference()
             }
-            HorizontalDivider(
+            VerticalDivider(
                 modifier = Modifier
                     .fillMaxHeight(0.6f)
                     .width(1.dp),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = ContentAlpha.medium)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Box(
                 modifier = modifier
@@ -1370,14 +1370,11 @@ class SettingsActivity : AppCompatActivity() {
         icon: @Composable (BoxScope.(enabled: Boolean) -> Unit)? = null,
         reserveIconSpace: Boolean = true,
         titleColor: Color = MaterialTheme.colorScheme.onSurface,
-        disabledTitleColor: Color = MaterialTheme.colorScheme.onSurface.copy(
-            alpha = ContentAlpha.medium
-        ),
+        disabledTitleColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
         titleStyle: TextStyle = MaterialTheme.typography.bodyLarge,
-        summaryColor: Color = MaterialTheme.colorScheme.onSurface.copy(
-            alpha = ContentAlpha.medium
-        ),
-        summaryStyle: TextStyle = MaterialTheme.typography.labelLarge,
+        disabledTitleStyle: TextStyle = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Thin),
+        summaryColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+        summaryStyle: TextStyle = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Thin),
         enabled: Boolean = true,
         dialog: @Composable (value: T, setValue: (T) -> Unit, dismissDialog: () -> Unit, context: Context, title: String) -> Unit
     ) {
@@ -1399,6 +1396,7 @@ class SettingsActivity : AppCompatActivity() {
             reserveIconSpace = reserveIconSpace,
             titleColor = titleColor,
             disabledTitleColor = disabledTitleColor,
+            disabledTitleStyle = disabledTitleStyle,
             titleStyle = titleStyle,
             summaryColor = summaryColor,
             onPreferenceClicked = {
@@ -1421,15 +1419,12 @@ class SettingsActivity : AppCompatActivity() {
         icon: @Composable (BoxScope.(enabled: Boolean) -> Unit)? = null,
         reserveIconSpace: Boolean = true,
         titleColor: Color = MaterialTheme.colorScheme.onSurface,
-        disabledTitleColor: Color = MaterialTheme.colorScheme.onSurface.copy(
-            alpha = ContentAlpha.medium
-        ),
+        disabledTitleColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
         titleStyle: TextStyle = MaterialTheme.typography.bodyLarge,
-        summaryColor: Color = MaterialTheme.colorScheme.onSurface.copy(
-            alpha = ContentAlpha.medium
-        ),
+        disabledTitleStyle: TextStyle = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Thin),
+        summaryColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
         onPreferenceClicked: () -> Unit = { },
-        summaryStyle: TextStyle = MaterialTheme.typography.labelLarge,
+        summaryStyle: TextStyle = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Thin),
         enabled: Boolean = true,
     ) {
         Row(
@@ -1445,7 +1440,7 @@ class SettingsActivity : AppCompatActivity() {
                 Box(modifier = Modifier
                     .padding(ICON_PADDING)
                     .size(ICON_SIZE)
-                    .alpha(if (enabled) ContentAlpha.high else ContentAlpha.disabled),
+                    .alpha(if (enabled) HIGH_ALPHA else DISABLED_ALPHA),
                     contentAlignment = Alignment.Center,
                     content = {
                         iconSpot(enabled)
@@ -1458,7 +1453,7 @@ class SettingsActivity : AppCompatActivity() {
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = getString(title), style = titleStyle, color = if (enabled) titleColor
+                    text = getString(title), style = if (enabled) titleStyle else disabledTitleStyle, color = if (enabled) titleColor
                     else disabledTitleColor
                 )
                 if (summary != null) Text(

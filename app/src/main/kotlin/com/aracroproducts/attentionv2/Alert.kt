@@ -42,7 +42,6 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.ContentAlpha
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -70,6 +69,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
@@ -286,9 +286,8 @@ class Alert : AppCompatActivity() {
                         Text(
                             timeSince(since = Calendar.getInstance().apply {
                                 timeInMillis = alertModel.timestamp
-                            }), color = MaterialTheme.colorScheme.onSurface.copy(
-                                alpha = ContentAlpha.medium
-                            )
+                            }), color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Thin
                         )
                         Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
                         AnimatedVisibility(

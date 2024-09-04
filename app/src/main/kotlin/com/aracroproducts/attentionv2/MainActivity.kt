@@ -66,7 +66,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.ContentAlpha
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PersonAdd
@@ -105,6 +104,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -176,7 +176,7 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    val alertSentReceiver = AlertSentReceiver()
+    private val alertSentReceiver = AlertSentReceiver()
 
     class MainViewModelFactory(
         private val attentionRepository: AttentionRepository,
@@ -551,7 +551,7 @@ class MainActivity : AppCompatActivity() {
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(16.dp)
-                                        .alpha(ContentAlpha.disabled),
+                                        .alpha(DISABLED_ALPHA),
                                     color = MaterialTheme.colorScheme.onSurface,
                                     textAlign = TextAlign.Center,
                                 )
@@ -585,7 +585,7 @@ class MainActivity : AppCompatActivity() {
                                         })
                                     HorizontalDivider(
                                         color = MaterialTheme.colorScheme.outline.copy(
-                                            alpha = ContentAlpha.disabled
+                                            alpha = DISABLED_ALPHA
                                         ), modifier = Modifier.padding(start = 16.dp, end = 16.dp)
                                     )
                                 }
@@ -607,7 +607,7 @@ class MainActivity : AppCompatActivity() {
                                     )
                                     HorizontalDivider(
                                         color = MaterialTheme.colorScheme.outline.copy(
-                                            alpha = ContentAlpha.disabled
+                                            alpha = DISABLED_ALPHA
                                         ), modifier = Modifier.padding(start = 16.dp, end = 16.dp)
                                     )
                                 }
@@ -859,11 +859,9 @@ class MainActivity : AppCompatActivity() {
                 Text(
                     modifier = Modifier.fillMaxWidth(),
                     text = friendModel.newFriendName,
-                    color = if (friendModel.friendNameLoading) MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                        alpha = ContentAlpha.medium
-                    )
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    fontWeight = if (friendModel.friendNameLoading) FontWeight.Thin else FontWeight.Normal
                 )
                 OutlinedTextField(colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1071,21 +1069,17 @@ class MainActivity : AppCompatActivity() {
                         style = MaterialTheme.typography.titleMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        color = if (cached) MaterialTheme.colorScheme.onBackground.copy(
-                            alpha = ContentAlpha.medium
-                        ) else MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.fillMaxWidth()
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.fillMaxWidth(),
+                        fontWeight = if (cached) FontWeight.Thin else FontWeight.Normal
                     )
                     if (receipt.isNotBlank()) Text(
                         text = receipt,
                         color = if (isError
-                        ) MaterialTheme.colorScheme.error.copy(
-                            alpha = ContentAlpha.medium
-                        )
-                        else MaterialTheme.colorScheme.onBackground.copy(
-                            alpha = ContentAlpha.medium
-                        ),
+                        ) MaterialTheme.colorScheme.error
+                        else MaterialTheme.colorScheme.onBackground,
                         style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Thin
                     )
                 }
             }
