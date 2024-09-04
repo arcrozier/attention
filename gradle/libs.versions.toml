@@ -9,8 +9,7 @@ datastorePreferences = "1.1.1"
 espressoCore = "3.6.1"
 firebaseAnalytics = "22.1.0"
 firebaseMessagingKtx = "24.0.1"
-gradle = "8.5.2"
-androidGradlePlugin = "8.5.2"
+androidGradlePlugin = "8.6.0"
 gson = "2.11.0"
 jetpackComposeVersion = "1.6.8"
 junit = "4.13.2"
@@ -93,7 +92,7 @@ compose = ["activity-compose", "androidx-activity-ktx", "androidx-animation", "m
 credentials = ["credentials", "credentials-services"]
 
 [plugins]
-android-application = { id = "com.android.application", version.ref = "gradle" }
+android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
 android-library = { id = "com.android.library", version.ref = "androidGradlePlugin" }
 android-test = { id = "com.android.test", version.ref = "androidGradlePlugin" }
 compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
