@@ -81,12 +81,15 @@ dependencies {
     ksp(libs.androidx.room.compiler)
 
     implementation(libs.googleid)
-//    compileOnly(libs.android.tools.common)
     compileOnly(libs.android.gradlePlugin)
     compileOnly(libs.kotlin.gradlePlugin)
     compileOnly(libs.compose.gradlePlugin)
     compileOnly(libs.ksp.gradlePlugin)
     compileOnly(libs.room.gradlePlugin)
+
+    val composeBom = platform(libs.androidx.compose.bom)
+    implementation(composeBom)
+    androidTestImplementation(composeBom)
 
     implementation(libs.bundles.compose)
     implementation(libs.bundles.room)
