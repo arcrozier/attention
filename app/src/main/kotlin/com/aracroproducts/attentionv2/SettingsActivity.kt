@@ -135,7 +135,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
 import androidx.core.view.WindowCompat
-import androidx.credentials.ClearCredentialRequestTypes
 import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.CredentialManager
 import androidx.credentials.exceptions.ClearCredentialException
@@ -626,7 +625,7 @@ class SettingsActivity : AppCompatActivity() {
                                 scope.launch {
                                     try {
                                         credentialManager.clearCredentialState(
-                                            ClearCredentialStateRequest(ClearCredentialRequestTypes.CLEAR_CREDENTIAL_STATE)
+                                            ClearCredentialStateRequest(ClearCredentialStateRequest.TYPE_CLEAR_CREDENTIAL_STATE)
                                         )
                                     } catch (e: ClearCredentialException) {
                                         // not really much we can do
