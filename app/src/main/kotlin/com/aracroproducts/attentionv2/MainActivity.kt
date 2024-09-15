@@ -281,7 +281,8 @@ class MainActivity : AppCompatActivity() {
                 .build()
 
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-            "tokenRefresh", ExistingPeriodicWorkPolicy.UPDATE, saveRequest)
+            "tokenRefresh", ExistingPeriodicWorkPolicy.UPDATE, saveRequest
+        )
     }
 
     private fun handleIntent(intent: Intent?, savedInstanceState: Bundle? = null) {

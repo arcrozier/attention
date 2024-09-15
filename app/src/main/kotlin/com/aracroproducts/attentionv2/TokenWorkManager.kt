@@ -14,7 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import retrofit2.HttpException
 
-class TokenWorkManager(appContext: Context, workerParams: WorkerParameters):
+class TokenWorkManager(appContext: Context, workerParams: WorkerParameters) :
     CoroutineWorker(appContext, workerParams) {
     /**
      * A suspending method to do your work.
@@ -44,8 +44,7 @@ class TokenWorkManager(appContext: Context, workerParams: WorkerParameters):
             throw e
         } catch (e: HttpException) {
             return Result.failure()
-        }
-        catch (e: Exception) {
+        } catch (e: Exception) {
             return Result.retry()
         }
     }

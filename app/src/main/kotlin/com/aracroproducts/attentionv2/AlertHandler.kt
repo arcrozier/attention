@@ -63,7 +63,10 @@ open class AlertHandler : FirebaseMessagingService() {
                 try {
                     repository.registerDevice(authToken, token)
                 } catch (e: HttpException) {
-                    Log.e(TAG, "An error occurred when uploading token: ${e.response()?.errorBody()}")
+                    Log.e(
+                        TAG,
+                        "An error occurred when uploading token: ${e.response()?.errorBody()}"
+                    )
                 } catch (e: Exception) {
                     Log.e(
                         TAG,

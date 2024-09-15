@@ -191,11 +191,13 @@ class AttentionRepository(private val database: AttentionDB) {
     }
 
     suspend fun alertError(username: String?) {
-        database.getFriendDAO().setMessageStatus(MessageStatus.ERROR.value, id = username, alertId = null)
+        database.getFriendDAO()
+            .setMessageStatus(MessageStatus.ERROR.value, id = username, alertId = null)
     }
 
     suspend fun alertSending(username: String?) {
-        database.getFriendDAO().setMessageStatus(MessageStatus.SENDING.value, id = username, alertId = null)
+        database.getFriendDAO()
+            .setMessageStatus(MessageStatus.SENDING.value, id = username, alertId = null)
     }
 
     suspend fun sendDeliveredReceipt(

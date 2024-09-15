@@ -13,14 +13,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 
 class AttentionContainer(context: Context) {
-    val database by lazy { AttentionDB.getDB(context) }
+    private val database by lazy { AttentionDB.getDB(context) }
     val repository by lazy { AttentionRepository(database) }
     val settingsRepository by lazy { PreferencesRepository(getDataStore(context)) }
     val applicationScope = CoroutineScope(SupervisorJob())
 }
 
 class AttentionApplication : Application(), LifecycleEventObserver,
-                             Application.ActivityLifecycleCallbacks {
+    Application.ActivityLifecycleCallbacks {
 
     val container = AttentionContainer(this)
 

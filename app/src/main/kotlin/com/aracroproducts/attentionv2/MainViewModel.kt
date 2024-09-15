@@ -560,7 +560,8 @@ class MainViewModel(
             // token is auth token
             val token = preferencesRepository.getToken()
 
-            val fcmToken: String = preferencesRepository.getValue(stringPreferencesKey(FCM_TOKEN)) ?: getToken()
+            val fcmToken: String =
+                preferencesRepository.getValue(stringPreferencesKey(FCM_TOKEN)) ?: getToken()
 
             if (token != null) {
                 try {
@@ -666,9 +667,9 @@ class MainViewModel(
      * Automatically uploads the token and updates the "uploaded" sharedPreference
      */
     private suspend fun getToken(): String {
-            val fcmToken = Firebase.messaging.token.await()
-            preferencesRepository.setValue(stringPreferencesKey(FCM_TOKEN), fcmToken)
-            return fcmToken
+        val fcmToken = Firebase.messaging.token.await()
+        preferencesRepository.setValue(stringPreferencesKey(FCM_TOKEN), fcmToken)
+        return fcmToken
     }
 
     private fun setConnectStatus(responseCode: Int?) {
