@@ -1,23 +1,11 @@
 package com.aracroproducts.attentionv2
 
-import android.app.NotificationManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import android.util.Log
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.RemoteInput
-import androidx.datastore.preferences.core.stringPreferencesKey
 import com.aracroproducts.attentionv2.AlertViewModel.Companion.NO_ID
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
-import retrofit2.HttpException
-import kotlin.time.Duration.Companion.seconds
 
 class SendMessageReceiver : BroadcastReceiver() {
     /**
@@ -57,7 +45,6 @@ class SendMessageReceiver : BroadcastReceiver() {
      * @param context The Context in which the receiver is running.
      * @param intent The Intent being received.
      */
-    @OptIn(DelicateCoroutinesApi::class)
     override fun onReceive(context: Context?, intent: Intent?) {
         if (intent == null || context == null) return
 
@@ -86,6 +73,5 @@ class SendMessageReceiver : BroadcastReceiver() {
         const val EXTRA_SENDER = "com.aracroproducts.attention.extra.RECIPIENT"
         const val EXTRA_NOTIFICATION_ID = "com.aracroproducts.attention.extra.NOTIFICATION_ID"
         const val KEY_TEXT_REPLY = "key_text_reply"
-        val sTAG = SendMessageReceiver::class.qualifiedName ?: ""
     }
 }

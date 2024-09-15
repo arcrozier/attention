@@ -24,6 +24,10 @@ class AttentionRepository(private val database: AttentionDB) {
         database.getFriendDAO().insert(*friend)
     }
 
+    suspend fun insert(vararg pendingFriend: PendingFriend) {
+        database.getPendingFriendDAO().insert(*pendingFriend)
+    }
+
     fun clearTables() {
         thread {
             database.clearAllTables()
@@ -35,6 +39,26 @@ class AttentionRepository(private val database: AttentionDB) {
         token: String
     ): GenericResult<Void> {
         return apiInterface.deleteFriend(friend.id, authHeader(token))
+    }
+
+    suspend fun block(
+        username: String,
+        token: String
+    ): GenericResult<Void> {
+        val result = apiInterface.blockUser(username, authHeader(token))
+        database.getPendingFriendDAO().delete(username)
+
+        return result
+    }
+
+    suspend fun ignore(
+        username: String,
+        token: String
+    ): GenericResult<Void> {
+        val result = apiInterface.ignoreUser(username, authHeader(token))
+        database.getPendingFriendDAO().delete(username)
+
+        return result
     }
 
     suspend fun edit(

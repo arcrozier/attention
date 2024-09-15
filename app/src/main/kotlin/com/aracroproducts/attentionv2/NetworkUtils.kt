@@ -160,6 +160,20 @@ interface APIV2 {
     ): GenericResult<Void>
 
     @FormUrlEncoded
+    @POST("block_user/")
+    suspend fun blockUser(
+        @Field("username") username: String,
+        @Header("Authorization") token: String
+    ): GenericResult<Void>
+
+    @FormUrlEncoded
+    @POST("ignore_user/")
+    suspend fun ignoreUser(
+        @Field("username") username: String,
+        @Header("Authorization") token: String
+    ): GenericResult<Void>
+
+    @FormUrlEncoded
     @PUT("edit/")
     suspend fun editUser(
         @Field("username") username: String?,

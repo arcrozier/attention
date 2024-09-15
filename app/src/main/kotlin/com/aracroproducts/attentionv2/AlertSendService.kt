@@ -240,6 +240,7 @@ class AlertSendService : Service() {
             notifyUser(this, getString(R.string.alert_failed), message)
             repository.alertError(message.otherId)
             sendBroadcast(ACTION_ERROR, message.otherId)
+            throw e
         }
 
         // 1. get recipient
@@ -274,6 +275,7 @@ class AlertSendService : Service() {
 
     companion object {
         const val SERVICE_CHANNEL_ID = "service_alert"
+        const val FRIEND_SERVICE_CHANNEL_ID = "friend_service_alert"
         const val ACTION_SUCCESS = "com.aracroproducts.attention.broadcast.SUCCESS"
         const val ACTION_LOGIN = "com.aracroproducts.attention.broadcast.LOGIN"
         const val ACTION_ERROR = "com.aracroproducts.attention.broadcast.ERROR"

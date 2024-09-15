@@ -114,6 +114,21 @@
             android:foregroundServiceType="shortService"
             android:exported="false">
         </service>
+
+        <receiver
+            android:name=".FriendRequestReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.aracroproducts.attention.broadcast.ACCEPT" />
+                <action android:name="com.aracroproducts.attention.broadcast.IGNORE" />
+                <action android:name="com.aracroproducts.attention.broadcast.BLOCK" />
+            </intent-filter>
+        </receiver>
+
+        <service
+            android:name=".FriendManagementService"
+            android:exported="false"
+            android:foregroundServiceType="shortService"></service>
     </application>
 
 </manifest>

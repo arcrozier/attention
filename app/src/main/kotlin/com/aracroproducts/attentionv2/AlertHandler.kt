@@ -25,6 +25,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.android.build.gradle.internal.utils.toImmutableSet
 import com.aracroproducts.attentionv2.AlertViewModel.Companion.NO_ID
+import com.aracroproducts.attentionv2.SendMessageReceiver.Companion.EXTRA_NOTIFICATION_ID
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.Dispatchers
@@ -206,7 +207,22 @@ open class AlertHandler : FirebaseMessagingService() {
                         setPackage(this@AlertHandler.packageName)
                     })
                 }
-                // TODO friend request
+                "friended" -> {
+                    val username = messageData[FCM_FRIEND_REQUEST_USERNAME] ?: run {
+                        Log.w(TAG, "Received friend request with no username")
+                        return@launch
+                    }
+                    val name = messageData[FCM_FRIEND_REQUEST_NAME] ?: run {
+                        Log.w(TAG, "Received friend request from $username but no name")
+                        return@launch
+                    }
+                    val photo = messageData[FCM_FRIEND_REQUEST_PHOTO]
+                    val pendingFriend =
+                        PendingFriend(username, name, if (photo.isNullOrBlank()) null else photo)
+                    showFriendRequestNotification(applicationContext, pendingFriend)
+                    repository.insert(pendingFriend)
+                }
+
                 else -> {
                     Log.w(TAG, "Unrecognized action: $remoteMessage")
                     return@launch
@@ -280,7 +296,10 @@ open class AlertHandler : FirebaseMessagingService() {
         const val ALERT_TIMESTAMP = "alert_timestamp"
         const val ASSOCIATED_NOTIFICATION = "notification_id"
         const val SHOULD_VIBRATE = "vibrate"
-        const val REQUEST_REPLY = 0
+        const val FCM_FRIEND_REQUEST_USERNAME = "friend"
+        const val FCM_FRIEND_REQUEST_NAME = "name"
+        const val FCM_FRIEND_REQUEST_PHOTO = "photo"
+        private const val REQUEST_REPLY = 0
 
         class NotificationFlags {
 
@@ -327,7 +346,7 @@ open class AlertHandler : FirebaseMessagingService() {
 
             init {
                 putExtra(SendMessageReceiver.EXTRA_SENDER, sender)
-                putExtra(SendMessageReceiver.EXTRA_NOTIFICATION_ID, notificationId)
+                putExtra(EXTRA_NOTIFICATION_ID, notificationId)
                 putExtra(EXTRA_ALERT_ID, alertId)
             }
 
@@ -503,6 +522,103 @@ open class AlertHandler : FirebaseMessagingService() {
         private fun flagSet(flags: Int, flag: Int): Boolean {
             assert(flag.countOneBits() == 1)
             return flags and flag != 0
+        }
+
+        fun showFriendRequestNotification(
+            applicationContext: Context,
+            pendingFriend: PendingFriend,
+            notificationId: Int? = null
+        ): Int {
+            val notificationID = notificationId ?: System.currentTimeMillis().toInt()
+            val intent = Intent(applicationContext, MainActivity::class.java)
+
+            // for more on the conversation api, see
+            // https://developer.android.com/develop/ui/views/notifications/conversations#api-notifications
+
+            val icon = if (!pendingFriend.photo.isNullOrBlank()) {
+                val imageDecoded = Base64.decode(pendingFriend.photo, Base64.DEFAULT)
+                val imageBitmap = BitmapFactory.decodeByteArray(imageDecoded, 0, imageDecoded.size)
+                IconCompat.createWithBitmap(imageBitmap)
+            } else {
+                IconCompat.createWithResource(applicationContext, R.drawable.baseline_person_24)
+            }
+
+
+            val pendingIntent = PendingIntent.getActivity(
+                applicationContext, 0, intent, PendingIntent.FLAG_IMMUTABLE
+            )
+            val baseIntent = Intent(applicationContext, FriendRequestReceiver::class.java).apply {
+                putExtra(EXTRA_NOTIFICATION_ID, notificationID)
+                putExtra(EXTRA_USERNAME, pendingFriend.username)
+                putExtra(EXTRA_NAME, pendingFriend.name)
+            }
+            val acceptIntent = Intent(baseIntent).apply {
+                action = ACTION_ACCEPT
+            }
+
+            val acceptPendingIntent: PendingIntent =
+                PendingIntent.getBroadcast(
+                    applicationContext, REQUEST_REPLY, acceptIntent,
+                    PendingIntent.FLAG_IMMUTABLE
+                )
+
+            val ignoreIntent = Intent(baseIntent).apply {
+                action = ACTION_IGNORE
+            }
+
+            val ignorePendingIntent = PendingIntent.getBroadcast(
+                applicationContext,
+                REQUEST_REPLY,
+                ignoreIntent,
+                PendingIntent.FLAG_IMMUTABLE
+            )
+
+            val blockIntent = Intent(baseIntent).apply {
+                action = ACTION_BLOCK
+            }
+
+            val blockPendingIntent = PendingIntent.getBroadcast(
+                applicationContext,
+                REQUEST_REPLY,
+                blockIntent,
+                PendingIntent.FLAG_IMMUTABLE
+            )
+
+            val builder: NotificationCompat.Builder =
+                NotificationCompat.Builder(
+                    applicationContext,
+                    ALERT_CHANNEL_ID
+                ) // TODO friend request channel
+            builder.setSmallIcon(icon)
+                .setContentTitle(
+                    applicationContext.getString(
+                        R.string.alert_notification_title,
+                        pendingFriend.name
+                    ) // TODO
+                )
+                .setContentText(null) // TODO
+                .addAction(
+                    R.drawable.baseline_mark_chat_read_24,// TODO accept
+                    applicationContext.getString(R.string.accept),
+                    acceptPendingIntent
+                )
+            // TODO ignore
+            // TODO block
+
+            builder
+                .setCategory(Notification.CATEGORY_MESSAGE)
+                .setPriority(NotificationCompat.PRIORITY_HIGH).setContentIntent(pendingIntent)
+                .setAutoCancel(true)
+            val notificationManagerCompat = NotificationManagerCompat.from(applicationContext)
+            if (ActivityCompat.checkSelfPermission(
+                    applicationContext,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                return NO_ID
+            }
+            notificationManagerCompat.notify(notificationID, builder.build())
+            return notificationID
         }
     }
 }

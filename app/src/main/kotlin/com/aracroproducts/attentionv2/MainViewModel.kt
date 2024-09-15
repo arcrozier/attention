@@ -35,6 +35,7 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aracroproducts.attentionv2.AlertHandler.Companion.ALERT_CHANNEL_ID
+import com.aracroproducts.attentionv2.AlertSendService.Companion.FRIEND_SERVICE_CHANNEL_ID
 import com.aracroproducts.attentionv2.AlertSendService.Companion.SERVICE_CHANNEL_ID
 import com.aracroproducts.attentionv2.SendMessageReceiver.Companion.EXTRA_SENDER
 import com.aracroproducts.attentionv2.SendMessageReceiver.Companion.KEY_TEXT_REPLY
@@ -799,17 +800,37 @@ class MainViewModel(
             }
         }
 
+        fun createFriendRequestNotificationChannel(context: Context) {
+            TODO("Not implemented")
+        }
+
         fun createForegroundServiceNotificationChannel(context: Context) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val name: CharSequence = context.getString(R.string.service_channel_name)
-                val description = context.getString(R.string.service_channel_description)
-                val importance = NotificationManager.IMPORTANCE_LOW
-                val channel = NotificationChannel(SERVICE_CHANNEL_ID, name, importance)
-                channel.description =
-                    description // Register the channel with the system; you can't change the importance
-                // or other notification behaviors after this
-                val notificationManager = context.getSystemService(NotificationManager::class.java)
-                notificationManager.createNotificationChannel(channel)
+                run {
+                    val name: CharSequence = context.getString(R.string.service_channel_name)
+                    val description = context.getString(R.string.service_channel_description)
+                    val importance = NotificationManager.IMPORTANCE_LOW
+                    val channel = NotificationChannel(SERVICE_CHANNEL_ID, name, importance)
+                    channel.description =
+                        description // Register the channel with the system; you can't change the importance
+                    // or other notification behaviors after this
+                    val notificationManager =
+                        context.getSystemService(NotificationManager::class.java)
+                    notificationManager.createNotificationChannel(channel)
+                }
+
+                run {
+                    val name: CharSequence = context.getString(R.string.friend_service_channel_name)
+                    val description = context.getString(R.string.friend_service_channel_description)
+                    val importance = NotificationManager.IMPORTANCE_LOW
+                    val channel = NotificationChannel(FRIEND_SERVICE_CHANNEL_ID, name, importance)
+                    channel.description =
+                        description // Register the channel with the system; you can't change the importance
+                    // or other notification behaviors after this
+                    val notificationManager =
+                        context.getSystemService(NotificationManager::class.java)
+                    notificationManager.createNotificationChannel(channel)
+                }
             }
         }
 

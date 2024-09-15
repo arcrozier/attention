@@ -269,6 +269,7 @@ class MainActivity : AppCompatActivity() {
         // Creates a notification channel for displaying failed-to-send notifications
         MainViewModel.createFailedAlertNotificationChannel(this)
         MainViewModel.createNotificationChannel(this)
+        MainViewModel.createFriendRequestNotificationChannel(this)
         MainViewModel.createForegroundServiceNotificationChannel(this)
 
         handleIntent(intent, savedInstanceState)
@@ -593,31 +594,42 @@ class MainActivity : AppCompatActivity() {
                                     .nestedScroll(scrollBehavior.nestedScrollConnection),
                                 contentPadding = paddingValues
                             ) {
-                                // TODO pending friends
-                                // TODO pending friends title
-                                items(
-                                    items = pendingFriends,
-                                    key = { friend -> friend.username }) { pendingFriend ->
-                                    PendingFriendCard(
-                                        friend = pendingFriend,
-                                        modifier = Modifier.animateItem(),
-                                        state = friendModel.pendingCardStatus.getOrDefault(
-                                            pendingFriend.username,
-                                            PendingState.NORMAL
-                                        ),
-                                        onStateChange = { newState ->
-                                            friendModel.pendingCardStatus[pendingFriend.username] =
-                                                newState
-                                        })
-                                }
-                                items(count = 1) {
-                                    HorizontalDivider(
-                                        color = MaterialTheme.colorScheme.outline.copy(
-                                            alpha = DISABLED_ALPHA
-                                        ),
-                                        modifier = Modifier.padding(start = 8.dp, end = 8.dp),
-                                        thickness = 3.dp
-                                    )
+                                if (pendingFriends.isNotEmpty()) {
+                                    items(count = 1) {
+                                        Text(
+                                            text = getString(R.string.pending_friend_header),
+                                            style = MaterialTheme.typography.headlineSmall,
+                                            modifier = Modifier.padding(
+                                                horizontal = 16.dp,
+                                                vertical = 8.dp
+                                            )
+                                        )
+                                        HorizontalDivider(modifier = Modifier.fillMaxWidth(0.5f))
+                                    }
+                                    items(
+                                        items = pendingFriends,
+                                        key = { friend -> friend.username }) { pendingFriend ->
+                                        PendingFriendCard(
+                                            friend = pendingFriend,
+                                            modifier = Modifier.animateItem(),
+                                            state = friendModel.pendingCardStatus.getOrDefault(
+                                                pendingFriend.username,
+                                                PendingState.NORMAL
+                                            ),
+                                            onStateChange = { newState ->
+                                                friendModel.pendingCardStatus[pendingFriend.username] =
+                                                    newState
+                                            })
+                                    }
+                                    items(count = 1) {
+                                        HorizontalDivider(
+                                            color = MaterialTheme.colorScheme.outline.copy(
+                                                alpha = DISABLED_ALPHA
+                                            ),
+                                            modifier = Modifier.padding(start = 8.dp, end = 8.dp),
+                                            thickness = 3.dp
+                                        )
+                                    }
                                 }
                                 items(items = friends, key = { friend ->
                                     friend.id
@@ -1365,7 +1377,7 @@ class MainActivity : AppCompatActivity() {
                             }
                         )
                     },
-                    onClickLabel = getString(R.string.friend_card_click_label), // TODO
+                    onClickLabel = getString(R.string.pending_friend_card_click_label),
                     interactionSource = interactionSource,
                     indication = LocalIndication.current,
                 )
@@ -1397,7 +1409,7 @@ class MainActivity : AppCompatActivity() {
                         ) {}
                         .weight(1f, fill = true)) {
                     Text(
-                        text = friend.name,  // TODO make it $name wants to be your friend or something
+                        text = friend.name,
                         style = MaterialTheme.typography.titleMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -1408,7 +1420,7 @@ class MainActivity : AppCompatActivity() {
                     Text(
                         text = friend.username,
                         color = MaterialTheme.colorScheme.onBackground,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Thin
                     )
                 }
@@ -1468,14 +1480,14 @@ class MainActivity : AppCompatActivity() {
                                     contentColor = MaterialTheme.colorScheme.onPrimary
                                 )
                             ) {
-                                Text(getString(R.string.confirm_alert)) // TODO this is accept
+                                Text(getString(R.string.accept))
                             }
                             OutlinedButton(onClick = {
                                 // TODO send ignore request
                                 // TODO delete pending friend
                                 onStateChange(PendingState.NORMAL)
                             }) {
-                                Text(getString(R.string.add_message))  // TODO this is ignore
+                                Text(getString(R.string.ignore))
                             }
                             Button(
                                 onClick = {
@@ -1487,7 +1499,7 @@ class MainActivity : AppCompatActivity() {
                                     contentColor = MaterialTheme.colorScheme.onError
                                 )
                             ) {
-                                Text("BLOCK") // TODO
+                                Text(getString(R.string.block))
                             }
                         }
                     }
