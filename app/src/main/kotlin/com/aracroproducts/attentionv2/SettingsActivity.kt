@@ -110,7 +110,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
@@ -586,13 +585,12 @@ class SettingsActivity : AppCompatActivity() {
                                startActivity(intent)
                            })
 
-                Preference(value = null, icon = { enabled ->
+                Preference(
+                    value = null, icon = { _ ->
                     Image(
                         painter = painterResource(id = R.drawable.ic_btn_google),
                         contentDescription = getString(R.string.google_logo),
-                        modifier = Modifier.fillMaxSize(),
-                        colorFilter = if (enabled) null
-                        else grayScaleFilter()
+                        modifier = Modifier.fillMaxSize()
                     )
                 }, title = R.string.link_account, summary = null, onPreferenceClicked = {
                     val intent = Intent(this, LoginActivity::class.java)
@@ -1439,7 +1437,8 @@ class SettingsActivity : AppCompatActivity() {
                 Box(modifier = Modifier
                     .padding(ICON_PADDING)
                     .size(ICON_SIZE)
-                    .alpha(if (enabled) HIGH_ALPHA else DISABLED_ALPHA),
+                    .alpha(if (enabled) HIGH_ALPHA else DISABLED_ALPHA)
+                    .grayScale(if (enabled) 1f else 0f),  // TODO check that this works correctly
                     contentAlignment = Alignment.Center,
                     content = {
                         iconSpot(enabled)
@@ -1481,32 +1480,5 @@ class SettingsActivity : AppCompatActivity() {
 
         const val DEFAULT_DELAY = 3.5f
 
-        private fun grayScaleFilter(): ColorFilter {
-            val grayScaleMatrix = ColorMatrix(
-                floatArrayOf(
-                    0.33f,
-                    0.33f,
-                    0.33f,
-                    0f,
-                    0f,
-                    0.33f,
-                    0.33f,
-                    0.33f,
-                    0f,
-                    0f,
-                    0.33f,
-                    0.33f,
-                    0.33f,
-                    0f,
-                    0f,
-                    0f,
-                    0f,
-                    0f,
-                    1f,
-                    0f
-                )
-            )
-            return ColorFilter.colorMatrix(grayScaleMatrix)
-        }
     }
 }

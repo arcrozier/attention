@@ -80,10 +80,10 @@ fun getSendIntent(context: Context, message: Message?): Intent {
     return intent
 }
 
-fun Modifier.grayScale(): Modifier {
+fun Modifier.grayScale(saturation: Float = 0f): Modifier {
     // by cesonha and Saket: https://stackoverflow.com/a/76244926
     // CC BY-SA 4.0
-    val saturationMatrix = ColorMatrix().apply { setToSaturation(0f) }
+    val saturationMatrix = ColorMatrix().apply { setToSaturation(saturation) }
     val saturationFilter = ColorFilter.colorMatrix(saturationMatrix)
     val paint = Paint().apply { colorFilter = saturationFilter }
 

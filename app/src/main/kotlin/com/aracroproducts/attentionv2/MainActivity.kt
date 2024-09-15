@@ -594,6 +594,7 @@ class MainActivity : AppCompatActivity() {
                                 contentPadding = paddingValues
                             ) {
                                 // TODO pending friends
+                                // TODO pending friends title
                                 items(
                                     items = pendingFriends,
                                     key = { friend -> friend.username }) { pendingFriend ->
@@ -608,6 +609,15 @@ class MainActivity : AppCompatActivity() {
                                             friendModel.pendingCardStatus[pendingFriend.username] =
                                                 newState
                                         })
+                                }
+                                items(count = 1) {
+                                    HorizontalDivider(
+                                        color = MaterialTheme.colorScheme.outline.copy(
+                                            alpha = DISABLED_ALPHA
+                                        ),
+                                        modifier = Modifier.padding(start = 8.dp, end = 8.dp),
+                                        thickness = 3.dp
+                                    )
                                 }
                                 items(items = friends, key = { friend ->
                                     friend.id
@@ -1293,7 +1303,6 @@ class MainActivity : AppCompatActivity() {
         state: PendingState,
         onStateChange: (PendingState) -> Unit
     ) {
-        var message: String? by remember { mutableStateOf(null) }
         val transition = updateTransition(state, label = "friend state transition")
 
         val alpha by transition.animateFloat(label = "friend alpha transition") {
@@ -1347,7 +1356,6 @@ class MainActivity : AppCompatActivity() {
                 .fillMaxWidth(1F)
                 .padding(10.dp)
                 .requiredHeight(48.dp)
-                .grayScale()
                 .combinedClickable(
                     onClick = {
                         onStateChange(
@@ -1389,12 +1397,13 @@ class MainActivity : AppCompatActivity() {
                         ) {}
                         .weight(1f, fill = true)) {
                     Text(
-                        text = friend.name,
+                        text = friend.name,  // TODO make it $name wants to be your friend or something
                         style = MaterialTheme.typography.titleMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         color = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        fontWeight = FontWeight.Thin
                     )
                     Text(
                         text = friend.username,
