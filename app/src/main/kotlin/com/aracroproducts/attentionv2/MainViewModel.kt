@@ -18,7 +18,6 @@ import android.os.VibratorManager
 import android.provider.Settings
 import android.util.Base64
 import android.util.Log
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -40,8 +39,8 @@ import com.aracroproducts.attentionv2.AlertSendService.Companion.SERVICE_CHANNEL
 import com.aracroproducts.attentionv2.SendMessageReceiver.Companion.EXTRA_SENDER
 import com.aracroproducts.attentionv2.SendMessageReceiver.Companion.KEY_TEXT_REPLY
 import com.aracroproducts.attentionv2.SettingsActivity.Companion.DEFAULT_DELAY
-import com.google.android.gms.tasks.Task
-import com.google.firebase.messaging.FirebaseMessaging
+import com.google.firebase.Firebase
+import com.google.firebase.messaging.messaging
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -50,6 +49,7 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import retrofit2.HttpException
 import java.io.File
@@ -421,10 +421,6 @@ class MainViewModel(
         return attentionRepository.getFriend(id)
     }
 
-    private suspend fun getFCMToken(): String? {
-        return preferencesRepository.getValue(stringPreferencesKey(FCM_TOKEN))
-    }
-
     /**
      * Vibrates the phone to signal to the user that they have long-pressed
      */
@@ -561,26 +557,16 @@ class MainViewModel(
 
     fun registerDevice() {
         viewModelScope.launch {
-            val context = application
-
             // token is auth token
             val token = preferencesRepository.getToken()
 
-            val fcmToken: String? = preferencesRepository.getValue(stringPreferencesKey(FCM_TOKEN))
-            val fcmTokenUploaded: Boolean = preferencesRepository.getValue(
-                booleanPreferencesKey(TOKEN_UPLOADED), false
-            ) // Do we need to upload a token (note we don't want to upload if we don't have a token yet)
+            val fcmToken: String = preferencesRepository.getValue(stringPreferencesKey(FCM_TOKEN)) ?: getToken()
 
-            if (fcmToken != null && !fcmTokenUploaded && token != null) {
+            if (token != null) {
                 try {
                     attentionRepository.registerDevice(token, fcmToken)
                     setConnectStatus(200)
                     Log.d(sTAG, "Successfully uploaded token")
-                    viewModelScope.launch {
-                        preferencesRepository.setValue(
-                            booleanPreferencesKey(TOKEN_UPLOADED), true
-                        )
-                    }
                 } catch (e: HttpException) {
                     val response = e.response()
                     val errorBody = response?.errorBody()
@@ -589,8 +575,6 @@ class MainViewModel(
                 } catch (e: Exception) {
                     setConnectStatus(null)
                 }
-            } else if (fcmToken == null) { // We don't have a token, so let's get one
-                getToken(context)
             }
         }
 
@@ -635,9 +619,6 @@ class MainViewModel(
                     ), setOf(notificationValues[1], notificationValues[2])
                 )
             }
-            if (!preferencesRepository.contains(booleanPreferencesKey(TOKEN_UPLOADED))) {
-                preferencesRepository.setValue(booleanPreferencesKey(TOKEN_UPLOADED), false)
-            }
         }
 
     }
@@ -673,59 +654,21 @@ class MainViewModel(
 
     }
 
+    fun cacheToken() {
+        viewModelScope.launch {
+            getToken()
+        }
+    }
+
     /**
      * Helper method that gets the Firebase token
      *
      * Automatically uploads the token and updates the "uploaded" sharedPreference
      */
-    private fun getToken(context: Context) {
-        FirebaseMessaging.getInstance().token.addOnCompleteListener { task: Task<String?> ->
-            viewModelScope.launch {
-                if (!task.isSuccessful) {
-                    Log.w(sTAG, "getInstanceId failed", task.exception)
-                    return@launch
-                }
-
-                // Get new Instance ID token
-                val token = task.result
-                Log.d(sTAG, "Got token! $token")
-
-                val fcmToken = getFCMToken()
-                val authToken = preferencesRepository.getToken()
-                if (token != null && token != fcmToken) {
-                    preferencesRepository.bulkEdit { settings ->
-                        settings[stringPreferencesKey(FCM_TOKEN)] = token
-                        settings[booleanPreferencesKey(TOKEN_UPLOADED)] = false
-                    }
-                    if (authToken != null) {
-                        try {
-                            attentionRepository.registerDevice(authToken, token)
-                            setConnectStatus(200)
-                            viewModelScope.launch {
-                                preferencesRepository.setValue(
-                                    booleanPreferencesKey(TOKEN_UPLOADED), true
-                                )
-                            }
-
-                            Toast.makeText(
-                                context,
-                                context.getString(R.string.user_registered),
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        } catch (e: HttpException) {
-                            setConnectStatus(e.response()?.code())
-                        } catch (_: Exception) {
-
-                        }
-                    }
-                }
-
-                // Log and toast
-                val msg = context.getString(R.string.msg_token_fmt, token)
-                Log.d(sTAG, msg)
-            }
-
-        }
+    private suspend fun getToken(): String {
+            val fcmToken = Firebase.messaging.token.await()
+            preferencesRepository.setValue(stringPreferencesKey(FCM_TOKEN), fcmToken)
+            return fcmToken
     }
 
     private fun setConnectStatus(responseCode: Int?) {
@@ -761,7 +704,6 @@ class MainViewModel(
         private const val COMPAT_HEAVY_CLICK = 5
 
         const val OVERLAY_NO_PROMPT = "OverlayDoNotAsk"
-        const val TOKEN_UPLOADED = "token_needs_upload"
         const val USER_INFO = "user"
         const val MY_ID = "id"
         const val MY_TOKEN = "token"

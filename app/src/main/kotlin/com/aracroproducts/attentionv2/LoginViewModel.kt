@@ -528,16 +528,6 @@ class LoginViewModel(
         }
     }
 
-    fun setTokenUploaded(uploaded: Boolean) {
-        viewModelScope.launch {
-            preferencesRepository.setValue(
-                booleanPreferencesKey(
-                    MainViewModel.TOKEN_UPLOADED
-                ), uploaded
-            )
-        }
-    }
-
     private fun genericErrorHandling(
         code: Int,
         snackbarHostState: SnackbarHostState?,

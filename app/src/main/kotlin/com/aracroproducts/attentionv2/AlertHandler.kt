@@ -53,7 +53,6 @@ open class AlertHandler : FirebaseMessagingService() {
             if (preferencesRepository.getValue(stringPreferencesKey(MainViewModel.FCM_TOKEN)) != token) {
                 Log.d(TAG, "Token is new: updating shared preferences")
                 preferencesRepository.bulkEdit { settings ->
-                    settings[booleanPreferencesKey(MainViewModel.TOKEN_UPLOADED)] = false
                     settings[stringPreferencesKey(MainViewModel.FCM_TOKEN)] = token
                 }
                 val authToken = preferencesRepository.getValue(
@@ -63,11 +62,6 @@ open class AlertHandler : FirebaseMessagingService() {
                 ) ?: return@launch
                 try {
                     repository.registerDevice(authToken, token)
-                    preferencesRepository.setValue(
-                        booleanPreferencesKey(
-                            MainViewModel.TOKEN_UPLOADED
-                        ), true
-                    )
                 } catch (e: HttpException) {
                     Log.e(TAG, "An error occurred when uploading token: ${e.response()?.errorBody()}")
                 } catch (e: Exception) {

@@ -17,6 +17,9 @@ class PreferencesRepository(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    /**
+     * Atomically read and write potentially multiple values
+     */
     suspend fun bulkEdit(transform: (MutablePreferences) -> Unit) {
         dataStore.edit(transform = transform)
     }

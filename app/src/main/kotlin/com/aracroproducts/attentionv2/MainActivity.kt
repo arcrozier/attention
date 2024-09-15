@@ -117,6 +117,9 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import com.aracroproducts.attentionv2.AlertSendService.Companion.ACTION_ERROR
 import com.aracroproducts.attentionv2.AlertSendService.Companion.ACTION_LOGIN
 import com.aracroproducts.attentionv2.AlertSendService.Companion.ACTION_SUCCESS
@@ -129,6 +132,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.lang.Integer.max
+import java.util.concurrent.TimeUnit
 import kotlin.collections.set
 import kotlin.math.min
 
@@ -268,8 +272,16 @@ class MainActivity : AppCompatActivity() {
         if (!checkPlayServices()) return
 
         friendModel.loadUserPrefs()
+        friendModel.cacheToken()
 
         checkOverlayDisplay()
+
+        val saveRequest =
+            PeriodicWorkRequestBuilder<TokenWorkManager>(730, TimeUnit.HOURS)
+                .build()
+
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "tokenRefresh", ExistingPeriodicWorkPolicy.UPDATE, saveRequest)
     }
 
     private fun handleIntent(intent: Intent?, savedInstanceState: Bundle? = null) {
@@ -337,15 +349,20 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun reload(token: String? = null) { // token is auth token
+    /**
+     * Reload the app - retrieves user info from the server and uploads the FCM token
+     *
+     * @param token The authentication token for the user (not the FCM token)
+     */
+    private fun reload(token: String? = null) {
         friendModel.getUserInfo(onAuthError = {
             if (!friendModel.addFriendException) {
                 launchLogin()
             }
         }, onSuccess = {
             getNotificationPermission()
-            friendModel.registerDevice()
         }, token = token)
+        friendModel.registerDevice()
     }
 
     private fun getNotificationPermission() {

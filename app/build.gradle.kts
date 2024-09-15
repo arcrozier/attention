@@ -78,6 +78,7 @@ android {
 
 dependencies {
 
+    implementation(libs.androidx.work.runtime.ktx)
     ksp(libs.androidx.room.compiler)
 
     implementation(libs.googleid)
