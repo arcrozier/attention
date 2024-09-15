@@ -2,7 +2,19 @@ package com.aracroproducts.attentionv2
 
 import android.content.Context
 import androidx.lifecycle.LiveData
-import androidx.room.*
+import androidx.room.Dao
+import androidx.room.Database
+import androidx.room.Delete
+import androidx.room.Entity
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.PrimaryKey
+import androidx.room.Query
+import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.room.TypeConverter
+import androidx.room.TypeConverters
+import androidx.room.Update
 import com.aracroproducts.attentionv2.AttentionDB.Companion.DB_V4
 import com.google.gson.annotations.SerializedName
 
@@ -26,6 +38,8 @@ class Converters {
 abstract class AttentionDB : RoomDatabase() {
 
     abstract fun getFriendDAO(): FriendDAO
+
+    abstract fun getPendingFriendDAO(): PendingFriendDAO
 
     abstract fun getMessageDAO(): MessageDA0
 
@@ -67,6 +81,17 @@ data class Friend(
     @SerializedName("photo") val photo: String? = null,
     @SerializedName("importance") val importance: Float = 0f
 )
+
+@Entity
+class PendingFriend(
+    @SerializedName("username") @PrimaryKey val username: String,
+    @SerializedName("name") val name: String,
+    @SerializedName("photo") val photo: String?
+) {
+    override fun toString(): String {
+        return mapOf("username" to username, "name" to name, "photo?" to (photo != null)).toString()
+    }
+}
 
 @Entity
 data class Message(
@@ -141,7 +166,7 @@ interface FriendDAO {
     )
     suspend fun setMessageStatus(status: String?, id: String?, alertId: String?)
 
-    @Query("SELECT * FROM Friend ORDER BY sent DESC")
+    @Query("SELECT * FROM Friend ORDER BY importance DESC, sent DESC")
     fun getFriends(): LiveData<List<Friend>>
 
     @Query("DELETE FROM Friend WHERE id NOT IN (:idList)")
@@ -149,6 +174,21 @@ interface FriendDAO {
 
     @Query("SELECT * FROM Friend WHERE id = :id")
     suspend fun getFriend(id: String): Friend?
+}
+
+@Dao
+interface PendingFriendDAO {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(vararg pendingFriend: PendingFriend)
+
+    @Query("SELECT * FROM PendingFriend")
+    fun getPendingFriends(): LiveData<List<PendingFriend>>
+
+    @Query("DELETE FROM PendingFriend WHERE username NOT IN (:username)")
+    suspend fun keepOnly(vararg username: String)
+
+    @Query("DELETE FROM PendingFriend WHERE username = :username")
+    suspend fun delete(username: String)
 }
 
 @Dao

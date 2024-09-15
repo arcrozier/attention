@@ -58,7 +58,8 @@ class UserDataResult(
     @SerializedName("email") val email: String,
     @SerializedName("password_login") val password: Boolean,
     @SerializedName("photo") val photo: String?,
-    @SerializedName("friends") val friends: List<Friend>
+    @SerializedName("friends") val friends: List<Friend>,
+    @SerializedName("pending_friends") val pendingFriends: List<PendingFriend>
 ) {
     override fun toString(): String {
         return mapOf(
@@ -68,7 +69,8 @@ class UserDataResult(
             "email" to email,
             "password_login" to password,
             "photo" to (photo != null),
-            "friends" to friends
+            "friends" to friends,
+            "pendingFriends" to pendingFriends
         ).toString()
     }
 }

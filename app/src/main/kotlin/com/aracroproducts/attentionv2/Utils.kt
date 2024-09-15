@@ -5,6 +5,14 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -70,6 +78,25 @@ fun getSendIntent(context: Context, message: Message?): Intent {
         intent.putExtra(EXTRA_BODY, message.message)
     }
     return intent
+}
+
+fun Modifier.grayScale(): Modifier {
+    // by cesonha and Saket: https://stackoverflow.com/a/76244926
+    // CC BY-SA 4.0
+    val saturationMatrix = ColorMatrix().apply { setToSaturation(0f) }
+    val saturationFilter = ColorFilter.colorMatrix(saturationMatrix)
+    val paint = Paint().apply { colorFilter = saturationFilter }
+
+    return drawWithCache {
+        val canvasBounds = Rect(Offset.Zero, size)
+        onDrawWithContent {
+            drawIntoCanvas {
+                it.saveLayer(canvasBounds, paint)
+                drawContent()
+                it.restore()
+            }
+        }
+    }
 }
 
 const val EXTRA_ALERT_ID = "com.aracroproducts.attention.extra.ALERT_ID"

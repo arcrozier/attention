@@ -203,6 +203,10 @@ class MainActivity : AppCompatActivity() {
         NORMAL, CONFIRM, CANCEL, EDIT
     }
 
+    enum class PendingState {
+        NORMAL, ACTIONS
+    }
+
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { // there isn't really anything we can do
         }
@@ -353,7 +357,7 @@ class MainActivity : AppCompatActivity() {
     /**
      * Reload the app - retrieves user info from the server and uploads the FCM token
      *
-     * @param token The authentication token for the user (not the FCM token)
+     * @param token The authentication token for the user (not the FCM token), optional. If null, token will be retrieved from preferences repository
      */
     private fun reload(token: String? = null) {
         friendModel.getUserInfo(onAuthError = {
@@ -410,8 +414,10 @@ class MainActivity : AppCompatActivity() {
         val showSnackbar = model.isSnackBarShowing
 
         val friends by model.friends.observeAsState(listOf())
+        val pendingFriends by model.pendingFriends.observeAsState(listOf())
         Home(
             friends = friends,
+            pendingFriends = pendingFriends,
             onLongPress = { model.onLongPress() },
             onEditName = { model.onEditName(it) },
             onDeletePrompt = { model.onDeleteFriend(it) },
@@ -427,6 +433,7 @@ class MainActivity : AppCompatActivity() {
     @Composable
     fun Home(
         friends: List<Friend>,
+        pendingFriends: List<PendingFriend>,
         onLongPress: () -> Unit,
         onEditName: (friend: Friend) -> Unit,
         onDeletePrompt: (friend: Friend) -> Unit,
@@ -587,6 +594,21 @@ class MainActivity : AppCompatActivity() {
                                 contentPadding = paddingValues
                             ) {
                                 // TODO pending friends
+                                items(
+                                    items = pendingFriends,
+                                    key = { friend -> friend.username }) { pendingFriend ->
+                                    PendingFriendCard(
+                                        friend = pendingFriend,
+                                        modifier = Modifier.animateItem(),
+                                        state = friendModel.pendingCardStatus.getOrDefault(
+                                            pendingFriend.username,
+                                            PendingState.NORMAL
+                                        ),
+                                        onStateChange = { newState ->
+                                            friendModel.pendingCardStatus[pendingFriend.username] =
+                                                newState
+                                        })
+                                }
                                 items(items = friends, key = { friend ->
                                     friend.id
                                 }) { friend ->
@@ -1257,6 +1279,208 @@ class MainActivity : AppCompatActivity() {
                                 progress = 0
                             }
                             .fillMaxSize())
+                    }
+                }
+            }
+        }
+    }
+
+    @ExperimentalFoundationApi
+    @Composable
+    fun PendingFriendCard(
+        friend: PendingFriend,
+        modifier: Modifier = Modifier,
+        state: PendingState,
+        onStateChange: (PendingState) -> Unit
+    ) {
+        var message: String? by remember { mutableStateOf(null) }
+        val transition = updateTransition(state, label = "friend state transition")
+
+        val alpha by transition.animateFloat(label = "friend alpha transition") {
+            when (it) {
+                PendingState.NORMAL -> 1F
+                else -> 0.5F
+            }
+        }
+        val blur by transition.animateDp(label = "friend blur transition") {
+            when (it) {
+                PendingState.NORMAL -> 0.dp
+                else -> 4.dp
+            }
+        }
+
+        var imageBitmap: Bitmap? by rememberSaveable {
+            mutableStateOf(null)
+        }
+
+        LaunchedEffect(key1 = friend.photo) {
+            if (friend.photo != null) {
+                launch(context = Dispatchers.Default) {
+                    val imageDecoded = Base64.decode(friend.photo, Base64.DEFAULT)
+                    imageBitmap = BitmapFactory.decodeByteArray(imageDecoded, 0, imageDecoded.size)
+                }
+            }
+        }
+
+        var loc: Float by rememberSaveable {
+            mutableFloatStateOf(0f)
+        }
+        val interactionSource = remember { MutableInteractionSource() }
+        var animating: Boolean by rememberSaveable {
+            mutableStateOf(false)
+        }
+
+        LaunchedEffect(interactionSource, state) {
+            interactionSource.interactions.collect { interaction ->
+                Log.d(this@MainActivity::class.java.name, state.name)
+                if (state != PendingState.NORMAL || animating) return@collect
+                when (interaction) {
+                    is PressInteraction.Press -> {
+                        loc = interaction.pressPosition.x
+                        animating = true
+                    }
+                }
+            }
+        }
+        Box(
+            modifier = modifier
+                .fillMaxWidth(1F)
+                .padding(10.dp)
+                .requiredHeight(48.dp)
+                .grayScale()
+                .combinedClickable(
+                    onClick = {
+                        onStateChange(
+                            when (state) {
+                                PendingState.NORMAL -> PendingState.ACTIONS
+                                PendingState.ACTIONS -> PendingState.NORMAL
+                            }
+                        )
+                    },
+                    onClickLabel = getString(R.string.friend_card_click_label), // TODO
+                    interactionSource = interactionSource,
+                    indication = LocalIndication.current,
+                )
+        ) {
+            Row(horizontalArrangement = Arrangement.Start,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .alpha(alpha)
+                    .blur(blur)
+                    .padding(start = ICON_SPACING, end = ICON_SPACING)
+                    .fillMaxSize()
+                    .align(Alignment.CenterStart)
+                    .semantics(mergeDescendants = true) {}) {
+                imageBitmap?.let {
+                    Image(
+                        bitmap = it.asImageBitmap(),
+                        contentDescription = getString(R.string.pfp_description, friend.name),
+                        modifier = Modifier
+                            .size(ICON_SIZE)
+                            .clip(CircleShape)
+                    )
+                } ?: Spacer(modifier = Modifier.width(ICON_SIZE))
+                Spacer(modifier = Modifier.width(ICON_SPACING))
+                Column(verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.Start,
+                    modifier = Modifier
+                        .semantics(
+                            mergeDescendants = true
+                        ) {}
+                        .weight(1f, fill = true)) {
+                    Text(
+                        text = friend.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text(
+                        text = friend.username,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Thin
+                    )
+                }
+            }
+
+            AnimatedContent(targetState = state, transitionSpec = {
+                val enterTransition = when (targetState) {
+                    PendingState.ACTIONS -> {
+                        scaleIn() + fadeIn()
+                    }
+
+                    else -> {
+                        fadeIn()
+                    }
+                }
+                val exitTransition = when (initialState) {
+
+                    PendingState.NORMAL -> {
+                        scaleOut() + fadeOut()
+                    }
+
+                    else -> {
+                        fadeOut()
+                    }
+                }
+                enterTransition togetherWith exitTransition
+            }, modifier = Modifier.centerAt(x = loc), label = "Friend card") { targetState ->
+                if (transition.currentState == transition.targetState) {
+                    animating = false
+                }
+                when (targetState) {
+                    PendingState.NORMAL -> {}
+                    PendingState.ACTIONS -> {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(BUTTON_SPACING),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            IconButton(onClick = { onStateChange(PendingState.NORMAL) }) {
+                                Icon(
+                                    Icons.Filled.Close,
+                                    tint = MaterialTheme.colorScheme.onBackground,
+                                    contentDescription = getString(android.R.string.cancel)
+                                )
+                            }
+                            Button(
+                                onClick = {
+                                    onStateChange(PendingState.NORMAL)
+                                    friendModel.onAddFriend(
+                                        Friend(
+                                            friend.username,
+                                            friend.name,
+                                            photo = friend.photo
+                                        ), onSuccess = ::reload, launchLogin = ::launchLogin
+                                    )
+                                }, colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                )
+                            ) {
+                                Text(getString(R.string.confirm_alert)) // TODO this is accept
+                            }
+                            OutlinedButton(onClick = {
+                                // TODO send ignore request
+                                // TODO delete pending friend
+                                onStateChange(PendingState.NORMAL)
+                            }) {
+                                Text(getString(R.string.add_message))  // TODO this is ignore
+                            }
+                            Button(
+                                onClick = {
+                                    // TODO send block request
+                                    // TODO delete pending friend
+                                    onStateChange(PendingState.NORMAL)
+                                }, colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.error,
+                                    contentColor = MaterialTheme.colorScheme.onError
+                                )
+                            ) {
+                                Text("BLOCK") // TODO
+                            }
+                        }
                     }
                 }
             }

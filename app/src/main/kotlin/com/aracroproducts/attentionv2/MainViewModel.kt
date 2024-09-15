@@ -90,7 +90,9 @@ class MainViewModel(
     }
 
     val friends = attentionRepository.getFriends()
+    val pendingFriends = attentionRepository.getPendingFriends()
     val cardStatus = mutableStateMapOf<String, MainActivity.State>()
+    val pendingCardStatus = mutableStateMapOf<String, MainActivity.PendingState>()
 
     val cachedFriends = attentionRepository.getCachedFriends()
 
@@ -466,6 +468,13 @@ class MainViewModel(
         }
     }
 
+    /**
+     * Retrieves user data from server, populating the preferences repository for user account information and the database for friend information
+     *
+     * @param onAuthError The function to call if authentication fails (i.e., the server replies with 403). Generally should launch a sign-in flow
+     * @param onSuccess The function to call once the data are successfully retrieved, optional, may be null
+     * @param token The authentication token to use for the request, optional, if null the token will be retrieved from the preferences repository
+     */
     fun getUserInfo(
         onAuthError: () -> Unit, onSuccess: (() -> Unit)? = null, token: String? = null
     ) {
@@ -515,7 +524,8 @@ class MainViewModel(
                         )] = data.password
                     }
                     attentionRepository.updateUserInfo(
-                        data.friends
+                        data.friends,
+                        data.pendingFriends
                     )
                     viewModelScope.launch {
                         withContext(

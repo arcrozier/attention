@@ -15,10 +15,12 @@ class AttentionRepository(private val database: AttentionDB) {
     // Observed Flow will notify the observer when the data has changed.
     fun getFriends() = database.getFriendDAO().getFriends()
 
+    fun getPendingFriends() = database.getPendingFriendDAO().getPendingFriends()
+
     // By default Room runs suspend queries off the main thread, therefore, we don't need to
     // implement anything else to ensure we're not doing long running database work
     // off the main thread.
-    suspend fun insert(vararg friend: Friend) {
+    private suspend fun insert(vararg friend: Friend) {
         database.getFriendDAO().insert(*friend)
     }
 
@@ -159,12 +161,17 @@ class AttentionRepository(private val database: AttentionDB) {
         return apiInterface.getUserInfo(authHeader(token))
     }
 
-    suspend fun updateUserInfo(friends: List<Friend>) {
+    suspend fun updateUserInfo(friends: List<Friend>, pendingFriends: List<PendingFriend>) {
         database.getFriendDAO().insert(*friends.toTypedArray())
+        database.getPendingFriendDAO().insert(*pendingFriends.toTypedArray())
         val keepIDs: Array<String> = Array(friends.size) { index ->
             friends[index].id
         }
+        val keepPendingIDs: Array<String> = Array(pendingFriends.size) { index ->
+            pendingFriends[index].username
+        }
         database.getFriendDAO().keepOnly(*keepIDs)
+        database.getPendingFriendDAO().keepOnly(*keepPendingIDs)
 
     }
 
@@ -173,6 +180,7 @@ class AttentionRepository(private val database: AttentionDB) {
     ): GenericResult<Void> {
         val result = apiInterface.addFriend(username, authHeader(token))
         insert(Friend(username, name))
+        database.getPendingFriendDAO().delete(username)
         return result
     }
 
