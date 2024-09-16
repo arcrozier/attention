@@ -666,6 +666,72 @@ class MainViewModel(
 
     }
 
+    fun ignoreUser(username: String, launchLogin: () -> Unit) {
+        viewModelScope.launch {
+            val token = preferencesRepository.getToken()
+            if (token == null) {
+                launchLogin()
+                return@launch
+            }
+            try {
+                attentionRepository.ignore(username, token)
+            } catch (e: HttpException) {
+                when (val code = e.response()?.code()) {
+                    403 -> {
+                        // authentication failure
+                        launchLogin()
+                    }
+
+                    400 -> {
+                        // this is no longer a pending friend, refresh
+                        getUserInfo(launchLogin, token = token)
+                    }
+
+                    else -> {
+                        setConnectStatus(code)
+                    }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                setConnectStatus(null)
+            }
+        }
+    }
+
+    fun blockUser(username: String, launchLogin: () -> Unit) {
+        viewModelScope.launch {
+            val token = preferencesRepository.getToken()
+            if (token == null) {
+                launchLogin()
+                return@launch
+            }
+            try {
+                attentionRepository.block(username, token)
+            } catch (e: HttpException) {
+                when (val code = e.response()?.code()) {
+                    403 -> {
+                        // authentication failure
+                        launchLogin()
+                    }
+
+                    400 -> {
+                        // this is no longer a pending friend, refresh
+                        getUserInfo(launchLogin, token = token)
+                    }
+
+                    else -> {
+                        setConnectStatus(code)
+                    }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                setConnectStatus(null)
+            }
+        }
+    }
+
     fun cacheToken() {
         viewModelScope.launch {
             getToken()
@@ -721,6 +787,7 @@ class MainViewModel(
         const val MY_TOKEN = "token"
         const val FCM_TOKEN = "fcm_token"
         const val FAILED_ALERT_CHANNEL_ID = "Failed alert channel"
+        const val FRIEND_REQUEST_CHANNEL_ID = "friend_request_channel"
         const val PFP_FILENAME = "profile.photo"
 
         const val EXTRA_RECIPIENT = "extra_recipient"
@@ -801,7 +868,17 @@ class MainViewModel(
         }
 
         fun createFriendRequestNotificationChannel(context: Context) {
-            TODO("Not implemented")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val name: CharSequence = context.getString(R.string.friend_request_channel_name)
+                val description = context.getString(R.string.friend_service_channel_description)
+                val importance = NotificationManager.IMPORTANCE_HIGH
+                val channel = NotificationChannel(FRIEND_REQUEST_CHANNEL_ID, name, importance)
+                channel.description =
+                    description // Register the channel with the system; you can't change the importance
+                // or other notification behaviors after this
+                val notificationManager = context.getSystemService(NotificationManager::class.java)
+                notificationManager.createNotificationChannel(channel)
+            }
         }
 
         fun createForegroundServiceNotificationChannel(context: Context) {

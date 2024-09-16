@@ -25,6 +25,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.android.build.gradle.internal.utils.toImmutableSet
 import com.aracroproducts.attentionv2.AlertViewModel.Companion.NO_ID
+import com.aracroproducts.attentionv2.MainViewModel.Companion.FRIEND_REQUEST_CHANNEL_ID
 import com.aracroproducts.attentionv2.SendMessageReceiver.Companion.EXTRA_NOTIFICATION_ID
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
@@ -207,6 +208,7 @@ open class AlertHandler : FirebaseMessagingService() {
                         setPackage(this@AlertHandler.packageName)
                     })
                 }
+
                 "friended" -> {
                     val username = messageData[FCM_FRIEND_REQUEST_USERNAME] ?: run {
                         Log.w(TAG, "Received friend request with no username")
@@ -587,23 +589,37 @@ open class AlertHandler : FirebaseMessagingService() {
             val builder: NotificationCompat.Builder =
                 NotificationCompat.Builder(
                     applicationContext,
-                    ALERT_CHANNEL_ID
-                ) // TODO friend request channel
+                    FRIEND_REQUEST_CHANNEL_ID
+                )
             builder.setSmallIcon(icon)
                 .setContentTitle(
                     applicationContext.getString(
-                        R.string.alert_notification_title,
-                        pendingFriend.name
-                    ) // TODO
+                        R.string.friend_request_notification_title,
+                        pendingFriend.username
+                    )
                 )
-                .setContentText(null) // TODO
+                .setContentText(
+                    applicationContext.getString(
+                        R.string.friend_request_notification_body,
+                        pendingFriend.name,
+                        pendingFriend.username
+                    )
+                )
                 .addAction(
-                    R.drawable.baseline_mark_chat_read_24,// TODO accept
+                    R.drawable.baseline_check_24,
                     applicationContext.getString(R.string.accept),
                     acceptPendingIntent
                 )
-            // TODO ignore
-            // TODO block
+                .addAction(
+                    R.drawable.baseline_person_off_24,
+                    applicationContext.getString(R.string.ignore),
+                    ignorePendingIntent
+                )
+                .addAction(
+                    R.drawable.baseline_block_24,
+                    applicationContext.getString(R.string.block),
+                    blockPendingIntent
+                )
 
             builder
                 .setCategory(Notification.CATEGORY_MESSAGE)

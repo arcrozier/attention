@@ -142,6 +142,8 @@
     <string name="pending_friend_header">Pending friend requests</string>
     <string name="pending_friend_card_click_label">respond to friend request</string>
 
+    <string name="friend_request_notification_title">Friend request from %s</string>
+    <string name="friend_request_notification_body">%1$s (%2$s) wants to be your friend!</string>
 
     <string name="channel_name">Missed alerts</string>
     <string name="channel_description">Notifies you when you missed an alert</string>
@@ -155,6 +157,8 @@
     <string name="service_channel_description">Indicates that an alert is being sent</string>
     <string name="friend_service_channel_name">Handling friend request</string>
     <string name="friend_service_channel_description">Indicates that a response to a friend request is being processed</string>
+    <string name="friend_request_channel_name">Friend requests</string>
+    <string name="friend_request_channel_description">Notifies you when someone adds you as a friend</string>
 
 
     <string name="draw_title">Allow Attention! to draw overlays?</string>

@@ -1483,16 +1483,14 @@ class MainActivity : AppCompatActivity() {
                                 Text(getString(R.string.accept))
                             }
                             OutlinedButton(onClick = {
-                                // TODO send ignore request
-                                // TODO delete pending friend
+                                friendModel.ignoreUser(friend.username, ::launchLogin)
                                 onStateChange(PendingState.NORMAL)
                             }) {
                                 Text(getString(R.string.ignore))
                             }
                             Button(
                                 onClick = {
-                                    // TODO send block request
-                                    // TODO delete pending friend
+                                    friendModel.blockUser(friend.username, ::launchLogin)
                                     onStateChange(PendingState.NORMAL)
                                 }, colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.error,
