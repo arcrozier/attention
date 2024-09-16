@@ -1144,7 +1144,6 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun completeSignIn(token: String) {
-        loginViewModel.setTokenUploaded(false)
         val result = Intent()
         result.putExtra(MainViewModel.MY_TOKEN, token)
         if (returnedIntent != null) {

@@ -3,8 +3,8 @@ package com.aracroproducts.attentionv2
 import android.app.Activity
 import android.app.Application
 import android.content.Context
+import android.util.Log
 import androidx.core.content.pm.ShortcutManagerCompat
-import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -21,11 +21,14 @@ class SharedViewModel(
     private fun unregisterDevice(token: String, fcmToken: String) {
 
         viewModelScope.launch {
-            repository.unregisterDevice(token = token, fcmToken = fcmToken)
-            preferencesRepository.setValue(
-                booleanPreferencesKey(MainViewModel.TOKEN_UPLOADED),
-                false
-            )
+            try {
+                repository.unregisterDevice(token = token, fcmToken = fcmToken)
+            } catch (e: Exception) {
+                Log.e(
+                    this@SharedViewModel::class.java.name,
+                    "${e.message}\n${e.stackTrace.joinToString("\n")}"
+                )
+            }
         }
 
     }
