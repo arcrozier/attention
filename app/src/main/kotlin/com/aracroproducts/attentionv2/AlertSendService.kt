@@ -279,6 +279,6 @@ class AlertSendService : Service() {
         const val ACTION_SUCCESS = "com.aracroproducts.attention.broadcast.SUCCESS"
         const val ACTION_LOGIN = "com.aracroproducts.attention.broadcast.LOGIN"
         const val ACTION_ERROR = "com.aracroproducts.attention.broadcast.ERROR"
-        private val sTAG = AlertSendService::class.java.name
+        private val sTAG = AlertSendService::class.java.simpleName
     }
 }

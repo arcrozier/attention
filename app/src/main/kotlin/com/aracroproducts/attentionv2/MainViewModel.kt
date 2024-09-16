@@ -490,7 +490,7 @@ class MainViewModel(
             // we want an exception to the login if they opened an add-friend link
             // if opened from a link, the action is ACTION_VIEW, so we delay logging in
             if (innerToken == null && !addFriendException) {
-                Log.d(MainViewModel::class.java.name, "Token null; logging out")
+                Log.d(MainViewModel::class.java.simpleName, "Token null; logging out")
                 onAuthError()
             } else if (innerToken != null) {
                 try {
@@ -744,9 +744,14 @@ class MainViewModel(
      * Automatically uploads the token and updates the "uploaded" sharedPreference
      */
     private suspend fun getToken(): String {
-        val fcmToken = Firebase.messaging.token.await()
-        preferencesRepository.setValue(stringPreferencesKey(FCM_TOKEN), fcmToken)
-        return fcmToken
+        try {
+            val fcmToken = Firebase.messaging.token.await()
+            preferencesRepository.setValue(stringPreferencesKey(FCM_TOKEN), fcmToken)
+            return fcmToken
+        } catch (e: IOException) {  // TODO need to figure out why this is failing
+            Log.e(sTAG, "${e.message}:\n\t${e.stackTrace.joinToString("\n\t")}")
+            return ""
+        }
     }
 
     private fun setConnectStatus(responseCode: Int?) {
@@ -777,7 +782,7 @@ class MainViewModel(
     }
 
     companion object {
-        private val sTAG: String = MainViewModel::class.java.name
+        private val sTAG: String = MainViewModel::class.java.simpleName
 
         private const val COMPAT_HEAVY_CLICK = 5
 
@@ -810,7 +815,7 @@ class MainViewModel(
                     Bitmap.createBitmap(bitmap.width, bitmap.width, Bitmap.Config.ARGB_8888)
                 }
 
-                Log.d(MainViewModel::class.java.name, "${bitmap.width} x ${bitmap.height}")
+                Log.d(MainViewModel::class.java.simpleName, "${bitmap.width} x ${bitmap.height}")
                 val canvas = Canvas(output)
 
                 val color = 0xff424242u

@@ -25,7 +25,7 @@ class SharedViewModel(
                 repository.unregisterDevice(token = token, fcmToken = fcmToken)
             } catch (e: Exception) {
                 Log.e(
-                    this@SharedViewModel::class.java.name,
+                    this@SharedViewModel::class.java.simpleName,
                     "${e.message}\n${e.stackTrace.joinToString("\n")}"
                 )
             }

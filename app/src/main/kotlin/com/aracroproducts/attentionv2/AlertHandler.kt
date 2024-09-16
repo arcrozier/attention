@@ -287,7 +287,7 @@ open class AlertHandler : FirebaseMessagingService() {
 
 
     companion object {
-        private val TAG = AlertHandler::class.java.name
+        private val TAG = AlertHandler::class.java.simpleName
         const val CHANNEL_ID = "Missed Alert Channel"
         const val ALERT_CHANNEL_ID = "Alert Channel"
         const val REMOTE_FROM = "alert_from"

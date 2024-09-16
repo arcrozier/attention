@@ -394,7 +394,7 @@ class Alert : AppCompatActivity() {
     @Composable
     fun timeSince(since: Calendar): String {
         var value by remember { mutableStateOf(durationToMinimalDisplay(since)) }
-        Log.d(Alert::class.java.name, since.toString())
+        Log.d(Alert::class.java.simpleName, since.toString())
         LaunchedEffect(Unit) {
             while (true) { // we never need to recompose
                 if (value.second == -1L) {

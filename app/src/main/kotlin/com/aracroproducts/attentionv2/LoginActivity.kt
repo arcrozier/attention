@@ -1155,7 +1155,7 @@ class LoginActivity : AppCompatActivity() {
 
     companion object {
         val LIST_ELEMENT_PADDING = 10.dp
-        val TAG: String = LoginActivity::class.java.name
+        val TAG: String = LoginActivity::class.java.simpleName
 
         @OptIn(ExperimentalComposeUiApi::class)
         fun Modifier.autofill(

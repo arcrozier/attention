@@ -173,7 +173,7 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 else -> {
-                    Log.e(MainActivity::class.java.name, "Unexpected action ${intent.action}")
+                    Log.e(MainActivity::class.java.simpleName, "Unexpected action ${intent.action}")
                 }
             }
         }
@@ -1061,7 +1061,7 @@ class MainActivity : AppCompatActivity() {
 
         LaunchedEffect(interactionSource, state) {
             interactionSource.interactions.collect { interaction ->
-                Log.d(this@MainActivity::class.java.name, state.name)
+                Log.d(this@MainActivity::class.java.simpleName, state.name)
                 if (state != State.NORMAL || animating) return@collect
                 when (interaction) {
                     is PressInteraction.Press -> {
@@ -1353,7 +1353,7 @@ class MainActivity : AppCompatActivity() {
 
         LaunchedEffect(interactionSource, state) {
             interactionSource.interactions.collect { interaction ->
-                Log.d(this@MainActivity::class.java.name, state.name)
+                Log.d(this@MainActivity::class.java.simpleName, state.name)
                 if (state != PendingState.NORMAL || animating) return@collect
                 when (interaction) {
                     is PressInteraction.Press -> {

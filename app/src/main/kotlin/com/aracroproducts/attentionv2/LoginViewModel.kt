@@ -578,7 +578,7 @@ class LoginViewModel(
     }
 
     companion object {
-        private val sTAG = LoginViewModel::class.java.name
+        private val sTAG = LoginViewModel::class.java.simpleName
 
 
     }

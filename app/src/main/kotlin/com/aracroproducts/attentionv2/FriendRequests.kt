@@ -182,7 +182,7 @@ class FriendManagementService : Service() {
     }
 
     companion object {
-        private val sTAG: String = FriendManagementService::class.java.name
+        private val sTAG: String = FriendManagementService::class.java.simpleName
     }
 
 }
