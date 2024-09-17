@@ -744,9 +744,9 @@ class MainViewModel(
      * Automatically uploads the token and updates the "uploaded" sharedPreference
      */
     private suspend fun getToken(): String {
-            val fcmToken = Firebase.messaging.token.await()
-            preferencesRepository.setValue(stringPreferencesKey(FCM_TOKEN), fcmToken)
-            return fcmToken
+        val fcmToken = Firebase.messaging.token.await()
+        preferencesRepository.setValue(stringPreferencesKey(FCM_TOKEN), fcmToken)
+        return fcmToken
     }
 
     private fun setConnectStatus(responseCode: Int?) {
