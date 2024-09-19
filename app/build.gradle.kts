@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.gms)
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.compose)
+    alias(libs.plugins.firebase.crashlytics)
 }
 
 android {
@@ -98,8 +99,10 @@ dependencies {
     implementation(libs.bundles.lifecycle)
     implementation(libs.bundles.credentials)
 
+    implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging.ktx)
     implementation(libs.firebase.analytics)
+    implementation(libs.firebase.crashlytics)
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     implementation(libs.appcompat)
     implementation(libs.navigation.ui.ktx)

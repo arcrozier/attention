@@ -41,6 +41,7 @@ import com.aracroproducts.attentionv2.SendMessageReceiver.Companion.EXTRA_SENDER
 import com.aracroproducts.attentionv2.SendMessageReceiver.Companion.KEY_TEXT_REPLY
 import com.aracroproducts.attentionv2.SettingsActivity.Companion.DEFAULT_DELAY
 import com.google.firebase.Firebase
+import com.google.firebase.crashlytics.crashlytics
 import com.google.firebase.messaging.messaging
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -573,6 +574,7 @@ class MainViewModel(
 
             val fcmToken: String =
                 preferencesRepository.getValue(stringPreferencesKey(FCM_TOKEN)) ?: getToken()
+                ?: return@launch
 
             if (token != null) {
                 try {
@@ -743,10 +745,18 @@ class MainViewModel(
      *
      * Automatically uploads the token and updates the "uploaded" sharedPreference
      */
-    private suspend fun getToken(): String {
-        val fcmToken = Firebase.messaging.token.await()
-        preferencesRepository.setValue(stringPreferencesKey(FCM_TOKEN), fcmToken)
-        return fcmToken
+    private suspend fun getToken(): String? {
+        try {
+            val fcmToken = Firebase.messaging.token.await()
+            preferencesRepository.setValue(stringPreferencesKey(FCM_TOKEN), fcmToken)
+            return fcmToken
+        } catch (e: Exception) {
+            val message =
+                "Unable to refresh token\n${e.message}\n\t${e.stackTrace.joinToString("\n\t")}"
+            Firebase.crashlytics.log(message)
+            Log.e(sTAG, message)
+            return null
+        }
     }
 
     private fun setConnectStatus(responseCode: Int?) {
