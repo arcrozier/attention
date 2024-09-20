@@ -16,6 +16,8 @@ import com.aracroproducts.attentionv2.MainViewModel.Companion.EXTRA_RECIPIENT
 import com.aracroproducts.attentionv2.SendMessageReceiver.Companion.EXTRA_NOTIFICATION_ID
 import com.aracroproducts.attentionv2.SendMessageReceiver.Companion.EXTRA_SENDER
 import com.aracroproducts.attentionv2.SendMessageReceiver.Companion.KEY_TEXT_REPLY
+import com.google.firebase.Firebase
+import com.google.firebase.crashlytics.crashlytics
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -218,24 +220,25 @@ class AlertSendService : Service() {
                             R.string.alert_failed_server_error, to.name
                         )
                     )
+                    if (e.response()?.code()?.mod(100) != 2 && response?.code()?.mod(100) != 4) {
+                        Firebase.crashlytics.log(e.toMessage())
+                    }
                 }
             }
         } catch (e: Exception) {
+            val errorMessage = "An error occurred: ${e.stackTraceToString()}"
             Log.e(
                 sTAG,
-                "An error occurred: ${e.message}\n${e.stackTrace.joinToString(separator = "\n")}"
+                errorMessage
             )
             notifyUser(this, getString(R.string.alert_failed), message)
             repository.alertError(message.otherId)
             sendBroadcast(ACTION_ERROR, message.otherId)
+
         } catch (e: TimeoutCancellationException) {
             Log.e(
                 sTAG,
-                "An error occurred: ${e.message}\n${
-                    e.stackTrace.joinToString(
-                        separator = "\n"
-                    )
-                }"
+                "An error occurred: ${e.stackTraceToString()}"
             )
             notifyUser(this, getString(R.string.alert_failed), message)
             repository.alertError(message.otherId)

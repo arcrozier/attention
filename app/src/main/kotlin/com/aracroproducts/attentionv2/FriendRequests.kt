@@ -15,6 +15,8 @@ import androidx.core.app.ServiceCompat
 import com.aracroproducts.attentionv2.AlertSendService.Companion.FRIEND_SERVICE_CHANNEL_ID
 import com.aracroproducts.attentionv2.AlertViewModel.Companion.NO_ID
 import com.aracroproducts.attentionv2.SendMessageReceiver.Companion.EXTRA_NOTIFICATION_ID
+import com.google.firebase.Firebase
+import com.google.firebase.crashlytics.crashlytics
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -129,21 +131,20 @@ class FriendManagementService : Service() {
 
         } catch (e: HttpException) {
             val response = e.response()
-            val errorBody = response?.errorBody()?.string()
-            Log.e(sTAG, "Got response ${response?.code()}: $errorBody")
+            val message = e.toMessage()
+            if (response?.code()?.mod(100) != 2 && response?.code()?.mod(100) != 4) {
+                Firebase.crashlytics.log(message)
+            }
+            Log.e(sTAG, message)
         } catch (e: Exception) {
             Log.e(
                 sTAG,
-                "An error occurred: ${e.message}\n${e.stackTrace.joinToString(separator = "\n")}"
+                "An error occurred: ${e.stackTraceToString()}"
             )
         } catch (e: TimeoutCancellationException) {
             Log.e(
                 sTAG,
-                "An error occurred: ${e.message}\n${
-                    e.stackTrace.joinToString(
-                        separator = "\n"
-                    )
-                }"
+                "An error occurred: ${e.stackTraceToString()}"
             )
             throw e
         }

@@ -25,7 +25,14 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.aracroproducts.attentionv2.MainViewModel.Companion.MY_TOKEN
 import com.aracroproducts.attentionv2.MainViewModel.Companion.PFP_FILENAME
-import kotlinx.coroutines.*
+import com.google.firebase.Firebase
+import com.google.firebase.crashlytics.crashlytics
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import retrofit2.HttpException
 import retrofit2.Response
 import java.io.File
@@ -234,6 +241,7 @@ class SettingsViewModel(
                                     R.string.upload_failed,
                                     context.getString(R.string.server_error)
                                 )
+                                Firebase.crashlytics.log(e.toMessage())
                             }
                         }
                     } catch (e: CancellationException) {
@@ -246,6 +254,7 @@ class SettingsViewModel(
                                 R.string.connection_error
                             )
                         )
+                        Firebase.crashlytics.log(e.toMessage())
                     } finally {
                         onCancel = null
                         uploading = false
@@ -326,6 +335,7 @@ class SettingsViewModel(
                                 R.string.unknown_error
                             )
                         )
+                        Firebase.crashlytics.log(e.toMessage())
                     }
                 }
             } catch (e: Exception) {
@@ -398,6 +408,8 @@ class SettingsViewModel(
                 }
 
                 else -> {
+                    Firebase.crashlytics.log((response?.let { HttpException(it) }
+                        ?: RuntimeException("Null response")).toMessage())
                     R.string.unknown_error
                 }
             }

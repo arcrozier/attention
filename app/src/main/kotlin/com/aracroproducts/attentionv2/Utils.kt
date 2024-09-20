@@ -20,6 +20,7 @@ import com.aracroproducts.attentionv2.MainViewModel.Companion.EXTRA_BODY
 import com.aracroproducts.attentionv2.MainViewModel.Companion.EXTRA_RECIPIENT
 import com.aracroproducts.attentionv2.MainViewModel.Companion.FAILED_ALERT_CHANNEL_ID
 import com.aracroproducts.attentionv2.MainViewModel.Companion.createFailedAlertNotificationChannel
+import retrofit2.HttpException
 import kotlin.math.min
 
 
@@ -97,6 +98,10 @@ fun Modifier.grayScale(saturation: Float = 0f): Modifier {
             }
         }
     }
+}
+
+fun Exception?.toMessage(): String {
+    return "${(this as? HttpException)?.run { "${this::class.qualifiedName} ${this.message}\n${code()}\n${response()?.errorBody()}" } ?: this?.stackTraceToString()}"
 }
 
 const val EXTRA_ALERT_ID = "com.aracroproducts.attention.extra.ALERT_ID"

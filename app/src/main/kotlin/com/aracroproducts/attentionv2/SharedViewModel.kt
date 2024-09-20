@@ -26,7 +26,7 @@ class SharedViewModel(
             } catch (e: Exception) {
                 Log.e(
                     this@SharedViewModel::class.java.simpleName,
-                    "${e.message}\n${e.stackTrace.joinToString("\n")}"
+                    e.stackTraceToString()
                 )
             }
         }

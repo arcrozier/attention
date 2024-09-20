@@ -15,6 +15,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.aracroproducts.attentionv2.MainViewModel.Companion.MY_ID
 import com.aracroproducts.attentionv2.MainViewModel.Companion.MY_TOKEN
+import com.google.firebase.Firebase
+import com.google.firebase.crashlytics.crashlytics
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -108,15 +110,17 @@ class LoginViewModel(
 
                     403 -> {
                         login = State.CHOOSE_USERNAME
-                        Log.e(sTAG, "Bad Google token: $idToken")
+                        val message = "Bad Google token: $idToken"
+                        Log.e(sTAG, message)
                         usernameCaption = context.getString(
                             R.string.bad_google_token
                         )
+                        Firebase.crashlytics.log(message)
                     }
 
                     else -> {
                         genericErrorHandling(
-                            response?.code() ?: -1,
+                            e,
                             snackbarHostState,
                             coroutineScope,
                             context
@@ -125,11 +129,10 @@ class LoginViewModel(
                 }
             } catch (e: Exception) {
                 genericErrorHandling(
-                    0,
+                    e,
                     snackbarHostState,
                     coroutineScope,
-                    context,
-                    e
+                    context
                 )
                 uiEnabled = true
             }
@@ -223,7 +226,7 @@ class LoginViewModel(
 
                     else -> {
                         genericErrorHandling(
-                            response?.code() ?: -1,
+                            e,
                             snackbarHostState,
                             coroutineScope,
                             context
@@ -232,11 +235,10 @@ class LoginViewModel(
                 }
             } catch (e: Exception) {
                 genericErrorHandling(
-                    0,
+                    e,
                     snackbarHostState,
                     coroutineScope,
-                    context,
-                    e
+                    context
                 )
             } finally {
                 uiEnabled = true
@@ -275,17 +277,16 @@ class LoginViewModel(
 
                     else -> {
                         genericErrorHandling(
-                            response?.code() ?: -1,
+                            e,
                             snackbarHostState,
                             scope,
-                            context,
-                            e
+                            context
                         )
                     }
                 }
             } catch (e: Exception) {
                 genericErrorHandling(
-                    0, snackbarHostState, scope, context, e
+                    e, snackbarHostState, scope, context
                 )
             } finally {
                 uiEnabled = true
@@ -408,7 +409,7 @@ class LoginViewModel(
 
                     else -> {
                         genericErrorHandling(
-                            response?.code() ?: -1,
+                            e,
                             snackbarHostState,
                             scope,
                             context
@@ -417,7 +418,7 @@ class LoginViewModel(
                 }
             } catch (e: Exception) {
                 genericErrorHandling(
-                    0, snackbarHostState, scope, context, e
+                    e, snackbarHostState, scope, context
                 )
             } finally {
                 uiEnabled = true
@@ -495,7 +496,7 @@ class LoginViewModel(
 
                     else -> {
                         genericErrorHandling(
-                            e.response()?.code() ?: -1,
+                            e,
                             snackbarHostState,
                             scope,
                             context
@@ -504,7 +505,7 @@ class LoginViewModel(
                 }
             } catch (e: Exception) {
                 genericErrorHandling(
-                    0, snackbarHostState, scope, context, e
+                    e, snackbarHostState, scope, context
                 )
             } finally {
                 uiEnabled = true
@@ -529,35 +530,49 @@ class LoginViewModel(
     }
 
     private fun genericErrorHandling(
-        code: Int,
+        e: Exception,
         snackbarHostState: SnackbarHostState?,
         scope: CoroutineScope?,
-        context: Context,
-        t: Throwable? = null
+        context: Context
     ) {
-        when (code) {
-            429 -> {
-                snackOrToast(
-                    context.getString(R.string.rate_limited), snackbarHostState, scope, context
-                )
-            }
+        if (e is HttpException) {
+            when (e.response()?.code()) {
+                429 -> {
+                    snackOrToast(
+                        context.getString(R.string.rate_limited), snackbarHostState, scope, context
+                    )
+                }
 
-            500, 502, 503, 504 -> {
-                snackOrToast(
-                    context.getString(
-                        R.string.server_error
-                    ), snackbarHostState, scope, context
-                )
-            }
+                500, 502, 503, 504 -> {
+                    snackOrToast(
+                        context.getString(
+                            R.string.server_error
+                        ), snackbarHostState, scope, context
+                    )
+                    Firebase.crashlytics.log(
+                        "Error ${e.code()}: ${e.message}\n${
+                            e.response()?.errorBody()
+                        }"
+                    )
+                }
 
-            else -> {
-                snackOrToast(
-                    context.getString(
-                        R.string.connection_error
-                    ), snackbarHostState, scope, context
-                )
-                Log.e(sTAG, "An unexpected error occurred: ${t?.message}")
+                else -> {
+                    snackOrToast(
+                        context.getString(
+                            R.string.connection_error
+                        ), snackbarHostState, scope, context
+                    )
+                    val message = e.toMessage()
+                    Firebase.crashlytics.log(message)
+                    Log.e(sTAG, message)
+                }
             }
+        } else {
+            snackOrToast(
+                context.getString(
+                    R.string.connection_error
+                ), snackbarHostState, scope, context
+            )
         }
 
     }

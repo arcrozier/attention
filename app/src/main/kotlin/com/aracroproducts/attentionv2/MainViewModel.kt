@@ -264,12 +264,12 @@ class MainViewModel(
                     }
 
                     else -> {
-                        setConnectStatus(null)
+                        setConnectStatus(null, e)
                     }
                 }
-            } catch (_: Exception) {
+            } catch (e: Exception) {
                 attentionRepository.cacheFriend(friend.id)
-                setConnectStatus(null)
+                setConnectStatus(null, e)
             }
         }
 
@@ -333,7 +333,7 @@ class MainViewModel(
                     friendNameLoading = false
                     if (e !is IOException) {
                         newFriendName = ""
-                        setConnectStatus(null)
+                        setConnectStatus(null, e)
                     }
                 }
             }
@@ -402,7 +402,7 @@ class MainViewModel(
                 setConnectStatus(200)
 
             } catch (e: HttpException) {
-                setConnectStatus(e.response()?.code())
+                setConnectStatus(e.response()?.code(), e)
                 when (e.response()?.code()) {
                     400 -> {
                         showSnackBar(application.getString(R.string.edit_friend_name_failed))
@@ -415,7 +415,7 @@ class MainViewModel(
                     }
                 }
             } catch (e: Exception) {
-                setConnectStatus(null)
+                setConnectStatus(null, e)
             }
         }
 
@@ -549,14 +549,14 @@ class MainViewModel(
                     uploadCachedFriends()
                 } catch (e: HttpException) {
                     val response = e.response()
-                    setConnectStatus(response?.code())
+                    setConnectStatus(response?.code(), e)
                     when (response?.code()) {
                         403 -> {
                             onAuthError()
                         }
                     }
                 } catch (e: Exception) {
-                    setConnectStatus(null)
+                    setConnectStatus(null, e)
                 } finally {
                     isRefreshing = false
                 }
@@ -584,10 +584,10 @@ class MainViewModel(
                 } catch (e: HttpException) {
                     val response = e.response()
                     val errorBody = response?.errorBody()
-                    setConnectStatus(response?.code())
+                    setConnectStatus(response?.code(), e)
                     Log.e(sTAG, "Error uploading token: $errorBody")
                 } catch (e: Exception) {
-                    setConnectStatus(null)
+                    setConnectStatus(null, e)
                 }
             }
         }
@@ -690,13 +690,13 @@ class MainViewModel(
                     }
 
                     else -> {
-                        setConnectStatus(code)
+                        setConnectStatus(code, e)
                     }
                 }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                setConnectStatus(null)
+                setConnectStatus(null, e)
             }
         }
     }
@@ -723,13 +723,13 @@ class MainViewModel(
                     }
 
                     else -> {
-                        setConnectStatus(code)
+                        setConnectStatus(code, e)
                     }
                 }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                setConnectStatus(null)
+                setConnectStatus(null, e)
             }
         }
     }
@@ -752,14 +752,14 @@ class MainViewModel(
             return fcmToken
         } catch (e: Exception) {
             val message =
-                "Unable to refresh token\n${e.message}\n\t${e.stackTrace.joinToString("\n\t")}"
+                "Unable to refresh token\n${e.stackTraceToString()}"
             Firebase.crashlytics.log(message)
             Log.e(sTAG, message)
             return null
         }
     }
 
-    private fun setConnectStatus(responseCode: Int?) {
+    private fun setConnectStatus(responseCode: Int?, e: Exception? = null) {
         val context = application
         when (responseCode) {
             200, 400, 403, 415 -> { // even though some of these are errors, they represent the
@@ -782,6 +782,7 @@ class MainViewModel(
                     connectionState = context.getString(R.string.server_error)
                 }
                 connected = false
+                Firebase.crashlytics.log(e.toMessage())
             }
         }
     }
