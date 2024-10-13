@@ -128,7 +128,7 @@
         <service
             android:name=".FriendManagementService"
             android:exported="false"
-            android:foregroundServiceType="shortService"></service>
+            android:foregroundServiceType="shortService" />
     </application>
 
 </manifest>
