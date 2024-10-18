@@ -118,6 +118,8 @@ import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
+import com.google.firebase.Firebase
+import com.google.firebase.crashlytics.crashlytics
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
@@ -191,7 +193,7 @@ class LoginActivity : AppCompatActivity() {
         intent?.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java)
     } else {
         @Suppress("DEPRECATION")
-        intent?.getParcelableExtra(Intent.EXTRA_INTENT) as? Intent
+        intent?.getParcelableExtra(Intent.EXTRA_INTENT)
     }
 
     class LoginViewModelFactory(
@@ -1139,6 +1141,7 @@ class LoginActivity : AppCompatActivity() {
                         ), duration = SnackbarDuration.Short
                     )
                 }
+                Firebase.crashlytics.log(e.toMessage())
             }
         }
     }

@@ -583,9 +583,13 @@ class MainViewModel(
                     Log.d(sTAG, "Successfully uploaded token")
                 } catch (e: HttpException) {
                     val response = e.response()
-                    val errorBody = response?.errorBody()
-                    setConnectStatus(response?.code(), e)
-                    Log.e(sTAG, "Error uploading token: $errorBody")
+                    if (response?.code() == 400) {
+                        Log.i(sTAG, "Token already registered")
+                    } else {
+                        val errorBody = response?.errorBody()?.string()
+                        setConnectStatus(response?.code(), e)
+                        Log.e(sTAG, "Error uploading token: $errorBody")
+                    }
                 } catch (e: Exception) {
                     setConnectStatus(null, e)
                 }
@@ -770,18 +774,17 @@ class MainViewModel(
                 connected = true
             }
 
-            null -> { // no internet
+            else -> { // no internet
                 connected = false
                 if (connectionState != context.getString(R.string.sharing)) {
-                    connectionState = application.getString(R.string.disconnected)
-                }
-            }
+                    connectionState = if (responseCode == null) {
+                        application.getString(R.string.disconnected)
+                    } else {
+                        context.getString(R.string.server_error)
 
-            else -> { // 500 errors, other weird stuff
-                if (connectionState != context.getString(R.string.sharing)) {
-                    connectionState = context.getString(R.string.server_error)
+                    }
                 }
-                connected = false
+                Log.e(sTAG, e.toMessage())
                 Firebase.crashlytics.log(e.toMessage())
             }
         }
