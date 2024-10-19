@@ -15,7 +15,7 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import androidx.room.Update
-import com.aracroproducts.attentionv2.AttentionDB.Companion.DB_V5
+import com.aracroproducts.attentionv2.AttentionDB.Companion.DB_V6
 import com.google.gson.annotations.SerializedName
 
 class Converters {
@@ -33,7 +33,7 @@ class Converters {
 }
 
 @Database(
-    version = DB_V5,
+    version = DB_V6,
     entities = [Friend::class, PendingFriend::class, Message::class, CachedFriend::class]
 )
 abstract class AttentionDB : RoomDatabase() {
@@ -47,7 +47,7 @@ abstract class AttentionDB : RoomDatabase() {
     abstract fun getCachedFriendDAO(): CachedFriendDAO
 
     companion object {
-        const val DB_V5 = 5
+        const val DB_V6 = 6
         private const val DB_NAME = "attention_database"
 
         @Volatile
@@ -72,7 +72,7 @@ data class CachedFriend(
 
 @Entity
 data class Friend(
-    @SerializedName("friend") @PrimaryKey val id: String,
+    @SerializedName("username") @PrimaryKey val username: String,
     @SerializedName("name") val name: String,
     @SerializedName("sent") val sent: Int = 0,
     @SerializedName("received") val received: Int = 0,
@@ -84,15 +84,11 @@ data class Friend(
 )
 
 @Entity
-class PendingFriend(
+data class PendingFriend(
     @SerializedName("username") @PrimaryKey val username: String,
     @SerializedName("name") val name: String,
     @SerializedName("photo") val photo: String?
-) {
-    override fun toString(): String {
-        return mapOf("username" to username, "name" to name, "photo?" to (photo != null)).toString()
-    }
-}
+)
 
 @Entity
 data class Message(
@@ -150,10 +146,10 @@ interface FriendDAO {
     @Update
     suspend fun updateFriend(friend: Friend)
 
-    @Query("UPDATE Friend SET received = received + 1 WHERE id = :id")
+    @Query("UPDATE Friend SET received = received + 1 WHERE username = :id")
     suspend fun incrementReceived(id: String)
 
-    @Query("UPDATE Friend SET sent = sent + 1, importance = importance + 1 WHERE id = :id")
+    @Query("UPDATE Friend SET sent = sent + 1, importance = importance + 1 WHERE username = :id")
     suspend fun incrementSent(id: String)
 
     @Query("UPDATE Friend SET importance = importance * $IMPORTANCE_SCALE")
@@ -163,17 +159,17 @@ interface FriendDAO {
     suspend fun getTopKFriends(): List<Friend>
 
     @Query(
-        "UPDATE Friend SET lastMessageStatus = :status WHERE id = :id AND (lastMessageSentId = :alertId OR :alertId IS NULL)"
+        "UPDATE Friend SET lastMessageStatus = :status WHERE username = :id AND (lastMessageSentId = :alertId OR :alertId IS NULL)"
     )
     suspend fun setMessageStatus(status: String?, id: String?, alertId: String?)
 
     @Query("SELECT * FROM Friend ORDER BY importance DESC, sent DESC")
     fun getFriends(): LiveData<List<Friend>>
 
-    @Query("DELETE FROM Friend WHERE id NOT IN (:idList)")
+    @Query("DELETE FROM Friend WHERE username NOT IN (:idList)")
     suspend fun keepOnly(vararg idList: String)
 
-    @Query("SELECT * FROM Friend WHERE id = :id")
+    @Query("SELECT * FROM Friend WHERE username = :id")
     suspend fun getFriend(id: String): Friend?
 }
 

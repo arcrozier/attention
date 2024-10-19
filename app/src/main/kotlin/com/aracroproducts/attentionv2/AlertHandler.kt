@@ -273,7 +273,7 @@ open class AlertHandler : FirebaseMessagingService() {
         ) {
             val flags =
                 NotificationFlags.ACTION_SILENCE or (if (missed) NotificationFlags.MISSED else 0) or (if (important) NotificationFlags.IMPORTANT else 0)
-            Companion.showNotification(
+            showNotification(
                 applicationContext,
                 message,
                 sender,
@@ -385,7 +385,7 @@ open class AlertHandler : FirebaseMessagingService() {
                 putExtra(REMOTE_MESSAGE, message)
                 putExtra(REMOTE_FROM, sender.name)
                 putExtra(SHOULD_VIBRATE, false)
-                putExtra(REMOTE_FROM_USERNAME, sender.id)
+                putExtra(REMOTE_FROM_USERNAME, sender.username)
                 putExtra(ALERT_ID, alertId)
             }
 
@@ -402,7 +402,8 @@ open class AlertHandler : FirebaseMessagingService() {
             }
 
             val person =
-                Person.Builder().setName(sender.name).setKey(sender.id).setImportant(important)
+                Person.Builder().setName(sender.name).setKey(sender.username)
+                    .setImportant(important)
                     .setIcon(icon).build()
 
             val messagingStyle = NotificationCompat.MessagingStyle(person).addMessage(
@@ -484,7 +485,7 @@ open class AlertHandler : FirebaseMessagingService() {
                 PendingIntent.getBroadcast(
                     applicationContext,
                     REQUEST_REPLY,
-                    ReplyIntent(sender.id, notificationID, alertId),
+                    ReplyIntent(sender.username, notificationID, alertId),
                     PendingIntent.FLAG_UPDATE_CURRENT
                 )
             val action = NotificationCompat.Action.Builder(
@@ -496,7 +497,7 @@ open class AlertHandler : FirebaseMessagingService() {
                     NotificationCompat.Action.WearableExtender().setHintDisplayActionInline(true)
                         .setHintLaunchesActivity(false)
                 ).build()
-            builder.setShortcutId(sender.id).setContentText(message)
+            builder.setShortcutId(sender.username).setContentText(message)
                 .setCategory(Notification.CATEGORY_MESSAGE).setStyle(messagingStyle)
                 .setPriority(NotificationCompat.PRIORITY_MAX).setContentIntent(pendingIntent)
                 .setAutoCancel(true)

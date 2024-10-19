@@ -38,7 +38,9 @@ class AttentionRepository(private val database: AttentionDB) {
         friend: Friend,
         token: String
     ): GenericResult<Void> {
-        return apiInterface.deleteFriend(friend.id, authHeader(token))
+        val result = apiInterface.deleteFriend(friend.username, authHeader(token))
+        database.getFriendDAO().delete(friend)
+        return result
     }
 
     suspend fun block(
@@ -65,7 +67,7 @@ class AttentionRepository(private val database: AttentionDB) {
         friend: Friend,
         token: String
     ): GenericResult<Void> {
-        return apiInterface.editFriendName(friend.id, friend.name, authHeader(token))
+        return apiInterface.editFriendName(friend.username, friend.name, authHeader(token))
     }
 
     suspend fun getFriend(id: String): Friend =
@@ -91,7 +93,7 @@ class AttentionRepository(private val database: AttentionDB) {
 
     suspend fun getTopKFriends() = database.getFriendDAO().getTopKFriends()
 
-    fun getMessages(friend: Friend) = database.getMessageDAO().getMessagesFromUser(friend.id)
+    fun getMessages(friend: Friend) = database.getMessageDAO().getMessagesFromUser(friend.username)
 
     suspend fun appendMessage(message: Message, save: Boolean = false) {
         if (save) {
@@ -189,7 +191,7 @@ class AttentionRepository(private val database: AttentionDB) {
         database.getFriendDAO().insert(*friends.toTypedArray())
         database.getPendingFriendDAO().insert(*pendingFriends.toTypedArray())
         val keepIDs: Array<String> = Array(friends.size) { index ->
-            friends[index].id
+            friends[index].username
         }
         val keepPendingIDs: Array<String> = Array(pendingFriends.size) { index ->
             pendingFriends[index].username

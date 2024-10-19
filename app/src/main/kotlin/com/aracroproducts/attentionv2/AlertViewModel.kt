@@ -291,7 +291,7 @@ class AlertViewModel(
     fun sendAlert() {
         val context = getApplication<Application>()
         val serviceIntent = Intent(context, AlertSendService::class.java).apply {
-            putExtra(EXTRA_SENDER, sender.id)
+            putExtra(EXTRA_SENDER, sender.username)
             putExtra(KEY_TEXT_REPLY, replyMessage)
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

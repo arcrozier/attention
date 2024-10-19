@@ -204,7 +204,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     enum class PendingState {
-        NORMAL, ACTIONS
+        NORMAL, ACTIONS, BLOCK
     }
 
     private val requestPermissionLauncher =
@@ -224,7 +224,7 @@ class MainActivity : AppCompatActivity() {
             it.data?.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java)
         } else {
             @Suppress("DEPRECATION")
-            it.data?.getParcelableExtra(Intent.EXTRA_INTENT) as? Intent
+            it.data?.getParcelableExtra(Intent.EXTRA_INTENT)
         }
 
         if (intent != null) {
@@ -330,7 +330,7 @@ class MainActivity : AppCompatActivity() {
                     val friend = friendModel.getFriend(username)
                     friendModel.appendDialogState(MainViewModel.DialogStatus.AddMessageText(friend) { message ->
                         friendModel.message = message
-                        friendModel.cardStatus[friend.id] = State.CANCEL
+                        friendModel.cardStatus[friend.username] = State.CANCEL
                     })
                 }
 
@@ -342,13 +342,13 @@ class MainActivity : AppCompatActivity() {
                 intent.getStringExtra(MainViewModel.EXTRA_RECIPIENT)?.let {
                     val friend = friendModel.getFriend(it)
                     if (action == Intent.ACTION_SENDTO) {
-                        ShortcutManagerCompat.reportShortcutUsed(this@MainActivity, friend.id)
+                        ShortcutManagerCompat.reportShortcutUsed(this@MainActivity, friend.username)
                     }
                     friendModel.appendDialogState(MainViewModel.DialogStatus.AddMessageText(
                         friend
                     ) { message ->
                         friendModel.message = message
-                        friendModel.cardStatus[friend.id] = State.CANCEL
+                        friendModel.cardStatus[friend.username] = State.CANCEL
                     })
                 }
             }
@@ -552,6 +552,9 @@ class MainActivity : AppCompatActivity() {
             PullToRefreshBox(
                 isRefreshing = friendModel.isRefreshing,
                 onRefresh = { reload() },
+                modifier = Modifier
+                    .padding(paddingValues)
+                    .consumeWindowInsets(paddingValues)
             ) {
                 AnimatedContent(
                     targetState = friends.isEmpty() && !friendModel.isRefreshing && friendModel.connected,
@@ -567,8 +570,6 @@ class MainActivity : AppCompatActivity() {
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .waterfallPadding()
-                                    .padding(paddingValues)
-                                    .consumeWindowInsets(paddingValues)
                                     .nestedScroll(scrollBehavior.nestedScrollConnection)
                                     .verticalScroll(rememberScrollState()),
                             ) {
@@ -592,19 +593,18 @@ class MainActivity : AppCompatActivity() {
                                     .waterfallPadding()
                                     .fillMaxSize()
                                     .nestedScroll(scrollBehavior.nestedScrollConnection),
-                                contentPadding = paddingValues
                             ) {
                                 if (pendingFriends.isNotEmpty()) {
                                     items(count = 1) {
                                         Text(
                                             text = getString(R.string.pending_friend_header),
-                                            style = MaterialTheme.typography.headlineSmall,
+                                            style = MaterialTheme.typography.labelLarge,
+                                            color = MaterialTheme.colorScheme.onBackground,
                                             modifier = Modifier.padding(
                                                 horizontal = 16.dp,
                                                 vertical = 8.dp
                                             )
                                         )
-                                        HorizontalDivider(modifier = Modifier.fillMaxWidth(0.5f))
                                     }
                                     items(
                                         items = pendingFriends,
@@ -632,7 +632,7 @@ class MainActivity : AppCompatActivity() {
                                     }
                                 }
                                 items(items = friends, key = { friend ->
-                                    friend.id
+                                    friend.username
                                 }) { friend ->
                                     FriendCard(friend = friend,
                                         onLongPress = onLongPress,
@@ -640,10 +640,10 @@ class MainActivity : AppCompatActivity() {
                                         onDeletePrompt = onDeletePrompt,
                                         modifier = Modifier.animateItem(),
                                         state = friendModel.cardStatus.getOrDefault(
-                                            friend.id, State.NORMAL
+                                            friend.username, State.NORMAL
                                         ),
                                         onStateChange = { newState ->
-                                            friendModel.cardStatus[friend.id] = newState
+                                            friendModel.cardStatus[friend.username] = newState
                                         })
                                     HorizontalDivider(
                                         color = MaterialTheme.colorScheme.outline.copy(
@@ -782,7 +782,7 @@ class MainActivity : AppCompatActivity() {
             if (savingName.isEmpty()) {
                 error = true
             } else {
-                friendModel.confirmEditName(friend.id, savingName, ::launchLogin)
+                friendModel.confirmEditName(friend.username, savingName, ::launchLogin)
                 friendModel.popDialogState()
             }
         }
@@ -1317,12 +1317,6 @@ class MainActivity : AppCompatActivity() {
     ) {
         val transition = updateTransition(state, label = "friend state transition")
 
-        val alpha by transition.animateFloat(label = "friend alpha transition") {
-            when (it) {
-                PendingState.NORMAL -> 1F
-                else -> 0.5F
-            }
-        }
         val blur by transition.animateDp(label = "friend blur transition") {
             when (it) {
                 PendingState.NORMAL -> 0.dp
@@ -1373,7 +1367,15 @@ class MainActivity : AppCompatActivity() {
                         onStateChange(
                             when (state) {
                                 PendingState.NORMAL -> PendingState.ACTIONS
-                                PendingState.ACTIONS -> PendingState.NORMAL
+                                else -> PendingState.NORMAL
+                            }
+                        )
+                    },
+                    onLongClick = {
+                        onStateChange(
+                            when (state) {
+                                PendingState.NORMAL -> PendingState.BLOCK
+                                else -> PendingState.NORMAL
                             }
                         )
                     },
@@ -1385,7 +1387,6 @@ class MainActivity : AppCompatActivity() {
             Row(horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .alpha(alpha)
                     .blur(blur)
                     .padding(start = ICON_SPACING, end = ICON_SPACING)
                     .fillMaxSize()
@@ -1428,7 +1429,7 @@ class MainActivity : AppCompatActivity() {
 
             AnimatedContent(targetState = state, transitionSpec = {
                 val enterTransition = when (targetState) {
-                    PendingState.ACTIONS -> {
+                    PendingState.ACTIONS, PendingState.BLOCK -> {
                         scaleIn() + fadeIn()
                     }
 
@@ -1439,11 +1440,11 @@ class MainActivity : AppCompatActivity() {
                 val exitTransition = when (initialState) {
 
                     PendingState.NORMAL -> {
-                        scaleOut() + fadeOut()
+                        fadeOut()
                     }
 
                     else -> {
-                        fadeOut()
+                        scaleOut() + fadeOut()
                     }
                 }
                 enterTransition togetherWith exitTransition
@@ -1487,6 +1488,20 @@ class MainActivity : AppCompatActivity() {
                                 onStateChange(PendingState.NORMAL)
                             }) {
                                 Text(getString(R.string.ignore))
+                            }
+                        }
+                    }
+                    PendingState.BLOCK -> {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(BUTTON_SPACING),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            IconButton(onClick = { onStateChange(PendingState.NORMAL) }) {
+                                Icon(
+                                    Icons.Filled.Close,
+                                    tint = MaterialTheme.colorScheme.onBackground,
+                                    contentDescription = getString(android.R.string.cancel)
+                                )
                             }
                             Button(
                                 onClick = {

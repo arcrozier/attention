@@ -233,7 +233,7 @@ class MainViewModel(
         viewModelScope.launch {
             val token = preferencesRepository.getToken()
             if (token == null) {
-                backgroundScope.launch { attentionRepository.cacheFriend(friend.id) }
+                backgroundScope.launch { attentionRepository.cacheFriend(friend.username) }
                 addFriendException = false
                 popDialogState()
                 launchLogin()
@@ -242,7 +242,7 @@ class MainViewModel(
             addFriendException = false
             try {
                 attentionRepository.addFriend(
-                    friend.id,
+                    friend.username,
                     friend.name,
                     token
                 )
@@ -258,7 +258,7 @@ class MainViewModel(
 
                     403 -> {
                         backgroundScope.launch {
-                            attentionRepository.cacheFriend(friend.id)
+                            attentionRepository.cacheFriend(friend.username)
                         }
                         launchLogin()
                     }
@@ -268,7 +268,7 @@ class MainViewModel(
                     }
                 }
             } catch (e: Exception) {
-                attentionRepository.cacheFriend(friend.id)
+                attentionRepository.cacheFriend(friend.username)
                 setConnectStatus(null, e)
             }
         }
@@ -370,7 +370,7 @@ class MainViewModel(
 
     fun confirmDeleteCachedFriend(friend: Friend) {
         backgroundScope.launch {
-            attentionRepository.deleteCachedFriend(friend.id)
+            attentionRepository.deleteCachedFriend(friend.username)
         }
     }
 
@@ -396,7 +396,7 @@ class MainViewModel(
             }
             try {
                 attentionRepository.edit(
-                    Friend(id = id, name = name),
+                    Friend(username = id, name = name),
                     token
                 )
                 setConnectStatus(200)
@@ -651,7 +651,7 @@ class MainViewModel(
             val token = preferencesRepository.getToken()
             val message = Message(
                 timestamp = System.currentTimeMillis(),
-                otherId = to.id,
+                otherId = to.username,
                 message = body,
                 direction = DIRECTION.Outgoing
             )
@@ -660,7 +660,7 @@ class MainViewModel(
                 return@launch
             }
             val serviceIntent = Intent(context, AlertSendService::class.java).apply {
-                putExtra(EXTRA_SENDER, to.id)
+                putExtra(EXTRA_SENDER, to.username)
                 putExtra(KEY_TEXT_REPLY, body)
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -848,14 +848,16 @@ class MainViewModel(
 
             ShortcutManagerCompat.pushDynamicShortcut(
                 context,
-                ShortcutInfoCompat.Builder(context, friend.id).setShortLabel(friend.name).setPerson(
-                    Person.Builder().setName(friend.name).setKey(friend.id).setImportant(true)
+                ShortcutInfoCompat.Builder(context, friend.username).setShortLabel(friend.name)
+                    .setPerson(
+                        Person.Builder().setName(friend.name).setKey(friend.username)
+                            .setImportant(true)
                         .setIcon(icon).build()
                 ).setIcon(icon).setIntent(Intent(
                     context, MainActivity::class.java
                 ).apply {
                     action = Intent.ACTION_SENDTO
-                    putExtra(EXTRA_RECIPIENT, friend.id)
+                    putExtra(EXTRA_RECIPIENT, friend.username)
                 }).setLongLived(true).setCategories(contactCategories).setPerson(
                     Person.Builder().setName(friend.name).build()
                 ).build()
