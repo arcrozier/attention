@@ -1061,7 +1061,6 @@ class MainActivity : AppCompatActivity() {
 
         LaunchedEffect(interactionSource, state) {
             interactionSource.interactions.collect { interaction ->
-                Log.d(this@MainActivity::class.java.simpleName, state.name)
                 if (state != State.NORMAL || animating) return@collect
                 when (interaction) {
                     is PressInteraction.Press -> {
@@ -1347,7 +1346,6 @@ class MainActivity : AppCompatActivity() {
 
         LaunchedEffect(interactionSource, state) {
             interactionSource.interactions.collect { interaction ->
-                Log.d(this@MainActivity::class.java.simpleName, state.name)
                 if (state != PendingState.NORMAL || animating) return@collect
                 when (interaction) {
                     is PressInteraction.Press -> {
