@@ -7,7 +7,6 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -41,7 +40,7 @@ class AlertSendService : Service() {
                 sendAlert(intent)
             } finally {
                 jobs.remove(startId)
-                if (jobs.isEmpty()) {
+                if (jobs.isEmpty) {
                     stopSelfResult(startId)
                 }
             }
@@ -95,7 +94,7 @@ class AlertSendService : Service() {
             otherId = recipient,
             timestamp = System.currentTimeMillis(),
             direction = DIRECTION.Outgoing,
-            message = messageStr.toString()
+            message = messageStr
         )
         val token = preferencesRepository.getToken()
         val fcmToken = preferencesRepository.getValue(
@@ -129,7 +128,7 @@ class AlertSendService : Service() {
             )
             if (notificationId != NO_ID) {
                 (getSystemService(
-                    AppCompatActivity.NOTIFICATION_SERVICE
+                    NOTIFICATION_SERVICE
                 ) as NotificationManager).cancel(notificationId)
             }
             sendBroadcast(ACTION_SUCCESS, message.otherId)

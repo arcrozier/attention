@@ -27,6 +27,8 @@ import com.android.build.gradle.internal.utils.toImmutableSet
 import com.aracroproducts.attentionv2.AlertViewModel.Companion.NO_ID
 import com.aracroproducts.attentionv2.MainViewModel.Companion.FRIEND_REQUEST_CHANNEL_ID
 import com.aracroproducts.attentionv2.SendMessageReceiver.Companion.EXTRA_NOTIFICATION_ID
+import com.google.firebase.Firebase
+import com.google.firebase.crashlytics.crashlytics
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.Dispatchers
@@ -105,7 +107,10 @@ open class AlertHandler : FirebaseMessagingService() {
                             )
                         )
                     )
-                    if (messageData[REMOTE_TO] != username || messageData[REMOTE_TO] == null) return@launch  //if message is not addressed to the user, ends
+                    if (messageData[REMOTE_TO] != username || messageData[REMOTE_TO] == null) let {
+                        Firebase.crashlytics.log("Received message without correct recipient: $messageData (receiver username is $username)")
+                        return@launch
+                    }  //if message is not addressed to the user, ends
 
                     val alertId = messageData[ALERT_ID]
                     if (alertId == null) {
@@ -118,7 +123,7 @@ open class AlertHandler : FirebaseMessagingService() {
                     val important =
                         sender in topKFriends.toImmutableSet() || topKFriends.size < MAX_IMPORTANT_PEOPLE
 
-                    val display = if (message.message == "None") getString(
+                    val display = if (message.message == null) getString(
                         R.string.default_message, sender.name
                     ) else getString(R.string.message_prefix, sender.name, message.message)
 
@@ -144,7 +149,7 @@ open class AlertHandler : FirebaseMessagingService() {
                             TAG,
                             "App is disabled from showing notifications or interruption filter is set to block notifications"
                         )
-                        showNotification(display, sender, alertId, true, important)
+                        showNotification(display, sender, alertId, true /* missed */, important)
                         return@launch
                     }
                     try {
@@ -153,7 +158,7 @@ open class AlertHandler : FirebaseMessagingService() {
                             ) > 1
                         ) { // a variant of do not disturb
                             Log.d(TAG, "Device's zen mode is enabled")
-                            showNotification(display, sender, alertId, true, important)
+                            showNotification(display, sender, alertId, true /* missed */, important)
                             return@launch
                         }
                     } catch (e: SettingNotFoundException) {
@@ -162,9 +167,8 @@ open class AlertHandler : FirebaseMessagingService() {
                     val pm = getSystemService(POWER_SERVICE) as PowerManager
 
                     // Stores the id so the notification can be cancelled by the user
-                    val id = showNotification(display, sender, alertId, false, important)
-
-//                    repository.incrementReceived(message.otherId)
+                    val id =
+                        showNotification(display, sender, alertId, false /* missed */, important)
 
                     // Device should only show pop up if the device is off or if it has the ability to draw overlays (required to show pop up if screen is on)
                     if (!pm.isInteractive || Settings.canDrawOverlays(this@AlertHandler) || AttentionApplication.isActivityVisible()) {
