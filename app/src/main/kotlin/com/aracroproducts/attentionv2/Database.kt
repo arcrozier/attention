@@ -12,25 +12,10 @@ import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import androidx.room.TypeConverter
-import androidx.room.TypeConverters
 import androidx.room.Update
 import com.aracroproducts.attentionv2.AttentionDB.Companion.DB_V6
 import com.google.gson.annotations.SerializedName
 
-class Converters {
-    @TypeConverter
-    fun toMessageStatus(value: String?): MessageStatus? {
-        if (value != null) return MessageStatus.messageStatusForValue(value)
-        return null
-    }
-
-    @TypeConverter
-    fun fromMessageStatus(status: MessageStatus?): String? {
-        if (status != null) return status.value
-        return null
-    }
-}
 
 @Database(
     version = DB_V6,
@@ -77,7 +62,7 @@ data class Friend(
     @SerializedName("sent") val sent: Int = 0,
     @SerializedName("received") val received: Int = 0,
     @SerializedName("last_message_id_sent") val lastMessageSentId: String? = null,
-    @SerializedName("last_message_status") @TypeConverters(Converters::class)
+    @SerializedName("last_message_status")
     val lastMessageStatus: MessageStatus? = null,
     @SerializedName("photo") val photo: String? = null,
     @SerializedName("importance") val importance: Float = 0f
@@ -101,35 +86,21 @@ data class Message(
 
 enum class DIRECTION { Outgoing, Incoming }
 
-enum class MessageStatus(val value: String) {
+enum class MessageStatus() {
     @SerializedName("Sending")
-    SENDING("Sending"),
+    SENDING,
 
     @SerializedName("Sent")
-    SENT("Sent"),
+    SENT,
 
     @SerializedName("Delivered")
-    DELIVERED("Delivered"),
+    DELIVERED,
 
     @SerializedName("Read")
-    READ("Read"),
+    READ,
 
     @SerializedName("Error")
-    ERROR("Error");
-
-    companion object {
-
-        fun messageStatusForValue(value: String): MessageStatus? {
-            return when (value) {
-                SENT.value -> SENT
-                DELIVERED.value -> DELIVERED
-                READ.value -> READ
-                ERROR.value -> ERROR
-                SENDING.value -> SENDING
-                else -> null
-            }
-        }
-    }
+    ERROR;
 }
 
 const val IMPORTANCE_SCALE = 0.95f
@@ -161,7 +132,7 @@ interface FriendDAO {
     @Query(
         "UPDATE Friend SET lastMessageStatus = :status WHERE username = :id AND (lastMessageSentId = :alertId OR :alertId IS NULL)"
     )
-    suspend fun setMessageStatus(status: String?, id: String?, alertId: String?)
+    suspend fun setMessageStatus(status: MessageStatus?, id: String?, alertId: String?)
 
     @Query("SELECT * FROM Friend ORDER BY importance DESC, sent DESC")
     fun getFriends(): LiveData<List<Friend>>
