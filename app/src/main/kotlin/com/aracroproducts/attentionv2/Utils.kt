@@ -54,7 +54,7 @@ fun notifyUser(context: Context, text: String, message: Message? = null) {
         createFailedAlertNotificationChannel(context)
         val builder: NotificationCompat.Builder =
             NotificationCompat.Builder(context, FAILED_ALERT_CHANNEL_ID)
-        builder.setSmallIcon(R.drawable.app_icon_foreground)
+    builder.setSmallIcon(R.drawable.icon)
             .setContentTitle(context.getString(R.string.alert_failed)).setContentText(text)
             .setPriority(NotificationCompat.PRIORITY_MAX).setContentIntent(pendingIntent)
             .setAutoCancel(true)

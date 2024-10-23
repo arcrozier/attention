@@ -37,7 +37,6 @@
             android:label="@string/login"
             android:windowSoftInputMode="adjustResize"
             android:parentActivityName=".MainActivity" />
-        <!-- android:showOnLockScreen="true" -->
         <activity
             android:name=".Alert"
             android:theme="@style/Theme.Material3.DayNight.Dialog"

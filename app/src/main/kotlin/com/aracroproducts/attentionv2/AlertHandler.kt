@@ -424,7 +424,7 @@ open class AlertHandler : FirebaseMessagingService() {
             if (missed) {
                 createMissedNotificationChannel(applicationContext)
                 builder = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
-                builder.setSmallIcon(R.drawable.app_icon_foreground)
+                builder.setSmallIcon(R.drawable.icon)
                     .setContentTitle(
                         applicationContext.getString(
                             R.string.notification_title,
@@ -445,7 +445,7 @@ open class AlertHandler : FirebaseMessagingService() {
                     )
                 MainViewModel.createNotificationChannel(applicationContext)
                 builder = NotificationCompat.Builder(applicationContext, ALERT_CHANNEL_ID)
-                builder.setSmallIcon(R.drawable.app_icon_foreground)
+                builder.setSmallIcon(R.drawable.icon)
                     .setContentTitle(
                         applicationContext.getString(
                             R.string.alert_notification_title,

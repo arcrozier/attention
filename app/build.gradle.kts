@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.ksp)
-    // https://mvnrepository.com/artifact/com.google.devtools.ksp/symbol-processing-api
     alias(libs.plugins.gms)
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.compose)
@@ -16,8 +15,8 @@ android {
         applicationId = "com.aracroproducts.attentionv2"
         minSdk = 24
         targetSdk = 35
-        versionCode = 43
-        versionName = "2.2.0"
+        versionCode = 44
+        versionName = "2.2.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -120,48 +119,18 @@ dependencies {
 
     implementation(libs.retrofit)
 
-    // define a BOM and its version
     implementation(platform(libs.okhttp.bom))
-
-    // define any required OkHttp artifacts without version
     implementation(libs.okhttp)
     implementation(libs.logging.interceptor)
 
     implementation(libs.converter.gson)
     implementation(libs.gson)
 
-
-    // ViewModel
-    // ViewModel utilities for Compose
-
-    // Saved state module for ViewModel
-
-    // optional - helpers for implementing LifecycleOwner in a Service
-
-    // optional - ProcessLifecycleOwner provides a lifecycle for the whole application process
-
     // optional - Test helpers for LiveData
     testImplementation(libs.core.testing)
 
-    // Integration with activities
-    // Compose Material Design
-    // Animations
-    // Tooling support (Previews, etc.)
-    // Integration with ViewModels
-    // UI Tests
-
-    // To use Kotlin annotation processing tool (kapt)
-
-    // optional - Guava support for Room, including Optional and ListenableFuture
-
-    // optional - Test helpers
-
-    // optional - Paging 3 Integration
-
     // For sharing
     implementation(libs.androidx.sharetarget)
-
-//    implementation(libs.accompanist.systemuicontroller)
 
     // Sign in with Google
     implementation(libs.play.services.auth)
