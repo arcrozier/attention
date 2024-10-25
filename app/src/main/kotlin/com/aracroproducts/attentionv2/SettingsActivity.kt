@@ -11,20 +11,40 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS
 import android.util.Log
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.animation.*
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.EaseInOutCubic
 import androidx.compose.animation.core.TweenSpec
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.waterfallPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
@@ -32,25 +52,67 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.ContentAlpha
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.outlined.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.AlternateEmail
+import androidx.compose.material.icons.outlined.DoNotDisturbOn
+import androidx.compose.material.icons.outlined.Gavel
+import androidx.compose.material.icons.outlined.ManageAccounts
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.NotificationsActive
+import androidx.compose.material.icons.outlined.Password
+import androidx.compose.material.icons.outlined.Policy
+import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.Timer
+import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.material.icons.outlined.Update
+import androidx.compose.material.icons.outlined.Vibration
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
@@ -72,6 +134,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
 import androidx.core.view.WindowCompat
+import androidx.credentials.ClearCredentialStateRequest
+import androidx.credentials.CredentialManager
+import androidx.credentials.exceptions.ClearCredentialException
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -82,11 +147,10 @@ import com.aracroproducts.attentionv2.LoginActivity.Companion.LIST_ELEMENT_PADDI
 import com.aracroproducts.attentionv2.LoginActivity.Companion.UsernameField
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
 import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
-import com.google.accompanist.systemuicontroller.rememberSystemUiController
-import com.google.android.gms.auth.api.identity.Identity
 import com.yalantis.ucrop.UCrop
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.io.File
 import java.lang.Integer.max
 
@@ -135,6 +199,8 @@ class SettingsActivity : AppCompatActivity() {
             Log.d("PhotoPicker", "No media selected")
         }
     }
+
+    private val credentialManager = CredentialManager.create(this)
 
     class SettingsViewModelFactory(
         private val attentionRepository: AttentionRepository,
@@ -519,13 +585,12 @@ class SettingsActivity : AppCompatActivity() {
                                startActivity(intent)
                            })
 
-                Preference(value = null, icon = { enabled ->
+                Preference(
+                    value = null, icon = { _ ->
                     Image(
                         painter = painterResource(id = R.drawable.ic_btn_google),
                         contentDescription = getString(R.string.google_logo),
-                        modifier = Modifier.fillMaxSize(),
-                        colorFilter = if (enabled) null
-                        else grayScaleFilter()
+                        modifier = Modifier.fillMaxSize()
                     )
                 }, title = R.string.link_account, summary = null, onPreferenceClicked = {
                     val intent = Intent(this, LoginActivity::class.java)
@@ -538,13 +603,14 @@ class SettingsActivity : AppCompatActivity() {
                     setValue = { },
                     icon = {
                         Icon(
-                            Icons.Outlined.Logout, null, tint = MaterialTheme.colorScheme.error
+                            Icons.AutoMirrored.Outlined.Logout, null, tint = MaterialTheme.colorScheme.error
                         )
                     },
                     title = R.string.confirm_logout_title,
                     titleColor = MaterialTheme.colorScheme.error,
                     summary = null,
                 ) { _, _, dismissDialog, _, title ->
+                    val scope = rememberCoroutineScope()
                     AlertDialog(onDismissRequest = { dismissDialog() }, title = {
                         Text(text = title)
                     }, text = {
@@ -554,8 +620,16 @@ class SettingsActivity : AppCompatActivity() {
                             onClick = {
                                 viewModel.logout(this)
 
-                                val oneTapClient = Identity.getSignInClient(this)
-                                oneTapClient.signOut()
+                                scope.launch {
+                                    try {
+                                        credentialManager.clearCredentialState(
+                                            ClearCredentialStateRequest(ClearCredentialStateRequest.TYPE_CLEAR_CREDENTIAL_STATE)
+                                        )
+                                    } catch (e: ClearCredentialException) {
+                                        // not really much we can do
+                                        Log.e(this@SettingsActivity::class.qualifiedName, "Error clearing credentials: $e")
+                                    }
+                                }
                                 finish()
                                 dismissDialog()
                             }, colors = ButtonDefaults.buttonColors(
@@ -802,7 +876,7 @@ class SettingsActivity : AppCompatActivity() {
         )
     }
 
-    @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun PreferenceScreen(
         preferences: List<Pair<Pair<Int, (@Composable () -> Unit)?>, @Composable () -> Unit>>,
@@ -812,11 +886,7 @@ class SettingsActivity : AppCompatActivity() {
         onGroupSelected: (key: Int, preferences: @Composable () -> Unit) -> Unit,
         snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
     ) {
-
-        // Remember a SystemUiController
-        val systemUiController = rememberSystemUiController()
-        val useDarkIcons = !isSystemInDarkTheme()
-        val scrim = MaterialTheme.colorScheme.scrim
+        enableEdgeToEdge(navigationBarStyle = SystemBarStyle.auto(MaterialTheme.colorScheme.scrim.toArgb(), MaterialTheme.colorScheme.scrim.toArgb()))
 
         if (selected == 0) {
             onGroupSelected(preferences.firstOrNull()?.first?.first ?: 0,
@@ -824,20 +894,6 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         val phone = screenClass == WindowWidthSizeClass.Compact
-
-        DisposableEffect(
-            systemUiController, useDarkIcons
-        ) { // Update all of the system bar colors to be transparent, and use
-            // dark icons if we're in light theme
-            systemUiController.setNavigationBarColor(
-                color = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) Color.Transparent
-                else scrim, darkIcons = useDarkIcons
-            )
-
-            // setStatusBarColor() and setNavigationBarColor() also exist
-
-            onDispose {}
-        }
 
         val phoneScrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
         val tabletScrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -859,14 +915,14 @@ class SettingsActivity : AppCompatActivity() {
                         onBackPressedDispatcher.onBackPressed()
                     }) {
                         Icon(
-                            Icons.Default.ArrowBack, getString(
+                            Icons.AutoMirrored.Filled.ArrowBack, getString(
                                 R.string.back
                             )
                         )
                     }
                 })
             } else {
-                TopAppBar(colors = TopAppBarDefaults.smallTopAppBarColors(
+                TopAppBar(colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     scrolledContainerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary,
@@ -882,7 +938,7 @@ class SettingsActivity : AppCompatActivity() {
                         onBackPressedDispatcher.onBackPressed()
                     }) {
                         Icon(
-                            Icons.Default.ArrowBack, getString(
+                            Icons.AutoMirrored.Filled.ArrowBack, getString(
                                 R.string.back
                             )
                         )
@@ -948,9 +1004,9 @@ class SettingsActivity : AppCompatActivity() {
                     }
                     AnimatedContent(targetState = currentPreferenceGroup, transitionSpec = {
                         slideIntoContainer(
-                            towards = AnimatedContentScope.SlideDirection.Start
-                        ) with fadeOut()
-                    }) { targetPreferenceGroup ->
+                            towards = AnimatedContentTransitionScope.SlideDirection.Start
+                        ) togetherWith fadeOut()
+                    }, label = "animated preference group") { targetPreferenceGroup ->
                         Column(modifier = Modifier.weight(1f, true)) {
                             Spacer(modifier = Modifier.height(padding.calculateTopPadding()))
                             targetPreferenceGroup()
@@ -961,7 +1017,6 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
-    @OptIn(ExperimentalComposeUiApi::class, ExperimentalAnimationApi::class)
     @Composable
     fun UploadDialog(
         uploading: Boolean,
@@ -1036,7 +1091,7 @@ class SettingsActivity : AppCompatActivity() {
                     Crossfade(
                         targetState = uploading, animationSpec = TweenSpec(
                             FADE_DURATION, 0, EaseInOutCubic
-                        )
+                        ), label = "animate upload progress"
                     ) { targetState ->
                         when (targetState) {
                             true -> {
@@ -1066,7 +1121,9 @@ class SettingsActivity : AppCompatActivity() {
                                 }
 
                                 CircularProgressIndicator(
-                                    progress = uploadProgress,
+                                    progress = {
+                                        uploadProgress
+                                    },
                                     modifier = Modifier
                                         .align(Alignment.Center)
                                         .zIndex(1f)
@@ -1101,7 +1158,7 @@ class SettingsActivity : AppCompatActivity() {
                                         .align(Alignment.Center)
                                         .fillMaxSize(0.25f)
                                         .aspectRatio(1f)
-                                        .zIndex(1f)
+                                        .zIndex(1f), label = "animate upload success indicator"
                                 ) { success ->
                                     when (success) {
                                         null -> {}
@@ -1113,7 +1170,7 @@ class SettingsActivity : AppCompatActivity() {
                                                     .clip(RoundedCornerShape(10))
                                                     .background(
                                                         Color.Black.copy(
-                                                            alpha = ContentAlpha.disabled
+                                                            alpha = DISABLED_ALPHA
                                                         )
                                                     )
                                             ) {
@@ -1247,7 +1304,7 @@ class SettingsActivity : AppCompatActivity() {
 
             }
         } else {
-            if (!first) Divider(modifier = Modifier.fillMaxWidth(), thickness = 1.dp)
+            if (!first) HorizontalDivider(modifier = Modifier.fillMaxWidth(), thickness = 1.dp)
             Text(
                 text = getString(title),
                 style = MaterialTheme.typography.titleSmall,
@@ -1281,11 +1338,11 @@ class SettingsActivity : AppCompatActivity() {
             ) {
                 largePreference()
             }
-            Divider(
+            VerticalDivider(
                 modifier = Modifier
                     .fillMaxHeight(0.6f)
                     .width(1.dp),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = ContentAlpha.medium)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Box(
                 modifier = modifier
@@ -1310,14 +1367,11 @@ class SettingsActivity : AppCompatActivity() {
         icon: @Composable (BoxScope.(enabled: Boolean) -> Unit)? = null,
         reserveIconSpace: Boolean = true,
         titleColor: Color = MaterialTheme.colorScheme.onSurface,
-        disabledTitleColor: Color = MaterialTheme.colorScheme.onSurface.copy(
-            alpha = ContentAlpha.medium
-        ),
+        disabledTitleColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
         titleStyle: TextStyle = MaterialTheme.typography.bodyLarge,
-        summaryColor: Color = MaterialTheme.colorScheme.onSurface.copy(
-            alpha = ContentAlpha.medium
-        ),
-        summaryStyle: TextStyle = MaterialTheme.typography.labelLarge,
+        disabledTitleStyle: TextStyle = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Thin),
+        summaryColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+        summaryStyle: TextStyle = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Thin),
         enabled: Boolean = true,
         dialog: @Composable (value: T, setValue: (T) -> Unit, dismissDialog: () -> Unit, context: Context, title: String) -> Unit
     ) {
@@ -1325,9 +1379,9 @@ class SettingsActivity : AppCompatActivity() {
             mutableStateOf(false)
         }
         if (editing.value) {
-            dialog(value = value, setValue = setValue, dismissDialog = {
+            dialog(value, setValue, {
                 editing.value = false
-            }, context = this@SettingsActivity, title = getString(title))
+            }, this@SettingsActivity, getString(title))
         }
         Preference(
             value = value,
@@ -1339,6 +1393,7 @@ class SettingsActivity : AppCompatActivity() {
             reserveIconSpace = reserveIconSpace,
             titleColor = titleColor,
             disabledTitleColor = disabledTitleColor,
+            disabledTitleStyle = disabledTitleStyle,
             titleStyle = titleStyle,
             summaryColor = summaryColor,
             onPreferenceClicked = {
@@ -1361,15 +1416,12 @@ class SettingsActivity : AppCompatActivity() {
         icon: @Composable (BoxScope.(enabled: Boolean) -> Unit)? = null,
         reserveIconSpace: Boolean = true,
         titleColor: Color = MaterialTheme.colorScheme.onSurface,
-        disabledTitleColor: Color = MaterialTheme.colorScheme.onSurface.copy(
-            alpha = ContentAlpha.medium
-        ),
+        disabledTitleColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
         titleStyle: TextStyle = MaterialTheme.typography.bodyLarge,
-        summaryColor: Color = MaterialTheme.colorScheme.onSurface.copy(
-            alpha = ContentAlpha.medium
-        ),
+        disabledTitleStyle: TextStyle = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Thin),
+        summaryColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
         onPreferenceClicked: () -> Unit = { },
-        summaryStyle: TextStyle = MaterialTheme.typography.labelLarge,
+        summaryStyle: TextStyle = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Thin),
         enabled: Boolean = true,
     ) {
         Row(
@@ -1385,7 +1437,8 @@ class SettingsActivity : AppCompatActivity() {
                 Box(modifier = Modifier
                     .padding(ICON_PADDING)
                     .size(ICON_SIZE)
-                    .alpha(if (enabled) ContentAlpha.high else ContentAlpha.disabled),
+                    .alpha(if (enabled) HIGH_ALPHA else DISABLED_ALPHA)
+                    .grayScale(if (enabled) 1f else 0f),  // TODO check that this works correctly
                     contentAlignment = Alignment.Center,
                     content = {
                         iconSpot(enabled)
@@ -1398,7 +1451,7 @@ class SettingsActivity : AppCompatActivity() {
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = getString(title), style = titleStyle, color = if (enabled) titleColor
+                    text = getString(title), style = if (enabled) titleStyle else disabledTitleStyle, color = if (enabled) titleColor
                     else disabledTitleColor
                 )
                 if (summary != null) Text(
@@ -1427,32 +1480,5 @@ class SettingsActivity : AppCompatActivity() {
 
         const val DEFAULT_DELAY = 3.5f
 
-        private fun grayScaleFilter(): ColorFilter {
-            val grayScaleMatrix = ColorMatrix(
-                floatArrayOf(
-                    0.33f,
-                    0.33f,
-                    0.33f,
-                    0f,
-                    0f,
-                    0.33f,
-                    0.33f,
-                    0.33f,
-                    0f,
-                    0f,
-                    0.33f,
-                    0.33f,
-                    0.33f,
-                    0f,
-                    0f,
-                    0f,
-                    0f,
-                    0f,
-                    1f,
-                    0f
-                )
-            )
-            return ColorFilter.colorMatrix(grayScaleMatrix)
-        }
     }
 }

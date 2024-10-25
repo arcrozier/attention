@@ -1,9 +1,11 @@
 package com.aracroproducts.attentionv2
 
+import android.Manifest
 import android.app.Application
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.media.RingtoneManager
 import android.os.*
@@ -17,12 +19,15 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.aracroproducts.attentionv2.SendMessageReceiver.Companion.EXTRA_SENDER
+import com.aracroproducts.attentionv2.SendMessageReceiver.Companion.KEY_TEXT_REPLY
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -52,7 +57,9 @@ class AlertViewModel(
     private val fromUsername = intent.getStringExtra(AlertHandler.REMOTE_FROM_USERNAME) ?: ""
     private var ringerMode: Int? = null
 
-    var sender: Friend? by mutableStateOf(null)
+    var sender: Friend by mutableStateOf(Friend(fromUsername, ""))
+    var showReply: Boolean by mutableStateOf(false)
+    var replyMessage: String by mutableStateOf("")
 
     init {
         viewModelScope.launch {
@@ -115,8 +122,8 @@ class AlertViewModel(
                 val ring = preferencesRepository.getValue(
                     stringSetPreferencesKey(
                         context.getString(
-                                R.string.ring_preference_key
-                            )
+                            R.string.ring_preference_key
+                        )
                     ), HashSet()
                 )
 
@@ -126,9 +133,14 @@ class AlertViewModel(
         }
     }
 
+    /**
+     * Silences the alert and sends read receipt. If the alert should be dismissed, caller is
+     * responsible for calling Activity::finish()
+     */
     fun ok() {
         silence()
         isFinishing = true
+
 
         viewModelScope.launch(context = Dispatchers.IO) {
 
@@ -236,12 +248,7 @@ class AlertViewModel(
     override fun onCleared() {
         super.onCleared()
         val context = getApplication<Application>()
-        if (id != NO_ID) {
-            val notificationManager = context.getSystemService(
-                AppCompatActivity.NOTIFICATION_SERVICE
-            ) as NotificationManager
-            notificationManager.cancel(id)
-        }
+        clearNotification()
         if (isFinishing) return  // prevent this notification from being shown when the user clicks "ok"
         val intent = Intent(context, Alert::class.java)
         intent.putExtra("alert_message", message)
@@ -261,8 +268,37 @@ class AlertViewModel(
         }
 
         val notificationManagerCompat = NotificationManagerCompat.from(context)
+        if (ActivityCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
         notificationManagerCompat.notify(System.currentTimeMillis().toInt(), builder.build())
 
+    }
+
+    fun clearNotification() {
+        if (id != NO_ID) {
+            val notificationManager = getApplication<Application>().getSystemService(
+                AppCompatActivity.NOTIFICATION_SERVICE
+            ) as NotificationManager
+            notificationManager.cancel(id)
+        }
+    }
+
+    fun sendAlert() {
+        val context = getApplication<Application>()
+        val serviceIntent = Intent(context, AlertSendService::class.java).apply {
+            putExtra(EXTRA_SENDER, sender.username)
+            putExtra(KEY_TEXT_REPLY, replyMessage)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(serviceIntent)
+        } else {
+            context.startService(serviceIntent)
+        }
     }
 
     companion object {

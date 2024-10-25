@@ -101,9 +101,7 @@ data class ExtendedColors(val colors: Array<CustomColor>) {
 
         other as ExtendedColors
 
-        if (!colors.contentEquals(other.colors)) return false
-
-        return true
+        return colors.contentEquals(other.colors)
     }
 
     override fun hashCode(): Int {

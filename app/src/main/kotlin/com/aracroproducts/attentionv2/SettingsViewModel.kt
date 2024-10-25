@@ -12,6 +12,8 @@ import android.os.Build
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
@@ -23,7 +25,15 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.aracroproducts.attentionv2.MainViewModel.Companion.MY_TOKEN
 import com.aracroproducts.attentionv2.MainViewModel.Companion.PFP_FILENAME
-import kotlinx.coroutines.*
+import com.google.firebase.Firebase
+import com.google.firebase.crashlytics.crashlytics
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import retrofit2.HttpException
 import retrofit2.Response
 import java.io.File
 import java.io.FileNotFoundException
@@ -50,10 +60,10 @@ class SettingsViewModel(
         repository, preferencesRepository, applicationScope, application
     )
 
-    var outstandingRequests by mutableStateOf(0)
+    var outstandingRequests by mutableIntStateOf(0)
 
     var currentPreferenceGroup by mutableStateOf<@Composable () -> Unit>(@Composable {})
-    var selectedPreferenceGroupIndex by mutableStateOf(0)
+    var selectedPreferenceGroupIndex by mutableIntStateOf(0)
 
     var photo: ImageBitmap? by mutableStateOf(null)
 
@@ -67,7 +77,7 @@ class SettingsViewModel(
     var uri: Uri? by mutableStateOf(null)
     private val uploadLock = ReentrantLock()
     var uploading by mutableStateOf(false)
-    var uploadProgress by mutableStateOf(0f)
+    var uploadProgress by mutableFloatStateOf(0f)
 
     init {
         viewModelScope.launch {
@@ -164,91 +174,95 @@ class SettingsViewModel(
                 } else {
                     uploadStatus = context.getString(R.string.uploading)
                 }
-                val call = repository.editPhoto(photo = image,
-                                                token = token,
-                                                responseListener = { _, response, _ ->
-                                                    onCancel = null
-                                                    uploading = false
-                                                    if (response.isSuccessful) {
-                                                        uploadSuccess = true
-                                                        uploadStatus =
-                                                            context.getString(R.string.uploaded)
-                                                        viewModelScope.launch(Dispatchers.IO) {
-                                                            val bitmap = getImageBitmap(
-                                                                uri, context, ICON_SIZE, false
-                                                            )
-                                                            val file = File(
-                                                                context.filesDir, PFP_FILENAME
-                                                            ).apply {
-                                                                createNewFile()
-                                                            }
-                                                            val output = FileOutputStream(file)
-                                                            bitmap?.compress(
-                                                                Bitmap.CompressFormat.PNG,
-                                                                100,
-                                                                output
-                                                            )
-                                                            photo = bitmap?.asImageBitmap()
-                                                        }
-                                                    } else {
-                                                        uploadSuccess = false
-                                                        when (response.code()) {
-                                                            400 -> {
-                                                                shouldRetryUpload = false
-                                                                uploadStatus = context.getString(
-                                                                    R.string.upload_failed,
-                                                                    context.getString(R.string.invalid_photo)
-                                                                )
-                                                            }
-                                                            403 -> {
-                                                                uploadDialog = false
-                                                                sharedViewModel.logout(
-                                                                    context, context
-                                                                )
-                                                            }
-                                                            413 -> {
-                                                                shouldRetryUpload = false
-                                                                uploadStatus = context.getString(
-                                                                    R.string.upload_failed,
-                                                                    context.getString(R.string.photo_too_large)
-                                                                )
-                                                            }
-                                                            429 -> {
-                                                                shouldRetryUpload = true
-                                                                uploadStatus = context.getString(
-                                                                    R.string.upload_failed,
-                                                                    context.getString(R.string.rate_limited)
-                                                                )
-                                                            }
-                                                            else -> {
-                                                                shouldRetryUpload = true
-                                                                uploadStatus = context.getString(
-                                                                    R.string.upload_failed,
-                                                                    context.getString(R.string.server_error)
-                                                                )
-                                                            }
-                                                        }
-                                                    }
-                                                    uploadLock.unlock()
-                                                },
-                                                errorListener = { _, _ ->
-                                                    uploadSuccess = false
-                                                    uploading = false
-                                                    shouldRetryUpload = true
-                                                    uploadStatus = context.getString(
-                                                        R.string.upload_failed, context.getString(
-                                                            R.string.connection_error
-                                                        )
-                                                    )
-                                                    onCancel = null
-                                                    uploadLock.unlock()
-                                                },
-                                                uploadCallbacks = {
-                                                    uploadProgress = it
-                                                })
+                val job = viewModelScope.launch {
+                    try {
+                        repository.editPhoto(photo = image,
+                            token = token,
+                            uploadCallbacks = {
+                                uploadProgress = it
+                            })
+                        uploadSuccess = true
+                        uploadStatus =
+                            context.getString(R.string.uploaded)
+                        viewModelScope.launch(Dispatchers.IO) {
+                            val bitmap = getImageBitmap(
+                                uri, context, ICON_SIZE, false
+                            )
+                            val file = File(
+                                context.filesDir, PFP_FILENAME
+                            ).apply {
+                                createNewFile()
+                            }
+                            val output = FileOutputStream(file)
+                            bitmap?.compress(
+                                Bitmap.CompressFormat.PNG,
+                                100,
+                                output
+                            )
+                            photo = bitmap?.asImageBitmap()
+                        }
+                    } catch (e: HttpException) {
+                        uploadSuccess = false
+                        when (e.response()?.code()) {
+                            400 -> {
+                                shouldRetryUpload = false
+                                uploadStatus = context.getString(
+                                    R.string.upload_failed,
+                                    context.getString(R.string.invalid_photo)
+                                )
+                            }
+
+                            403 -> {
+                                uploadDialog = false
+                                sharedViewModel.logout(
+                                    context, context
+                                )
+                            }
+
+                            413 -> {
+                                shouldRetryUpload = false
+                                uploadStatus = context.getString(
+                                    R.string.upload_failed,
+                                    context.getString(R.string.photo_too_large)
+                                )
+                            }
+
+                            429 -> {
+                                shouldRetryUpload = true
+                                uploadStatus = context.getString(
+                                    R.string.upload_failed,
+                                    context.getString(R.string.rate_limited)
+                                )
+                            }
+
+                            else -> {
+                                shouldRetryUpload = true
+                                uploadStatus = context.getString(
+                                    R.string.upload_failed,
+                                    context.getString(R.string.server_error)
+                                )
+                                Firebase.crashlytics.log(e.toMessage())
+                            }
+                        }
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        uploadSuccess = false
+                        shouldRetryUpload = true
+                        uploadStatus = context.getString(
+                            R.string.upload_failed, context.getString(
+                                R.string.connection_error
+                            )
+                        )
+                        Firebase.crashlytics.log(e.toMessage())
+                    } finally {
+                        onCancel = null
+                        uploading = false
+                        uploadLock.unlock()
+                    }
+                }
                 onCancel = {
-                    call.cancel()
-                    uploadLock.unlock()
+                    job.cancel()
                 }
             } else {
                 sharedViewModel.logout(context, context)
@@ -285,49 +299,53 @@ class SettingsViewModel(
                 context.startActivity(loginIntent)
                 return@launch
             }
-            repository.editUser(token = token,
-                                username = username,
-                                email = email,
-                                responseListener = { _, response, _ ->
-                                    setStatus(!response.isSuccessful, false)
-                                    when (response.code()) {
-                                        200 -> {
-                                            setCaption("")
-                                            setUsername?.invoke(username)
-                                            setEmail?.invoke(email)
-                                            dismissDialog()
-                                        }
-                                        400 -> {
-                                            setCaption(
-                                                if (username != null) context.getString(
-                                                    R.string.username_in_use
-                                                ) else if (email != null) context.getString(
-                                                    R.string.email_in_use
-                                                ) else ""
-                                            )
-                                        }
-                                        403 -> {
-                                            setCaption("")
-                                            dismissDialog()
-                                            sharedViewModel.logout(context, context)
-                                        }
-                                        else -> {
-                                            setCaption(
-                                                context.getString(
-                                                    R.string.unknown_error
-                                                )
-                                            )
-                                        }
-                                    }
-                                },
-                                errorListener = { _, _ ->
-                                    setStatus(true, false)
-                                    currentSnackBar = SnackBarData(
-                                        context.getString(
-                                            R.string.disconnected
-                                        ), duration = SnackbarDuration.Long
-                                    )
-                                })
+            try {
+                repository.editUser(
+                    token = token,
+                    username = username,
+                    email = email
+                )
+                setStatus(true, false)
+                setCaption("")
+                setUsername?.invoke(username)
+                setEmail?.invoke(email)
+                dismissDialog()
+            } catch (e: HttpException) {
+                setStatus(false, false)
+                when (e.response()?.code()) {
+                    400 -> {
+                        setCaption(
+                            if (username != null) context.getString(
+                                R.string.username_in_use
+                            ) else if (email != null) context.getString(
+                                R.string.email_in_use
+                            ) else ""
+                        )
+                    }
+
+                    403 -> {
+                        setCaption("")
+                        dismissDialog()
+                        sharedViewModel.logout(context, context)
+                    }
+
+                    else -> {
+                        setCaption(
+                            context.getString(
+                                R.string.unknown_error
+                            )
+                        )
+                        Firebase.crashlytics.log(e.toMessage())
+                    }
+                }
+            } catch (e: Exception) {
+                setStatus(true, false)
+                currentSnackBar = SnackBarData(
+                    context.getString(
+                        R.string.disconnected
+                    ), duration = SnackbarDuration.Long
+                )
+            }
         }
 
     }
@@ -358,11 +376,11 @@ class SettingsViewModel(
         private val context: Activity, private val model: SettingsViewModel
     ) {
 
-        private fun <T> onResponse(response: Response<*>, newValue: T, key: Preferences.Key<T>) {
+        private fun <T> onResponse(response: Response<*>?, newValue: T, key: Preferences.Key<T>) {
             synchronized(this) {
                 outstandingRequests--
             }
-            val message = when (response.code()) {
+            val message = when (response?.code()) {
                 200 -> {
                     applicationScope.launch {
                         preferencesRepository.setValue(key, newValue)
@@ -371,6 +389,7 @@ class SettingsViewModel(
                         R.string.saved
                     } else null
                 }
+
                 400 -> {
                     if (response.errorBody()?.string()?.contains("in use") == true) {
                         R.string.email_in_use
@@ -378,14 +397,19 @@ class SettingsViewModel(
                         R.string.invalid_email
                     }
                 }
+
                 403 -> {
                     sharedViewModel.logout(context, context)
                     R.string.confirm_logout_title
                 }
+
                 429 -> {
                     R.string.rate_limited
                 }
+
                 else -> {
+                    Firebase.crashlytics.log((response?.let { HttpException(it) }
+                        ?: RuntimeException("Null response")).toMessage())
                     R.string.unknown_error
                 }
             }
@@ -424,40 +448,48 @@ class SettingsViewModel(
                     }
                     when (preference.name) {
                         context.getString(R.string.first_name_key) -> {
-                            repository.editUser(token = token,
-                                                firstName = newValue,
-                                                responseListener = { _, response, _ ->
-                                                    onResponse(
-                                                        response, newValue, preference
-                                                    )
-                                                },
-                                                errorListener = { _, _ ->
-                                                    onError()
-                                                })
+                            try {
+                                repository.editUser(
+                                    token = token,
+                                    firstName = newValue
+                                )
+                            } catch (e: HttpException) {
+                                onResponse(
+                                    e.response(), newValue, preference
+                                )
+                            } catch (e: Exception) {
+                                onError()
+                            }
                         }
+
                         context.getString(R.string.last_name_key) -> {
-                            repository.editUser(token = token,
-                                                lastName = newValue,
-                                                responseListener = { _, response, _ ->
-                                                    onResponse(
-                                                        response, newValue, preference
-                                                    )
-                                                },
-                                                errorListener = { _, _ ->
-                                                    onError()
-                                                })
+                            try {
+                                repository.editUser(
+                                    token = token,
+                                    lastName = newValue
+                                )
+                            } catch (e: HttpException) {
+                                onResponse(
+                                    e.response(), newValue, preference
+                                )
+                            } catch (e: Exception) {
+                                onError()
+                            }
                         }
+
                         context.getString(R.string.email_key) -> {
-                            repository.editUser(token = token,
-                                                email = newValue,
-                                                responseListener = { _, response, _ ->
-                                                    onResponse(
-                                                        response, newValue, preference
-                                                    )
-                                                },
-                                                errorListener = { _, _ ->
-                                                    onError()
-                                                })
+                            try {
+                                repository.editUser(
+                                    token = token,
+                                    email = newValue
+                                )
+                            } catch (e: HttpException) {
+                                onResponse(
+                                    e.response(), newValue, preference
+                                )
+                            } catch (e: Exception) {
+                                onError()
+                            }
                         }
                     }
                 } else {

@@ -4,6 +4,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -16,6 +17,9 @@ class PreferencesRepository(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    /**
+     * Atomically read and write potentially multiple values
+     */
     suspend fun bulkEdit(transform: (MutablePreferences) -> Unit) {
         dataStore.edit(transform = transform)
     }
@@ -34,5 +38,13 @@ class PreferencesRepository(private val dataStore: DataStore<Preferences>) {
 
     suspend fun contains(key: Preferences.Key<*>): Boolean {
         return key in dataStore.data.first()
+    }
+
+    suspend fun getToken(): String? {
+        return this.getValue(stringPreferencesKey(MY_TOKEN))
+    }
+
+    companion object {
+        const val MY_TOKEN = "token"
     }
 }

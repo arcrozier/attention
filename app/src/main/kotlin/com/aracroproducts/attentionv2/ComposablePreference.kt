@@ -77,7 +77,6 @@ fun <T> rememberPreference(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StringPreferenceChange(
     value: String,
@@ -147,7 +146,6 @@ fun StringPreferenceChange(
     })
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FloatPreferenceChange(
     value: Float,

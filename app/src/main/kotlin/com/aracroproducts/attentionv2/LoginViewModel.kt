@@ -15,9 +15,12 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.aracroproducts.attentionv2.MainViewModel.Companion.MY_ID
 import com.aracroproducts.attentionv2.MainViewModel.Companion.MY_TOKEN
+import com.google.firebase.Firebase
+import com.google.firebase.crashlytics.crashlytics
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
 
 class LoginViewModel(
     private val attentionRepository: AttentionRepository,
@@ -30,7 +33,6 @@ class LoginViewModel(
     }
 
     private var savedIdToken: String? = null
-    var showOneTapUI = true
     var login by mutableStateOf(State.LOGIN)
 
     var uiEnabled by mutableStateOf(true)
@@ -73,71 +75,68 @@ class LoginViewModel(
             return
         }
 
-        attentionRepository.signInWithGoogle(userIdToken = localIdToken,
-                                             username = username.ifBlank { null },
-                                             agree = if (agreedToToS) "yes" else null,
-                                             responseListener = { _, response, _ ->
-                                                 if (response.code() != 200 || response.body() == null) uiEnabled =
-                                                     true
-                                                 when (response.code()) {
-                                                     200 -> {
-                                                         val body = response.body()
-                                                         if (body == null) {
-                                                             Log.e(
-                                                                 sTAG,
-                                                                 "Got response but body was null!"
-                                                             )
-                                                             return@signInWithGoogle
-                                                         }
-                                                         viewModelScope.launch {
-                                                             loginFinished(body.token)
-                                                             onLoggedIn(body.token)
-                                                             uiEnabled = true
-                                                         }
-                                                     }
-                                                     400 -> {
-                                                         login = State.CHOOSE_USERNAME
-                                                         Log.e(
-                                                             sTAG, response.errorBody().toString()
-                                                         )
-                                                         if (response.errorBody().toString()
-                                                                 .contains("terms of service")
-                                                         ) {
-                                                             checkboxError = true
-                                                         } else usernameCaption =
-                                                             context.getString(R.string.username_in_use)
-                                                     }
-                                                     401 -> {
-                                                         login = State.CHOOSE_USERNAME
-                                                         Log.d(sTAG, "Selecting username")
-                                                     }
-                                                     403 -> {
-                                                         login = State.CHOOSE_USERNAME
-                                                         Log.e(sTAG, "Bad Google token: $idToken")
-                                                         usernameCaption = context.getString(
-                                                             R.string.bad_google_token
-                                                         )
-                                                     }
-                                                     else -> {
-                                                         genericErrorHandling(
-                                                             response.code(),
-                                                             snackbarHostState,
-                                                             coroutineScope,
-                                                             context
-                                                         )
-                                                     }
-                                                 }
-                                             },
-                                             errorListener = { _, t ->
-                                                 genericErrorHandling(
-                                                     0,
-                                                     snackbarHostState,
-                                                     coroutineScope,
-                                                     context,
-                                                     t
-                                                 )
-                                                 uiEnabled = true
-                                             })
+        viewModelScope.launch {
+            try {
+                val result = attentionRepository.signInWithGoogle(
+                    userIdToken = localIdToken,
+                    username = username.ifBlank { null },
+                    agree = if (agreedToToS) "yes" else null
+                )
+                viewModelScope.launch {
+                    loginFinished(result.token)
+                    onLoggedIn(result.token)
+                    uiEnabled = true
+                }
+            } catch (e: HttpException) {
+                uiEnabled = true
+                val response = e.response()
+                when (response?.code()) {
+                    400 -> {
+                        login = State.CHOOSE_USERNAME
+                        Log.e(
+                            sTAG, response.errorBody().toString()
+                        )
+                        if (response.errorBody()?.string()?.contains("terms of service") == true
+                        ) {
+                            checkboxError = true
+                        } else usernameCaption =
+                            context.getString(R.string.username_in_use)
+                    }
+
+                    401 -> {
+                        login = State.CHOOSE_USERNAME
+                        Log.d(sTAG, "Selecting username")
+                    }
+
+                    403 -> {
+                        login = State.CHOOSE_USERNAME
+                        val message = "Bad Google token: $idToken"
+                        Log.e(sTAG, message)
+                        usernameCaption = context.getString(
+                            R.string.bad_google_token
+                        )
+                        Firebase.crashlytics.log(message)
+                    }
+
+                    else -> {
+                        genericErrorHandling(
+                            e,
+                            snackbarHostState,
+                            coroutineScope,
+                            context
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                genericErrorHandling(
+                    e,
+                    snackbarHostState,
+                    coroutineScope,
+                    context
+                )
+                uiEnabled = true
+            }
+        }
     }
 
     private suspend fun loginFinished(token: String) {
@@ -178,78 +177,72 @@ class LoginViewModel(
                 uiEnabled = true
                 return@launch
             }
-            attentionRepository.linkGoogleAccount(googleToken = idToken,
-                                                  password = password,
-                                                  token = token,
-                                                  responseListener = { _, response, _ ->
-                                                      uiEnabled = true
-                                                      when (response.code()) {
-                                                          200 -> {
-                                                              val body = response.body()
-                                                              if (body == null) {
-                                                                  Log.e(
-                                                                      sTAG,
-                                                                      "Got response but body was null!"
-                                                                  )
-                                                                  return@linkGoogleAccount
-                                                              }
-                                                              viewModelScope.launch {
-                                                                  preferencesRepository.setValue(
-                                                                      booleanPreferencesKey(
-                                                                          context.getString(R.string.password_key)
-                                                                      ), false
-                                                                  )
-                                                              }
-                                                              onLoggedIn()
-                                                          }
-                                                          400 -> {
-                                                              Log.e(
-                                                                  sTAG,
-                                                                  response.errorBody().toString()
-                                                              )
-                                                              passwordCaption = context.getString(
-                                                                  R.string.google_account_in_use
-                                                              )
-                                                          }
-                                                          403 -> {
-                                                              val errorBody =
-                                                                  response.errorBody().toString()
-                                                              when {
-                                                                  errorBody.contains("password") -> {
-                                                                      passwordCaption =
-                                                                          context.getString(R.string.wrong_password)
-                                                                  }
-                                                                  errorBody.contains(
-                                                                      "google", true
-                                                                  ) -> {
-                                                                      passwordCaption =
-                                                                          context.getString(R.string.google_sign_in_failed)
-                                                                  }
-                                                                  else -> {
-                                                                      login = State.LOGIN
-                                                                  }
-                                                              }
-                                                          }
-                                                          else -> {
-                                                              genericErrorHandling(
-                                                                  response.code(),
-                                                                  snackbarHostState,
-                                                                  coroutineScope,
-                                                                  context
-                                                              )
-                                                          }
-                                                      }
-                                                  },
-                                                  errorListener = { _, t ->
-                                                      genericErrorHandling(
-                                                          0,
-                                                          snackbarHostState,
-                                                          coroutineScope,
-                                                          context,
-                                                          t
-                                                      )
-                                                      uiEnabled = true
-                                                  })
+            try {
+                attentionRepository.linkGoogleAccount(
+                    googleToken = idToken,
+                    password = password,
+                    token = token
+                )
+                onLoggedIn()
+                preferencesRepository.setValue(
+                    booleanPreferencesKey(
+                        context.getString(R.string.password_key)
+                    ), false
+                )
+            } catch (e: HttpException) {
+                val response = e.response()
+                when (response?.code()) {
+                    400 -> {
+                        Log.e(
+                            sTAG,
+                            response.errorBody().toString()
+                        )
+                        passwordCaption = context.getString(
+                            R.string.google_account_in_use
+                        )
+                    }
+
+                    403 -> {
+                        val errorBody =
+                            response.errorBody()?.string()
+                        when {
+                            errorBody?.contains("password") == true -> {
+                                passwordCaption =
+                                    context.getString(R.string.wrong_password)
+                            }
+
+                            errorBody?.contains(
+                                "google", true
+                            ) == true -> {
+                                passwordCaption =
+                                    context.getString(R.string.google_sign_in_failed)
+                            }
+
+                            else -> {
+                                login = State.LOGIN
+                            }
+                        }
+                    }
+
+                    else -> {
+                        genericErrorHandling(
+                            e,
+                            snackbarHostState,
+                            coroutineScope,
+                            context
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                genericErrorHandling(
+                    e,
+                    snackbarHostState,
+                    coroutineScope,
+                    context
+                )
+            } finally {
+                uiEnabled = true
+            }
         }
 
     }
@@ -261,43 +254,44 @@ class LoginViewModel(
     ) {
         uiEnabled = false
         val context = getApplication<Application>()
-        attentionRepository.getAuthToken(username = username,
-                                         password = password,
-                                         responseListener = { _, response, _ ->
-                                             if (response.code() != 200 || response.body() == null) uiEnabled =
-                                                 true
-                                             when (response.code()) {
-                                                 200 -> {
-                                                     val body = response.body()
-                                                     if (body == null) {
-                                                         Log.e(
-                                                             sTAG, "Got response but body was null!"
-                                                         )
-                                                         return@getAuthToken
-                                                     }
-                                                     viewModelScope.launch {
-                                                         val tempUsername = username
-                                                         val tempPassword = password
-                                                         loginFinished(body.token)
-                                                         onLoggedIn(
-                                                             tempUsername, tempPassword, body.token
-                                                         )
-                                                         uiEnabled = true
-                                                     }
-                                                 }
-                                                 400 -> {
-                                                     Log.e(sTAG, response.errorBody().toString())
-                                                     passwordCaption =
-                                                         context.getString(R.string.wrong_password)
-                                                 }
-                                             }
-                                         },
-                                         errorListener = { _, t ->
-                                             genericErrorHandling(
-                                                 0, snackbarHostState, scope, context, t
-                                             )
-                                             uiEnabled = true
-                                         })
+        viewModelScope.launch {
+            try {
+                val response = attentionRepository.getAuthToken(
+                    username = username,
+                    password = password
+                )
+                val tempUsername = username
+                val tempPassword = password
+                loginFinished(response.token)
+                onLoggedIn(
+                    tempUsername, tempPassword, response.token
+                )
+            } catch (e: HttpException) {
+                val response = e.response()
+                when (response?.code()) {
+                    400 -> {
+                        Log.e(sTAG, response.errorBody().toString())
+                        passwordCaption =
+                            context.getString(R.string.wrong_password)
+                    }
+
+                    else -> {
+                        genericErrorHandling(
+                            e,
+                            snackbarHostState,
+                            scope,
+                            context
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                genericErrorHandling(
+                    e, snackbarHostState, scope, context
+                )
+            } finally {
+                uiEnabled = true
+            }
+        }
     }
 
     fun createUser(
@@ -333,88 +327,103 @@ class LoginViewModel(
             return
         }
 
-        attentionRepository.registerUser(username = username,
-                                         password = password,
-                                         firstName = firstName,
-                                         lastName = lastName,
-                                         email = email,
-                                         responseListener = { _, response, errorBody ->
-                                             uiEnabled = true
-                                             when (response.code()) {
-                                                 200 -> {
-                                                     viewModelScope.launch(context = Dispatchers.IO) {
-                                                         preferencesRepository.bulkEdit { settings ->
-                                                             settings[stringPreferencesKey(
-                                                                 context.getString(
-                                                                     R.string.username_key
-                                                                 )
-                                                             )] = username
-                                                             settings[stringPreferencesKey(
-                                                                 context.getString(
-                                                                     R.string.first_name_key
-                                                                 )
-                                                             )] = firstName
-                                                             settings[stringPreferencesKey(
-                                                                 context.getString(
-                                                                     R.string.last_name_key
-                                                                 )
-                                                             )] = lastName
-                                                             settings[stringPreferencesKey(
-                                                                 context.getString(
-                                                                     R.string.email_key
-                                                                 )
-                                                             )] = email
-                                                         }
-                                                     }
-                                                     login(snackbarHostState, scope, onLoggedIn)
-                                                 }
-                                                 400 -> {
-                                                     if (errorBody == null) {
-                                                         Log.e(
-                                                             sTAG, "Got response but body was null"
-                                                         )
-                                                         return@registerUser
-                                                     }
-                                                     when {
-                                                         errorBody.contains(
-                                                             "username taken", true
-                                                         ) -> {
-                                                             usernameCaption =
-                                                                 context.getString(R.string.username_in_use)
-                                                         }
-                                                         errorBody.contains(
-                                                             "enter a valid username", true
-                                                         ) -> {
-                                                             usernameCaption =
-                                                                 context.getString(R.string.invalid_username)
-                                                         }
-                                                         errorBody.contains(
-                                                             "email address", true
-                                                         ) -> {
-                                                             emailCaption =
-                                                                 context.getString(R.string.invalid_email)
-                                                         }
-                                                         errorBody.contains("password", true) -> {
-                                                             passwordCaption =
-                                                                 context.getString(R.string.password_validation_failed)
-                                                         }
-                                                         errorBody.contains(
-                                                             "email taken",
-                                                             true
-                                                         ) -> {
-                                                             emailCaption =
-                                                                 context.getString(R.string.email_in_use)
-                                                         }
-                                                     }
-                                                 }
-                                             }
-                                         },
-                                         errorListener = { _, t ->
-                                             genericErrorHandling(
-                                                 0, snackbarHostState, scope, context, t
-                                             )
-                                             uiEnabled = true
-                                         })
+        viewModelScope.launch {
+            try {
+                attentionRepository.registerUser(
+                    username = username,
+                    password = password,
+                    firstName = firstName,
+                    lastName = lastName,
+                    email = email
+                )
+                preferencesRepository.bulkEdit { settings ->
+                    settings[stringPreferencesKey(
+                        context.getString(
+                            R.string.username_key
+                        )
+                    )] = username
+                    settings[stringPreferencesKey(
+                        context.getString(
+                            R.string.first_name_key
+                        )
+                    )] = firstName
+                    settings[stringPreferencesKey(
+                        context.getString(
+                            R.string.last_name_key
+                        )
+                    )] = lastName
+                    settings[stringPreferencesKey(
+                        context.getString(
+                            R.string.email_key
+                        )
+                    )] = email
+                }
+                login(snackbarHostState, scope, onLoggedIn)
+            } catch (e: HttpException) {
+                val response = e.response()
+                val errorBody = response?.errorBody()?.string()
+                when (response?.code()) {
+                    400 -> {
+                        if (errorBody == null) {
+                            Log.e(
+                                sTAG, "Got response but body was null"
+                            )
+                            return@launch
+                        }
+                        when {
+                            errorBody.contains(
+                                "username taken", true
+                            ) -> {
+                                usernameCaption =
+                                    context.getString(R.string.username_in_use)
+                            }
+
+                            errorBody.contains(
+                                "enter a valid username", true
+                            ) -> {
+                                usernameCaption =
+                                    context.getString(R.string.invalid_username)
+                            }
+
+                            errorBody.contains(
+                                "email address", true
+                            ) -> {
+                                emailCaption =
+                                    context.getString(R.string.invalid_email)
+                            }
+
+                            errorBody.contains("password", true) -> {
+                                passwordCaption =
+                                    context.getString(R.string.password_validation_failed)
+                            }
+
+                            errorBody.contains(
+                                "email taken",
+                                true
+                            ) -> {
+                                emailCaption =
+                                    context.getString(R.string.email_in_use)
+                            }
+                        }
+                    }
+
+                    else -> {
+                        genericErrorHandling(
+                            e,
+                            snackbarHostState,
+                            scope,
+                            context
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                genericErrorHandling(
+                    e, snackbarHostState, scope, context
+                )
+            } finally {
+                uiEnabled = true
+            }
+        }
     }
 
     fun changePassword(
@@ -449,101 +458,58 @@ class LoginViewModel(
                 uiEnabled = true
                 return@launch
             }
-            attentionRepository.editUser(token,
-                                         password = password,
-                                         oldPassword = oldPassword,
-                                         responseListener = { _, response, _ ->
-                                             when (response.code()) {
-                                                 200 -> {
-                                                     attentionRepository.getAuthToken(savedUsername,
-                                                                                      password,
-                                                                                      responseListener = { _, innerResponse, _ ->
-                                                                                          when (innerResponse.code()) {
-                                                                                              200 -> {
-                                                                                                  viewModelScope.launch(
-                                                                                                      context = Dispatchers.IO
-                                                                                                  ) {
-                                                                                                      preferencesRepository.setValue(
-                                                                                                          stringPreferencesKey(
-                                                                                                              MY_TOKEN
-                                                                                                          ),
-                                                                                                          innerResponse.body()?.token
-                                                                                                          ?: ""
-                                                                                                      )
-                                                                                                  }
+            try {
+                val response = attentionRepository.editUser(
+                    token,
+                    password = password,
+                    oldPassword = oldPassword
+                )
+                preferencesRepository.setValue(
+                    stringPreferencesKey(
+                        MY_TOKEN
+                    ),
+                    response.data.token
+                )
+                password =
+                    ""
+                oldPassword =
+                    ""
+                passwordHidden =
+                    true
+                onPasswordChanged()
+            } catch (e: HttpException) {
+                when (e.response()?.code()) {
 
-                                                                                                  password =
-                                                                                                      ""
-                                                                                                  oldPassword =
-                                                                                                      ""
-                                                                                                  passwordHidden =
-                                                                                                      true
-                                                                                                  onPasswordChanged()
-                                                                                              }
-                                                                                              403 -> {
-                                                                                                  usernameCaption =
-                                                                                                      context.getString(
-                                                                                                          R.string.mysterious_password_change_login_issue
-                                                                                                      )
-                                                                                                  login =
-                                                                                                      State.LOGIN
-                                                                                              }
-                                                                                              else -> {
-                                                                                                  genericErrorHandling(
-                                                                                                      innerResponse.code(),
-                                                                                                      snackbarHostState,
-                                                                                                      scope,
-                                                                                                      context
-                                                                                                  )
-                                                                                              }
-                                                                                          }
-                                                                                      },
-                                                                                      errorListener = { _, t ->
-                                                                                          usernameCaption =
-                                                                                              context.getString(
-                                                                                                  R.string.password_updated
-                                                                                              )
-                                                                                          genericErrorHandling(
-                                                                                              0,
-                                                                                              snackbarHostState,
-                                                                                              scope,
-                                                                                              context,
-                                                                                              t
-                                                                                          )
-                                                                                          login =
-                                                                                              State.LOGIN
-                                                                                          uiEnabled =
-                                                                                              true
-                                                                                      })
-                                                 }
-                                                 400 -> {
-                                                     passwordCaption =
-                                                         context.getString(R.string.password_validation_failed)
-                                                 }
-                                                 401 -> {
-                                                     oldPasswordCaption =
-                                                         context.getString(R.string.wrong_password)
-                                                 }
-                                                 403 -> {
-                                                     login = State.LOGIN
-                                                 }
-                                                 else -> {
-                                                     genericErrorHandling(
-                                                         response.code(),
-                                                         snackbarHostState,
-                                                         scope,
-                                                         context
-                                                     )
-                                                 }
-                                             }
-                                         },
-                                         errorListener = { _, t ->
-                                             genericErrorHandling(
-                                                 0, snackbarHostState, scope, context, t
-                                             )
-                                             uiEnabled = true
+                    400 -> {
+                        passwordCaption =
+                            context.getString(R.string.password_validation_failed)
+                    }
 
-                                         })
+                    401 -> {
+                        oldPasswordCaption =
+                            context.getString(R.string.wrong_password)
+                    }
+
+                    403 -> {
+                        login = State.LOGIN
+                    }
+
+                    else -> {
+                        genericErrorHandling(
+                            e,
+                            snackbarHostState,
+                            scope,
+                            context
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                genericErrorHandling(
+                    e, snackbarHostState, scope, context
+                )
+            } finally {
+                uiEnabled = true
+            }
         }
 
 
@@ -563,44 +529,50 @@ class LoginViewModel(
         }
     }
 
-    fun setTokenUploaded(uploaded: Boolean) {
-        viewModelScope.launch {
-            preferencesRepository.setValue(
-                booleanPreferencesKey(
-                    MainViewModel.TOKEN_UPLOADED
-                ), uploaded
-            )
-        }
-    }
-
     private fun genericErrorHandling(
-        code: Int,
+        e: Exception,
         snackbarHostState: SnackbarHostState?,
         scope: CoroutineScope?,
-        context: Context,
-        t: Throwable? = null
+        context: Context
     ) {
-        when (code) {
-            429 -> {
-                snackOrToast(
-                    context.getString(R.string.rate_limited), snackbarHostState, scope, context
-                )
+        if (e is HttpException) {
+            when (e.response()?.code()) {
+                429 -> {
+                    snackOrToast(
+                        context.getString(R.string.rate_limited), snackbarHostState, scope, context
+                    )
+                }
+
+                500, 502, 503, 504 -> {
+                    snackOrToast(
+                        context.getString(
+                            R.string.server_error
+                        ), snackbarHostState, scope, context
+                    )
+                    Firebase.crashlytics.log(
+                        "Error ${e.code()}: ${e.message}\n${
+                            e.response()?.errorBody()
+                        }"
+                    )
+                }
+
+                else -> {
+                    snackOrToast(
+                        context.getString(
+                            R.string.connection_error
+                        ), snackbarHostState, scope, context
+                    )
+                    val message = e.toMessage()
+                    Firebase.crashlytics.log(message)
+                    Log.e(sTAG, message)
+                }
             }
-            500, 502, 503, 504 -> {
-                snackOrToast(
-                    context.getString(
-                        R.string.server_error
-                    ), snackbarHostState, scope, context
-                )
-            }
-            else -> {
-                snackOrToast(
-                    context.getString(
-                        R.string.connection_error
-                    ), snackbarHostState, scope, context
-                )
-                Log.e(sTAG, "An unexpected error occurred: ${t?.message}")
-            }
+        } else {
+            snackOrToast(
+                context.getString(
+                    R.string.connection_error
+                ), snackbarHostState, scope, context
+            )
         }
 
     }
@@ -621,7 +593,7 @@ class LoginViewModel(
     }
 
     companion object {
-        private val sTAG = LoginViewModel::class.java.name
+        private val sTAG = LoginViewModel::class.java.simpleName
 
 
     }

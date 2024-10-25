@@ -2,29 +2,22 @@
 <resources>
     <string name="app_name">Oppmerk!</string>
     <string name="action_settings">Innstillinger</string>
-    <string name="name_dialog_title">Venligst tast inn navnet dit</string>
     <string name="name">Fullt navn</string>
-    <string name="no_name">Venligst tast inn et navn</string>
     <string name="confirm_alert">Send varsel</string>
     <string name="add_message">Legg til en melding</string>
     <string name="message_hint">Tast inn en melding</string>
-    <string name="invalid_id">Du tastet ikke inn en gyldig ID</string>
     <string name="alert_sent">Vellykket sendte varsel</string>
-    <string name="general_error">Feil: Kun ikke sendte varsel</string>
     <string name="user_registered">Din konto har blit registret!</string>
     <string name="default_message">%s vil ha opmerksomheten din</string>
     <string name="message_prefix">%1$s sier: %2$s</string>
     <string name="confirm_delete_title">Slett venn</string>
     <string name="confirm_delete_message">Er du sikker du vil fjerne %s som en venn?</string>
-    <string name="yes">Ja</string>
     <string name="channel_name">Varsler du gikk glip av</string>
     <string name="channel_description">Varlser nåar du gå glipp av en varsling</string>
     <string name="notification_title">Ubesvart varsel fra %s</string>
     <string name="alert_notification_title">Varsel fra %s</string>
     <string name="alert_channel_name">Varsler</string>
     <string name="alert_channel_description">Varsler deg når du har nye varsler</string>
-    <string name="allow">Tillat</string>
-    <string name="deny">Benekte</string>
     <string name="draw_title">Tegne overlegg</string>
     <string name="draw_message">Tillat Følg Med! til å tegne overlegg? Dette muligjør visning av varsler når du bruker enheten din</string>
     <string name="open_settings">Åpne innstillinger</string>
@@ -35,7 +28,6 @@
     <string name="new_name">Tast inn nytt navn</string>
     <string name="title_activity_settings">Innstillinger</string>
     <string name="notifications_title">Varsler</string>
-    <string name="user_title">Bruker</string>
     <string name="override_dnd">Overstyr Ikke Forstyr</string>
     <string name="override_summary_off">Varsler vil ikke vises når Ikke Forstyr er på</string>
     <string name="override_summary_on">Varsler vil vises til og med når Ikke Forstyr er på</string>
@@ -44,7 +36,6 @@
     <string name="silent">Stille</string>
     <string name="vibrate">Vibrer</string>
     <string name="ring">Ring</string>
-    <string name="display_name">Navn som skal vises</string>
     <string name="add_friend">Legg til ny venn</string>
     <string name="username">Brukernavn</string>
     <string name="no_username">Ikke funnet</string>
@@ -55,7 +46,6 @@
     <string name="passwords_different">Passord er forskillege</string>
     <string name="read">Lest</string>
     <string name="sent">Sendt</string>
-    <string name="offline">Frakoblet</string>
     <string name="disconnected">Tilkoblings feil</string>
     <string name="empty_username">Brukernavn kan ikke være tomt</string>
     <string name="nonexistent_username">Ingen bruker med denne brukernavn finnes</string>
@@ -70,7 +60,6 @@
     <string name="change_password">Endre passord</string>
     <string name="wrong_password">Ugyldig brukernavn eller passord</string>
     <string name="password_validation_failed">Passord må ha i minst 8 tegn</string>
-    <string name="new_password">Ny passord…</string>
     <string name="password_verification_failed">Kun ikke bekreft gamle passord. Vennligst logg på igjen og så prøv å endre passordet ditt</string>
     <string name="mysterious_password_change_login_issue">Et sjelden feil skjedde når vi prøvde å endre passordet ditt. Det kan hende at dette er et serverfeil eller fordi på-enhet data ble ødelagt og, dessverre, vi er ikke sikker hva passordet ditt er. Prøv å logg på med ditt nye passord og hvis det fungerer ikke, ditt gamle passord. Du kan også kontakt Aracro Products ved support@aracroproducts.com for hjelp med tilgang til kontoen din. Vi beklager for bryet.</string>
     <string name="password_updated">Passordet ble vellykket oppdatert</string>
@@ -78,7 +67,6 @@
     <string name="invalid_email">E-post er ikke gyldig. Sett inn en gyldig e-post adresse eller la tøm</string>
     <string name="invalid_username">Sett inn et gyldig brukernavn. Det kan bare ha Engelsk bokstaver, nummerer, og @/./+/-/_ tegn</string>
     <string name="account">Konto</string>
-    <string name="network_error">En feil skjedde når kobling til severen. Vennligst prøv på nytt senere</string>
     <string name="connection_error">Kunne ikke koble til serveren. Sjekk internetttilkobling din og prøv på nytt</string>
     <string name="unknown_error">Et ukjent feil skjedde</string>
     <string name="server_error">Serveren hadde en feil. Vennligst være tålmodig mens vi jobber til å fikse den.</string>
@@ -134,7 +122,7 @@
     <string name="rate_limited">For mange etterspørseler. Vennligst prøv på nytt senere</string>
     <string name="invalid_photo">Ugyldig bilde. Bilde bør være mindre enn 20 MB og en gyldig bildeformat</string>
     <string name="photo_too_large">Bilde er for stor (må ikke være større enn 179 megapiksler)</string>
-    <string name="no_friends">Du har ingen venner - bruk \'+\'-knappen for å legge noen til</string>
+    <string name="no_friends">Du har ingen venner - bruk \'+🧑‍🚀\'-knappen for å legge noen til</string>
     <string name="upload_pfp">Last opp profil bilde</string>
     <string name="uploading">Laster opp…</string>
     <string name="processing">Behandler fil…</string>
