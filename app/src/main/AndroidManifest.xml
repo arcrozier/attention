@@ -24,7 +24,7 @@
         android:fullBackupContent="@xml/backup_descriptor"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:theme="@style/Theme.Material3.DayNight.NoActionBar"
-        tools:targetApi="33">
+        tools:targetApi="35">
         <meta-data android:name="asset_statements" android:resource="@string/asset_statements" />
         <activity
             android:name=".SettingsActivity"
@@ -45,6 +45,10 @@
             android:turnScreenOn="true"
             android:exported="false"
             tools:targetApi="o_mr1" />
+        <activity
+            android:name=".ReportDialog"
+            android:exported="false"
+            android:label="@string/report" />
         <service
             android:name=".AlertHandler"
             android:enabled="true"

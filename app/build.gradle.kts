@@ -15,8 +15,8 @@ android {
         applicationId = "com.aracroproducts.attentionv2"
         minSdk = 24
         targetSdk = 35
-        versionCode = 44
-        versionName = "2.2.1"
+        versionCode = 45
+        versionName = "2.3.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

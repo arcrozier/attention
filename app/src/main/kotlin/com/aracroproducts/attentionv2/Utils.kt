@@ -5,6 +5,8 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
@@ -13,6 +15,10 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -22,6 +28,7 @@ import com.aracroproducts.attentionv2.MainViewModel.Companion.FAILED_ALERT_CHANN
 import com.aracroproducts.attentionv2.MainViewModel.Companion.createFailedAlertNotificationChannel
 import retrofit2.HttpException
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 
 fun filterUsername(username: String): String {
@@ -99,6 +106,55 @@ fun Modifier.grayScale(saturation: Float = 0f): Modifier {
         }
     }
 }
+
+@Composable
+fun MeasureView(
+    viewToMeasure: @Composable () -> Unit,
+    content: @Composable (measuredWidth: Dp, measuredHeight: Dp) -> Unit,
+) {
+    SubcomposeLayout { constraints ->
+        val measuredSize = subcompose("viewToMeasure", viewToMeasure)[0]
+            .measure(constraints)
+
+        val contentPlaceable = subcompose("content") {
+            content(measuredSize.width.toDp(), measuredSize.height.toDp())
+        }[0].measure(constraints)
+        layout(contentPlaceable.width, contentPlaceable.height) {
+            contentPlaceable.place(0, 0)
+        }
+    }
+}
+
+fun min(a: Dp, b: Dp): Dp = if (a < b) a else b
+
+val centerWithBottomElement = object : Arrangement.HorizontalOrVertical {
+    override fun Density.arrange(
+        totalSize: Int,
+        sizes: IntArray,
+        layoutDirection: LayoutDirection,
+        outPositions: IntArray
+    ) {
+        val consumedSize = sizes.fold(0) { a, b -> a + b }
+        var current = (totalSize - consumedSize).toFloat() / 2
+        sizes.forEachIndexed { index, size ->
+            if (index == sizes.lastIndex) {
+                outPositions[index] =
+                    if (layoutDirection == LayoutDirection.Ltr) totalSize - size
+                    else size
+            } else {
+                outPositions[index] =
+                    if (layoutDirection == LayoutDirection.Ltr) current.roundToInt()
+                    else totalSize - current.roundToInt()
+                current += size.toFloat()
+            }
+        }
+    }
+
+    override fun Density.arrange(totalSize: Int, sizes: IntArray, outPositions: IntArray) {
+        arrange(totalSize, sizes, LayoutDirection.Ltr, outPositions)
+    }
+}
+
 
 fun Exception?.toMessage(): String {
     return "${(this as? HttpException)?.run { "${this::class.qualifiedName} ${this.message}\n${code()}\n${response()?.errorBody()}" } ?: this?.stackTraceToString()}"

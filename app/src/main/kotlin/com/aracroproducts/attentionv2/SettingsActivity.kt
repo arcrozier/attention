@@ -60,6 +60,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.AlternateEmail
 import androidx.compose.material.icons.outlined.DoNotDisturbOn
+import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Gavel
 import androidx.compose.material.icons.outlined.ManageAccounts
 import androidx.compose.material.icons.outlined.Notifications
@@ -835,6 +836,11 @@ class SettingsActivity : AppCompatActivity() {
                                Intent.ACTION_VIEW, Uri.parse(getString(R.string.privacy_policy_url))
                            )
                            startActivity(browserIntent)
+                       })
+                       Preference(value = null, icon = {
+                           Icon(Icons.Outlined.Flag, null)
+                       }, title = R.string.report, summary = null, onPreferenceClicked = {
+                           startActivity(Intent(this, ReportDialog::class.java))
                        })
                        Preference(
                            value = getString(R.string.version_name),

@@ -97,8 +97,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.core.text.getSpans
 import androidx.credentials.CreatePasswordRequest
@@ -123,7 +121,6 @@ import com.google.firebase.crashlytics.crashlytics
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
 
 // TODO support passkeys using the CredentialManager API
 class LoginActivity : AppCompatActivity() {
@@ -1056,34 +1053,6 @@ class LoginActivity : AppCompatActivity() {
                     color = if (model.checkboxError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground
                 ), modifier = Modifier.align(Alignment.CenterVertically)
             )
-        }
-    }
-
-    private val centerWithBottomElement = object : Arrangement.HorizontalOrVertical {
-        override fun Density.arrange(
-            totalSize: Int,
-            sizes: IntArray,
-            layoutDirection: LayoutDirection,
-            outPositions: IntArray
-        ) {
-            val consumedSize = sizes.fold(0) { a, b -> a + b }
-            var current = (totalSize - consumedSize).toFloat() / 2
-            sizes.forEachIndexed { index, size ->
-                if (index == sizes.lastIndex) {
-                    outPositions[index] =
-                        if (layoutDirection == LayoutDirection.Ltr) totalSize - size
-                        else size
-                } else {
-                    outPositions[index] =
-                        if (layoutDirection == LayoutDirection.Ltr) current.roundToInt()
-                        else totalSize - current.roundToInt()
-                    current += size.toFloat()
-                }
-            }
-        }
-
-        override fun Density.arrange(totalSize: Int, sizes: IntArray, outPositions: IntArray) {
-            arrange(totalSize, sizes, LayoutDirection.Ltr, outPositions)
         }
     }
 

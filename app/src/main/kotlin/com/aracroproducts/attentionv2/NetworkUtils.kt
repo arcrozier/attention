@@ -89,7 +89,7 @@ class APIClient {
 }
 
 interface APIV2 {
-
+    // TODO add report endpoint
     @FormUrlEncoded
     @POST("google_auth/")
     suspend fun googleSignIn(
@@ -216,6 +216,16 @@ interface APIV2 {
     suspend fun linkAccount(
         @Field("password") password: String,
         @Field("id_token") idToken: String,
+        @Header("Authorization") token: String
+    ): GenericResult<Void>
+
+    @Multipart
+    @POST("report/")
+    suspend fun report(
+        @Part("message") message: RequestBody,
+        @Part("title") title: RequestBody,
+        @Part("tags") tags: RequestBody,
+        @Part images: List<MultipartBody.Part>,
         @Header("Authorization") token: String
     ): GenericResult<Void>
 }

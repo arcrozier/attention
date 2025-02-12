@@ -314,6 +314,7 @@ class MainViewModel(
                     friendNameLoading = false
                     when (e.response()?.code()) {
                         400 -> {
+                            newFriendName = ""
                             usernameCaption = application.getString(
                                 R.string.nonexistent_username
                             )
