@@ -3,6 +3,7 @@
     <string name="action_settings">Settings</string>
     <!-- Strings used for fragments for navigation -->
 
+    <string name="done">Done</string>
     <string name="pfp_description">Profile photo for %1$s</string>
     <string name="your_pfp_description">Your profile photo</string>
     <string name="username">Username</string>
@@ -41,7 +42,7 @@
     <string name="change_password">Change password</string>
     <string name="choose_username">Choose username</string>
     <string name="tos_agree">I have read and agree to the <annotation url="tos">terms of service</annotation></string>
-    <string name="wrong_password">Invalid username or password</string>
+    <string name="wrong_password">Incorrect username or password</string>
     <string name="google_sign_in_failed">Unable to log in with Google</string>
     <string name="password_validation_failed">Password must be at least 8 characters</string>
     <string name="password_verification_failed">Couldn\'t verify old password. Please login
@@ -52,8 +53,7 @@
     <string name="username_in_use">Username is taken</string>
     <string name="invalid_email">Email is invalid. Enter a valid email or leave blank</string>
     <string name="email_in_use">Email is in use by another account</string>
-    <string name="invalid_username">Enter a valid username. This value may contain only English
-        letters, numbers, and @/./+/-/_ characters.</string>
+    <string name="invalid_username">Enter a valid username. This value may contain only English         letters, numbers, and @/./+/-/_ characters.</string>
     <string name="invalid_photo">Invalid photo. Photo should be less than 20 MB and a valid
     image format</string>
     <string name="photo_too_large">Photo is too large (must not exceed 179 megapixels)</string>
@@ -76,8 +76,7 @@
     <string name="saved">Saved</string>
     <string name="uploaded">Image was successfully uploaded</string>
     <string name="share">Share</string>
-    <string name="share_text">Add me on Attention!
-        https://attention.aracroproducts.com/app/add?username=%s</string>
+    <string name="share_text">Add me on Attention!         https://attention.aracroproducts.com/app/add?username=%s</string>
     <string name="name">Full name</string>
     <string name="placeholder_name">Name…</string>
     <string name="confirm_alert">Send notification</string>
@@ -94,8 +93,7 @@
         friend</string>
     <string name="alert_failed_no_user">Could not send alert to %s because the user does not
         exist (refresh and try again)</string>
-    <string name="alert_rate_limited">You have sent too many messages. Please wait a few
-        seconds and tap to try again</string>
+    <string name="alert_rate_limited">You have sent too many messages. Please wait a few         seconds and tap to try again</string>
     <string name="alert_failed_bad_request">An error occurred while sending an alert to %s</string>
     <string name="alert_failed_server_error">The server encountered an error while sending an alert to %s</string>
     <string name="alert_failed_no_connection">Could not send alert %s. Check your network
@@ -176,7 +174,7 @@
     <string name="app_preference_category">App</string>
 
     <!-- Notification Preferences -->
-    <string name="notification_rationale_title">Allow notification permissions?</string>
+    <string name="notification_rationale_title">Allow notifications?</string>
     <string name="notification_rationale">This is allows Attention! to show notifications
         when your friends want your attention. Without notification permission, the app
         will not show pop-up dialogs when your friends message either. If you want just the
@@ -205,6 +203,22 @@
     <string name="terms_of_service">Terms of Service</string>
     <string name="privacy_policy">Privacy Policy</string>
     <string name="by_ap">By Aracro Products</string>
+
+    <!-- Reporting -->
+    <string name="report">Report</string>
+    <string name="report_reason_dangerous">Engaging in or promoting dangerous or illegal conduct</string>
+    <string name="report_reason_csam">Sexual abuse (including all sexual content of minors)</string>
+    <string name="report_reason_bug">Issues with the app or service</string>
+    <string name="report_reason_dmca">Copyright infringement or other intellectual property theft</string>
+    <string name="report_reason_tos">Violations of the terms of service, including spam</string>
+    <string name="report_reason_other">Other illegal content or behavior</string>
+    <string name="report_reason_label">Reason</string>
+    <string name="report_body_label">Issue details</string>
+    <string name="report_thumnbail_alt_text">Thumbnail for attachment %s</string>
+    <string name="report_add_attachment_alt_text">Add attachment</string>
+    <string name="submit">Submit</string>
+    <string name="report_validation_error">Missing required fields: %s</string>
+    <string name="report_success_message">Report successfully submitted&lt;br>&lt;br>         If we need any additional context, someone from Aracro Products may reach out to you via the         email in your account (if applicable)&lt;br>&lt;br>Please be aware that abuse of the reporting system         (&lt;em>e.g.&lt;/em> repeated frivolous reports or knowingly false reports) constitutes a violation         of the terms of service</string>
 
     <!-- Preference Keys -->
     <string name="override_dnd_key" translatable="false">com.aracroproducts.attention.key.override_dnd</string>

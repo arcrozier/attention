@@ -37,8 +37,10 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
@@ -70,9 +72,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -113,6 +117,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.content.pm.ShortcutManagerCompat
+import androidx.core.net.toUri
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -131,6 +136,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.io.File
 import java.lang.Integer.max
 import java.util.concurrent.TimeUnit
 import kotlin.collections.set
@@ -298,7 +304,7 @@ class MainActivity : AppCompatActivity() {
 
 
         if (friendModel.addFriendException) {
-            val tempId = data?.getQueryParameter(USERNAME_QUERY_PARMETER)
+            val tempId = data?.getQueryParameter(USERNAME_QUERY_PARAMETER)
             if (tempId == null) {
                 friendModel.showSnackBar(getString(R.string.bad_add_link))
             } else {
@@ -600,10 +606,12 @@ class MainActivity : AppCompatActivity() {
                                             text = getString(R.string.pending_friend_header),
                                             style = MaterialTheme.typography.labelLarge,
                                             color = MaterialTheme.colorScheme.onBackground,
-                                            modifier = Modifier.padding(
-                                                horizontal = 16.dp,
-                                                vertical = 8.dp
-                                            )
+                                            modifier = Modifier
+                                                .padding(
+                                                    horizontal = 16.dp,
+                                                    vertical = 8.dp
+                                                )
+                                                .animateItem()
                                         )
                                     }
                                     items(
@@ -626,7 +634,9 @@ class MainActivity : AppCompatActivity() {
                                             color = MaterialTheme.colorScheme.outline.copy(
                                                 alpha = DISABLED_ALPHA
                                             ),
-                                            modifier = Modifier.padding(start = 8.dp, end = 8.dp),
+                                            modifier = Modifier
+                                                .padding(start = 8.dp, end = 8.dp)
+                                                .animateItem(),
                                             thickness = 3.dp
                                         )
                                     }
@@ -1059,6 +1069,8 @@ class MainActivity : AppCompatActivity() {
             mutableStateOf(false)
         }
 
+        val overlayScrollState = rememberScrollState()
+
         LaunchedEffect(interactionSource, state) {
             interactionSource.interactions.collect { interaction ->
                 if (state != State.NORMAL || animating) return@collect
@@ -1066,6 +1078,7 @@ class MainActivity : AppCompatActivity() {
                     is PressInteraction.Press -> {
                         loc = interaction.pressPosition.x
                         animating = true
+                        overlayScrollState.scrollTo(0)
                     }
                 }
             }
@@ -1077,6 +1090,7 @@ class MainActivity : AppCompatActivity() {
                 .requiredHeight(48.dp)
                 .combinedClickable(
                     onClick = {
+
                         onStateChange(
                             when (state) {
                                 State.NORMAL -> State.CONFIRM
@@ -1195,6 +1209,7 @@ class MainActivity : AppCompatActivity() {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(BUTTON_SPACING),
                             verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.horizontalScroll(overlayScrollState)
                         ) {
                             IconButton(onClick = { onStateChange(State.NORMAL) }) {
                                 Icon(
@@ -1231,6 +1246,7 @@ class MainActivity : AppCompatActivity() {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(BUTTON_SPACING),
                             verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.horizontalScroll(overlayScrollState)
                         ) {
                             IconButton(onClick = { onStateChange(State.NORMAL) }) {
                                 Icon(
@@ -1257,14 +1273,55 @@ class MainActivity : AppCompatActivity() {
                             }) {
                                 Text(getString(R.string.rename))
                             }
+                            var enabled by remember { mutableStateOf(true) }
+                            IconButton(onClick = {
+                                enabled = false
+                                lifecycleScope.launch(Dispatchers.IO) {
+                                    reportUser(friend.username, friend.name, friend.photo)
+                                    onStateChange(State.NORMAL)
+                                    enabled = true
+                                }
+                            }, enabled = enabled) {
+                                AnimatedContent(enabled, transitionSpec = {
+                                    fadeIn() togetherWith fadeOut()
+                                }, label = "reportButton") { target ->
+                                    when (target) {
+                                        true -> Icon(
+                                            Icons.Outlined.Flag,
+                                            getString(R.string.report),
+                                            tint = MaterialTheme.colorScheme.onBackground,
+                                            modifier = Modifier
+                                                .border(
+                                                    1.dp,
+                                                    MaterialTheme.colorScheme.onBackground,
+                                                    CircleShape
+                                                )
+                                                .padding(8.dp)
+                                        )
+
+                                        false -> CircularProgressIndicator(
+                                            modifier = Modifier
+                                                .size(
+                                                    40.dp
+                                                )
+                                                .border(
+                                                    1.dp,
+                                                    MaterialTheme.colorScheme.onBackground,
+                                                    CircleShape
+                                                )
+                                                .padding(8.dp)
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
 
                     State.CANCEL -> {
                         val delay: Long by remember {
-                            mutableStateOf((friendModel.delay * 1000).toLong())
+                            mutableLongStateOf((friendModel.delay * 1000).toLong())
                         }
-                        var progress by remember { mutableStateOf(0L) }
+                        var progress by remember { mutableLongStateOf(0L) }
                         val animatedProgress by animateFloatAsState(
                             targetValue = min(progress.toFloat() / delay, 1f).let {
                                 if (it.isNaN()) 1f
@@ -1512,6 +1569,47 @@ class MainActivity : AppCompatActivity() {
                             ) {
                                 Text(getString(R.string.block))
                             }
+                            var enabled by remember { mutableStateOf(true) }
+                            IconButton(onClick = {
+                                enabled = false
+                                lifecycleScope.launch(Dispatchers.IO) {
+                                    reportUser(friend.username, friend.name, friend.photo)
+                                    onStateChange(PendingState.NORMAL)
+                                    enabled = true
+                                }
+                            }, enabled = enabled) {
+                                AnimatedContent(enabled, transitionSpec = {
+                                    fadeIn() togetherWith fadeOut()
+                                }, label = "reportButton") { target ->
+                                    when (target) {
+                                        true -> Icon(
+                                            Icons.Outlined.Flag,
+                                            getString(R.string.report),
+                                            tint = MaterialTheme.colorScheme.onBackground,
+                                            modifier = Modifier
+                                                .border(
+                                                    1.dp,
+                                                    MaterialTheme.colorScheme.onBackground,
+                                                    CircleShape
+                                                )
+                                                .padding(8.dp)
+                                        )
+
+                                        false -> CircularProgressIndicator(
+                                            modifier = Modifier
+                                                .size(
+                                                    40.dp
+                                                )
+                                                .border(
+                                                    1.dp,
+                                                    MaterialTheme.colorScheme.onBackground,
+                                                    CircleShape
+                                                )
+                                                .padding(8.dp)
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -1573,12 +1671,29 @@ class MainActivity : AppCompatActivity() {
         return true
     }
 
+    private fun reportUser(username: String, name: String, photo: String?) {
+        val intent = Intent(this, ReportDialog::class.java)
+        intent.putExtra(
+            ReportDialog.EXTRA_REPORT_MESSAGE,
+            "Username: $username\nDisplay name: $name"
+        )
+        if (photo != null) {
+            val imageDecoded = Base64.decode(photo, Base64.DEFAULT)
+            val imageBitmap = BitmapFactory.decodeByteArray(imageDecoded, 0, imageDecoded.size)
+            val file = File.createTempFile("pfp", ".png")
+            val outputStream = file.outputStream()
+            imageBitmap.compress(Bitmap.CompressFormat.PNG, 95, outputStream)
+            intent.putExtra(ReportDialog.EXTRA_ATTACHMENT, file.toUri().toString())
+        }
+        startActivity(intent)
+    }
+
     companion object {
         private const val DELAY_INTERVAL: Long = 100
         private val BUTTON_SPACING = 16.dp
         val ICON_SPACING = 8.dp
         val ICON_SIZE = 40.dp
-        const val USERNAME_QUERY_PARMETER = "username"
+        const val USERNAME_QUERY_PARAMETER = "username"
 
         /**
          * Positions the element such that its center is at (x, y). If this would cause the

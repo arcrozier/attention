@@ -159,7 +159,7 @@ class SettingsViewModel(
                 uploadStatus = context.getString(R.string.processing)
                 val image: InputStream? = try {
                     context.contentResolver.openInputStream(uri)
-                } catch (e: FileNotFoundException) {
+                } catch (_: FileNotFoundException) {
                     null
                 }
                 if (image == null) {
@@ -338,7 +338,7 @@ class SettingsViewModel(
                         Firebase.crashlytics.log(e.toMessage())
                     }
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 setStatus(true, false)
                 currentSnackBar = SnackBarData(
                     context.getString(
@@ -457,7 +457,7 @@ class SettingsViewModel(
                                 onResponse(
                                     e.response(), newValue, preference
                                 )
-                            } catch (e: Exception) {
+                            } catch (_: Exception) {
                                 onError()
                             }
                         }
@@ -472,7 +472,7 @@ class SettingsViewModel(
                                 onResponse(
                                     e.response(), newValue, preference
                                 )
-                            } catch (e: Exception) {
+                            } catch (_: Exception) {
                                 onError()
                             }
                         }
@@ -487,7 +487,7 @@ class SettingsViewModel(
                                 onResponse(
                                     e.response(), newValue, preference
                                 )
-                            } catch (e: Exception) {
+                            } catch (_: Exception) {
                                 onError()
                             }
                         }

@@ -1,6 +1,14 @@
 package com.aracroproducts.attentionv2
 
+import android.content.Context
+import android.net.Uri
+import android.webkit.MimeTypeMap
+import kotlinx.coroutines.yield
 import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.internal.commonToMediaTypeOrNull
+import java.io.File
 import java.io.InputStream
 import java.util.Calendar
 import kotlin.concurrent.thread
@@ -26,6 +34,50 @@ class AttentionRepository(private val database: AttentionDB) {
 
     suspend fun insert(vararg pendingFriend: PendingFriend) {
         database.getPendingFriendDAO().insert(*pendingFriend)
+    }
+
+    suspend fun report(
+        title: String,
+        message: String,
+        photos: List<Uri>,
+        tags: List<String>,
+        token: String,
+        context: Context
+    ): GenericResult<Void> {
+        return apiInterface.report(
+            title = title.toRequestBody(MultipartBody.FORM),
+            message = message.toRequestBody(MultipartBody.FORM),
+            tags = tags.joinToString(";").toRequestBody(MultipartBody.FORM),
+            images = photos.mapIndexed { index, uri ->
+                val mimeType =
+                    (if (uri.scheme == "content") context.contentResolver.getType(uri) else MimeTypeMap.getSingleton()
+                        .getMimeTypeFromExtension(uri.lastPathSegment?.substringAfter(".")))
+                        ?: "application/octet-stream"
+                val extension =
+                    MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType) ?: "bin"
+                val attachmentFile = File.createTempFile("att", ".${extension}")
+                context.contentResolver.openInputStream(uri).use { input ->
+                    if (input == null) {
+                        println("NULL input stream for uri $uri")
+                        return@use
+                    }
+                    attachmentFile.outputStream().use { output ->
+                        var read = 0
+                        val buffer = ByteArray(0x1000)
+                        while (input.read(buffer).also { read = it } != -1) {
+                            output.write(buffer, 0, read)
+                        }
+                    }
+                }
+                println(attachmentFile.length())
+                yield()
+                MultipartBody.Part.createFormData(
+                    "photo",
+                    "attachment${index}.${extension}",
+                    attachmentFile.asRequestBody((mimeType).commonToMediaTypeOrNull())
+                )
+            }, token = authHeader(token)
+        )
     }
 
     fun clearTables() {
