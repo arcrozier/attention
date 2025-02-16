@@ -8,13 +8,12 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.app.RemoteInput
 import androidx.core.app.ServiceCompat
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.aracroproducts.attentionv2.AlertHandler.Companion.EXTRA_TIMESTAMP
 import com.aracroproducts.attentionv2.AlertViewModel.Companion.NO_ID
 import com.aracroproducts.attentionv2.MainViewModel.Companion.EXTRA_RECIPIENT
-import com.aracroproducts.attentionv2.SendMessageReceiver.Companion.EXTRA_NOTIFICATION_ID
-import com.aracroproducts.attentionv2.SendMessageReceiver.Companion.EXTRA_SENDER
-import com.aracroproducts.attentionv2.SendMessageReceiver.Companion.KEY_TEXT_REPLY
 import com.google.firebase.Firebase
 import com.google.firebase.crashlytics.crashlytics
 import kotlinx.coroutines.CoroutineScope
@@ -37,7 +36,91 @@ class AlertSendService : Service() {
         foreground()
         jobs[startId] = scope.launch {
             try {
-                sendAlert(intent)
+                if (intent == null) {
+                    return@launch
+                }
+                val alertId = intent.getStringExtra(EXTRA_ALERT_ID)
+                val senderUsername = intent.getStringExtra(EXTRA_SENDER)
+                if (senderUsername == null) {
+                    return@launch
+                }
+
+                val notificationId = intent.getIntExtra(EXTRA_NOTIFICATION_ID, NO_ID)
+                val fromNotification = intent.getBooleanExtra(EXTRA_FROM_NOTIFICATION, false)
+
+                when (intent.action) {
+                    ACTION_REPLY -> {
+                        val messageStr = if (fromNotification) {
+                            val broadcastIntent = Intent(ACTION_MARK_AS_READ).apply {
+                                putExtra(EXTRA_ALERT_ID, alertId)
+                                setPackage(this@AlertSendService.packageName)
+                            }
+                            applicationContext.sendBroadcast(broadcastIntent)
+
+                            RemoteInput.getResultsFromIntent(intent)
+                                ?.getCharSequence(KEY_TEXT_REPLY)?.toString()
+                        } else {
+                            intent.getStringExtra(KEY_TEXT_REPLY)
+                        }
+
+                        val readJob =
+                            launch { if (alertId != null) sendMarkAsRead(senderUsername, alertId) }
+                        val sendJob =
+                            launch { sendAlert(senderUsername, notificationId, messageStr) }
+
+                        readJob.join()
+                        sendJob.join()
+                    }
+
+                    ACTION_SILENCE -> {
+                        if (fromNotification) {
+                            val broadcastIntent = Intent(ACTION_SILENCE).apply {
+                                putExtra(EXTRA_ALERT_ID, alertId)
+                                setPackage(this@AlertSendService.packageName)
+                            }
+                            applicationContext.sendBroadcast(broadcastIntent)
+                        }
+                        val timestamp = intent.getLongExtra(EXTRA_TIMESTAMP, 0)
+                        val messageText = intent.getStringExtra(EXTRA_MESSAGE_TEXT)
+
+                        val sender = AttentionDB.getDB(applicationContext).getFriendDAO()
+                            .getFriend(senderUsername)
+
+                        if (messageText == null || sender == null || notificationId == NO_ID || alertId == null) {
+                            return@launch
+                        }
+
+                        // Updates existing notification to not show the silence button
+                        AlertHandler.showNotification(
+                            application,
+                            messageText,
+                            sender,
+                            alertId,
+                            0,
+                            timestamp,
+                            notificationId,
+                        )
+                        sendMarkAsRead(senderUsername, alertId)
+                    }
+
+                    ACTION_MARK_AS_READ -> {
+                        if (alertId == null) return@launch
+                        if (fromNotification) {
+                            val broadcastIntent = Intent(ACTION_MARK_AS_READ).apply {
+                                putExtra(EXTRA_ALERT_ID, alertId)
+                                setPackage(this@AlertSendService.packageName)
+                            }
+                            applicationContext.sendBroadcast(broadcastIntent)
+                        }
+
+                        sendMarkAsRead(senderUsername, alertId)
+                        (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).cancel(
+                            notificationId
+                        )
+                    }
+                }
+                // On silence, do this
+
             } finally {
                 jobs.remove(startId)
                 if (jobs.isEmpty) {
@@ -80,13 +163,31 @@ class AlertSendService : Service() {
         }
     }
 
-    private suspend fun sendAlert(intent: Intent?) {
-        if (intent == null) return
+    private suspend fun sendMarkAsRead(fromUsername: String, alertId: String) {
+        val attentionRepository = (application as AttentionApplication).container.repository
+        val preferencesRepository =
+            (application as AttentionApplication).container.settingsRepository
+        // token is auth token
+        val token = preferencesRepository.getValue(stringPreferencesKey(MainViewModel.MY_TOKEN))
 
-        val recipient = intent.getStringExtra(EXTRA_SENDER) ?: return
-        val alertId = intent.getStringExtra(EXTRA_ALERT_ID)
-        val notificationId = intent.getIntExtra(EXTRA_NOTIFICATION_ID, NO_ID)
-        val messageStr = intent.getStringExtra(KEY_TEXT_REPLY)
+        val fcmToken = preferencesRepository.getValue(
+            stringPreferencesKey(
+                MainViewModel.FCM_TOKEN
+            )
+        )
+
+        if (token == null || fcmToken == null) {
+            Log.e(javaClass.name, "Token is null when sending read receipt!")
+            return
+        }
+
+        attentionRepository.sendReadReceipt(
+            from = fromUsername, alertId = alertId, fcmToken = fcmToken, authToken = token
+        )
+    }
+
+    private suspend fun sendAlert(recipient: String, notificationId: Int, messageStr: String?) {
+
         val repository = AttentionRepository(AttentionDB.getDB(this))
         val preferencesRepository = PreferencesRepository(getDataStore(this.applicationContext))
 
@@ -97,11 +198,6 @@ class AlertSendService : Service() {
             message = messageStr
         )
         val token = preferencesRepository.getToken()
-        val fcmToken = preferencesRepository.getValue(
-            stringPreferencesKey(
-                MainViewModel.FCM_TOKEN
-            )
-        )
         if (token == null) {
             notifyUser(
                 this,
@@ -114,12 +210,6 @@ class AlertSendService : Service() {
             return
         }
         val to = repository.getFriend(recipient)
-        if (alertId != null && fcmToken != null) {
-            repository.sendReadReceipt(
-                alertId, recipient,
-                fcmToken, token
-            )
-        }
 
         try {
             repository.alertSending(message.otherId)
@@ -281,6 +371,17 @@ class AlertSendService : Service() {
         const val ACTION_SUCCESS = "com.aracroproducts.attention.broadcast.SUCCESS"
         const val ACTION_LOGIN = "com.aracroproducts.attention.broadcast.LOGIN"
         const val ACTION_ERROR = "com.aracroproducts.attention.broadcast.ERROR"
+        const val ACTION_MARK_AS_READ =
+            "com.aracroproducts.attention.action.MARK_AS_READ"  // dismisses the dialog and marks as read
+        const val ACTION_REPLY =
+            "com.aracroproducts.attention.action.REPLY"  // dismisses the dialog and marks as read
+        const val ACTION_SILENCE =
+            "com.aracroproducts.attention.action.SILENCE"  // marks as read but does not dismiss the dialog
+        const val EXTRA_MESSAGE_TEXT = "com.aracroproducts.attention.extra.MESSAGE_TEXT"
+        const val EXTRA_SENDER = "com.aracroproducts.attention.extra.RECIPIENT"
+        const val EXTRA_NOTIFICATION_ID = "com.aracroproducts.attention.extra.NOTIFICATION_ID"
+        const val EXTRA_FROM_NOTIFICATION = "com.aracroproducts.attention.extra.FROM_NOTIFICATION"
+        const val KEY_TEXT_REPLY = "key_text_reply"
         private val sTAG = AlertSendService::class.java.simpleName
     }
 }

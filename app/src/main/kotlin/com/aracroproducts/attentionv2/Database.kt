@@ -6,20 +6,23 @@ import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Delete
 import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.Transaction
 import androidx.room.Update
-import com.aracroproducts.attentionv2.AttentionDB.Companion.DB_V6
+import com.aracroproducts.attentionv2.AttentionDB.Companion.DB_V7
 import com.google.gson.annotations.SerializedName
 
 
 @Database(
-    version = DB_V6,
-    entities = [Friend::class, PendingFriend::class, Message::class, CachedFriend::class]
+    version = DB_V7,
+    entities = [Friend::class, PendingFriend::class, Message::class, CachedFriend::class, ConversationId::class]
 )
 abstract class AttentionDB : RoomDatabase() {
 
@@ -31,8 +34,10 @@ abstract class AttentionDB : RoomDatabase() {
 
     abstract fun getCachedFriendDAO(): CachedFriendDAO
 
+    abstract fun getConversationIdDAO(): ConversationIDDao
+
     companion object {
-        const val DB_V6 = 6
+        const val DB_V7 = 7
         private const val DB_NAME = "attention_database"
 
         @Volatile
@@ -65,7 +70,28 @@ data class Friend(
     @SerializedName("last_message_status")
     val lastMessageStatus: MessageStatus? = null,
     @SerializedName("photo") val photo: String? = null,
-    @SerializedName("importance") val importance: Float = 0f
+    @SerializedName("importance") val importance: Float = 0f,
+)
+
+enum class Purpose {
+    SILENCE, REPLY, DISMISS, DEFAULT
+}
+
+@Entity(
+    indices = [Index(value = ["friend", "purpose"], unique = true)],
+    foreignKeys = [ForeignKey(
+        entity = Friend::class,
+        parentColumns = ["username"],
+        childColumns = ["friend"],
+        onDelete = ForeignKey.Companion.CASCADE,
+        onUpdate = ForeignKey.Companion.CASCADE
+    )
+    ]
+)
+data class ConversationId(
+    @PrimaryKey(autoGenerate = true) val conversationId: Int = 0,
+    val friend: String,
+    val purpose: Purpose = Purpose.DEFAULT
 )
 
 @Entity
@@ -134,6 +160,9 @@ interface FriendDAO {
     )
     suspend fun setMessageStatus(status: MessageStatus?, id: String?, alertId: String?)
 
+    @Query("UPDATE Friend SET lastMessageSentId = :alertId WHERE username = :id")
+    suspend fun setLastMessageSentId(alertId: String, id: String)
+
     @Query("SELECT * FROM Friend ORDER BY importance DESC, sent DESC")
     fun getFriends(): LiveData<List<Friend>>
 
@@ -142,6 +171,25 @@ interface FriendDAO {
 
     @Query("SELECT * FROM Friend WHERE username = :id")
     suspend fun getFriend(id: String): Friend?
+}
+
+@Dao
+interface ConversationIDDao {
+    @Insert(onConflict = OnConflictStrategy.Companion.IGNORE)
+    suspend fun addConversation(conversationId: ConversationId)
+
+    @Query("SELECT * FROM ConversationId WHERE friend = :friend AND purpose = :purpose")
+    suspend fun getConversationId(friend: String, purpose: Purpose): ConversationId?
+
+    @Transaction
+    suspend fun getOrInsert(friend: String, purpose: Purpose): ConversationId {
+        val res = getConversationId(friend, purpose)
+        if (res == null) {
+            addConversation(ConversationId(friend = friend, purpose = purpose))
+            return getConversationId(friend, purpose)!!
+        }
+        return res
+    }
 }
 
 @Dao

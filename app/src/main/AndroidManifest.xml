@@ -26,6 +26,9 @@
         android:theme="@style/Theme.Material3.DayNight.NoActionBar"
         tools:targetApi="35">
         <meta-data android:name="asset_statements" android:resource="@string/asset_statements" />
+        <meta-data
+            android:name="com.google.android.gms.car.application"
+            android:resource="@xml/automotive_app_desc" />
         <activity
             android:name=".SettingsActivity"
             android:exported="false"
@@ -106,27 +109,12 @@
         <activity
             android:name="com.yalantis.ucrop.UCropActivity"
             android:theme="@style/Theme.Material3.DayNight.NoActionBar"/>
-        <receiver android:name=".SendMessageReceiver" android:exported="false">
-            <intent-filter>
-                <action android:name="com.aracroproducts.attention.broadcast.REPLY" />
-            </intent-filter>
-        </receiver>
 
         <service
             android:name=".AlertSendService"
             android:foregroundServiceType="shortService"
             android:exported="false">
         </service>
-
-        <receiver
-            android:name=".FriendRequestReceiver"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="com.aracroproducts.attention.broadcast.ACCEPT" />
-                <action android:name="com.aracroproducts.attention.broadcast.IGNORE" />
-                <action android:name="com.aracroproducts.attention.broadcast.BLOCK" />
-            </intent-filter>
-        </receiver>
 
         <service
             android:name=".FriendManagementService"

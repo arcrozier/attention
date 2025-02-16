@@ -28,7 +28,7 @@ class AttentionRepository(private val database: AttentionDB) {
     // By default Room runs suspend queries off the main thread, therefore, we don't need to
     // implement anything else to ensure we're not doing long running database work
     // off the main thread.
-    private suspend fun insert(vararg friend: Friend) {
+    suspend fun insert(vararg friend: Friend) {
         database.getFriendDAO().insert(*friend)
     }
 
@@ -125,7 +125,11 @@ class AttentionRepository(private val database: AttentionDB) {
     suspend fun getFriend(id: String): Friend =
         database.getFriendDAO().getFriend(id) ?: Friend(id, name = "")
 
+    suspend fun getFriend(id: String, default: Friend?): Friend? =
+        database.getFriendDAO().getFriend(id) ?: default
+
     suspend fun cacheFriend(username: String) {
+        database.getPendingFriendDAO().delete(username)
 
         database.getCachedFriendDAO().insert(
             CachedFriend(username)
@@ -182,7 +186,11 @@ class AttentionRepository(private val database: AttentionDB) {
     ): GenericResult<AlertResult> {
         assert(message.direction == DIRECTION.Outgoing)
         appendMessage(message)
-        return apiInterface.sendAlert(message.otherId, message.message, authHeader(token))
+        val result = apiInterface.sendAlert(message.otherId, message.message, authHeader(token))
+        database.getFriendDAO().setLastMessageSentId(result.data.id, message.otherId)
+        database.getFriendDAO()
+            .setMessageStatus(MessageStatus.SENT, id = message.otherId, alertId = result.data.id)
+        return result
     }
 
     suspend fun registerDevice(
@@ -257,6 +265,7 @@ class AttentionRepository(private val database: AttentionDB) {
         username: String, name: String, token: String
     ): GenericResult<Void> {
         val result = apiInterface.addFriend(username, authHeader(token))
+        deleteCachedFriend(username)
         insert(Friend(username, name))
         database.getPendingFriendDAO().delete(username)
         return result

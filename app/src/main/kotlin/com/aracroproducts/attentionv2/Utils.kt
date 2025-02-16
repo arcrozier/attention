@@ -54,9 +54,10 @@ const val HIGH_ALPHA = 1f
  */
 fun notifyUser(context: Context, text: String, message: Message? = null) {
         val intent = getSendIntent(context, message)
+    val notificationID = System.currentTimeMillis().toInt()
 
         val pendingIntent =
-            PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+            PendingIntent.getActivity(context, notificationID, intent, PendingIntent.FLAG_IMMUTABLE)
 
         createFailedAlertNotificationChannel(context)
         val builder: NotificationCompat.Builder =
@@ -66,7 +67,6 @@ fun notifyUser(context: Context, text: String, message: Message? = null) {
             .setPriority(NotificationCompat.PRIORITY_MAX).setContentIntent(pendingIntent)
             .setAutoCancel(true)
 
-        val notificationID = System.currentTimeMillis().toInt()
         val notificationManagerCompat = NotificationManagerCompat.from(context)
         if (ActivityCompat.checkSelfPermission(
                 context,
@@ -161,4 +161,6 @@ fun Exception?.toMessage(): String {
 }
 
 const val EXTRA_ALERT_ID = "com.aracroproducts.attention.extra.ALERT_ID"
+
+const val REQUEST_MAIN_ACTIVITY = -1
 

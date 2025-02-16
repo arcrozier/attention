@@ -89,7 +89,6 @@ class APIClient {
 }
 
 interface APIV2 {
-    // TODO add report endpoint
     @FormUrlEncoded
     @POST("google_auth/")
     suspend fun googleSignIn(

@@ -15,8 +15,8 @@ android {
         applicationId = "com.aracroproducts.attentionv2"
         minSdk = 24
         targetSdk = 35
-        versionCode = 45
-        versionName = "2.3.0"
+        versionCode = 46
+        versionName = "2.3.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -36,7 +36,11 @@ android {
         debug {
             versionNameSuffix = ".debug"
             resValue("string", "version_name", "${defaultConfig.versionName}${versionNameSuffix}")
-            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8000/v2/\"")
+            buildConfigField(
+                "String",
+                "BASE_URL",
+                "\"https://attention.aracroproducts.com/api/v2/\""
+            )
         }
 
         release {

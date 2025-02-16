@@ -2,19 +2,16 @@ package com.aracroproducts.attentionv2
 
 import android.app.NotificationManager
 import android.app.Service
-import android.content.BroadcastReceiver
-import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
+import com.aracroproducts.attentionv2.AlertSendService.Companion.EXTRA_NOTIFICATION_ID
 import com.aracroproducts.attentionv2.AlertSendService.Companion.FRIEND_SERVICE_CHANNEL_ID
 import com.aracroproducts.attentionv2.AlertViewModel.Companion.NO_ID
-import com.aracroproducts.attentionv2.SendMessageReceiver.Companion.EXTRA_NOTIFICATION_ID
 import com.google.firebase.Firebase
 import com.google.firebase.crashlytics.crashlytics
 import kotlinx.coroutines.CoroutineScope
@@ -25,37 +22,6 @@ import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.util.concurrent.ConcurrentHashMap
-
-class FriendRequestReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context?, intent: Intent?) {
-        if (intent == null || context == null) return
-        val username = intent.getStringExtra(EXTRA_USERNAME) ?: return
-        val name = intent.getStringExtra(EXTRA_NAME) ?: return
-        val notificationId = intent.getIntExtra(EXTRA_NOTIFICATION_ID, NO_ID)
-
-        when (val action = intent.action) {
-            ACTION_ACCEPT, ACTION_IGNORE, ACTION_BLOCK -> {
-                val serviceIntent = Intent(context, FriendManagementService::class.java).apply {
-                    this.action = action
-                    putExtra(EXTRA_USERNAME, username)
-                    putExtra(EXTRA_NAME, name)
-                    putExtra(EXTRA_NOTIFICATION_ID, notificationId)
-                }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    context.startForegroundService(serviceIntent)
-                } else {
-                    context.startService(serviceIntent)
-                }
-            }
-
-            else -> {
-                return
-            }
-        }
-
-
-    }
-}
 
 class FriendManagementService : Service() {
     private val job = SupervisorJob()
@@ -73,7 +39,7 @@ class FriendManagementService : Service() {
                 execute(intent)
             } finally {
                 jobs.remove(startId)
-                if (jobs.isEmpty()) {
+                if (jobs.isEmpty) {
                     stopSelfResult(startId)
                 }
             }
@@ -107,7 +73,7 @@ class FriendManagementService : Service() {
                 ACTION_ACCEPT, ACTION_IGNORE, ACTION_BLOCK -> {
                     if (notificationId != NO_ID) {
                         (getSystemService(
-                            AppCompatActivity.NOTIFICATION_SERVICE
+                            NOTIFICATION_SERVICE
                         ) as NotificationManager).cancel(notificationId)
                     }
                 }

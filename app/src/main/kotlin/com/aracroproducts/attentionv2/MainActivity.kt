@@ -563,7 +563,7 @@ class MainActivity : AppCompatActivity() {
                     .consumeWindowInsets(paddingValues)
             ) {
                 AnimatedContent(
-                    targetState = friends.isEmpty() && !friendModel.isRefreshing && friendModel.connected,
+                    targetState = friends.isEmpty() && pendingFriends.isEmpty() && cachedFriends.isEmpty() && !friendModel.isRefreshing && friendModel.connected,
                     transitionSpec = {
                         fadeIn() togetherWith fadeOut()
                     }, label = "friendsList"
@@ -616,7 +616,7 @@ class MainActivity : AppCompatActivity() {
                                     }
                                     items(
                                         items = pendingFriends,
-                                        key = { friend -> friend.username }) { pendingFriend ->
+                                        key = { friend -> "pending:${friend.username}" }) { pendingFriend ->
                                         PendingFriendCard(
                                             friend = pendingFriend,
                                             modifier = Modifier.animateItem(),
@@ -642,7 +642,7 @@ class MainActivity : AppCompatActivity() {
                                     }
                                 }
                                 items(items = friends, key = { friend ->
-                                    friend.username
+                                    "mutual:${friend.username}"
                                 }) { friend ->
                                     FriendCard(friend = friend,
                                         onLongPress = onLongPress,
@@ -661,7 +661,9 @@ class MainActivity : AppCompatActivity() {
                                         ), modifier = Modifier.padding(start = 16.dp, end = 16.dp)
                                     )
                                 }
-                                items(cachedFriends) { cachedFriend ->
+                                items(
+                                    cachedFriends,
+                                    key = { friend -> "cached:${friend.username}" }) { cachedFriend ->
                                     FriendCard(friend = Friend(
                                         cachedFriend.username, cachedFriend.username
                                     ),

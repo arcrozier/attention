@@ -35,10 +35,11 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aracroproducts.attentionv2.AlertHandler.Companion.ALERT_CHANNEL_ID
+import com.aracroproducts.attentionv2.AlertSendService.Companion.ACTION_REPLY
+import com.aracroproducts.attentionv2.AlertSendService.Companion.EXTRA_SENDER
 import com.aracroproducts.attentionv2.AlertSendService.Companion.FRIEND_SERVICE_CHANNEL_ID
+import com.aracroproducts.attentionv2.AlertSendService.Companion.KEY_TEXT_REPLY
 import com.aracroproducts.attentionv2.AlertSendService.Companion.SERVICE_CHANNEL_ID
-import com.aracroproducts.attentionv2.SendMessageReceiver.Companion.EXTRA_SENDER
-import com.aracroproducts.attentionv2.SendMessageReceiver.Companion.KEY_TEXT_REPLY
 import com.aracroproducts.attentionv2.SettingsActivity.Companion.DEFAULT_DELAY
 import com.google.firebase.Firebase
 import com.google.firebase.crashlytics.crashlytics
@@ -661,6 +662,7 @@ class MainViewModel(
                 return@launch
             }
             val serviceIntent = Intent(context, AlertSendService::class.java).apply {
+                action = ACTION_REPLY
                 putExtra(EXTRA_SENDER, to.username)
                 putExtra(KEY_TEXT_REPLY, body)
             }

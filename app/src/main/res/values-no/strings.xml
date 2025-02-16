@@ -13,6 +13,7 @@
     <string name="confirm_delete_title">Slett venn</string>
     <string name="confirm_delete_message">Er du sikker du vil fjerne %s som en venn?</string>
     <string name="friend_request_notification_body">%1$s (%2$s) vil bli vennen din!</string>
+    <string name="friend_request_accepted_notification_title">%1$s (%2$s) godtok venneforespørselen din!</string>
     <string name="channel_name">Varsler du gikk glip av</string>
     <string name="channel_description">Varlser nåar du gå glipp av en varsling</string>
     <string name="notification_title">Ubesvart varsel fra %s</string>

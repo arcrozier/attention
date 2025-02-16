@@ -123,6 +123,7 @@
     <string name="pending_friend_card_click_label">Responder a la solicitud de amistad</string>
     <string name="friend_request_notification_title">Solicitud de amistad de %s</string>
     <string name="friend_request_notification_body">¡%1$s (%2$s) quiere ser su amigo!</string>
+    <string name="friend_request_accepted_notification_title">¡%1$s (%2$s) aceptó su solicitud de amistad!</string>
     <string name="channel_name">Alertas perdidas</string>
     <string name="channel_description">Te avisa cuando te perdiste una alerta</string>
     <string name="alert_failed_channel_name">Errores de envió</string>

@@ -1444,7 +1444,7 @@ class SettingsActivity : AppCompatActivity() {
                     .padding(ICON_PADDING)
                     .size(ICON_SIZE)
                     .alpha(if (enabled) HIGH_ALPHA else DISABLED_ALPHA)
-                    .grayScale(if (enabled) 1f else 0f),  // TODO check that this works correctly
+                    .grayScale(if (enabled) 1f else 0f),
                     contentAlignment = Alignment.Center,
                     content = {
                         iconSpot(enabled)

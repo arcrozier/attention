@@ -1,15 +1,11 @@
 package com.aracroproducts.attentionv2
 
-import android.Manifest
 import android.app.Application
 import android.app.NotificationManager
-import android.app.PendingIntent
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.media.RingtoneManager
 import android.os.*
-import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -19,15 +15,14 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.core.app.ActivityCompat
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
-import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.aracroproducts.attentionv2.SendMessageReceiver.Companion.EXTRA_SENDER
-import com.aracroproducts.attentionv2.SendMessageReceiver.Companion.KEY_TEXT_REPLY
+import com.aracroproducts.attentionv2.AlertSendService.Companion.ACTION_MARK_AS_READ
+import com.aracroproducts.attentionv2.AlertSendService.Companion.ACTION_REPLY
+import com.aracroproducts.attentionv2.AlertSendService.Companion.EXTRA_NOTIFICATION_ID
+import com.aracroproducts.attentionv2.AlertSendService.Companion.EXTRA_SENDER
+import com.aracroproducts.attentionv2.AlertSendService.Companion.KEY_TEXT_REPLY
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -41,18 +36,25 @@ class AlertViewModel(
     var silenced: Boolean by mutableStateOf(
         !intent.getBooleanExtra(AlertHandler.SHOULD_VIBRATE, true)
     )
-    private var isFinishing: Boolean by mutableStateOf(false)
+    private var showAlertOnClose = true
     val from = intent.getStringExtra(AlertHandler.REMOTE_FROM) ?: ""
+    val messageText = intent.getStringExtra(AlertHandler.REMOTE_MESSAGE)
     var message by mutableStateOf(
         AnnotatedString(
-            intent.getStringExtra(
-                AlertHandler.REMOTE_MESSAGE
-            ) ?: ""
+            messageText ?: ""
         )
     )
-    val timestamp = intent.getLongExtra(AlertHandler.ALERT_TIMESTAMP, System.currentTimeMillis())
+    val timestamp = intent.getLongExtra(AlertHandler.EXTRA_TIMESTAMP, System.currentTimeMillis())
     var showDNDButton by mutableStateOf(false)
+
+    /**
+     * ID for the associated notification
+     */
     val id = intent.getIntExtra(AlertHandler.ASSOCIATED_NOTIFICATION, NO_ID)
+
+    /**
+     * ID for the alert (from the backend)
+     */
     val alertId = intent.getStringExtra(AlertHandler.ALERT_ID) ?: ""
     private val fromUsername = intent.getStringExtra(AlertHandler.REMOTE_FROM_USERNAME) ?: ""
     private var ringerMode: Int? = null
@@ -77,7 +79,6 @@ class AlertViewModel(
     }
 
     private val timer = object : CountDownTimer(5000, 500) {
-        @Suppress("DEPRECATION")
         override fun onTick(l: Long) {
             if (silenced) {
                 cancel()
@@ -90,6 +91,7 @@ class AlertViewModel(
                 ) as VibratorManager
                 vibratorManager.defaultVibrator
             } else {
+                @Suppress("DEPRECATION")
                 context.getSystemService(AppCompatActivity.VIBRATOR_SERVICE) as Vibrator
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -99,6 +101,7 @@ class AlertViewModel(
                     )
                 )
             } else {
+                @Suppress("DEPRECATION")
                 vibrator.vibrate(400)
             }
         }
@@ -134,37 +137,6 @@ class AlertViewModel(
     }
 
     /**
-     * Silences the alert and sends read receipt. If the alert should be dismissed, caller is
-     * responsible for calling Activity::finish()
-     */
-    fun ok() {
-        silence()
-        isFinishing = true
-
-
-        viewModelScope.launch(context = Dispatchers.IO) {
-
-            // token is auth token
-            val token = preferencesRepository.getValue(stringPreferencesKey(MainViewModel.MY_TOKEN))
-
-            val fcmToken = preferencesRepository.getValue(
-                stringPreferencesKey(
-                    MainViewModel.FCM_TOKEN
-                )
-            )
-
-            if (token == null || fcmToken == null) {
-                Log.e(javaClass.name, "Token is null when sending read receipt!")
-                return@launch
-            }
-
-            attentionRepository.sendReadReceipt(
-                from = fromUsername, alertId = alertId, fcmToken = fcmToken, authToken = token
-            )
-        }
-    }
-
-    /**
      * Rings if it's allowed - calls shouldRing()
      *
      * @param ringAllowed - The set of user settings for when the system notification settings can
@@ -178,11 +150,11 @@ class AlertViewModel(
                 try {
                     ringerMode = manager.ringerMode
                     manager.ringerMode = AudioManager.RINGER_MODE_NORMAL
-                } catch (e: SecurityException) {
+                } catch (_: SecurityException) {
                     showDNDButton = true
 
                     message = buildAnnotatedString {
-                        append(message)
+                        append(messageText)
                         append("\n\n")
                         val start = this.length - 1
                         append(context.getString(R.string.could_not_ring))
@@ -209,8 +181,39 @@ class AlertViewModel(
         timer.start()
     }
 
+    /**
+     * Silences the alert by calling [silence], updates the associated notification if defined
+     *
+     * @param cancel If true, clears the associated notification, otherwise removes the silence button
+     */
+    fun silenceAndUpdateNotification(cancel: Boolean) {
+        silence()
+
+        viewModelScope.launch {
+            if (cancel) {
+                clearNotification()
+            } else {
+                AlertHandler.showNotification(
+                    getApplication(),
+                    message.text,
+                    sender,
+                    alertId,
+                    0,
+                    timestamp,
+                    id,
+                )
+            }
+        }
+    }
+
+    /**
+     * Silences the alert
+     *
+     * Does not send a read receipt, does not finish the activity
+     */
     fun silence() {
         silenced = true
+        showAlertOnClose = false
         val ringerModeToRestore = ringerMode
         if (ringerModeToRestore != null) {
             val context = getApplication<Application>()
@@ -247,35 +250,20 @@ class AlertViewModel(
      */
     override fun onCleared() {
         super.onCleared()
-        val context = getApplication<Application>()
         clearNotification()
-        if (isFinishing) return  // prevent this notification from being shown when the user clicks "ok"
-        val intent = Intent(context, Alert::class.java)
-        intent.putExtra("alert_message", message)
-        intent.putExtra("alert_from", from)
-        val pendingIntent = PendingIntent.getActivity(
-            context, 0, intent, PendingIntent.FLAG_IMMUTABLE
-        )
+        if (!showAlertOnClose) return  // prevent this notification from being shown when the user clicks "ok"
 
-        AlertHandler.createMissedNotificationChannel(context)
-        val builder = NotificationCompat.Builder(context, AlertHandler.CHANNEL_ID).apply {
-            setSmallIcon(R.mipmap.app_icon)
-            setContentTitle(context.getString(R.string.notification_title, from))
-            setContentText(message)
-            setStyle(NotificationCompat.BigTextStyle().bigText(message))
-            priority = NotificationCompat.PRIORITY_MAX
-            setContentIntent(pendingIntent).setAutoCancel(true)
-        }
 
-        val notificationManagerCompat = NotificationManagerCompat.from(context)
-        if (ActivityCompat.checkSelfPermission(
-                context,
-                Manifest.permission.POST_NOTIFICATIONS
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            return
+        viewModelScope.launch {
+            AlertHandler.showNotification(
+                getApplication(),
+                messageText ?: "",
+                sender,
+                alertId,
+                AlertHandler.Companion.NotificationFlags.MISSED,
+                timestamp
+            )
         }
-        notificationManagerCompat.notify(System.currentTimeMillis().toInt(), builder.build())
 
     }
 
@@ -288,9 +276,27 @@ class AlertViewModel(
         }
     }
 
+    fun markAsRead() {
+        val context = getApplication<Application>()
+        val serviceIntent = Intent(context, AlertSendService::class.java).apply {
+            action = ACTION_MARK_AS_READ
+            putExtra(EXTRA_ALERT_ID, alertId)
+            putExtra(EXTRA_NOTIFICATION_ID, id)
+            putExtra(EXTRA_SENDER, sender.username)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(serviceIntent)
+        } else {
+            context.startService(serviceIntent)
+        }
+
+    }
+
     fun sendAlert() {
         val context = getApplication<Application>()
         val serviceIntent = Intent(context, AlertSendService::class.java).apply {
+            action = ACTION_REPLY
+            putExtra(EXTRA_ALERT_ID, alertId)
             putExtra(EXTRA_SENDER, sender.username)
             putExtra(KEY_TEXT_REPLY, replyMessage)
         }
@@ -302,7 +308,6 @@ class AlertViewModel(
     }
 
     companion object {
-        val sTAG: String? = AlertViewModel::class.java.canonicalName
         const val NO_ID = -1
         const val MAX_AMPLITUDE = 255
     }
