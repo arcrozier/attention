@@ -18,11 +18,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.aracroproducts.attentionv2.AlertSendService.Companion.ACTION_MARK_AS_READ
-import com.aracroproducts.attentionv2.AlertSendService.Companion.ACTION_REPLY
-import com.aracroproducts.attentionv2.AlertSendService.Companion.EXTRA_NOTIFICATION_ID
-import com.aracroproducts.attentionv2.AlertSendService.Companion.EXTRA_SENDER
-import com.aracroproducts.attentionv2.AlertSendService.Companion.KEY_TEXT_REPLY
+import com.aracroproducts.common.AlertHandler
+import com.aracroproducts.common.AlertSendService
+import com.aracroproducts.common.AlertSendService.Companion.ACTION_MARK_AS_READ
+import com.aracroproducts.common.AlertSendService.Companion.ACTION_REPLY
+import com.aracroproducts.common.AlertSendService.Companion.EXTRA_NOTIFICATION_ID
+import com.aracroproducts.common.AlertSendService.Companion.EXTRA_SENDER
+import com.aracroproducts.common.AlertSendService.Companion.KEY_TEXT_REPLY
+import com.aracroproducts.common.AttentionRepository
+import com.aracroproducts.common.EXTRA_ALERT_ID
+import com.aracroproducts.common.Friend
+import com.aracroproducts.common.NO_ID
+import com.aracroproducts.common.PreferencesRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -308,7 +315,6 @@ class AlertViewModel(
     }
 
     companion object {
-        const val NO_ID = -1
         const val MAX_AMPLITUDE = 255
     }
 }

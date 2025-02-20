@@ -1,6 +1,8 @@
-package com.aracroproducts.attentionv2
+package com.aracroproducts.common
 
-import java.util.*
+import java.util.Comparator
+import java.util.PriorityQueue
+import java.util.Queue
 
 /**
  * A priority queue that does not allow duplicates. See {@link PriorityQueue}. Not thread-safe
@@ -85,7 +87,7 @@ class PriorityQueueSet<E>(comparator: Comparator<E>) : Queue<E> {
      * Returns `true` if the collection is empty (contains no elements), `false` otherwise.
      */
     override fun isEmpty(): Boolean {
-        return elements.isEmpty()
+        return elements.isEmpty
     }
 
     /**

@@ -1,4 +1,4 @@
-package com.aracroproducts.attentionv2
+package com.aracroproducts.common
 
 import android.app.NotificationManager
 import android.app.Service
@@ -9,9 +9,8 @@ import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
-import com.aracroproducts.attentionv2.AlertSendService.Companion.EXTRA_NOTIFICATION_ID
-import com.aracroproducts.attentionv2.AlertSendService.Companion.FRIEND_SERVICE_CHANNEL_ID
-import com.aracroproducts.attentionv2.AlertViewModel.Companion.NO_ID
+import com.aracroproducts.common.AlertSendService.Companion.EXTRA_NOTIFICATION_ID
+import com.aracroproducts.common.AlertSendService.Companion.FRIEND_SERVICE_CHANNEL_ID
 import com.google.firebase.Firebase
 import com.google.firebase.crashlytics.crashlytics
 import kotlinx.coroutines.CoroutineScope
@@ -55,7 +54,8 @@ class FriendManagementService : Service() {
         val notificationId = intent.getIntExtra(EXTRA_NOTIFICATION_ID, NO_ID)
         val action = intent.action
 
-        val repository = AttentionRepository(AttentionDB.getDB(this))
+        val repository =
+            AttentionRepository(AttentionDB.getDB(this), application as AttentionApplicationBase)
         val preferencesRepository = PreferencesRepository(getDataStore(this.applicationContext))
 
         val token = preferencesRepository.getToken()
@@ -150,12 +150,12 @@ class FriendManagementService : Service() {
 
     companion object {
         private val sTAG: String = FriendManagementService::class.java.simpleName
+
+        const val ACTION_ACCEPT = "com.aracroproducts.attention.broadcast.ACCEPT"
+        const val ACTION_IGNORE = "com.aracroproducts.attention.broadcast.IGNORE"
+        const val ACTION_BLOCK = "com.aracroproducts.attention.broadcast.BLOCK"
+        const val EXTRA_USERNAME = "username"
+        const val EXTRA_NAME = "name"
     }
 
 }
-
-const val ACTION_ACCEPT = "com.aracroproducts.attention.broadcast.ACCEPT"
-const val ACTION_IGNORE = "com.aracroproducts.attention.broadcast.IGNORE"
-const val ACTION_BLOCK = "com.aracroproducts.attention.broadcast.BLOCK"
-const val EXTRA_USERNAME = "username"
-const val EXTRA_NAME = "name"

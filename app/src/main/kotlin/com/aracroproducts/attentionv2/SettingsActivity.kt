@@ -148,6 +148,17 @@ import com.aracroproducts.attentionv2.LoginActivity.Companion.LIST_ELEMENT_PADDI
 import com.aracroproducts.attentionv2.LoginActivity.Companion.UsernameField
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
 import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
+import com.aracroproducts.common.AttentionRepository
+import com.aracroproducts.common.CheckboxAction
+import com.aracroproducts.common.DISABLED_ALPHA
+import com.aracroproducts.common.FloatPreferenceChange
+import com.aracroproducts.common.HIGH_ALPHA
+import com.aracroproducts.common.MultiSelectListPreferenceChange
+import com.aracroproducts.common.PreferencesRepository
+import com.aracroproducts.common.StringPreferenceChange
+import com.aracroproducts.common.grayScale
+import com.aracroproducts.common.multiselectListPreferenceSummary
+import com.aracroproducts.common.rememberPreference
 import com.yalantis.ucrop.UCrop
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay

@@ -1,4 +1,4 @@
-package com.aracroproducts.attentionv2
+package com.aracroproducts.common
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.MutablePreferences

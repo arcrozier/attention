@@ -1,4 +1,4 @@
-package com.aracroproducts.attentionv2
+package com.aracroproducts.common
 
 import android.content.Context
 import androidx.datastore.core.DataStore
@@ -30,11 +30,11 @@ fun getDataStore(appContext: Context): DataStore<Preferences> {
                                                   ),
                                                   SharedPreferencesMigration(
                                                       appContext,
-                                                      MainViewModel.USER_INFO
+                                                      USER_INFO
                                                   ),
                                                   SharedPreferencesMigration(
                                                       appContext,
-                                                      MainViewModel.FCM_TOKEN
+                                                      FCM_TOKEN
                                                   )
                                               ),
                                               scope = CoroutineScope(Dispatchers.IO + SupervisorJob()),

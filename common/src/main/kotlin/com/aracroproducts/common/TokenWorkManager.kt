@@ -1,10 +1,8 @@
-package com.aracroproducts.attentionv2
+package com.aracroproducts.common
 
-import android.content.Context
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.aracroproducts.attentionv2.MainViewModel.Companion.FCM_TOKEN
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.messaging.ktx.messaging
 import kotlinx.coroutines.CancellationException
@@ -13,8 +11,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import retrofit2.HttpException
 
-class TokenWorkManager(appContext: Context, workerParams: WorkerParameters) :
-    CoroutineWorker(appContext, workerParams) {
+class TokenWorkManager(
+    private val application: AttentionApplicationBase,
+    workerParams: WorkerParameters
+) :
+    CoroutineWorker(application.applicationContext, workerParams) {
     /**
      * A suspending method to do your work.
      * <p>
@@ -31,7 +32,8 @@ class TokenWorkManager(appContext: Context, workerParams: WorkerParameters) :
      */
     override suspend fun doWork(): Result {
         val settingsRepository = PreferencesRepository(getDataStore(applicationContext))
-        val attentionRepository = AttentionRepository(AttentionDB.getDB(applicationContext))
+        val attentionRepository =
+            AttentionRepository(AttentionDB.getDB(applicationContext), application)
 
         val fcmToken = Firebase.messaging.token.await()
         settingsRepository.setValue(stringPreferencesKey(FCM_TOKEN), fcmToken)

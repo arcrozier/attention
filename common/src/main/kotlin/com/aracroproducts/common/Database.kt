@@ -1,4 +1,4 @@
-package com.aracroproducts.attentionv2
+package com.aracroproducts.common
 
 import android.content.Context
 import androidx.lifecycle.LiveData
@@ -16,7 +16,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.Transaction
 import androidx.room.Update
-import com.aracroproducts.attentionv2.AttentionDB.Companion.DB_V7
+import com.aracroproducts.common.AttentionDB.Companion.DB_V7
 import com.google.gson.annotations.SerializedName
 
 

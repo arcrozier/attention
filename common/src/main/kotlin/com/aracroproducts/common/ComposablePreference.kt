@@ -1,4 +1,4 @@
-package com.aracroproducts.attentionv2
+package com.aracroproducts.common
 
 import android.content.Context
 import android.view.KeyEvent.KEYCODE_ENTER
@@ -170,7 +170,7 @@ fun FloatPreferenceChange(
             }
             setValue(newValue.toFloat())
             dismissDialog()
-        } catch (e: NumberFormatException) {
+        } catch (_: NumberFormatException) {
             message = context.getString(R.string.invalid_float)
         }
     }

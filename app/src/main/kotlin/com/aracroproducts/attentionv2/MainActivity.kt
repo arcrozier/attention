@@ -125,11 +125,27 @@ import androidx.lifecycle.lifecycleScope
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import com.aracroproducts.attentionv2.AlertSendService.Companion.ACTION_ERROR
-import com.aracroproducts.attentionv2.AlertSendService.Companion.ACTION_LOGIN
-import com.aracroproducts.attentionv2.AlertSendService.Companion.ACTION_SUCCESS
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
 import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
+import com.aracroproducts.common.AlertSendService.Companion.ACTION_ERROR
+import com.aracroproducts.common.AlertSendService.Companion.ACTION_LOGIN
+import com.aracroproducts.common.AlertSendService.Companion.ACTION_SUCCESS
+import com.aracroproducts.common.AlertSendService.Companion.EXTRA_RECIPIENT
+import com.aracroproducts.common.AttentionDB
+import com.aracroproducts.common.AttentionRepository
+import com.aracroproducts.common.DISABLED_ALPHA
+import com.aracroproducts.common.Friend
+import com.aracroproducts.common.MessageStatus
+import com.aracroproducts.common.PendingFriend
+import com.aracroproducts.common.PreferencesRepository
+import com.aracroproducts.common.PreferencesRepository.Companion.MY_TOKEN
+import com.aracroproducts.common.TokenWorkManager
+import com.aracroproducts.common.createFailedAlertNotificationChannel
+import com.aracroproducts.common.createForegroundServiceNotificationChannel
+import com.aracroproducts.common.createFriendRequestNotificationChannel
+import com.aracroproducts.common.createNotificationChannel
+import com.aracroproducts.common.filterSpecialChars
+import com.aracroproducts.common.filterUsername
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import kotlinx.coroutines.CoroutineScope
@@ -145,7 +161,7 @@ import kotlin.math.min
 class MainActivity : AppCompatActivity() {
     private val friendModel: MainViewModel by viewModels(factoryProducer = {
         MainViewModelFactory(
-            AttentionRepository(AttentionDB.getDB(this)),
+            AttentionRepository(AttentionDB.getDB(this), application as AttentionApplication),
             (application as AttentionApplication).container.settingsRepository,
             (application as AttentionApplication).container.applicationScope,
             application as AttentionApplication
@@ -175,7 +191,7 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 ACTION_ERROR -> {
-
+// TODO
                 }
 
                 else -> {
@@ -221,7 +237,7 @@ class MainActivity : AppCompatActivity() {
     private val loginLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
-        it.data?.extras?.getString(MainViewModel.MY_TOKEN)?.let { token ->
+        it.data?.extras?.getString(MY_TOKEN)?.let { token ->
             reload(token)
         }
         friendModel.waitForLoginResult = false
@@ -273,10 +289,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Creates a notification channel for displaying failed-to-send notifications
-        MainViewModel.createFailedAlertNotificationChannel(this)
-        MainViewModel.createNotificationChannel(this)
-        MainViewModel.createFriendRequestNotificationChannel(this)
-        MainViewModel.createForegroundServiceNotificationChannel(this)
+        createFailedAlertNotificationChannel(this)
+        createNotificationChannel(this)
+        createFriendRequestNotificationChannel(this)
+        createForegroundServiceNotificationChannel(this)
 
         handleIntent(intent, savedInstanceState)
 
@@ -345,7 +361,7 @@ class MainActivity : AppCompatActivity() {
 
         if (action == getString(R.string.reopen_failed_alert_action) || action == Intent.ACTION_SENDTO) {
             lifecycleScope.launch {
-                intent.getStringExtra(MainViewModel.EXTRA_RECIPIENT)?.let {
+                intent.getStringExtra(EXTRA_RECIPIENT)?.let {
                     val friend = friendModel.getFriend(it)
                     if (action == Intent.ACTION_SENDTO) {
                         ShortcutManagerCompat.reportShortcutUsed(this@MainActivity, friend.username)

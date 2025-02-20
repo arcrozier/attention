@@ -12,6 +12,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.AndroidViewModel
+import com.aracroproducts.common.AttentionRepository
+import com.aracroproducts.common.PreferencesRepository
+import com.aracroproducts.common.PreferencesRepository.Companion.MY_TOKEN
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import retrofit2.HttpException
@@ -49,7 +52,7 @@ class ReportViewModel(
     suspend fun submit(reason: Reason, body: String, attachments: List<Uri>): Int? {
         val context = getApplication<Application>().applicationContext
         // token is auth token
-        val token = preferencesRepository.getValue(stringPreferencesKey(MainViewModel.MY_TOKEN))
+        val token = preferencesRepository.getValue(stringPreferencesKey(MY_TOKEN))
 
         if (token == null) {
             Log.e(javaClass.name, "Token is null when sending report")

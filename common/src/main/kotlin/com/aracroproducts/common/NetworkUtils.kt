@@ -1,4 +1,4 @@
-package com.aracroproducts.attentionv2
+package com.aracroproducts.common
 
 import com.google.gson.annotations.SerializedName
 import okhttp3.MediaType
@@ -21,8 +21,6 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 import java.io.IOException
 import java.io.InputStream
-
-const val BASE_URL: String = BuildConfig.BASE_URL
 
 
 class NameResult(@SerializedName("name") val name: String) {
@@ -78,12 +76,16 @@ class UserDataResult(
 class APIClient {
 
     companion object {
-        private var retrofit: Retrofit = Retrofit.Builder().baseUrl(BASE_URL).addConverterFactory(
-            GsonConverterFactory.create()
-        ).build()
+        private var retrofit: Retrofit? = null
 
-        fun getClient(): Retrofit {
-            return retrofit
+        fun getClient(application: AttentionApplicationBase): Retrofit {
+            return retrofit ?: run {
+                val temp = Retrofit.Builder().baseUrl(application.baseUrl).addConverterFactory(
+                    GsonConverterFactory.create()
+                ).build()
+                retrofit = temp
+                temp
+            }
         }
     }
 }

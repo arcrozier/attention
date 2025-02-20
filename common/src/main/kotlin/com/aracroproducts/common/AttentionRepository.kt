@@ -1,4 +1,4 @@
-package com.aracroproducts.attentionv2
+package com.aracroproducts.common
 
 import android.content.Context
 import android.net.Uri
@@ -15,9 +15,12 @@ import kotlin.concurrent.thread
 
 // Declares the DAO as a private property in the constructor. Pass in the DAO
 // instead of the whole database, because you only need access to the DAO
-class AttentionRepository(private val database: AttentionDB) {
+class AttentionRepository(
+    private val database: AttentionDB,
+    application: AttentionApplicationBase
+) {
 
-    private val apiInterface = APIClient.getClient().create(APIV2::class.java)
+    private val apiInterface = APIClient.getClient(application).create(APIV2::class.java)
 
     // Room executes all queries on a separate thread.
     // Observed Flow will notify the observer when the data has changed.

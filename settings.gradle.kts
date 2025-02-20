@@ -17,3 +17,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Attention!"
 include (":app")
+include(":common")

@@ -1,4 +1,4 @@
-package com.aracroproducts.attentionv2
+package com.aracroproducts.common
 
 import android.Manifest
 import android.app.Notification
@@ -23,16 +23,20 @@ import androidx.core.app.RemoteInput
 import androidx.core.graphics.drawable.IconCompat
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import com.aracroproducts.attentionv2.AlertSendService.Companion.ACTION_MARK_AS_READ
-import com.aracroproducts.attentionv2.AlertSendService.Companion.ACTION_REPLY
-import com.aracroproducts.attentionv2.AlertSendService.Companion.ACTION_SILENCE
-import com.aracroproducts.attentionv2.AlertSendService.Companion.EXTRA_FROM_NOTIFICATION
-import com.aracroproducts.attentionv2.AlertSendService.Companion.EXTRA_MESSAGE_TEXT
-import com.aracroproducts.attentionv2.AlertSendService.Companion.EXTRA_NOTIFICATION_ID
-import com.aracroproducts.attentionv2.AlertSendService.Companion.EXTRA_SENDER
-import com.aracroproducts.attentionv2.AlertSendService.Companion.KEY_TEXT_REPLY
-import com.aracroproducts.attentionv2.AlertViewModel.Companion.NO_ID
-import com.aracroproducts.attentionv2.MainViewModel.Companion.FRIEND_REQUEST_CHANNEL_ID
+import com.aracroproducts.common.AlertSendService.Companion.ACTION_MARK_AS_READ
+import com.aracroproducts.common.AlertSendService.Companion.ACTION_REPLY
+import com.aracroproducts.common.AlertSendService.Companion.ACTION_SILENCE
+import com.aracroproducts.common.AlertSendService.Companion.EXTRA_FROM_NOTIFICATION
+import com.aracroproducts.common.AlertSendService.Companion.EXTRA_MESSAGE_TEXT
+import com.aracroproducts.common.AlertSendService.Companion.EXTRA_NOTIFICATION_ID
+import com.aracroproducts.common.AlertSendService.Companion.EXTRA_SENDER
+import com.aracroproducts.common.AlertSendService.Companion.KEY_TEXT_REPLY
+import com.aracroproducts.common.FriendManagementService.Companion.ACTION_ACCEPT
+import com.aracroproducts.common.FriendManagementService.Companion.ACTION_BLOCK
+import com.aracroproducts.common.FriendManagementService.Companion.ACTION_IGNORE
+import com.aracroproducts.common.FriendManagementService.Companion.EXTRA_NAME
+import com.aracroproducts.common.FriendManagementService.Companion.EXTRA_USERNAME
+import com.aracroproducts.common.PreferencesRepository.Companion.MY_TOKEN
 import com.google.firebase.Firebase
 import com.google.firebase.crashlytics.crashlytics
 import com.google.firebase.messaging.FirebaseMessagingService
@@ -57,17 +61,17 @@ open class AlertHandler : FirebaseMessagingService() {
     override fun onNewToken(token: String) {
         Log.d(TAG, "New token: $token")
         val preferencesRepository =
-            (application as AttentionApplication).container.settingsRepository
-        val repository = (application as AttentionApplication).container.repository
+            (application as AttentionApplicationBase).container.settingsRepository
+        val repository = (application as AttentionApplicationBase).container.repository
         MainScope().launch {
-            if (preferencesRepository.getValue(stringPreferencesKey(MainViewModel.FCM_TOKEN)) != token) {
+            if (preferencesRepository.getValue(stringPreferencesKey(FCM_TOKEN)) != token) {
                 Log.d(TAG, "Token is new: updating shared preferences")
                 preferencesRepository.bulkEdit { settings ->
-                    settings[stringPreferencesKey(MainViewModel.FCM_TOKEN)] = token
+                    settings[stringPreferencesKey(FCM_TOKEN)] = token
                 }
                 val authToken = preferencesRepository.getValue(
                     stringPreferencesKey(
-                        MainViewModel.MY_TOKEN
+                        MY_TOKEN
                     )
                 ) ?: return@launch
                 try {
@@ -93,8 +97,8 @@ open class AlertHandler : FirebaseMessagingService() {
      */
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         val preferencesRepository =
-            (application as AttentionApplication).container.settingsRepository
-        val repository = (application as AttentionApplication).container.repository
+            (application as AttentionApplicationBase).container.settingsRepository
+        val repository = (application as AttentionApplicationBase).container.repository
         MainScope().launch {
             Log.d(TAG, "Message received! $remoteMessage")
             val messageData = remoteMessage.data
@@ -138,7 +142,7 @@ open class AlertHandler : FirebaseMessagingService() {
                     // token is auth token
                     val token = preferencesRepository.getValue(
                         stringPreferencesKey(
-                            MainViewModel.MY_TOKEN
+                            MY_TOKEN
                         )
                     )
 
@@ -198,8 +202,11 @@ open class AlertHandler : FirebaseMessagingService() {
                         )
 
                     // Device should only show pop up if the device is off or if it has the ability to draw overlays (required to show pop up if screen is on)
-                    if (!pm.isInteractive || Settings.canDrawOverlays(this@AlertHandler) || AttentionApplication.isActivityVisible()) {
-                        val intent = Intent(this@AlertHandler, Alert::class.java).apply {
+                    if (!pm.isInteractive || Settings.canDrawOverlays(this@AlertHandler) || AttentionApplicationBase.isActivityVisible()) {
+                        val intent = Intent(
+                            this@AlertHandler,
+                            (application as AttentionApplicationBase).alertActivity
+                        ).apply {
                             putExtra(REMOTE_FROM, senderName)
                             putExtra(REMOTE_MESSAGE, display)
                             putExtra(ASSOCIATED_NOTIFICATION, id)
@@ -207,7 +214,7 @@ open class AlertHandler : FirebaseMessagingService() {
                             putExtra(ALERT_ID, alertId)
                             putExtra(EXTRA_TIMESTAMP, message.timestamp)
                             putExtra(REMOTE_FROM_USERNAME, message.otherId)
-                            if (AttentionApplication.isActivityVisible()) addFlags(
+                            if (AttentionApplicationBase.isActivityVisible()) addFlags(
                                 Intent.FLAG_ACTIVITY_NEW_TASK
                             )
                             else addFlags(
@@ -252,7 +259,11 @@ open class AlertHandler : FirebaseMessagingService() {
                     val photo = messageData[FCM_FRIEND_REQUEST_PHOTO]
                     val pendingFriend =
                         PendingFriend(username, name, if (photo.isNullOrBlank()) null else photo)
-                    showFriendRequestNotification(applicationContext, pendingFriend)
+                    showFriendRequestNotification(
+                        applicationContext,
+                        pendingFriend,
+                        (application as AttentionApplicationBase).mainActivity
+                    )
                     repository.insert(pendingFriend)
                 }
                 "accepted" -> {
@@ -270,7 +281,10 @@ open class AlertHandler : FirebaseMessagingService() {
                     }
                     val photo = messageData[FCM_FRIEND_REQUEST_PHOTO]
                     repository.insert(Friend(username, name, photo = photo))
-                    val intent = Intent(applicationContext, MainActivity::class.java)
+                    val intent = Intent(
+                        applicationContext,
+                        (application as AttentionApplicationBase).mainActivity
+                    )
                     val pendingIntent = PendingIntent.getActivity(
                         applicationContext,
                         REQUEST_MAIN_ACTIVITY,
@@ -330,7 +344,7 @@ open class AlertHandler : FirebaseMessagingService() {
 
     private fun areNotificationsAllowed(): Boolean {
         val preferencesRepository =
-            (application as AttentionApplication).container.settingsRepository
+            (application as AttentionApplicationBase).container.settingsRepository
         val overrideDND = runBlocking {
             preferencesRepository.getValue(
                 booleanPreferencesKey(getString(R.string.override_dnd_key)), false
@@ -368,13 +382,13 @@ open class AlertHandler : FirebaseMessagingService() {
         timestamp: Long
     ): Int {
         val notificationID = System.currentTimeMillis().toInt()
-        (application as AttentionApplication).container.applicationScope.launch(
+        (application as AttentionApplicationBase).container.applicationScope.launch(
             context = Dispatchers.Default
         ) {
             val flags =
                 NotificationFlags.ACTION_SILENCE or (if (missed) NotificationFlags.MISSED else 0) or (if (important) NotificationFlags.IMPORTANT else 0)
             showNotification(
-                applicationContext,
+                application as AttentionApplicationBase,
                 message,
                 sender,
                 alertId,
@@ -453,7 +467,7 @@ open class AlertHandler : FirebaseMessagingService() {
          * @return              - Returns the ID of the notification
          */
         suspend fun showNotification(
-            applicationContext: Context,
+            application: AttentionApplicationBase,
             message: String,
             sender: Friend,
             alertId: String,
@@ -465,7 +479,7 @@ open class AlertHandler : FirebaseMessagingService() {
             val important = flagSet(flags, NotificationFlags.IMPORTANT)
             val missed = flagSet(flags, NotificationFlags.MISSED)
             val silenceAction = flagSet(flags, NotificationFlags.ACTION_SILENCE)
-            val intent = Intent(applicationContext, Alert::class.java).apply {
+            val intent = Intent(application.applicationContext, application.alertActivity).apply {
                 putExtra(REMOTE_MESSAGE, message)
                 putExtra(REMOTE_FROM, sender.name)
                 putExtra(SHOULD_VIBRATE, false)
@@ -474,11 +488,11 @@ open class AlertHandler : FirebaseMessagingService() {
                 putExtra(EXTRA_TIMESTAMP, timestamp)
             }
 
-            val database = AttentionDB.getDB(applicationContext)
+            val database = AttentionDB.getDB(application.applicationContext)
 
             // for more on the conversation api, see
             // https://developer.android.com/develop/ui/views/notifications/conversations#api-notifications
-            MainViewModel.pushFriendShortcut(applicationContext, sender)
+            pushFriendShortcut(application.applicationContext, sender, application.mainActivity)
 
             val icon = if (sender.photo != null) {
                 val imageDecoded = Base64.decode(sender.photo, Base64.DEFAULT)
@@ -500,7 +514,7 @@ open class AlertHandler : FirebaseMessagingService() {
             )
 
             val pendingIntent = PendingIntent.getActivity(
-                applicationContext,
+                application.applicationContext,
                 database.getConversationIdDAO().getOrInsert(
                     sender.username,
                     Purpose.DEFAULT
@@ -511,18 +525,19 @@ open class AlertHandler : FirebaseMessagingService() {
 
             val builder: NotificationCompat.Builder
             if (missed) {
-                createMissedNotificationChannel(applicationContext)
-                builder = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
+                createMissedNotificationChannel(application.applicationContext)
+                builder = NotificationCompat.Builder(application.applicationContext, CHANNEL_ID)
                 builder.setContentTitle(
-                        applicationContext.getString(
+                    application.applicationContext.getString(
                             R.string.notification_title,
                             sender.name
                         )
                     )
             } else {
-                builder = NotificationCompat.Builder(applicationContext, ALERT_CHANNEL_ID)
+                builder =
+                    NotificationCompat.Builder(application.applicationContext, ALERT_CHANNEL_ID)
                     .setContentTitle(
-                        applicationContext.getString(
+                        application.applicationContext.getString(
                             R.string.alert_notification_title,
                             sender.name
                         )
@@ -530,7 +545,7 @@ open class AlertHandler : FirebaseMessagingService() {
 
                 if (silenceAction) {
                     val silenceIntent =
-                        Intent(applicationContext, AlertSendService::class.java).apply {
+                        Intent(application.applicationContext, AlertSendService::class.java).apply {
                             action = ACTION_SILENCE
                             putExtra(EXTRA_NOTIFICATION_ID, notificationID)
                             putExtra(EXTRA_ALERT_ID, alertId)
@@ -540,7 +555,7 @@ open class AlertHandler : FirebaseMessagingService() {
                             putExtra(EXTRA_TIMESTAMP, timestamp)
                         }
                     val silencePendingIntent = PendingIntent.getService(
-                        applicationContext,
+                        application.applicationContext,
                         database.getConversationIdDAO().getOrInsert(
                             sender.username,
                             Purpose.SILENCE
@@ -551,7 +566,7 @@ open class AlertHandler : FirebaseMessagingService() {
 
                     builder.addAction(
                         R.drawable.baseline_notifications_off_24,
-                        applicationContext.getString(R.string.silence),
+                        application.applicationContext.getString(R.string.silence),
                         silencePendingIntent
                     )
                 }
@@ -559,7 +574,7 @@ open class AlertHandler : FirebaseMessagingService() {
 
             // Mark as read button
             val dismissIntent =
-                Intent(applicationContext, AlertSendService::class.java).apply {
+                Intent(application.applicationContext, AlertSendService::class.java).apply {
                     action = ACTION_MARK_AS_READ
                     putExtra(EXTRA_NOTIFICATION_ID, notificationID)
                     putExtra(EXTRA_ALERT_ID, alertId)
@@ -568,35 +583,35 @@ open class AlertHandler : FirebaseMessagingService() {
                 }
             val dismissPendingIntent: PendingIntent =
                 PendingIntent.getService(
-                    applicationContext, database.getConversationIdDAO().getOrInsert(
+                    application.applicationContext, database.getConversationIdDAO().getOrInsert(
                         sender.username,
                         Purpose.DISMISS
                     ).conversationId, dismissIntent,
                     PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
                 )
-            MainViewModel.createNotificationChannel(applicationContext)
+            createNotificationChannel(application.applicationContext)
             builder.setSmallIcon(R.drawable.icon)
                 .addAction(
                     R.drawable.baseline_mark_chat_read_24,
-                    applicationContext.getString(R.string.mark_as_read),
+                    application.applicationContext.getString(R.string.mark_as_read),
                     dismissPendingIntent
                 )
 
             // Reply button
             val remoteInput: RemoteInput =
                 RemoteInput.Builder(KEY_TEXT_REPLY).run {
-                    setLabel(applicationContext.getString(R.string.reply))
+                    setLabel(application.applicationContext.getString(R.string.reply))
                     build()
                 }
 
             val replyPendingIntent: PendingIntent =
                 PendingIntent.getService(
-                    applicationContext,
+                    application.applicationContext,
                     database.getConversationIdDAO().getOrInsert(
                         sender.username,
                         Purpose.DISMISS
                     ).conversationId,
-                    Intent(applicationContext, AlertSendService::class.java).apply {
+                    Intent(application.applicationContext, AlertSendService::class.java).apply {
                         action = ACTION_REPLY
                         putExtra(EXTRA_NOTIFICATION_ID, notificationID)
                         putExtra(EXTRA_ALERT_ID, alertId)
@@ -607,7 +622,7 @@ open class AlertHandler : FirebaseMessagingService() {
                 )
             val action = NotificationCompat.Action.Builder(
                 R.drawable.baseline_reply_24,
-                applicationContext.getString(R.string.reply),
+                application.applicationContext.getString(R.string.reply),
                 replyPendingIntent
             ).addRemoteInput(remoteInput)
                 .extend(  // something something helps with wear OS? todo might break things though
@@ -620,9 +635,10 @@ open class AlertHandler : FirebaseMessagingService() {
                 .setPriority(NotificationCompat.PRIORITY_MAX).setContentIntent(pendingIntent)
                 .setAutoCancel(true)
                 .addAction(action)
-            val notificationManagerCompat = NotificationManagerCompat.from(applicationContext)
+            val notificationManagerCompat =
+                NotificationManagerCompat.from(application.applicationContext)
             if (ActivityCompat.checkSelfPermission(
-                    applicationContext,
+                    application.applicationContext,
                     Manifest.permission.POST_NOTIFICATIONS
                 ) != PackageManager.PERMISSION_GRANTED
             ) {
@@ -648,10 +664,11 @@ open class AlertHandler : FirebaseMessagingService() {
         fun showFriendRequestNotification(
             applicationContext: Context,
             pendingFriend: PendingFriend,
+            mainActivity: Class<*>,
             notificationId: Int? = null
         ): Int {
             val notificationID = notificationId ?: System.currentTimeMillis().toInt()
-            val intent = Intent(applicationContext, MainActivity::class.java)
+            val intent = Intent(applicationContext, mainActivity)
 
             // for more on the conversation api, see
             // https://developer.android.com/develop/ui/views/notifications/conversations#api-notifications

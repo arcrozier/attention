@@ -23,8 +23,11 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.aracroproducts.attentionv2.MainViewModel.Companion.MY_TOKEN
 import com.aracroproducts.attentionv2.MainViewModel.Companion.PFP_FILENAME
+import com.aracroproducts.common.AttentionRepository
+import com.aracroproducts.common.PreferencesRepository
+import com.aracroproducts.common.PreferencesRepository.Companion.MY_TOKEN
+import com.aracroproducts.common.toMessage
 import com.google.firebase.Firebase
 import com.google.firebase.crashlytics.crashlytics
 import kotlinx.coroutines.CancellationException

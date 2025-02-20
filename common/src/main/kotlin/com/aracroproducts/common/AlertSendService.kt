@@ -1,4 +1,4 @@
-package com.aracroproducts.attentionv2
+package com.aracroproducts.common
 
 import android.app.NotificationManager
 import android.app.Service
@@ -11,9 +11,8 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.RemoteInput
 import androidx.core.app.ServiceCompat
 import androidx.datastore.preferences.core.stringPreferencesKey
-import com.aracroproducts.attentionv2.AlertHandler.Companion.EXTRA_TIMESTAMP
-import com.aracroproducts.attentionv2.AlertViewModel.Companion.NO_ID
-import com.aracroproducts.attentionv2.MainViewModel.Companion.EXTRA_RECIPIENT
+import com.aracroproducts.common.AlertHandler.Companion.EXTRA_TIMESTAMP
+import com.aracroproducts.common.PreferencesRepository.Companion.MY_TOKEN
 import com.google.firebase.Firebase
 import com.google.firebase.crashlytics.crashlytics
 import kotlinx.coroutines.CoroutineScope
@@ -31,6 +30,8 @@ class AlertSendService : Service() {
     private val job = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.IO + job)
     private val jobs = ConcurrentHashMap<Int, Job>()
+
+    private val mainActivity = (application as AttentionApplicationBase).mainActivity
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         foreground()
@@ -92,7 +93,7 @@ class AlertSendService : Service() {
 
                         // Updates existing notification to not show the silence button
                         AlertHandler.showNotification(
-                            application,
+                            application as AttentionApplicationBase,
                             messageText,
                             sender,
                             alertId,
@@ -164,15 +165,15 @@ class AlertSendService : Service() {
     }
 
     private suspend fun sendMarkAsRead(fromUsername: String, alertId: String) {
-        val attentionRepository = (application as AttentionApplication).container.repository
+        val attentionRepository = (application as AttentionApplicationBase).container.repository
         val preferencesRepository =
-            (application as AttentionApplication).container.settingsRepository
+            (application as AttentionApplicationBase).container.settingsRepository
         // token is auth token
-        val token = preferencesRepository.getValue(stringPreferencesKey(MainViewModel.MY_TOKEN))
+        val token = preferencesRepository.getValue(stringPreferencesKey(MY_TOKEN))
 
         val fcmToken = preferencesRepository.getValue(
             stringPreferencesKey(
-                MainViewModel.FCM_TOKEN
+                FCM_TOKEN
             )
         )
 
@@ -188,7 +189,8 @@ class AlertSendService : Service() {
 
     private suspend fun sendAlert(recipient: String, notificationId: Int, messageStr: String?) {
 
-        val repository = AttentionRepository(AttentionDB.getDB(this))
+        val repository =
+            AttentionRepository(AttentionDB.getDB(this), application as AttentionApplicationBase)
         val preferencesRepository = PreferencesRepository(getDataStore(this.applicationContext))
 
         val message = Message(
@@ -202,7 +204,8 @@ class AlertSendService : Service() {
             notifyUser(
                 this,
                 this.getString(R.string.alert_failed_signed_out),
-                message
+                mainActivity,
+                message,
             )
 
             sendLoginBroadcast(message)
@@ -245,7 +248,8 @@ class AlertSendService : Service() {
                                 this,
                                 getString(
                                     R.string.alert_failed_no_user, to.name
-                                )
+                                ),
+                                mainActivity
                             )
                         }
 
@@ -254,7 +258,8 @@ class AlertSendService : Service() {
                                 this,
                                 getString(
                                     R.string.alert_failed_bad_request, to.name
-                                )
+                                ),
+                                mainActivity
                             )
                         }
                     }
@@ -275,7 +280,8 @@ class AlertSendService : Service() {
                                 this,
                                 getString(
                                     R.string.alert_failed_not_friend, to.name
-                                )
+                                ),
+                                mainActivity
                             )
                             repository.alertError(message.otherId)
                             sendBroadcast(ACTION_ERROR, message.otherId)
@@ -285,6 +291,7 @@ class AlertSendService : Service() {
                             notifyUser(
                                 this,
                                 getString(R.string.alert_failed_signed_out),
+                                mainActivity,
                                 message
                             )
                             sendLoginBroadcast(message)
@@ -297,7 +304,7 @@ class AlertSendService : Service() {
                         this,
                         getString(
                             R.string.alert_rate_limited
-                        ), message
+                        ), mainActivity, message
                     )
 
                 }
@@ -307,7 +314,8 @@ class AlertSendService : Service() {
                         this,
                         getString(
                             R.string.alert_failed_server_error, to.name
-                        )
+                        ),
+                        mainActivity
                     )
                     if (e.response()?.code()?.mod(100) != 2 && response?.code()?.mod(100) != 4) {
                         Firebase.crashlytics.log(e.toMessage())
@@ -320,7 +328,7 @@ class AlertSendService : Service() {
                 sTAG,
                 errorMessage
             )
-            notifyUser(this, getString(R.string.alert_failed), message)
+            notifyUser(this, getString(R.string.alert_failed), mainActivity, message)
             repository.alertError(message.otherId)
             sendBroadcast(ACTION_ERROR, message.otherId)
 
@@ -329,7 +337,7 @@ class AlertSendService : Service() {
                 sTAG,
                 "An error occurred: ${e.stackTraceToString()}"
             )
-            notifyUser(this, getString(R.string.alert_failed), message)
+            notifyUser(this, getString(R.string.alert_failed), mainActivity, message)
             repository.alertError(message.otherId)
             sendBroadcast(ACTION_ERROR, message.otherId)
             throw e
@@ -358,9 +366,17 @@ class AlertSendService : Service() {
     }
 
     private fun sendLoginBroadcast(message: Message) {
+
         sendBroadcast(Intent().apply {
             action = ACTION_LOGIN
-            putExtra(Intent.EXTRA_INTENT, getSendIntent(this@AlertSendService, message))
+            putExtra(
+                Intent.EXTRA_INTENT,
+                getSendIntent(
+                    this@AlertSendService,
+                    message,
+                    (application as AttentionApplicationBase).mainActivity
+                )
+            )
             setPackage(this@AlertSendService.packageName)
         })
     }
@@ -378,7 +394,8 @@ class AlertSendService : Service() {
         const val ACTION_SILENCE =
             "com.aracroproducts.attention.action.SILENCE"  // marks as read but does not dismiss the dialog
         const val EXTRA_MESSAGE_TEXT = "com.aracroproducts.attention.extra.MESSAGE_TEXT"
-        const val EXTRA_SENDER = "com.aracroproducts.attention.extra.RECIPIENT"
+        const val EXTRA_RECIPIENT = "com.aracroproducts.attention.extra.RECIPIENT"
+        const val EXTRA_SENDER = "com.aracroproducts.attention.extra.SENDER"
         const val EXTRA_NOTIFICATION_ID = "com.aracroproducts.attention.extra.NOTIFICATION_ID"
         const val EXTRA_FROM_NOTIFICATION = "com.aracroproducts.attention.extra.FROM_NOTIFICATION"
         const val KEY_TEXT_REPLY = "key_text_reply"
