@@ -191,7 +191,7 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 ACTION_ERROR -> {
-// TODO
+                    // no handling needed
                 }
 
                 else -> {

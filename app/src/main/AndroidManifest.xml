@@ -53,7 +53,7 @@
             android:exported="false"
             android:label="@string/report" />
         <service
-            android:name=".AlertHandler"
+            android:name="com.aracroproducts.common.AlertHandler"
             android:enabled="true"
             android:exported="false">
             <intent-filter>
@@ -111,13 +111,13 @@
             android:theme="@style/Theme.Material3.DayNight.NoActionBar"/>
 
         <service
-            android:name=".AlertSendService"
+            android:name="com.aracroproducts.common.AlertSendService"
             android:foregroundServiceType="shortService"
             android:exported="false">
         </service>
 
         <service
-            android:name=".FriendManagementService"
+            android:name="com.aracroproducts.common.FriendManagementService"
             android:exported="false"
             android:foregroundServiceType="shortService" />
     </application>

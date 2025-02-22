@@ -17,12 +17,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -31,7 +29,6 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -324,12 +321,12 @@ class Alert : AppCompatActivity() {
                     }
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    AnimatedVisibility(visible = alertModel.showReply, enter = expandVertically(), exit = shrinkVertically()) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .wrapContentHeight()
-                        ) {
+                    AnimatedVisibility(
+                        visible = alertModel.showReply,
+                        enter = scaleIn(),
+                        exit = scaleOut()
+                    ) {
+
                             OutlinedTextField(
                                 modifier = Modifier.weight(1f, fill = true),
                                 value = alertModel.replyMessage,
@@ -343,15 +340,20 @@ class Alert : AppCompatActivity() {
                                             alertModel.sender.name
                                         )
                                     )
+                                }, trailingIcon = {
+                                    IconButton(
+                                        onClick = {
+                                            alertModel.sendAlert()
+                                            alertModel.clearNotification()
+                                            finish()
+                                        },
+                                    ) {
+                                        Icon(
+                                            Icons.AutoMirrored.Filled.Send,
+                                            getString(R.string.send)
+                                        )
+                                    }
                                 })
-                            IconButton(onClick = {
-                                alertModel.sendAlert()
-                                alertModel.clearNotification()
-                                finish()
-                            }, modifier = Modifier.fillMaxHeight()) {
-                                Icon(Icons.AutoMirrored.Filled.Send, getString(R.string.send))
-                            }
-                        }
                     }
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),

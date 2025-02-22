@@ -625,7 +625,7 @@ open class AlertHandler : FirebaseMessagingService() {
                 application.applicationContext.getString(R.string.reply),
                 replyPendingIntent
             ).addRemoteInput(remoteInput)
-                .extend(  // something something helps with wear OS? todo might break things though
+                .extend(  // something something helps with wear OS?
                     NotificationCompat.Action.WearableExtender().setHintDisplayActionInline(true)
                         .setHintLaunchesActivity(false)
                 ).build()
@@ -673,13 +673,8 @@ open class AlertHandler : FirebaseMessagingService() {
             // for more on the conversation api, see
             // https://developer.android.com/develop/ui/views/notifications/conversations#api-notifications
 
-            val icon = if (!pendingFriend.photo.isNullOrBlank()) {
-                val imageDecoded = Base64.decode(pendingFriend.photo, Base64.DEFAULT)
-                val imageBitmap = BitmapFactory.decodeByteArray(imageDecoded, 0, imageDecoded.size)
-                IconCompat.createWithBitmap(imageBitmap)
-            } else {
+            val icon =
                 IconCompat.createWithResource(applicationContext, R.drawable.baseline_person_24)
-            }
 
 
             val pendingIntent = PendingIntent.getActivity(

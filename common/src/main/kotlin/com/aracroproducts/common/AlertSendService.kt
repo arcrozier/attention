@@ -31,7 +31,6 @@ class AlertSendService : Service() {
     private val scope = CoroutineScope(Dispatchers.IO + job)
     private val jobs = ConcurrentHashMap<Int, Job>()
 
-    private val mainActivity = (application as AttentionApplicationBase).mainActivity
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         foreground()
@@ -188,6 +187,7 @@ class AlertSendService : Service() {
     }
 
     private suspend fun sendAlert(recipient: String, notificationId: Int, messageStr: String?) {
+        val mainActivity = (application as AttentionApplicationBase).mainActivity
 
         val repository =
             AttentionRepository(AttentionDB.getDB(this), application as AttentionApplicationBase)
