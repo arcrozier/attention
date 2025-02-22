@@ -38,12 +38,6 @@
 
 -keepattributes Signature
 
--keep class com.aracroproducts.attentionv2.Friend
--keep class com.aracroproducts.attentionv2.NameResult
--keep class com.aracroproducts.attentionv2.TokenResult
--keep class com.aracroproducts.attentionv2.GenericResult
--keep class com.aracroproducts.attentionv2.AlertResult
--keep class com.aracroproducts.attentionv2.UserDataResult
 -keep class * implements com.google.gson.TypeAdapter
 -keep class * implements com.google.gson.TypeAdapterFactory
 -keep class * implements com.google.gson.JsonSerializer

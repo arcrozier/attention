@@ -14,6 +14,18 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.android) apply false
 }
 
+allprojects {
+    project.configurations.all {
+        resolutionStrategy {
+            eachDependency {
+                if (requested.group == "com.intellij" && requested.name == "annotations") {
+                    useTarget("org.jetbrains:annotations:23.0.0")
+                }
+            }
+        }
+    }
+}
+
 tasks.register("clean", Delete::class) {
     delete(layout.buildDirectory)
 }

@@ -17,20 +17,18 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -46,7 +44,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
@@ -68,18 +66,27 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.aracroproducts.attentionv2.LoginActivity.Companion.LIST_ELEMENT_PADDING
+import com.aracroproducts.attentionv2.ReportDialog.Companion.EXTRA_REPORT_MESSAGE
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
 import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
+import com.aracroproducts.common.AlertSendService.Companion.ACTION_MARK_AS_READ
+import com.aracroproducts.common.AlertSendService.Companion.ACTION_SILENCE
+import com.aracroproducts.common.AttentionRepository
+import com.aracroproducts.common.EXTRA_ALERT_ID
+import com.aracroproducts.common.PreferencesRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.io.File
 import java.text.DateFormat
 import java.time.Duration
 import java.time.Instant
@@ -157,21 +164,16 @@ class Alert : AppCompatActivity() {
             }
 
             when (intent.action) {
-                context.getString(R.string.dismiss_action) -> {
-                    alertModel.ok()
+                ACTION_MARK_AS_READ -> {
+                    // This can come from either the user pressing a notification action or reading
+                    // an alert on another device
+                    alertModel.silenceAndUpdateNotification(true)
                     finish()
                 }
 
-                context.getString(R.string.silence_action) -> {
-                    alertModel.ok()
-                    AlertHandler.showNotification(
-                        application,
-                        alertModel.message.text,
-                        alertModel.sender,
-                        alertModel.alertId,
-                        0,
-                        alertModel.id
-                    )
+                ACTION_SILENCE -> {
+                    // This can only come from the user pressing a notification action
+                    alertModel.silenceAndUpdateNotification(false)
                 }
 
                 else -> {
@@ -211,8 +213,8 @@ class Alert : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         ContextCompat.registerReceiver(this, receiver, IntentFilter().apply {
-            addAction(getString(R.string.silence_action))
-            addAction(getString(R.string.dismiss_action))
+            addAction(ACTION_SILENCE)
+            addAction(ACTION_MARK_AS_READ)
         }, ContextCompat.RECEIVER_NOT_EXPORTED)
 
         // don't let users dismiss by tapping outside the dialog - prevent accidental dismissals
@@ -259,12 +261,21 @@ class Alert : AppCompatActivity() {
                 shape = MaterialTheme.shapes.large,
                 tonalElevation = AlertDialogDefaults.TonalElevation
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Icon(imageVector = Icons.Filled.Warning, contentDescription = null)
-                    Text(
-                        text = getString(R.string.alert_title),
-                        style = MaterialTheme.typography.titleLarge
-                    )
+                Column(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .width(IntrinsicSize.Max)
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Image(painterResource(R.drawable.icon), contentDescription = null)
+                        Text(
+                            text = getString(R.string.alert_title),
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    }
                     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                         Row(verticalAlignment = Alignment.Top) {
                             imageBitmap?.let {
@@ -310,12 +321,12 @@ class Alert : AppCompatActivity() {
                     }
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    AnimatedVisibility(visible = alertModel.showReply, enter = expandVertically(), exit = shrinkVertically()) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .wrapContentHeight()
-                        ) {
+                    AnimatedVisibility(
+                        visible = alertModel.showReply,
+                        enter = scaleIn(),
+                        exit = scaleOut()
+                    ) {
+
                             OutlinedTextField(
                                 modifier = Modifier.weight(1f, fill = true),
                                 value = alertModel.replyMessage,
@@ -329,23 +340,53 @@ class Alert : AppCompatActivity() {
                                             alertModel.sender.name
                                         )
                                     )
+                                }, trailingIcon = {
+                                    IconButton(
+                                        onClick = {
+                                            alertModel.sendAlert()
+                                            alertModel.clearNotification()
+                                            finish()
+                                        },
+                                    ) {
+                                        Icon(
+                                            Icons.AutoMirrored.Filled.Send,
+                                            getString(R.string.send)
+                                        )
+                                    }
                                 })
-                            IconButton(onClick = {
-                                alertModel.sendAlert()
-                                alertModel.clearNotification()
-                                finish()
-                            }, modifier = Modifier.fillMaxHeight()) {
-                                Icon(Icons.AutoMirrored.Filled.Send, getString(R.string.send))
-                            }
-                        }
                     }
-                    FlowRow(horizontalArrangement = Arrangement.End) {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                        modifier = Modifier.fillMaxWidth(1f)
+                    ) {
+                        IconButton({
+                            val intent = Intent(this@Alert, ReportDialog::class.java).apply {
+                                putExtra(
+                                    EXTRA_REPORT_MESSAGE,
+                                    "User: ${alertModel.sender.username}\n\nMessage: ${alertModel.messageText}"
+                                )
+                                val cachedBitmap = imageBitmap
+                                if (cachedBitmap != null) {
+                                    val file = File.createTempFile("pfp", ".png")
+                                    val outputStream = file.outputStream()
+                                    cachedBitmap.compress(
+                                        Bitmap.CompressFormat.PNG,
+                                        95,
+                                        outputStream
+                                    )
+                                    putExtra(ReportDialog.EXTRA_ATTACHMENT, file.toUri().toString())
+                                }
+                            }
+                            startActivity(intent)
+                        }) {
+                            Icon(Icons.Default.Flag, getString(R.string.report))
+                        }
                         AnimatedVisibility(
                             visible = !alertModel.silenced, enter = fadeIn(), exit = fadeOut()
                         ) {
                             TextButton(onClick = {
-                                alertModel.ok()
-                                alertModel.clearNotification()
+                                alertModel.silenceAndUpdateNotification(false)
+                                alertModel.markAsRead()
                             }) {
                                 Text(text = getString(R.string.silence))
                             }
@@ -357,7 +398,8 @@ class Alert : AppCompatActivity() {
                             exit = fadeOut() + scaleOut()
                         ) {
                             Button(onClick = {
-                                alertModel.ok()
+                                alertModel.silenceAndUpdateNotification(false)
+                                alertModel.markAsRead()
                                 alertModel.showReply = true
                             }) {
                                 Row(Modifier.wrapContentSize()) {
@@ -366,9 +408,9 @@ class Alert : AppCompatActivity() {
                                 }
                             }
                         }
-
                         Button(onClick = {
-                            alertModel.ok()
+                            alertModel.silenceAndUpdateNotification(true)
+                            alertModel.markAsRead()
                             finish()
                         }) {
                             when (alertModel.showReply) {
@@ -467,9 +509,9 @@ class Alert : AppCompatActivity() {
                     // probably wouldn't happen without the app getting recomposed?)
                 }
             }
-        } else { // Look I can't be bothered to figure out how to durations without the Duration class
+        } else { // Look I can't be bothered to figure out how to do durations without the Duration class
             // I'm sure there's a way but I'm not doing it sorry
-            // Besides, Android O is now 5 years old - basically everyone is running it or newer
+            // Besides, Android O is now 8 years old - basically everyone is running it or newer
             return Pair(
                 getString(
                     R.string.sent_on, DateFormat.getDateTimeInstance().format(since.time)
@@ -489,5 +531,6 @@ class Alert : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         unregisterReceiver(receiver)
+        alertModel.silenceAndUpdateNotification(false)
     }
 }

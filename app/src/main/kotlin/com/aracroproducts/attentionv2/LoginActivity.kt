@@ -112,6 +112,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.aracroproducts.attentionv2.ui.theme.AppTheme
 import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
+import com.aracroproducts.common.AttentionDB
+import com.aracroproducts.common.AttentionRepository
+import com.aracroproducts.common.DISABLED_ALPHA
+import com.aracroproducts.common.PreferencesRepository
+import com.aracroproducts.common.PreferencesRepository.Companion.MY_TOKEN
+import com.aracroproducts.common.centerWithBottomElement
+import com.aracroproducts.common.filterSpecialChars
+import com.aracroproducts.common.filterUsername
+import com.aracroproducts.common.toMessage
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
@@ -127,7 +136,7 @@ class LoginActivity : AppCompatActivity() {
 
     private val loginViewModel: LoginViewModel by viewModels(factoryProducer = {
         LoginViewModelFactory(
-            AttentionRepository(AttentionDB.getDB(this)),
+            AttentionRepository(AttentionDB.getDB(this), application as AttentionApplication),
             (application as AttentionApplication).container.settingsRepository,
             application
         )
@@ -1117,7 +1126,7 @@ class LoginActivity : AppCompatActivity() {
 
     private fun completeSignIn(token: String) {
         val result = Intent()
-        result.putExtra(MainViewModel.MY_TOKEN, token)
+        result.putExtra(MY_TOKEN, token)
         if (returnedIntent != null) {
             result.putExtra(Intent.EXTRA_INTENT, returnedIntent)
         }

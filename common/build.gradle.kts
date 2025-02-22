@@ -1,58 +1,41 @@
 plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.ksp)
-    alias(libs.plugins.gms)
+    alias(libs.plugins.android.library)
     alias(libs.plugins.jetbrains.kotlin.android)
+    alias(libs.plugins.ksp)
     alias(libs.plugins.compose)
-    alias(libs.plugins.firebase.crashlytics)
 }
 
 android {
+    namespace = "com.aracroproducts.common"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.aracroproducts.attentionv2"
         minSdk = 24
-        targetSdk = 35
-        versionCode = 46
-        versionName = "2.3.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-
-        signingConfig = signingConfigs.getByName("debug")
+        consumerProguardFiles("consumer-rules.pro")
     }
 
+    ksp {
+        arg("room.schemaLocation", "$projectDir/schemas")
+    }
     buildFeatures {
         compose = true
         buildConfig = true
     }
-
     buildTypes {
-        debug {
-            versionNameSuffix = ".debug"
-            resValue("string", "version_name", "${defaultConfig.versionName}${versionNameSuffix}")
-            buildConfigField(
-                "String",
-                "BASE_URL",
-                "\"https://attention.aracroproducts.com/api/v2/\""
-            )
-        }
-
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"),
+            isMinifyEnabled = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            resValue("string", "version_name", "${defaultConfig.versionName}")
-            buildConfigField("String", "BASE_URL", "\"https://attention.aracroproducts" +
-                    ".com/api/v2/\""
-            )
-
-            ndk {
-                debugSymbolLevel = "full"
-            }
+        }
+    }
+    configurations {
+        create("cleanedAnnotations")
+        implementation {
+            exclude(group = "org.jetbrains", module = "annotations")
         }
     }
     compileOptions {
@@ -64,27 +47,13 @@ android {
         // https://developer.android.com/jetpack/androidx/releases/compose-compiler
         kotlinCompilerExtensionVersion = "1.5.15"
     }
-
-    configurations {
-        create("cleanedAnnotations")
-        implementation {
-            exclude(group = "org.jetbrains", module = "annotations")
-        }
-    }
-
-    namespace = "com.aracroproducts.attentionv2"
-
     kotlinOptions {
         jvmTarget = "17"
-        freeCompilerArgs += "-opt-in=kotlin.RequiresOptIn"
-        freeCompilerArgs += "-Xjvm-default=all"
     }
 }
 
 dependencies {
-
     implementation(libs.androidx.work.runtime.ktx)
-    implementation(project(":common"))
     ksp(libs.androidx.room.compiler)
 
     implementation(libs.googleid)

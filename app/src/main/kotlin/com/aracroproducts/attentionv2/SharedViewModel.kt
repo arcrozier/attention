@@ -8,6 +8,10 @@ import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.aracroproducts.common.AttentionRepository
+import com.aracroproducts.common.FCM_TOKEN
+import com.aracroproducts.common.PreferencesRepository
+import com.aracroproducts.common.PreferencesRepository.Companion.MY_TOKEN
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -39,12 +43,12 @@ class SharedViewModel(
         applicationScope.launch {
             preferencesRepository.let {
                 unregisterDevice(
-                    it.getValue(stringPreferencesKey(MainViewModel.MY_TOKEN), ""),
-                    it.getValue(stringPreferencesKey(MainViewModel.FCM_TOKEN), "")
+                    it.getValue(stringPreferencesKey(MY_TOKEN), ""),
+                    it.getValue(stringPreferencesKey(FCM_TOKEN), "")
                 )
             }
             preferencesRepository.bulkEdit { settings ->
-                settings.remove(stringPreferencesKey(MainViewModel.MY_TOKEN))
+                settings.remove(stringPreferencesKey(MY_TOKEN))
                 settings.remove(
                     stringPreferencesKey(
                         context.getString(
