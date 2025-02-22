@@ -36,6 +36,9 @@
 
 -dontwarn com.google.firebase.messaging.TopicOperation$TopicOperations
 
+-dontwarn org.jetbrains.annotations.NotNull
+-dontwarn org.jetbrains.annotations.Nullable
+
 -keepattributes Signature
 
 -keep class * implements com.google.gson.TypeAdapter
