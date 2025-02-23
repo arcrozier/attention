@@ -17,6 +17,7 @@ import android.util.Base64
 import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationCompat.Action
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.Person
 import androidx.core.app.RemoteInput
@@ -234,7 +235,7 @@ open class AlertHandler : FirebaseMessagingService() {
                         username = messageData[USERNAME_TO], alertId = messageData[ALERT_ID]
                     )
                 }
-//1739695599.6292462
+
                 "read" -> {
                     repository.alertRead(
                         username = messageData[USERNAME_TO], alertId = messageData[ALERT_ID]
@@ -266,6 +267,7 @@ open class AlertHandler : FirebaseMessagingService() {
                     )
                     repository.insert(pendingFriend)
                 }
+
                 "accepted" -> {
                     val username = messageData[FCM_FRIEND_REQUEST_USERNAME] ?: run {
                         Log.w(TAG, "Accepted friend request with no username")
@@ -334,6 +336,7 @@ open class AlertHandler : FirebaseMessagingService() {
                         builder.build()
                     )
                 }
+
                 else -> {
                     Log.w(TAG, "Unrecognized action: $remoteMessage")
                     return@launch
@@ -351,16 +354,20 @@ open class AlertHandler : FirebaseMessagingService() {
             )
         }
         val manager =
-            getSystemService(NOTIFICATION_SERVICE) as NotificationManager // Check if SDK >= Android 7.0, uses the new notification manager, else uses the compat manager (SDK 19+) // Checks if the app should avoid notifying because it has notifications disabled or:
+            getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         val channel =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) manager.getNotificationChannel(
                 ALERT_CHANNEL_ID
             ) else null
+        // Checks if the app should avoid notifying because it has notifications disabled or:
         return (manager.areNotificationsEnabled() && // all app notifications disabled
                 ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) && channel?.importance != NotificationManager.IMPORTANCE_NONE)) && // specifically this channel is disabled
                 (overrideDND || // Checks whether it should not be overriding Do Not Disturb
                         ((manager.currentInterruptionFilter == NotificationManager.INTERRUPTION_FILTER_ALL || // Do not disturb is on
-                                manager.currentInterruptionFilter == NotificationManager.INTERRUPTION_FILTER_UNKNOWN) || (Build.VERSION.SDK_INT < Build.VERSION_CODES.R || (manager.consolidatedNotificationPolicy.priorityCategories and NotificationManager.Policy.PRIORITY_CATEGORY_MESSAGES != 0 || manager.consolidatedNotificationPolicy.priorityMessageSenders == NotificationManager.Policy.PRIORITY_SENDERS_ANY))))
+                                manager.currentInterruptionFilter == NotificationManager.INTERRUPTION_FILTER_UNKNOWN) ||
+                                (Build.VERSION.SDK_INT < Build.VERSION_CODES.R ||
+                                        (manager.consolidatedNotificationPolicy.priorityCategories and NotificationManager.Policy.PRIORITY_CATEGORY_MESSAGES != 0 ||
+                                                manager.consolidatedNotificationPolicy.priorityMessageSenders == NotificationManager.Policy.PRIORITY_SENDERS_ANY))))
 
     }
 
@@ -529,19 +536,19 @@ open class AlertHandler : FirebaseMessagingService() {
                 builder = NotificationCompat.Builder(application.applicationContext, CHANNEL_ID)
                 builder.setContentTitle(
                     application.applicationContext.getString(
-                            R.string.notification_title,
-                            sender.name
-                        )
+                        R.string.notification_title,
+                        sender.name
                     )
+                )
             } else {
                 builder =
                     NotificationCompat.Builder(application.applicationContext, ALERT_CHANNEL_ID)
-                    .setContentTitle(
-                        application.applicationContext.getString(
-                            R.string.alert_notification_title,
-                            sender.name
+                        .setContentTitle(
+                            application.applicationContext.getString(
+                                R.string.alert_notification_title,
+                                sender.name
+                            )
                         )
-                    )
 
                 if (silenceAction) {
                     val silenceIntent =
@@ -592,9 +599,13 @@ open class AlertHandler : FirebaseMessagingService() {
             createNotificationChannel(application.applicationContext)
             builder.setSmallIcon(R.drawable.icon)
                 .addAction(
-                    R.drawable.baseline_mark_chat_read_24,
-                    application.applicationContext.getString(R.string.mark_as_read),
-                    dismissPendingIntent
+                    Action.Builder(
+                        R.drawable.baseline_mark_chat_read_24,
+                        application.applicationContext.getString(R.string.mark_as_read),
+                        dismissPendingIntent
+                    ).setSemanticAction(Action.SEMANTIC_ACTION_MARK_AS_READ)
+                        .setShowsUserInterface(false).build()
+
                 )
 
             // Reply button
@@ -620,13 +631,14 @@ open class AlertHandler : FirebaseMessagingService() {
                     },
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
                 )
-            val action = NotificationCompat.Action.Builder(
+            val action = Action.Builder(
                 R.drawable.baseline_reply_24,
                 application.applicationContext.getString(R.string.reply),
                 replyPendingIntent
-            ).addRemoteInput(remoteInput)
+            ).setSemanticAction(Action.SEMANTIC_ACTION_REPLY).setShowsUserInterface(false)
+                .addRemoteInput(remoteInput)
                 .extend(  // something something helps with wear OS?
-                    NotificationCompat.Action.WearableExtender().setHintDisplayActionInline(true)
+                    Action.WearableExtender().setHintDisplayActionInline(true)
                         .setHintLaunchesActivity(false)
                 ).build()
 
