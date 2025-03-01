@@ -91,12 +91,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.aracroproducts.attentionv2.ReportViewModel.Companion.UriState
-import com.aracroproducts.attentionv2.ui.theme.AppTheme
-import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
 import com.aracroproducts.common.AttentionRepository
 import com.aracroproducts.common.MeasureView
 import com.aracroproducts.common.PreferencesRepository
 import com.aracroproducts.common.min
+import com.aracroproducts.common.theme.AppTheme
+import com.aracroproducts.common.theme.HarmonizedTheme
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

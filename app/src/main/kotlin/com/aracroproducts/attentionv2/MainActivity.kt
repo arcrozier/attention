@@ -125,8 +125,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import com.aracroproducts.attentionv2.ui.theme.AppTheme
-import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
 import com.aracroproducts.common.AlertSendService.Companion.ACTION_ERROR
 import com.aracroproducts.common.AlertSendService.Companion.ACTION_LOGIN
 import com.aracroproducts.common.AlertSendService.Companion.ACTION_SUCCESS
@@ -146,6 +144,8 @@ import com.aracroproducts.common.createFriendRequestNotificationChannel
 import com.aracroproducts.common.createNotificationChannel
 import com.aracroproducts.common.filterSpecialChars
 import com.aracroproducts.common.filterUsername
+import com.aracroproducts.common.theme.AppTheme
+import com.aracroproducts.common.theme.HarmonizedTheme
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import kotlinx.coroutines.CoroutineScope

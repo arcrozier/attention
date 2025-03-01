@@ -76,13 +76,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.aracroproducts.attentionv2.LoginActivity.Companion.LIST_ELEMENT_PADDING
 import com.aracroproducts.attentionv2.ReportDialog.Companion.EXTRA_REPORT_MESSAGE
-import com.aracroproducts.attentionv2.ui.theme.AppTheme
-import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
 import com.aracroproducts.common.AlertSendService.Companion.ACTION_MARK_AS_READ
 import com.aracroproducts.common.AlertSendService.Companion.ACTION_SILENCE
 import com.aracroproducts.common.AttentionRepository
 import com.aracroproducts.common.EXTRA_ALERT_ID
 import com.aracroproducts.common.PreferencesRepository
+import com.aracroproducts.common.theme.AppTheme
+import com.aracroproducts.common.theme.HarmonizedTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch

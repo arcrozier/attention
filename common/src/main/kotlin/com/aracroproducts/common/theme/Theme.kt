@@ -1,4 +1,4 @@
-package com.aracroproducts.attentionv2.ui.theme
+package com.aracroproducts.common.theme
 
 import android.os.Build
 import androidx.annotation.RequiresApi

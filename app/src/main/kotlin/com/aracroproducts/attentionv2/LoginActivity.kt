@@ -110,8 +110,6 @@ import androidx.credentials.exceptions.CreateCredentialException
 import androidx.credentials.exceptions.GetCredentialException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.aracroproducts.attentionv2.ui.theme.AppTheme
-import com.aracroproducts.attentionv2.ui.theme.HarmonizedTheme
 import com.aracroproducts.common.AttentionDB
 import com.aracroproducts.common.AttentionRepository
 import com.aracroproducts.common.DISABLED_ALPHA
@@ -120,6 +118,8 @@ import com.aracroproducts.common.PreferencesRepository.Companion.MY_TOKEN
 import com.aracroproducts.common.centerWithBottomElement
 import com.aracroproducts.common.filterSpecialChars
 import com.aracroproducts.common.filterUsername
+import com.aracroproducts.common.theme.AppTheme
+import com.aracroproducts.common.theme.HarmonizedTheme
 import com.aracroproducts.common.toMessage
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption

@@ -1,4 +1,4 @@
-package com.aracroproducts.attentionv2.ui.theme
+package com.aracroproducts.common.theme
 
 import androidx.compose.ui.graphics.Color
 

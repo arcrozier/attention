@@ -35,7 +35,7 @@ android {
             buildConfigField(
                 "String",
                 "BASE_URL",
-                "\"https://attention.aracroproducts.com/api/v2/\""
+                "\"http://10.0.2.2:8000/v2/\""
             )
         }
 
