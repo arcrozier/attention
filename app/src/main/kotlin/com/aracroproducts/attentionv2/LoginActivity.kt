@@ -69,23 +69,18 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.autofill.AutofillNode
-import androidx.compose.ui.autofill.AutofillType
-import androidx.compose.ui.composed
+import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.boundsInWindow
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalAutofill
-import androidx.compose.ui.platform.LocalAutofillTree
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.contentType
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
@@ -347,8 +342,8 @@ class LoginActivity : AppCompatActivity() {
         snackbarHostState: SnackbarHostState,
         coroutineScope: CoroutineScope
     ) {
-        val passwordFocusRequester = FocusRequester()
-        val confirmPasswordFocusRequester = FocusRequester()
+        val passwordFocusRequester = remember { FocusRequester() }
+        val confirmPasswordFocusRequester = remember { FocusRequester() }
         Column(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier
@@ -508,7 +503,7 @@ class LoginActivity : AppCompatActivity() {
         snackbarHostState: SnackbarHostState,
         coroutineScope: CoroutineScope
     ) {
-        val confirmPasswordFocusRequester = FocusRequester()
+        val confirmPasswordFocusRequester = remember { FocusRequester() }
         val focusManager = LocalFocusManager.current
         Column(
             verticalArrangement = centerWithBottomElement,
@@ -776,11 +771,7 @@ class LoginActivity : AppCompatActivity() {
                 model.firstName = filterSpecialChars(it)
             },
             modifier = Modifier
-                .autofill(autofillTypes = listOf(AutofillType.PersonFirstName), onFill = {
-                    model.firstName = it.filter { letter ->
-                        letter != '\n'
-                    }
-                })
+                .semantics { contentType = ContentType.PersonFirstName }
                 .onKeyEvent {
                     if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER || it.nativeKeyEvent.keyCode == KEYCODE_TAB) {
                         focusManager.moveFocus(focusDirection = FocusDirection.Next)
@@ -808,11 +799,7 @@ class LoginActivity : AppCompatActivity() {
                 model.lastName = filterSpecialChars(it)
             },
             modifier = Modifier
-                .autofill(autofillTypes = listOf(AutofillType.PersonLastName), onFill = {
-                    model.lastName = it.filter { letter ->
-                        letter != '\n'
-                    }
-                })
+                .semantics { contentType = ContentType.PersonLastName }
                 .onKeyEvent {
                     if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER || it.nativeKeyEvent.keyCode == KEYCODE_TAB) {
                         focusManager.moveFocus(focusDirection = FocusDirection.Next)
@@ -840,9 +827,7 @@ class LoginActivity : AppCompatActivity() {
                 onOldPasswordChanged(model, it)
             },
             modifier = Modifier
-                .autofill(autofillTypes = listOf(AutofillType.Password), onFill = {
-                    onOldPasswordChanged(model, it)
-                })
+                .semantics { contentType = ContentType.Password }
                 .onKeyEvent {
                     if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER || it.nativeKeyEvent.keyCode == KEYCODE_TAB) {
                         focusManager.moveFocus(focusDirection = FocusDirection.Next)
@@ -903,11 +888,8 @@ class LoginActivity : AppCompatActivity() {
                 onPasswordChanged(model, it)
             },
             modifier = Modifier
-                .focusRequester(currentFocusRequester ?: FocusRequester())
-                .autofill(autofillTypes = listOf(AutofillType.NewPassword), onFill = {
-                    onPasswordChanged(model, it)
-                    onConfirmPasswordChanged(model, it)
-                })
+                .focusRequester(currentFocusRequester ?: remember { FocusRequester() })
+                .semantics { contentType = ContentType.NewPassword }
                 .onKeyEvent {
                     if (it.nativeKeyEvent.keyCode == KEYCODE_ENTER || it.nativeKeyEvent.keyCode == KEYCODE_TAB) {
                         when (imeAction) {
@@ -1139,29 +1121,6 @@ class LoginActivity : AppCompatActivity() {
         val TAG: String = LoginActivity::class.java.simpleName
 
         @OptIn(ExperimentalComposeUiApi::class)
-        fun Modifier.autofill(
-            autofillTypes: List<AutofillType>,
-            onFill: ((String) -> Unit),
-        ) = composed {
-            val autofill = LocalAutofill.current
-            val autofillNode = AutofillNode(onFill = onFill, autofillTypes = autofillTypes)
-            LocalAutofillTree.current += autofillNode
-
-            onGloballyPositioned {
-                autofillNode.boundingBox = it.boundsInWindow()
-            }.onFocusChanged { focusState ->
-                print(autofill)
-                autofill?.run {
-                    if (focusState.isFocused) {
-                        requestAutofillForNode(autofillNode)
-                    } else {
-                        cancelAutofillForNode(autofillNode)
-                    }
-                }
-            }
-        }
-
-        @OptIn(ExperimentalComposeUiApi::class)
         @Composable
         fun UsernameField(
             value: String,
@@ -1180,10 +1139,10 @@ class LoginActivity : AppCompatActivity() {
                 value = value,
                 onValueChange = { onValueChanged(filterUsername(it)) },
                 modifier = Modifier
-                    .autofill(autofillTypes = if (newUsername) listOf(
-                        AutofillType.NewUsername
-                    ) else listOf(AutofillType.Username),
-                        onFill = { onValueChanged(filterUsername(it)) })
+                    .semantics {
+                        contentType =
+                            if (newUsername) ContentType.Username else ContentType.NewUsername
+                    }
                     .onKeyEvent {
                         if ((it.nativeKeyEvent.keyCode == KEYCODE_ENTER || it.nativeKeyEvent.keyCode == KEYCODE_TAB) && imeAction == ImeAction.Next) {
                             focusManager.moveFocus(FocusDirection.Next)
@@ -1234,12 +1193,7 @@ class LoginActivity : AppCompatActivity() {
                     setCaption("")
                 },
                 modifier = Modifier
-                    .autofill(autofillTypes = listOf(AutofillType.EmailAddress), onFill = {
-                        setValue(it.filter { letter ->
-                            letter != '\n'
-                        })
-                        setCaption("")
-                    })
+                    .semantics { contentType = ContentType.EmailAddress }
                     .onKeyEvent {
                         if ((imeAction == ImeAction.Next && it.nativeKeyEvent.keyCode == KEYCODE_ENTER) || it.nativeKeyEvent.keyCode == KEYCODE_TAB) {
                             focusManager.moveFocus(focusDirection = FocusDirection.Next)

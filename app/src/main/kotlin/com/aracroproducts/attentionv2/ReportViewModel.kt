@@ -18,9 +18,7 @@ import com.aracroproducts.common.PreferencesRepository.Companion.MY_TOKEN
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import retrofit2.HttpException
-import java.util.Locale
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.collections.mapOf
 
 class ReportViewModel(
     private val attentionRepository: AttentionRepository,
@@ -59,10 +57,6 @@ class ReportViewModel(
             return 403
         }
 
-        val config =
-            context.resources.configuration
-        config.setLocale(Locale.ROOT)
-
         val augmentedBody = when (reason) {
             Reason.BUG -> {
                 val fields = mapOf(
@@ -81,9 +75,7 @@ class ReportViewModel(
         try {
             attentionRepository.report(
                 context = context,
-                title = context.createConfigurationContext(
-                    config
-                ).resources.getString(reason.description), message = augmentedBody, token = token,
+                title = reason.name, message = augmentedBody, token = token,
                 photos = attachments, tags = reason.tags
             )
             return 200

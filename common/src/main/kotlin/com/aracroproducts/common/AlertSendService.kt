@@ -123,7 +123,7 @@ class AlertSendService : Service() {
 
             } finally {
                 jobs.remove(startId)
-                if (jobs.isEmpty) {
+                if (jobs.isEmpty()) {
                     stopSelfResult(startId)
                 }
             }

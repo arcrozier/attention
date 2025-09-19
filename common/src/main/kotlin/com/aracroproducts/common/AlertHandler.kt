@@ -45,7 +45,6 @@ import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import retrofit2.HttpException
 
 
@@ -345,14 +344,12 @@ open class AlertHandler : FirebaseMessagingService() {
         }
     }
 
-    private fun areNotificationsAllowed(): Boolean {
+    private suspend fun areNotificationsAllowed(): Boolean {
         val preferencesRepository =
             (application as AttentionApplicationBase).container.settingsRepository
-        val overrideDND = runBlocking {
-            preferencesRepository.getValue(
+        val overrideDND = preferencesRepository.getValue(
                 booleanPreferencesKey(getString(R.string.override_dnd_key)), false
             )
-        }
         val manager =
             getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         val channel =

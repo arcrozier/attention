@@ -4,10 +4,10 @@ import android.content.Context
 import android.net.Uri
 import android.webkit.MimeTypeMap
 import kotlinx.coroutines.yield
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
-import okhttp3.internal.commonToMediaTypeOrNull
 import java.io.File
 import java.io.InputStream
 import java.util.Calendar
@@ -77,7 +77,7 @@ class AttentionRepository(
                 MultipartBody.Part.createFormData(
                     "photo",
                     "attachment${index}.${extension}",
-                    attachmentFile.asRequestBody((mimeType).commonToMediaTypeOrNull())
+                    attachmentFile.asRequestBody(mimeType.toMediaType())
                 )
             }, token = authHeader(token)
         )

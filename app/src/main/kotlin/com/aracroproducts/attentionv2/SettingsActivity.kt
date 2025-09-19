@@ -119,8 +119,8 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.Placeable
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextStyle
@@ -134,6 +134,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
+import androidx.core.net.toUri
 import androidx.core.view.WindowCompat
 import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.CredentialManager
@@ -836,7 +837,7 @@ class SettingsActivity : AppCompatActivity() {
                                   summary = null,
                                   onPreferenceClicked = {
                                       val browserIntent = Intent(
-                                          Intent.ACTION_VIEW, Uri.parse(getString(R.string.tos_url))
+                                          Intent.ACTION_VIEW, getString(R.string.tos_url).toUri()
                                       )
                                       startActivity(browserIntent)
                                   })
@@ -844,7 +845,7 @@ class SettingsActivity : AppCompatActivity() {
                            Icon(Icons.Outlined.Policy, null)
                        }, title = R.string.privacy_policy, summary = null, onPreferenceClicked = {
                            val browserIntent = Intent(
-                               Intent.ACTION_VIEW, Uri.parse(getString(R.string.privacy_policy_url))
+                               Intent.ACTION_VIEW, getString(R.string.privacy_policy_url).toUri()
                            )
                            startActivity(browserIntent)
                        })
@@ -868,7 +869,7 @@ class SettingsActivity : AppCompatActivity() {
                                summary = null,
                                onPreferenceClicked = {
                                    val browserIntent = Intent(
-                                           Intent.ACTION_VIEW, Uri.parse(getString(R.string.ap_url))
+                                       Intent.ACTION_VIEW, getString(R.string.ap_url).toUri()
                                    )
                                    startActivity(browserIntent)
                                },
@@ -1075,7 +1076,7 @@ class SettingsActivity : AppCompatActivity() {
         }, title = {
             Text(text = getString(R.string.upload_pfp))
         }, text = {
-            val configuration = LocalConfiguration.current
+            val configuration = LocalWindowInfo.current.containerSize
             val density = LocalDensity.current
             Column(
                 verticalArrangement = Arrangement.Top,
@@ -1094,12 +1095,12 @@ class SettingsActivity : AppCompatActivity() {
                                 IntSize(if (constraints.hasBoundedWidth) constraints.maxWidth else with(
                                     density
                                 ) {
-                                    configuration.screenWidthDp.dp.roundToPx()
+                                    configuration.width
                                 },
                                         if (constraints.hasBoundedHeight) constraints.maxHeight else with(
                                             density
                                         ) {
-                                            configuration.screenWidthDp.dp.roundToPx()
+                                            configuration.width
                                         }),
                                 true
                             )?.asImageBitmap()

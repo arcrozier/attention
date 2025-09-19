@@ -2,7 +2,6 @@ package com.aracroproducts.attentionv2
 
 import android.app.Application
 import android.content.Intent
-import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.media.ThumbnailUtils
@@ -86,7 +85,10 @@ import androidx.compose.ui.text.fromHtml
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.scale
 import androidx.core.net.toFile
+import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
@@ -103,7 +105,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 import java.io.IOException
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.getValue
 import kotlin.math.min
 
 class ReportDialog : AppCompatActivity() {
@@ -225,12 +226,8 @@ class ReportDialog : AppCompatActivity() {
 
                                     yield()
                                     Pair(
-                                        Bitmap.createScaledBitmap(
-                                            unscaledBitmap,
-                                            newSize.width,
-                                            newSize.height,
-                                            true
-                                        ), ReportViewModel.AttachmentType.VIDEO
+                                        unscaledBitmap.scale(newSize.width, newSize.height),
+                                        ReportViewModel.AttachmentType.VIDEO
                                     )
                                 }
 
@@ -308,7 +305,7 @@ class ReportDialog : AppCompatActivity() {
         val photo = intent.getStringExtra(EXTRA_ATTACHMENT)
 
         if (photo != null) {
-            addUris(listOf(Uri.parse(photo)))
+            addUris(listOf(photo.toUri()))
         }
 
         setContent {
@@ -663,11 +660,7 @@ class ReportDialog : AppCompatActivity() {
 
     companion object {
         val THUMBNAIL_SIZE: Size = Size(128, 128)
-        val DEFAULT_BITMAP = Bitmap.createBitmap(
-            THUMBNAIL_SIZE.width,
-            THUMBNAIL_SIZE.height,
-            Bitmap.Config.ARGB_8888
-        )
+        val DEFAULT_BITMAP = createBitmap(THUMBNAIL_SIZE.width, THUMBNAIL_SIZE.height)
 
         const val EXTRA_REPORT_MESSAGE = "com.aracroproducts.attention.extra.REPORT_MESSAGE"
         const val EXTRA_ATTACHMENT = "com.aracroproducts.attention.extra.ATTACHMENT"

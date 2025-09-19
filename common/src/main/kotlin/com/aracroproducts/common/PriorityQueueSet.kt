@@ -1,6 +1,5 @@
 package com.aracroproducts.common
 
-import java.util.Comparator
 import java.util.PriorityQueue
 import java.util.Queue
 
@@ -87,7 +86,7 @@ class PriorityQueueSet<E>(comparator: Comparator<E>) : Queue<E> {
      * Returns `true` if the collection is empty (contains no elements), `false` otherwise.
      */
     override fun isEmpty(): Boolean {
-        return elements.isEmpty
+        return elements.isEmpty()
     }
 
     /**

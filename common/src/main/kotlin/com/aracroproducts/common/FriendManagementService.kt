@@ -38,7 +38,7 @@ class FriendManagementService : Service() {
                 execute(intent)
             } finally {
                 jobs.remove(startId)
-                if (jobs.isEmpty) {
+                if (jobs.isEmpty()) {
                     stopSelfResult(startId)
                 }
             }
