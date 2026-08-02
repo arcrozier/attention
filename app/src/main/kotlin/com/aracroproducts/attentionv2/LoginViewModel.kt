@@ -66,7 +66,7 @@ class LoginViewModel(
         savedIdToken = localIdToken
         val context = getApplication<Application>()
         if (login == State.CHOOSE_USERNAME && username.isBlank()) {
-            usernameCaption = context.getString(R.string.empty_username)
+            usernameCaption = context.getString(com.aracroproducts.common.R.string.empty_username)
             return
         }
         uiEnabled = false
@@ -103,7 +103,7 @@ class LoginViewModel(
                         ) {
                             checkboxError = true
                         } else usernameCaption =
-                            context.getString(R.string.username_in_use)
+                            context.getString(com.aracroproducts.common.R.string.username_in_use)
                     }
 
                     401 -> {
@@ -116,7 +116,7 @@ class LoginViewModel(
                         val message = "Bad Google token: $idToken"
                         Log.e(sTAG, message)
                         usernameCaption = context.getString(
-                            R.string.bad_google_token
+                            com.aracroproducts.common.R.string.bad_google_token
                         )
                         Firebase.crashlytics.log(message)
                     }
@@ -165,7 +165,7 @@ class LoginViewModel(
         val context = getApplication<Application>()
 
         if (password.isBlank()) {
-            passwordCaption = context.getString(R.string.wrong_password)
+            passwordCaption = context.getString(com.aracroproducts.common.R.string.wrong_password)
             return
         }
         uiEnabled = false
@@ -176,7 +176,8 @@ class LoginViewModel(
             val token = preferencesRepository.getValue(stringPreferencesKey(MY_TOKEN))
             if (token == null) {
                 login = State.LOGIN
-                usernameCaption = context.getString(R.string.password_verification_failed)
+                usernameCaption =
+                    context.getString(com.aracroproducts.common.R.string.password_verification_failed)
                 uiEnabled = true
                 return@launch
             }
@@ -189,7 +190,7 @@ class LoginViewModel(
                 onLoggedIn()
                 preferencesRepository.setValue(
                     booleanPreferencesKey(
-                        context.getString(R.string.password_key)
+                        context.getString(com.aracroproducts.common.R.string.password_key)
                     ), false
                 )
             } catch (e: HttpException) {
@@ -201,7 +202,7 @@ class LoginViewModel(
                             response.errorBody().toString()
                         )
                         passwordCaption = context.getString(
-                            R.string.google_account_in_use
+                            com.aracroproducts.common.R.string.google_account_in_use
                         )
                     }
 
@@ -211,14 +212,14 @@ class LoginViewModel(
                         when {
                             errorBody?.contains("password") == true -> {
                                 passwordCaption =
-                                    context.getString(R.string.wrong_password)
+                                    context.getString(com.aracroproducts.common.R.string.wrong_password)
                             }
 
                             errorBody?.contains(
                                 "google", true
                             ) == true -> {
                                 passwordCaption =
-                                    context.getString(R.string.google_sign_in_failed)
+                                    context.getString(com.aracroproducts.common.R.string.google_sign_in_failed)
                             }
 
                             else -> {
@@ -275,7 +276,7 @@ class LoginViewModel(
                     400 -> {
                         Log.e(sTAG, response.errorBody().toString())
                         passwordCaption =
-                            context.getString(R.string.wrong_password)
+                            context.getString(com.aracroproducts.common.R.string.wrong_password)
                     }
 
                     else -> {
@@ -306,19 +307,21 @@ class LoginViewModel(
         val context = getApplication<Application>()
         var passed = true
         if (username.isBlank()) {
-            usernameCaption = context.getString(R.string.username_in_use)
+            usernameCaption = context.getString(com.aracroproducts.common.R.string.username_in_use)
             passed = false
         }
         if (password.length < 8) {
-            passwordCaption = context.getString(R.string.password_validation_failed)
+            passwordCaption =
+                context.getString(com.aracroproducts.common.R.string.password_validation_failed)
             passed = false
         }
         if (password != confirmPassword) {
-            confirmPasswordCaption = context.getString(R.string.passwords_different)
+            confirmPasswordCaption =
+                context.getString(com.aracroproducts.common.R.string.passwords_different)
             passed = false
         }
         if (!(email.isEmpty() || android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches())) {
-            emailCaption = context.getString(R.string.invalid_email)
+            emailCaption = context.getString(com.aracroproducts.common.R.string.invalid_email)
             passed = false
         }
         if (!agreedToToS) {
@@ -342,22 +345,22 @@ class LoginViewModel(
                 preferencesRepository.bulkEdit { settings ->
                     settings[stringPreferencesKey(
                         context.getString(
-                            R.string.username_key
+                            com.aracroproducts.common.R.string.username_key
                         )
                     )] = username
                     settings[stringPreferencesKey(
                         context.getString(
-                            R.string.first_name_key
+                            com.aracroproducts.common.R.string.first_name_key
                         )
                     )] = firstName
                     settings[stringPreferencesKey(
                         context.getString(
-                            R.string.last_name_key
+                            com.aracroproducts.common.R.string.last_name_key
                         )
                     )] = lastName
                     settings[stringPreferencesKey(
                         context.getString(
-                            R.string.email_key
+                            com.aracroproducts.common.R.string.email_key
                         )
                     )] = email
                 }
@@ -378,26 +381,26 @@ class LoginViewModel(
                                 "username taken", true
                             ) -> {
                                 usernameCaption =
-                                    context.getString(R.string.username_in_use)
+                                    context.getString(com.aracroproducts.common.R.string.username_in_use)
                             }
 
                             errorBody.contains(
                                 "enter a valid username", true
                             ) -> {
                                 usernameCaption =
-                                    context.getString(R.string.invalid_username)
+                                    context.getString(com.aracroproducts.common.R.string.invalid_username)
                             }
 
                             errorBody.contains(
                                 "email address", true
                             ) -> {
                                 emailCaption =
-                                    context.getString(R.string.invalid_email)
+                                    context.getString(com.aracroproducts.common.R.string.invalid_email)
                             }
 
                             errorBody.contains("password", true) -> {
                                 passwordCaption =
-                                    context.getString(R.string.password_validation_failed)
+                                    context.getString(com.aracroproducts.common.R.string.password_validation_failed)
                             }
 
                             errorBody.contains(
@@ -405,7 +408,7 @@ class LoginViewModel(
                                 true
                             ) -> {
                                 emailCaption =
-                                    context.getString(R.string.email_in_use)
+                                    context.getString(com.aracroproducts.common.R.string.email_in_use)
                             }
                         }
                     }
@@ -436,15 +439,18 @@ class LoginViewModel(
         val context = getApplication<Application>()
         var passed = true
         if (oldPassword.isBlank()) {
-            oldPasswordCaption = context.getString(R.string.wrong_password)
+            oldPasswordCaption =
+                context.getString(com.aracroproducts.common.R.string.wrong_password)
             passed = false
         }
         if (password.length < 8) {
-            passwordCaption = context.getString(R.string.password_validation_failed)
+            passwordCaption =
+                context.getString(com.aracroproducts.common.R.string.password_validation_failed)
             passed = false
         }
         if (password != confirmPassword) {
-            confirmPasswordCaption = context.getString(R.string.passwords_different)
+            confirmPasswordCaption =
+                context.getString(com.aracroproducts.common.R.string.passwords_different)
             passed = false
         }
         if (!passed) {
@@ -457,7 +463,8 @@ class LoginViewModel(
             val token = preferencesRepository.getValue(stringPreferencesKey(MY_TOKEN))
             if (savedUsername == null || token == null) {
                 login = State.LOGIN
-                usernameCaption = context.getString(R.string.password_verification_failed)
+                usernameCaption =
+                    context.getString(com.aracroproducts.common.R.string.password_verification_failed)
                 uiEnabled = true
                 return@launch
             }
@@ -485,12 +492,12 @@ class LoginViewModel(
 
                     400 -> {
                         passwordCaption =
-                            context.getString(R.string.password_validation_failed)
+                            context.getString(com.aracroproducts.common.R.string.password_validation_failed)
                     }
 
                     401 -> {
                         oldPasswordCaption =
-                            context.getString(R.string.wrong_password)
+                            context.getString(com.aracroproducts.common.R.string.wrong_password)
                     }
 
                     403 -> {
@@ -542,14 +549,17 @@ class LoginViewModel(
             when (e.response()?.code()) {
                 429 -> {
                     snackOrToast(
-                        context.getString(R.string.rate_limited), snackbarHostState, scope, context
+                        context.getString(com.aracroproducts.common.R.string.rate_limited),
+                        snackbarHostState,
+                        scope,
+                        context
                     )
                 }
 
                 500, 502, 503, 504 -> {
                     snackOrToast(
                         context.getString(
-                            R.string.server_error
+                            com.aracroproducts.common.R.string.server_error
                         ), snackbarHostState, scope, context
                     )
                     Firebase.crashlytics.log(
@@ -562,7 +572,7 @@ class LoginViewModel(
                 else -> {
                     snackOrToast(
                         context.getString(
-                            R.string.connection_error
+                            com.aracroproducts.common.R.string.connection_error
                         ), snackbarHostState, scope, context
                     )
                     val message = e.toMessage()
@@ -573,7 +583,7 @@ class LoginViewModel(
         } else {
             snackOrToast(
                 context.getString(
-                    R.string.connection_error
+                    com.aracroproducts.common.R.string.connection_error
                 ), snackbarHostState, scope, context
             )
         }

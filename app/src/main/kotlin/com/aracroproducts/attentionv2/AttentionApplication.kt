@@ -7,5 +7,5 @@ class AttentionApplication : AttentionApplicationBase() {
 
     override val alertActivity = Alert::class.java
 
-    override val baseUrl = BuildConfig.BASE_URL
+    override val baseUrl = BASE_URL
 }

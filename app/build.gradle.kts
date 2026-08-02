@@ -1,22 +1,19 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.ksp)
     alias(libs.plugins.gms)
-    alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.compose)
     alias(libs.plugins.firebase.crashlytics)
 }
 
 android {
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.aracroproducts.attentionv2"
         minSdk = 24
-        targetSdk = 36
-        versionCode = 48
+        targetSdk = 37
+        versionCode = 49
         versionName = "2.3.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -31,25 +28,12 @@ android {
     }
 
     buildTypes {
-        debug {
-            versionNameSuffix = ".debug"
-            resValue("string", "version_name", "${defaultConfig.versionName}${versionNameSuffix}")
-            buildConfigField(
-                "String",
-                "BASE_URL",
-                "\"http://10.0.2.2:8000/v2/\""
-            )
-        }
 
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
-            )
-            resValue("string", "version_name", "${defaultConfig.versionName}")
-            buildConfigField("String", "BASE_URL", "\"https://attention.aracroproducts" +
-                    ".com/api/v2/\""
             )
 
             ndk {
@@ -67,20 +51,8 @@ android {
         kotlinCompilerExtensionVersion = "1.5.15"
     }
 
-    configurations {
-        create("cleanedAnnotations")
-        implementation {
-            exclude(group = "org.jetbrains", module = "annotations")
-        }
-    }
-
     namespace = "com.aracroproducts.attentionv2"
 
-    kotlin {
-        compilerOptions {
-            jvmTarget = JvmTarget.JVM_17
-        }
-    }
 }
 
 dependencies {
@@ -143,4 +115,6 @@ dependencies {
 
     // Preferences DataStore (SharedPreferences like APIs)
     implementation(libs.androidx.datastore.preferences)
+
+    implementation(libs.kotlinx.datetime)
 }

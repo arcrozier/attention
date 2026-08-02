@@ -52,12 +52,12 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -129,27 +129,33 @@ class ReportDialog : AppCompatActivity() {
                             when {
                                 mimeType?.startsWith("image") == true -> {
                                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                                        if (uri.scheme == "content") {
-                                            Pair(
-                                                applicationContext.contentResolver.loadThumbnail(
-                                                    uri,
-                                                    THUMBNAIL_SIZE,
-                                                    null
-                                                ), ReportViewModel.AttachmentType.IMAGE
-                                            )
-                                        } else if (uri.scheme == "file") {
-                                            Pair(
-                                                ThumbnailUtils.createImageThumbnail(
-                                                    uri.toFile(),
-                                                    THUMBNAIL_SIZE,
-                                                    null
-                                                ), ReportViewModel.AttachmentType.IMAGE
-                                            )
-                                        } else {
-                                            Pair(
-                                                DEFAULT_BITMAP,
-                                                ReportViewModel.AttachmentType.IMAGE
-                                            )
+                                        when (uri.scheme) {
+                                            "content" -> {
+                                                Pair(
+                                                    applicationContext.contentResolver.loadThumbnail(
+                                                        uri,
+                                                        THUMBNAIL_SIZE,
+                                                        null
+                                                    ), ReportViewModel.AttachmentType.IMAGE
+                                                )
+                                            }
+
+                                            "file" -> {
+                                                Pair(
+                                                    ThumbnailUtils.createImageThumbnail(
+                                                        uri.toFile(),
+                                                        THUMBNAIL_SIZE,
+                                                        null
+                                                    ), ReportViewModel.AttachmentType.IMAGE
+                                                )
+                                            }
+
+                                            else -> {
+                                                Pair(
+                                                    DEFAULT_BITMAP,
+                                                    ReportViewModel.AttachmentType.IMAGE
+                                                )
+                                            }
                                         }
                                     } else {
                                         val boundsStream =
@@ -348,14 +354,14 @@ class ReportDialog : AppCompatActivity() {
                 titleContentColor = MaterialTheme.colorScheme.onPrimary,
                 navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
             ), title = {
-                Text(getString(R.string.report))
+                Text(getString(com.aracroproducts.common.R.string.report))
             }, navigationIcon = {
                 IconButton(onClick = {
                     onBackPressedDispatcher.onBackPressed()
                 }) {
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack, getString(
-                            R.string.back
+                            com.aracroproducts.common.R.string.back
                         )
                     )
                 }
@@ -397,13 +403,13 @@ class ReportDialog : AppCompatActivity() {
                 TextField(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                     readOnly = true,
                     enabled = enabled,
                     value = reportModel.reason?.description?.let { getString(it) } ?: "",
                     onValueChange = {},
                     isError = reasonError,
-                    label = { Text(getString(R.string.report_reason_label)) },
+                    label = { Text(getString(com.aracroproducts.common.R.string.report_reason_label)) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = reasonsExpanded && enabled) },
                     colors = ExposedDropdownMenuDefaults.textFieldColors()
                 )
@@ -429,7 +435,7 @@ class ReportDialog : AppCompatActivity() {
                     reportModel.body = it
                     if (it.isNotBlank()) bodyError = false
                 },
-                label = { Text(getString(R.string.report_body_label)) },
+                label = { Text(getString(com.aracroproducts.common.R.string.report_body_label)) },
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
@@ -455,7 +461,7 @@ class ReportDialog : AppCompatActivity() {
                                 Image(
                                     bitmap = target.asImageBitmap(),
                                     contentDescription = getString(
-                                        R.string.report_thumnbail_alt_text,
+                                        com.aracroproducts.common.R.string.report_thumnbail_alt_text,
                                         uri.lastPathSegment
                                     ),
                                     modifier = Modifier
@@ -503,7 +509,7 @@ class ReportDialog : AppCompatActivity() {
                         ) {
                             Icon(
                                 Icons.Default.Clear,
-                                getString(R.string.delete),
+                                getString(com.aracroproducts.common.R.string.delete),
                                 modifier = Modifier
                                     .size(16.dp, 16.dp)
                             )
@@ -527,7 +533,7 @@ class ReportDialog : AppCompatActivity() {
                     ) {
                         Icon(
                             Icons.Default.AddPhotoAlternate,
-                            contentDescription = getString(R.string.report_add_attachment_alt_text),
+                            contentDescription = getString(com.aracroproducts.common.R.string.report_add_attachment_alt_text),
                             modifier = Modifier.fillMaxSize(0.5f)
                         )
                     }
@@ -543,7 +549,8 @@ class ReportDialog : AppCompatActivity() {
                     )
                 }
                 Spacer(modifier = Modifier.width(8.dp))
-                val submitText = @Composable { Text(text = getString(R.string.submit)) }
+                val submitText =
+                    @Composable { Text(text = getString(com.aracroproducts.common.R.string.submit)) }
                 MeasureView(submitText) { width, height ->
                     Button({
                         enabled = false
@@ -553,18 +560,18 @@ class ReportDialog : AppCompatActivity() {
                         val validationErrors = ArrayList<String>()
 
                         if (reason == null) {
-                            validationErrors.add(getString(R.string.report_reason_label))
+                            validationErrors.add(getString(com.aracroproducts.common.R.string.report_reason_label))
                             reasonError = true
                         }
                         if (body.isBlank()) {
-                            validationErrors.add(getString(R.string.report_body_label))
+                            validationErrors.add(getString(com.aracroproducts.common.R.string.report_body_label))
                             bodyError = true
                         }
 
                         if (reason == null || body.isBlank()) {
                             enabled = true
                             reportModel.snackbarMessage = getString(
-                                R.string.report_validation_error,
+                                com.aracroproducts.common.R.string.report_validation_error,
                                 validationErrors.joinToString()
                             )
                             return@Button
@@ -582,7 +589,8 @@ class ReportDialog : AppCompatActivity() {
                                 )
 
                                 200 -> reportModel.showSuccessScreen = true
-                                else -> reportModel.snackbarMessage = getString(R.string.send_error)
+                                else -> reportModel.snackbarMessage =
+                                    getString(com.aracroproducts.common.R.string.send_error)
                             }
                         }
                     }, enabled = enabled) {
@@ -630,18 +638,18 @@ class ReportDialog : AppCompatActivity() {
                 tint = Color(0f, 0.53f, 0f)
             )
             Text(
-                text = AnnotatedString.fromHtml(getString(R.string.report_success_message)),
+                text = AnnotatedString.fromHtml(getString(com.aracroproducts.common.R.string.report_success_message)),
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.titleSmall,
                 modifier = Modifier.fillMaxWidth(0.75f)
             )
             Button({ finish() }) {
-                Text(text = getString(R.string.done))
+                Text(text = getString(com.aracroproducts.common.R.string.done))
             }
         }
     }
 
-    inner class ReportViewModelFactory(
+    class ReportViewModelFactory(
         private val attentionRepository: AttentionRepository,
         private val preferencesRepository: PreferencesRepository,
         private val application: Application,

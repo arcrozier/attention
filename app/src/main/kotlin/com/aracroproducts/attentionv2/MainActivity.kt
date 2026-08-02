@@ -33,7 +33,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
@@ -93,14 +92,23 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.key.onKeyEvent
@@ -155,8 +163,8 @@ import kotlinx.coroutines.launch
 import java.io.File
 import java.lang.Integer.max
 import java.util.concurrent.TimeUnit
-import kotlin.collections.set
 import kotlin.math.min
+import kotlin.time.Duration.Companion.milliseconds
 
 class MainActivity : AppCompatActivity() {
     private val friendModel: MainViewModel by viewModels(factoryProducer = {
@@ -174,7 +182,7 @@ class MainActivity : AppCompatActivity() {
 
             when (intent.action) {
                 ACTION_SUCCESS -> {
-                    friendModel.showSnackBar(getString(R.string.alert_sent))
+                    friendModel.showSnackBar(getString(com.aracroproducts.common.R.string.alert_sent))
                 }
 
                 ACTION_LOGIN -> {
@@ -270,7 +278,6 @@ class MainActivity : AppCompatActivity() {
      *
      * @param savedInstanceState    Instance data saved from before the activity was killed
      */
-    @OptIn(ExperimentalFoundationApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -299,7 +306,6 @@ class MainActivity : AppCompatActivity() {
         if (!checkPlayServices()) return
 
         friendModel.loadUserPrefs()
-        friendModel.cacheToken()
 
         checkOverlayDisplay()
 
@@ -322,7 +328,7 @@ class MainActivity : AppCompatActivity() {
         if (friendModel.addFriendException) {
             val tempId = data?.getQueryParameter(USERNAME_QUERY_PARAMETER)
             if (tempId == null) {
-                friendModel.showSnackBar(getString(R.string.bad_add_link))
+                friendModel.showSnackBar(getString(com.aracroproducts.common.R.string.bad_add_link))
             } else {
                 synchronized(this) {
                     friendModel.addFriendUsername = tempId
@@ -340,7 +346,7 @@ class MainActivity : AppCompatActivity() {
 
         // this condition is met if the app was launched by someone tapping it on a share sheet
         if (action == Intent.ACTION_SEND && intent.type == "text/plain") {
-            friendModel.connectionState = getString(R.string.sharing)
+            friendModel.connectionState = getString(com.aracroproducts.common.R.string.sharing)
             friendModel.message = intent.getStringExtra(Intent.EXTRA_TEXT) ?: ""
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && intent.hasExtra(
@@ -359,7 +365,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        if (action == getString(R.string.reopen_failed_alert_action) || action == Intent.ACTION_SENDTO) {
+        if (action == getString(com.aracroproducts.common.R.string.reopen_failed_alert_action) || action == Intent.ACTION_SENDTO) {
             lifecycleScope.launch {
                 intent.getStringExtra(EXTRA_RECIPIENT)?.let {
                     val friend = friendModel.getFriend(it)
@@ -390,7 +396,6 @@ class MainActivity : AppCompatActivity() {
         }, onSuccess = {
             getNotificationPermission()
         }, token = token)
-        friendModel.registerDevice()
     }
 
     private fun getNotificationPermission() {
@@ -430,7 +435,6 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    @ExperimentalFoundationApi
     @Composable
     fun HomeWrapper(model: MainViewModel) {
         val displayDialog: MainViewModel.DialogStatus by model.dialogState
@@ -449,10 +453,7 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    @OptIn(
-        ExperimentalMaterial3Api::class
-    )
-    @ExperimentalFoundationApi
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun Home(
         friends: List<Friend>,
@@ -520,14 +521,17 @@ class MainActivity : AppCompatActivity() {
 
         val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
         Scaffold(topBar = {
-            LargeTopAppBar(colors = TopAppBarDefaults.largeTopAppBarColors(
+            LargeTopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = MaterialTheme.colorScheme.primary,
+                    scrolledContainerColor = MaterialTheme.colorScheme.primary,
+                    navigationIconContentColor = Color.Unspecified,
                 titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                scrolledContainerColor = MaterialTheme.colorScheme.primary
+                    actionIconContentColor = Color.Unspecified
             ), title = {
                 Column {
                     Text(
-                        getString(R.string.app_name)
+                        getString(com.aracroproducts.common.R.string.app_name)
                     )
                     if (friendModel.connectionState.isNotBlank()) Text(
                         friendModel.connectionState,
@@ -543,7 +547,7 @@ class MainActivity : AppCompatActivity() {
                 }) {
                     Icon(
                         Icons.Filled.Settings, contentDescription = getString(
-                            R.string.action_settings
+                            com.aracroproducts.common.R.string.action_settings
                         ), tint = MaterialTheme.colorScheme.onPrimary
                     )
 
@@ -566,7 +570,7 @@ class MainActivity : AppCompatActivity() {
                 ) {
                     Icon(
                         Icons.Filled.PersonAdd,
-                        contentDescription = getString(R.string.add_friend),
+                        contentDescription = getString(com.aracroproducts.common.R.string.add_friend),
                         tint = MaterialTheme.colorScheme.onSecondary
                     )
                 }
@@ -596,7 +600,7 @@ class MainActivity : AppCompatActivity() {
                                     .verticalScroll(rememberScrollState()),
                             ) {
                                 Text(
-                                    text = getString(R.string.no_friends),
+                                    text = getString(com.aracroproducts.common.R.string.no_friends),
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(16.dp)
@@ -619,7 +623,7 @@ class MainActivity : AppCompatActivity() {
                                 if (pendingFriends.isNotEmpty()) {
                                     items(count = 1) {
                                         Text(
-                                            text = getString(R.string.pending_friend_header),
+                                            text = getString(com.aracroproducts.common.R.string.pending_friend_header),
                                             style = MaterialTheme.typography.labelLarge,
                                             color = MaterialTheme.colorScheme.onBackground,
                                             modifier = Modifier
@@ -704,7 +708,7 @@ class MainActivity : AppCompatActivity() {
                                 item {
                                     Spacer(
                                         modifier = Modifier.height(
-                                            WindowInsets.Companion.navigationBars.getBottom(
+                                            WindowInsets.navigationBars.getBottom(
                                                 LocalDensity.current
                                             ).dp
                                         )
@@ -726,13 +730,13 @@ class MainActivity : AppCompatActivity() {
             Button(onClick = {
                 val message = friendModel.message
                 friendModel.message = ""
-                if (friendModel.connectionState == getString(R.string.sharing)) {
+                if (friendModel.connectionState == getString(com.aracroproducts.common.R.string.sharing)) {
                     friendModel.connectionState = ""
                 }
                 friendModel.popDialogState()
                 onSend(message)
             }) {
-                Text(text = getString(R.string.send))
+                Text(text = getString(com.aracroproducts.common.R.string.send))
             }
         }, dismissButton = {
             OutlinedButton(onClick = {
@@ -742,7 +746,7 @@ class MainActivity : AppCompatActivity() {
             }
         }, title = {
             Text(
-                text = getString(R.string.add_message),
+                text = getString(com.aracroproducts.common.R.string.add_message),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }, text = {
@@ -761,11 +765,11 @@ class MainActivity : AppCompatActivity() {
                 label = {
                     Text(
                         text = getString(
-                            R.string.message_label, friend.name
+                            com.aracroproducts.common.R.string.message_label, friend.name
                         )
                     )
                 },
-                placeholder = { Text(text = getString(R.string.message_hint)) })
+                placeholder = { Text(text = getString(com.aracroproducts.common.R.string.message_hint)) })
         })
     }
 
@@ -777,7 +781,7 @@ class MainActivity : AppCompatActivity() {
                 if (cached) friendModel.confirmDeleteCachedFriend(friend)
                 else friendModel.confirmDeleteFriend(friend = friend, ::launchLogin)
             }) {
-                Text(text = getString(R.string.delete))
+                Text(text = getString(com.aracroproducts.common.R.string.delete))
             }
         }, dismissButton = {
             OutlinedButton(onClick = {
@@ -787,12 +791,15 @@ class MainActivity : AppCompatActivity() {
             }
         }, title = {
             Text(
-                text = getString(R.string.confirm_delete_title),
+                text = getString(com.aracroproducts.common.R.string.confirm_delete_title),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }, text = {
             Text(
-                text = getString(R.string.confirm_delete_message, friend.name),
+                text = getString(
+                    com.aracroproducts.common.R.string.confirm_delete_message,
+                    friend.name
+                ),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         })
@@ -818,7 +825,7 @@ class MainActivity : AppCompatActivity() {
             Button(onClick = {
                 done()
             }) {
-                Text(text = getString(R.string.save))
+                Text(text = getString(com.aracroproducts.common.R.string.save))
             }
         }, dismissButton = {
             OutlinedButton(onClick = {
@@ -828,7 +835,7 @@ class MainActivity : AppCompatActivity() {
             }
         }, title = {
             Text(
-                text = getString(R.string.rename),
+                text = getString(com.aracroproducts.common.R.string.rename),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }, text = {
@@ -855,9 +862,9 @@ class MainActivity : AppCompatActivity() {
                             true
                         } else false
                     },
-                label = { Text(text = getString(R.string.name)) },
+                label = { Text(text = getString(com.aracroproducts.common.R.string.name)) },
                 isError = error,
-                placeholder = { Text(text = getString(R.string.new_name)) })
+                placeholder = { Text(text = getString(com.aracroproducts.common.R.string.new_name)) })
         })
     }
 
@@ -867,12 +874,12 @@ class MainActivity : AppCompatActivity() {
             Button(onClick = {
                 val intent = Intent(
                     Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:" + applicationContext.packageName)
+                    ("package:" + applicationContext.packageName).toUri()
                 )
                 friendModel.popDialogState()
                 startActivity(intent)
             }) {
-                Text(text = getString(R.string.open_settings))
+                Text(text = getString(com.aracroproducts.common.R.string.open_settings))
             }
         }, dismissButton = {
             OutlinedButton(onClick = {
@@ -881,16 +888,16 @@ class MainActivity : AppCompatActivity() {
                 )
                 friendModel.popDialogState()
             }) {
-                Text(text = getString(R.string.do_not_ask_again))
+                Text(text = getString(com.aracroproducts.common.R.string.do_not_ask_again))
             }
         }, title = {
             Text(
-                text = getString(R.string.draw_title),
+                text = getString(com.aracroproducts.common.R.string.draw_title),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }, text = {
             Text(
-                text = getString(R.string.draw_message),
+                text = getString(com.aracroproducts.common.R.string.draw_message),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         })
@@ -899,7 +906,8 @@ class MainActivity : AppCompatActivity() {
     private fun onAddFriend(username: String) {
         val savingName = username.trim()
         if (savingName.isBlank()) {
-            friendModel.usernameCaption = getString(R.string.empty_username)
+            friendModel.usernameCaption =
+                getString(com.aracroproducts.common.R.string.empty_username)
         } else {
             friendModel.getFriendName(username, responseListener = {
                 friendModel.onAddFriend(
@@ -938,7 +946,7 @@ class MainActivity : AppCompatActivity() {
             }
         }, title = {
             Text(
-                text = getString(R.string.add_friend),
+                text = getString(com.aracroproducts.common.R.string.add_friend),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }, text = {
@@ -988,9 +996,9 @@ class MainActivity : AppCompatActivity() {
                             } else false
                         },
                     singleLine = true,
-                    label = { Text(text = getString(R.string.username)) },
+                    label = { Text(text = getString(com.aracroproducts.common.R.string.username)) },
                     isError = friendModel.usernameCaption.isNotBlank(),
-                    placeholder = { Text(text = getString(R.string.placeholder_name)) })
+                    placeholder = { Text(text = getString(com.aracroproducts.common.R.string.placeholder_name)) })
 
             }
         })
@@ -1014,21 +1022,20 @@ class MainActivity : AppCompatActivity() {
         }, title = {
             Text(
                 text = when (permission) {
-                    POST_NOTIFICATIONS -> getString(R.string.notification_rationale_title)
+                    POST_NOTIFICATIONS -> getString(com.aracroproducts.common.R.string.notification_rationale_title)
                     else -> ""
                 }
             )
         }, text = {
             Text(
                 text = when (permission) {
-                    POST_NOTIFICATIONS -> getString(R.string.notification_rationale)
+                    POST_NOTIFICATIONS -> getString(com.aracroproducts.common.R.string.notification_rationale)
                     else -> ""
                 }
             )
         })
     }
 
-    @ExperimentalFoundationApi
     @Composable
     fun FriendCard(
         friend: Friend,
@@ -1045,11 +1052,11 @@ class MainActivity : AppCompatActivity() {
 
         val isError = friend.lastMessageStatus == MessageStatus.ERROR
         val receipt = when (friend.lastMessageStatus) {
-            MessageStatus.SENT -> getString(R.string.sent)
-            MessageStatus.DELIVERED -> getString(R.string.delivered)
-            MessageStatus.READ -> getString(R.string.read)
-            MessageStatus.ERROR -> getString(R.string.alert_failed)
-            MessageStatus.SENDING -> getString(R.string.sending)
+            MessageStatus.SENT -> getString(com.aracroproducts.common.R.string.sent)
+            MessageStatus.DELIVERED -> getString(com.aracroproducts.common.R.string.delivered)
+            MessageStatus.READ -> getString(com.aracroproducts.common.R.string.read)
+            MessageStatus.ERROR -> getString(com.aracroproducts.common.R.string.alert_failed)
+            MessageStatus.SENDING -> getString(com.aracroproducts.common.R.string.sending)
             null -> ""
         }
 
@@ -1116,7 +1123,7 @@ class MainActivity : AppCompatActivity() {
                             }
                         )
                     },
-                    onClickLabel = getString(R.string.friend_card_click_label),
+                    onClickLabel = getString(com.aracroproducts.common.R.string.friend_card_click_label),
                     onLongClick = {
                         onStateChange(
                             when (state) {
@@ -1126,7 +1133,7 @@ class MainActivity : AppCompatActivity() {
                         )
                         onLongPress()
                     },
-                    onLongClickLabel = getString(R.string.friend_card_long_click_label),
+                    onLongClickLabel = getString(com.aracroproducts.common.R.string.friend_card_long_click_label),
                     interactionSource = interactionSource,
                     indication = LocalIndication.current,
                 )
@@ -1143,7 +1150,10 @@ class MainActivity : AppCompatActivity() {
                 imageBitmap?.let {
                     Image(
                         bitmap = it.asImageBitmap(),
-                        contentDescription = getString(R.string.pfp_description, friend.name),
+                        contentDescription = getString(
+                            com.aracroproducts.common.R.string.pfp_description,
+                            friend.name
+                        ),
                         modifier = Modifier
                             .size(ICON_SIZE)
                             .clip(CircleShape)
@@ -1245,7 +1255,7 @@ class MainActivity : AppCompatActivity() {
                                     contentColor = MaterialTheme.colorScheme.onPrimary
                                 )
                             ) {
-                                Text(getString(R.string.confirm_alert))
+                                Text(getString(com.aracroproducts.common.R.string.confirm_alert))
                             }
                             OutlinedButton(onClick = {
                                 friendModel.appendDialogState(MainViewModel.DialogStatus.AddMessageText(
@@ -1255,7 +1265,7 @@ class MainActivity : AppCompatActivity() {
                                     onStateChange(State.CANCEL)
                                 })
                             }) {
-                                Text(getString(R.string.add_message))
+                                Text(getString(com.aracroproducts.common.R.string.add_message))
                             }
                         }
                     }
@@ -1283,13 +1293,13 @@ class MainActivity : AppCompatActivity() {
                                     contentColor = MaterialTheme.colorScheme.onError
                                 )
                             ) {
-                                Text(getString(R.string.delete))
+                                Text(getString(com.aracroproducts.common.R.string.delete))
                             }
                             OutlinedButton(onClick = {
                                 onEditName(friend)
                                 onStateChange(State.NORMAL)
                             }) {
-                                Text(getString(R.string.rename))
+                                Text(getString(com.aracroproducts.common.R.string.rename))
                             }
                             var enabled by remember { mutableStateOf(true) }
                             IconButton(onClick = {
@@ -1306,7 +1316,7 @@ class MainActivity : AppCompatActivity() {
                                     when (target) {
                                         true -> Icon(
                                             Icons.Outlined.Flag,
-                                            getString(R.string.report),
+                                            getString(com.aracroproducts.common.R.string.report),
                                             tint = MaterialTheme.colorScheme.onBackground,
                                             modifier = Modifier
                                                 .border(
@@ -1353,11 +1363,12 @@ class MainActivity : AppCompatActivity() {
                         LaunchedEffect(progressEnabled) {
                             while (progress < delay && progressEnabled) {
                                 progress += DELAY_INTERVAL
-                                delay(DELAY_INTERVAL)
+                                delay(DELAY_INTERVAL.milliseconds)
                             }
                         }
 
                         if (progress >= delay && !triggered) {
+                            // State is remembered on next recomposition
                             triggered = true
 
                             friendModel.sendAlert(
@@ -1381,7 +1392,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    @ExperimentalFoundationApi
     @Composable
     fun PendingFriendCard(
         friend: PendingFriend,
@@ -1452,7 +1462,7 @@ class MainActivity : AppCompatActivity() {
                             }
                         )
                     },
-                    onClickLabel = getString(R.string.pending_friend_card_click_label),
+                    onClickLabel = getString(com.aracroproducts.common.R.string.pending_friend_card_click_label),
                     interactionSource = interactionSource,
                     indication = LocalIndication.current,
                 )
@@ -1468,7 +1478,10 @@ class MainActivity : AppCompatActivity() {
                 imageBitmap?.let {
                     Image(
                         bitmap = it.asImageBitmap(),
-                        contentDescription = getString(R.string.pfp_description, friend.name),
+                        contentDescription = getString(
+                            com.aracroproducts.common.R.string.pfp_description,
+                            friend.name
+                        ),
                         modifier = Modifier
                             .size(ICON_SIZE)
                             .clip(CircleShape)
@@ -1554,13 +1567,13 @@ class MainActivity : AppCompatActivity() {
                                     contentColor = MaterialTheme.colorScheme.onPrimary
                                 )
                             ) {
-                                Text(getString(R.string.accept))
+                                Text(getString(com.aracroproducts.common.R.string.accept))
                             }
                             OutlinedButton(onClick = {
                                 friendModel.ignoreUser(friend.username, ::launchLogin)
                                 onStateChange(PendingState.NORMAL)
                             }) {
-                                Text(getString(R.string.ignore))
+                                Text(getString(com.aracroproducts.common.R.string.ignore))
                             }
                         }
                     }
@@ -1585,7 +1598,7 @@ class MainActivity : AppCompatActivity() {
                                     contentColor = MaterialTheme.colorScheme.onError
                                 )
                             ) {
-                                Text(getString(R.string.block))
+                                Text(getString(com.aracroproducts.common.R.string.block))
                             }
                             var enabled by remember { mutableStateOf(true) }
                             IconButton(onClick = {
@@ -1602,7 +1615,7 @@ class MainActivity : AppCompatActivity() {
                                     when (target) {
                                         true -> Icon(
                                             Icons.Outlined.Flag,
-                                            getString(R.string.report),
+                                            getString(com.aracroproducts.common.R.string.report),
                                             tint = MaterialTheme.colorScheme.onBackground,
                                             modifier = Modifier
                                                 .border(
@@ -1682,7 +1695,11 @@ class MainActivity : AppCompatActivity() {
         if (GoogleApiAvailability.getInstance()
                 .isGooglePlayServicesAvailable(this) != ConnectionResult.SUCCESS
         ) { // check for Google Play Services
-            Toast.makeText(this, getString(R.string.no_play_services), Toast.LENGTH_LONG).show()
+            Toast.makeText(
+                this,
+                getString(com.aracroproducts.common.R.string.no_play_services),
+                Toast.LENGTH_LONG
+            ).show()
             GoogleApiAvailability.getInstance().makeGooglePlayServicesAvailable(this)
             return false
         }

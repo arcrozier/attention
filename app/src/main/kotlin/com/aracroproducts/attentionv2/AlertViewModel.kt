@@ -5,7 +5,11 @@ import android.app.NotificationManager
 import android.content.Intent
 import android.media.AudioManager
 import android.media.RingtoneManager
-import android.os.*
+import android.os.Build
+import android.os.CountDownTimer
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -125,14 +129,14 @@ class AlertViewModel(
                 val vibrate = preferencesRepository.getValue(
                     stringSetPreferencesKey(
                         context.getString(
-                            R.string.vibrate_preference_key
+                            com.aracroproducts.common.R.string.vibrate_preference_key
                         )
                     ), HashSet()
                 )
                 val ring = preferencesRepository.getValue(
                     stringSetPreferencesKey(
                         context.getString(
-                            R.string.ring_preference_key
+                            com.aracroproducts.common.R.string.ring_preference_key
                         )
                     ), HashSet()
                 )
@@ -150,7 +154,7 @@ class AlertViewModel(
      * be overridden
      */
     private fun ring(ringAllowed: Set<String>) {
-        if (soundAllowed(ringAllowed)) {
+        if (soundAllowed(ringAllowed) && !ringtone.isPlaying) {
             val context = getApplication<Application>()
             val manager = context.getSystemService(AppCompatActivity.AUDIO_SERVICE) as AudioManager
             if (manager.ringerMode != AudioManager.RINGER_MODE_NORMAL) {
@@ -164,7 +168,7 @@ class AlertViewModel(
                         append(messageText)
                         append("\n\n")
                         val start = this.length - 1
-                        append(context.getString(R.string.could_not_ring))
+                        append(context.getString(com.aracroproducts.common.R.string.could_not_ring))
                         val end = this.length - 1
                         addStyle(
                             SpanStyle(
@@ -221,6 +225,13 @@ class AlertViewModel(
     fun silence() {
         silenced = true
         showAlertOnClose = false
+        stopPrompting()
+    }
+
+    /**
+     * Turns of any ringing or vibration that is happening
+     */
+    fun stopPrompting() {
         val ringerModeToRestore = ringerMode
         if (ringerModeToRestore != null) {
             val context = getApplication<Application>()
@@ -256,7 +267,6 @@ class AlertViewModel(
      * alert" notification
      */
     override fun onCleared() {
-        super.onCleared()
         clearNotification()
         if (!showAlertOnClose) return  // prevent this notification from being shown when the user clicks "ok"
 

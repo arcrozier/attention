@@ -1,14 +1,11 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.compose)
 }
 
 android {
     namespace = "com.aracroproducts.attentionv2.wear"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.aracroproducts.attentionv2.wear"
@@ -20,15 +17,6 @@ android {
     }
 
     buildTypes {
-        debug {
-            versionNameSuffix = ".debug"
-            resValue("string", "version_name", "${defaultConfig.versionName}${versionNameSuffix}")
-            buildConfigField(
-                "String",
-                "BASE_URL",
-                "\"http://10.0.2.2:8000/v2/\""
-            )
-        }
 
         release {
             isMinifyEnabled = true
@@ -36,11 +24,6 @@ android {
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
-            )
-            resValue("string", "version_name", "${defaultConfig.versionName}")
-            buildConfigField(
-                "String", "BASE_URL", "\"https://attention.aracroproducts" +
-                        ".com/api/v2/\""
             )
 
             ndk {
@@ -56,12 +39,6 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
-    }
-
-    kotlin {
-        compilerOptions {
-            jvmTarget = JvmTarget.JVM_17
-        }
     }
 }
 

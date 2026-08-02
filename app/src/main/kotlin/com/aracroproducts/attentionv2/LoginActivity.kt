@@ -67,7 +67,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.focus.FocusDirection
@@ -234,11 +233,11 @@ class LoginActivity : AppCompatActivity() {
         })
 
         when (intent.action) {
-            getString(R.string.change_password_action) -> {
+            getString(com.aracroproducts.common.R.string.change_password_action) -> {
                 loginViewModel.login = LoginViewModel.State.CHANGE_PASSWORD
             }
 
-            getString(R.string.link_account_action) -> {
+            getString(com.aracroproducts.common.R.string.link_account_action) -> {
                 loginViewModel.login = LoginViewModel.State.LINK_ACCOUNT
             }
 
@@ -246,7 +245,7 @@ class LoginActivity : AppCompatActivity() {
                 val getPasswordOption = GetPasswordOption()
                 val googleIdOption: GetGoogleIdOption = GetGoogleIdOption.Builder()
                     .setFilterByAuthorizedAccounts(true)
-                    .setServerClientId(getString(R.string.client_id))
+                    .setServerClientId(getString(com.aracroproducts.common.R.string.client_id))
                     .setAutoSelectEnabled(true)
                     .build()
                 val getCredRequest = GetCredentialRequest(
@@ -295,7 +294,7 @@ class LoginActivity : AppCompatActivity() {
         ) {
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             Text(
-                text = getString(R.string.choose_username_title),
+                text = getString(com.aracroproducts.common.R.string.choose_username_title),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -325,7 +324,7 @@ class LoginActivity : AppCompatActivity() {
             ) {
                 Box {
                     Text(
-                        text = getString(R.string.choose_username),
+                        text = getString(com.aracroproducts.common.R.string.choose_username),
                         modifier = Modifier.align(Alignment.Center)
                     )
                     if (!model.uiEnabled) {
@@ -352,7 +351,7 @@ class LoginActivity : AppCompatActivity() {
         ) {
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             Text(
-                text = getString(R.string.change_password_title),
+                text = getString(com.aracroproducts.common.R.string.change_password_title),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -395,7 +394,7 @@ class LoginActivity : AppCompatActivity() {
             ) {
                 Box {
                     Text(
-                        text = getString(R.string.change_password),
+                        text = getString(com.aracroproducts.common.R.string.change_password),
                         modifier = Modifier.align(Alignment.Center)
                     )
                     if (!model.uiEnabled) {
@@ -422,7 +421,7 @@ class LoginActivity : AppCompatActivity() {
         ) {
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             Text(
-                text = getString(R.string.login_title),
+                text = getString(com.aracroproducts.common.R.string.login_title),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -456,7 +455,7 @@ class LoginActivity : AppCompatActivity() {
             ) {
                 Box(modifier = Modifier.fillMaxHeight()) {
                     Text(
-                        text = getString(R.string.login),
+                        text = getString(com.aracroproducts.common.R.string.login),
                         modifier = Modifier.align(Alignment.Center)
                     )
                     if (!model.uiEnabled) {
@@ -478,12 +477,12 @@ class LoginActivity : AppCompatActivity() {
                 )
             }, enabled = model.uiEnabled) {
                 Image(
-                    painter = painterResource(id = R.drawable.ic_btn_google),
-                    contentDescription = getString(R.string.google_logo),
+                    painter = painterResource(id = com.aracroproducts.common.R.drawable.ic_btn_google),
+                    contentDescription = getString(com.aracroproducts.common.R.string.google_logo),
                     modifier = Modifier.height(24.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(text = getString(R.string.sign_in_w_google))
+                Text(text = getString(com.aracroproducts.common.R.string.sign_in_w_google))
             }
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             TextButton(onClick = {
@@ -492,7 +491,7 @@ class LoginActivity : AppCompatActivity() {
                 model.passwordCaption = ""
                 model.agreedToToS = false
             }) {
-                Text(text = getString(R.string.create_user))
+                Text(text = getString(com.aracroproducts.common.R.string.create_user))
             }
         }
     }
@@ -514,7 +513,7 @@ class LoginActivity : AppCompatActivity() {
         ) {
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             Text(
-                text = getString(R.string.create_user_title),
+                text = getString(com.aracroproducts.common.R.string.create_user_title),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -576,7 +575,7 @@ class LoginActivity : AppCompatActivity() {
             ) {
                 Box {
                     Text(
-                        text = getString(R.string.create_user),
+                        text = getString(com.aracroproducts.common.R.string.create_user),
                         modifier = Modifier.align(Alignment.Center)
                     )
                     if (!model.uiEnabled) {
@@ -588,7 +587,7 @@ class LoginActivity : AppCompatActivity() {
                 model.login = LoginViewModel.State.LOGIN
                 model.passwordCaption = ""
             }) {
-                Text(text = getString(R.string.login))
+                Text(text = getString(com.aracroproducts.common.R.string.login))
             }
         }
 
@@ -608,12 +607,12 @@ class LoginActivity : AppCompatActivity() {
         ) {
             Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
             Text(
-                text = getString(R.string.link_account_title),
+                text = getString(com.aracroproducts.common.R.string.link_account_title),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text = getString(R.string.link_account_warning),
+                text = getString(com.aracroproducts.common.R.string.link_account_warning),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.error
             )
@@ -631,7 +630,7 @@ class LoginActivity : AppCompatActivity() {
                     snackbarHostState, coroutineScope, linkExisting = true
                 )
             }, enabled = model.uiEnabled) {
-                Text(text = getString(R.string.sign_in_w_google))
+                Text(text = getString(com.aracroproducts.common.R.string.sign_in_w_google))
             }
         }
     }
@@ -658,7 +657,7 @@ class LoginActivity : AppCompatActivity() {
                         titleContentColor = MaterialTheme.colorScheme.onPrimary
                     ), title = {
                         Text(
-                            getString(R.string.app_name)
+                            getString(com.aracroproducts.common.R.string.app_name)
                         )
                     }, navigationIcon = {
                         IconButton(onClick = {
@@ -666,7 +665,7 @@ class LoginActivity : AppCompatActivity() {
                         }) {
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack, getString(
-                                    R.string.back
+                                    com.aracroproducts.common.R.string.back
                                 ), tint = MaterialTheme.colorScheme.onPrimary
                             )
                         }
@@ -681,7 +680,7 @@ class LoginActivity : AppCompatActivity() {
                             titleContentColor = MaterialTheme.colorScheme.onPrimary
                         ), title = {
                             Text(
-                                getString(R.string.app_name)
+                                getString(com.aracroproducts.common.R.string.app_name)
                             )
                         }, modifier = Modifier.nestedScroll(
                             scrollBehavior.nestedScrollConnection
@@ -761,7 +760,6 @@ class LoginActivity : AppCompatActivity() {
     }
 
 
-    @OptIn(ExperimentalComposeUiApi::class)
     @Composable
     fun FirstNameField(model: LoginViewModel) {
         val focusManager = LocalFocusManager.current
@@ -779,7 +777,7 @@ class LoginActivity : AppCompatActivity() {
                     } else false
                 },
             singleLine = true,
-            label = { Text(text = getString(R.string.first_name)) },
+            label = { Text(text = getString(com.aracroproducts.common.R.string.first_name)) },
             keyboardOptions = KeyboardOptions(
                 capitalization = KeyboardCapitalization.Words,
                 autoCorrectEnabled = true,
@@ -789,7 +787,6 @@ class LoginActivity : AppCompatActivity() {
         )
     }
 
-    @OptIn(ExperimentalComposeUiApi::class)
     @Composable
     fun LastNameField(model: LoginViewModel) {
         val focusManager = LocalFocusManager.current
@@ -806,7 +803,7 @@ class LoginActivity : AppCompatActivity() {
                         true
                     } else false
                 },
-            label = { Text(text = getString(R.string.last_name)) },
+            label = { Text(text = getString(com.aracroproducts.common.R.string.last_name)) },
             singleLine = true,
             keyboardOptions = KeyboardOptions(
                 capitalization = KeyboardCapitalization.Words,
@@ -817,7 +814,6 @@ class LoginActivity : AppCompatActivity() {
         )
     }
 
-    @OptIn(ExperimentalComposeUiApi::class)
     @Composable
     fun OldPasswordField(model: LoginViewModel, passwordFocusRequester: FocusRequester) {
         val focusManager = LocalFocusManager.current
@@ -840,16 +836,16 @@ class LoginActivity : AppCompatActivity() {
                     val visibilityIcon =
                         if (model.passwordHidden) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
                     val description = if (model.passwordHidden) getString(
-                        R.string.show_password
+                        com.aracroproducts.common.R.string.show_password
                     ) else getString(
-                        R.string.hide_password
+                        com.aracroproducts.common.R.string.hide_password
                     )
                     Icon(imageVector = visibilityIcon, contentDescription = description)
                 }
             },
             isError = model.passwordCaption.isNotBlank(),
             label = {
-                Text(text = getString(R.string.password))
+                Text(text = getString(com.aracroproducts.common.R.string.password))
             },
             singleLine = true,
             supportingText = {
@@ -872,7 +868,6 @@ class LoginActivity : AppCompatActivity() {
 
     }
 
-    @OptIn(ExperimentalComposeUiApi::class)
     @Composable
     fun PasswordField(
         model: LoginViewModel,
@@ -910,15 +905,15 @@ class LoginActivity : AppCompatActivity() {
                     val visibilityIcon =
                         if (model.passwordHidden) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
                     val description = if (model.passwordHidden) getString(
-                        R.string.show_password
+                        com.aracroproducts.common.R.string.show_password
                     ) else getString(
-                        R.string.hide_password
+                        com.aracroproducts.common.R.string.hide_password
                     )
                     Icon(imageVector = visibilityIcon, contentDescription = description)
                 }
             },
             label = {
-                Text(text = getString(R.string.password))
+                Text(text = getString(com.aracroproducts.common.R.string.password))
             },
             keyboardOptions = KeyboardOptions(
                 autoCorrectEnabled = false,
@@ -965,10 +960,11 @@ class LoginActivity : AppCompatActivity() {
                     lateinit var description: String
 
                     if (model.confirmPassword == model.password) {
-                        description = getString(R.string.passwords_match)
+                        description = getString(com.aracroproducts.common.R.string.passwords_match)
                         visibilityIcon = Icons.Filled.Check
                     } else {
-                        description = getString(R.string.passwords_different)
+                        description =
+                            getString(com.aracroproducts.common.R.string.passwords_different)
                         visibilityIcon = Icons.Filled.Error
                     }
 
@@ -976,7 +972,7 @@ class LoginActivity : AppCompatActivity() {
                 }
             },
             label = {
-                Text(text = getString(R.string.confirm_password))
+                Text(text = getString(com.aracroproducts.common.R.string.confirm_password))
             },
             modifier = Modifier
                 .focusRequester(confirmPasswordFocusRequester)
@@ -1019,7 +1015,7 @@ class LoginActivity : AppCompatActivity() {
                 )
             )
 
-            val spannedString = SpannedString(getText(R.string.tos_agree))
+            val spannedString = SpannedString(getText(com.aracroproducts.common.R.string.tos_agree))
             val resultBuilder = AnnotatedString.Builder()
             resultBuilder.append(spannedString.toString())
             spannedString.getSpans<Annotation>(0, spannedString.length).forEach { annotation ->
@@ -1027,7 +1023,7 @@ class LoginActivity : AppCompatActivity() {
                 val spanEnd = spannedString.getSpanEnd(annotation)
                 resultBuilder.addLink(
                     url = LinkAnnotation.Url(
-                        getString(R.string.tos_url), TextLinkStyles(
+                        getString(com.aracroproducts.common.R.string.tos_url), TextLinkStyles(
                             SpanStyle(
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -1077,7 +1073,8 @@ class LoginActivity : AppCompatActivity() {
     ) {
         loginViewModel.uiEnabled = false
         val signInWithGoogleOption: GetSignInWithGoogleOption =
-            GetSignInWithGoogleOption.Builder(getString(R.string.client_id)).build()
+            GetSignInWithGoogleOption.Builder(getString(com.aracroproducts.common.R.string.client_id))
+                .build()
 
         val getCredRequest = GetCredentialRequest(
             listOf(signInWithGoogleOption),
@@ -1097,7 +1094,7 @@ class LoginActivity : AppCompatActivity() {
                 coroutineScope.launch {
                     snackbarHostState.showSnackbar(
                         message = getString(
-                            R.string.google_sign_in_failed
+                            com.aracroproducts.common.R.string.google_sign_in_failed
                         ), duration = SnackbarDuration.Short
                     )
                 }
@@ -1120,7 +1117,6 @@ class LoginActivity : AppCompatActivity() {
         val LIST_ELEMENT_PADDING = 10.dp
         val TAG: String = LoginActivity::class.java.simpleName
 
-        @OptIn(ExperimentalComposeUiApi::class)
         @Composable
         fun UsernameField(
             value: String,
@@ -1152,7 +1148,7 @@ class LoginActivity : AppCompatActivity() {
                             true
                         } else false
                     },
-                label = { Text(text = context.getString(R.string.username)) },
+                label = { Text(text = context.getString(com.aracroproducts.common.R.string.username)) },
                 keyboardOptions = KeyboardOptions(
                     autoCorrectEnabled = false, imeAction = imeAction
                 ),
@@ -1170,7 +1166,6 @@ class LoginActivity : AppCompatActivity() {
             )
         }
 
-        @OptIn(ExperimentalComposeUiApi::class)
         @Composable
         fun EmailField(
             value: String,
@@ -1215,7 +1210,7 @@ class LoginActivity : AppCompatActivity() {
                     }
                 },
                 singleLine = true,
-                label = { Text(text = context.getString(R.string.email)) },
+                label = { Text(text = context.getString(com.aracroproducts.common.R.string.email)) },
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Email,
                     imeAction = imeAction,

@@ -159,7 +159,7 @@ class SettingsViewModel(
 
             val token = preferencesRepository.getValue(stringPreferencesKey(MY_TOKEN))
             if (token != null) {
-                uploadStatus = context.getString(R.string.processing)
+                uploadStatus = context.getString(com.aracroproducts.common.R.string.processing)
                 val image: InputStream? = try {
                     context.contentResolver.openInputStream(uri)
                 } catch (_: FileNotFoundException) {
@@ -169,13 +169,13 @@ class SettingsViewModel(
                     uploadSuccess = false
                     uploading = false
                     uploadStatus = context.getString(
-                        R.string.upload_failed, context.getString(
-                            R.string.no_file
+                        com.aracroproducts.common.R.string.upload_failed, context.getString(
+                            com.aracroproducts.common.R.string.no_file
                         )
                     )
                     return@launch
                 } else {
-                    uploadStatus = context.getString(R.string.uploading)
+                    uploadStatus = context.getString(com.aracroproducts.common.R.string.uploading)
                 }
                 val job = viewModelScope.launch {
                     try {
@@ -186,7 +186,7 @@ class SettingsViewModel(
                             })
                         uploadSuccess = true
                         uploadStatus =
-                            context.getString(R.string.uploaded)
+                            context.getString(com.aracroproducts.common.R.string.uploaded)
                         viewModelScope.launch(Dispatchers.IO) {
                             val bitmap = getImageBitmap(
                                 uri, context, ICON_SIZE, false
@@ -210,8 +210,8 @@ class SettingsViewModel(
                             400 -> {
                                 shouldRetryUpload = false
                                 uploadStatus = context.getString(
-                                    R.string.upload_failed,
-                                    context.getString(R.string.invalid_photo)
+                                    com.aracroproducts.common.R.string.upload_failed,
+                                    context.getString(com.aracroproducts.common.R.string.invalid_photo)
                                 )
                             }
 
@@ -225,24 +225,24 @@ class SettingsViewModel(
                             413 -> {
                                 shouldRetryUpload = false
                                 uploadStatus = context.getString(
-                                    R.string.upload_failed,
-                                    context.getString(R.string.photo_too_large)
+                                    com.aracroproducts.common.R.string.upload_failed,
+                                    context.getString(com.aracroproducts.common.R.string.photo_too_large)
                                 )
                             }
 
                             429 -> {
                                 shouldRetryUpload = true
                                 uploadStatus = context.getString(
-                                    R.string.upload_failed,
-                                    context.getString(R.string.rate_limited)
+                                    com.aracroproducts.common.R.string.upload_failed,
+                                    context.getString(com.aracroproducts.common.R.string.rate_limited)
                                 )
                             }
 
                             else -> {
                                 shouldRetryUpload = true
                                 uploadStatus = context.getString(
-                                    R.string.upload_failed,
-                                    context.getString(R.string.server_error)
+                                    com.aracroproducts.common.R.string.upload_failed,
+                                    context.getString(com.aracroproducts.common.R.string.server_error)
                                 )
                                 Firebase.crashlytics.log(e.toMessage())
                             }
@@ -253,8 +253,8 @@ class SettingsViewModel(
                         uploadSuccess = false
                         shouldRetryUpload = true
                         uploadStatus = context.getString(
-                            R.string.upload_failed, context.getString(
-                                R.string.connection_error
+                            com.aracroproducts.common.R.string.upload_failed, context.getString(
+                                com.aracroproducts.common.R.string.connection_error
                             )
                         )
                         Firebase.crashlytics.log(e.toMessage())
@@ -319,9 +319,9 @@ class SettingsViewModel(
                     400 -> {
                         setCaption(
                             if (username != null) context.getString(
-                                R.string.username_in_use
+                                com.aracroproducts.common.R.string.username_in_use
                             ) else if (email != null) context.getString(
-                                R.string.email_in_use
+                                com.aracroproducts.common.R.string.email_in_use
                             ) else ""
                         )
                     }
@@ -335,7 +335,7 @@ class SettingsViewModel(
                     else -> {
                         setCaption(
                             context.getString(
-                                R.string.unknown_error
+                                com.aracroproducts.common.R.string.unknown_error
                             )
                         )
                         Firebase.crashlytics.log(e.toMessage())
@@ -345,7 +345,7 @@ class SettingsViewModel(
                 setStatus(true, false)
                 currentSnackBar = SnackBarData(
                     context.getString(
-                        R.string.disconnected
+                        com.aracroproducts.common.R.string.disconnected
                     ), duration = SnackbarDuration.Long
                 )
             }
@@ -363,7 +363,8 @@ class SettingsViewModel(
             if (username != null) {
                 val sharingIntent = Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"
-                    val shareBody = context.getString(R.string.share_text, username)
+                    val shareBody =
+                        context.getString(com.aracroproducts.common.R.string.share_text, username)
                     putExtra(Intent.EXTRA_TEXT, shareBody)
                 }
                 context.startActivity(Intent.createChooser(sharingIntent, null))
@@ -389,31 +390,31 @@ class SettingsViewModel(
                         preferencesRepository.setValue(key, newValue)
                     }
                     if (model.outstandingRequests == 0) {
-                        R.string.saved
+                        com.aracroproducts.common.R.string.saved
                     } else null
                 }
 
                 400 -> {
                     if (response.errorBody()?.string()?.contains("in use") == true) {
-                        R.string.email_in_use
+                        com.aracroproducts.common.R.string.email_in_use
                     } else {
-                        R.string.invalid_email
+                        com.aracroproducts.common.R.string.invalid_email
                     }
                 }
 
                 403 -> {
                     sharedViewModel.logout(context, context)
-                    R.string.confirm_logout_title
+                    com.aracroproducts.common.R.string.confirm_logout_title
                 }
 
                 429 -> {
-                    R.string.rate_limited
+                    com.aracroproducts.common.R.string.rate_limited
                 }
 
                 else -> {
                     Firebase.crashlytics.log((response?.let { HttpException(it) }
                         ?: RuntimeException("Null response")).toMessage())
-                    R.string.unknown_error
+                    com.aracroproducts.common.R.string.unknown_error
                 }
             }
             if (message != null) {
@@ -431,7 +432,8 @@ class SettingsViewModel(
                 outstandingRequests--
             }
             currentSnackBar = SnackBarData(
-                context.getString(R.string.disconnected), duration = SnackbarDuration.Long
+                context.getString(com.aracroproducts.common.R.string.disconnected),
+                duration = SnackbarDuration.Long
             )
         }
 
@@ -442,7 +444,7 @@ class SettingsViewModel(
                 val token = preferencesRepository.getValue(stringPreferencesKey(MY_TOKEN))
                 if (token != null) {
                     currentSnackBar = SnackBarData(
-                        context.getString(R.string.saving),
+                        context.getString(com.aracroproducts.common.R.string.saving),
                         withDismissAction = true,
                         duration = SnackbarDuration.Indefinite
                     )
@@ -450,7 +452,7 @@ class SettingsViewModel(
                         outstandingRequests++
                     }
                     when (preference.name) {
-                        context.getString(R.string.first_name_key) -> {
+                        context.getString(com.aracroproducts.common.R.string.first_name_key) -> {
                             try {
                                 repository.editUser(
                                     token = token,
@@ -465,7 +467,7 @@ class SettingsViewModel(
                             }
                         }
 
-                        context.getString(R.string.last_name_key) -> {
+                        context.getString(com.aracroproducts.common.R.string.last_name_key) -> {
                             try {
                                 repository.editUser(
                                     token = token,
@@ -480,7 +482,7 @@ class SettingsViewModel(
                             }
                         }
 
-                        context.getString(R.string.email_key) -> {
+                        context.getString(com.aracroproducts.common.R.string.email_key) -> {
                             try {
                                 repository.editUser(
                                     token = token,

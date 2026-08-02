@@ -5,7 +5,7 @@ import com.aracroproducts.common.AttentionApplicationBase
 class WearApplication : AttentionApplicationBase() {
     override val mainActivity: Class<*> = HomeActivity::class.java
 
-    override val baseUrl: String = BuildConfig.BASE_URL
+    override val baseUrl: String = BASE_URL
 
     override val alertActivity: Class<*>? = null
 }

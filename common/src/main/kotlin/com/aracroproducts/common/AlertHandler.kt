@@ -15,6 +15,7 @@ import android.provider.Settings
 import android.provider.Settings.SettingNotFoundException
 import android.util.Base64
 import android.util.Log
+import androidx.car.app.connection.CarConnection
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationCompat.Action
@@ -53,29 +54,21 @@ import retrofit2.HttpException
  */
 open class AlertHandler : FirebaseMessagingService() {
 
+    val preferencesRepository =
+        (application as AttentionApplicationBase).container.settingsRepository
+    val repository = (application as AttentionApplicationBase).container.repository
 
-    /**
-     * Executed when the device gets a new Firebase token
-     * @param token - The new token to use
-     */
-    override fun onNewToken(token: String) {
-        Log.d(TAG, "New token: $token")
-        val preferencesRepository =
-            (application as AttentionApplicationBase).container.settingsRepository
-        val repository = (application as AttentionApplicationBase).container.repository
+    override fun onRegistered(installationId: String) {
         MainScope().launch {
-            if (preferencesRepository.getValue(stringPreferencesKey(FCM_TOKEN)) != token) {
-                Log.d(TAG, "Token is new: updating shared preferences")
-                preferencesRepository.bulkEdit { settings ->
-                    settings[stringPreferencesKey(FCM_TOKEN)] = token
-                }
-                val authToken = preferencesRepository.getValue(
-                    stringPreferencesKey(
-                        MY_TOKEN
-                    )
-                ) ?: return@launch
+
+            val authToken = preferencesRepository.getValue(
+                stringPreferencesKey(
+                    MY_TOKEN
+                )
+            ) ?: return@launch
+
                 try {
-                    repository.registerDevice(authToken, token)
+                    repository.registerDevice(authToken, installationId)
                 } catch (e: HttpException) {
                     Log.e(
                         TAG,
@@ -87,7 +80,6 @@ open class AlertHandler : FirebaseMessagingService() {
                         "An error occurred when uploading token: ${e.message}"
                     )
                 }
-            }
         }
     }
 
@@ -96,9 +88,6 @@ open class AlertHandler : FirebaseMessagingService() {
      * @param remoteMessage - The message from Firebase
      */
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
-        val preferencesRepository =
-            (application as AttentionApplicationBase).container.settingsRepository
-        val repository = (application as AttentionApplicationBase).container.repository
         MainScope().launch {
             Log.d(TAG, "Message received! $remoteMessage")
             val messageData = remoteMessage.data
@@ -201,8 +190,12 @@ open class AlertHandler : FirebaseMessagingService() {
                             message.timestamp
                         )
 
+
                     // Device should only show pop up if the device is off or if it has the ability to draw overlays (required to show pop up if screen is on)
-                    if (!pm.isInteractive || Settings.canDrawOverlays(this@AlertHandler) || AttentionApplicationBase.isActivityVisible()) {
+                    if (CarConnection(application).type.value != CarConnection.CONNECTION_TYPE_PROJECTION
+                        && (!pm.isInteractive || Settings.canDrawOverlays(this@AlertHandler)
+                                || AttentionApplicationBase.isActivityVisible())
+                    ) {
                         val intent = Intent(
                             this@AlertHandler,
                             (application as AttentionApplicationBase).alertActivity
@@ -345,8 +338,6 @@ open class AlertHandler : FirebaseMessagingService() {
     }
 
     private suspend fun areNotificationsAllowed(): Boolean {
-        val preferencesRepository =
-            (application as AttentionApplicationBase).container.settingsRepository
         val overrideDND = preferencesRepository.getValue(
                 booleanPreferencesKey(getString(R.string.override_dnd_key)), false
             )

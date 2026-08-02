@@ -30,7 +30,6 @@ import com.aracroproducts.common.AttentionApplicationBase
 import com.aracroproducts.common.AttentionRepository
 import com.aracroproducts.common.CachedFriend
 import com.aracroproducts.common.DIRECTION
-import com.aracroproducts.common.FCM_TOKEN
 import com.aracroproducts.common.Friend
 import com.aracroproducts.common.Message
 import com.aracroproducts.common.PreferencesRepository
@@ -40,7 +39,6 @@ import com.aracroproducts.common.getSendIntent
 import com.aracroproducts.common.toMessage
 import com.google.firebase.Firebase
 import com.google.firebase.crashlytics.crashlytics
-import com.google.firebase.messaging.messaging
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -49,7 +47,6 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import retrofit2.HttpException
 import java.io.File
@@ -65,7 +62,7 @@ class MainViewModel(
     init {
         viewModelScope.launch {
             preferencesRepository.subscribe {
-                it[floatPreferencesKey(application.getString(R.string.delay_key))]
+                it[floatPreferencesKey(application.getString(com.aracroproducts.common.R.string.delay_key))]
             }.collect {
                 if (it != null) delay = it
             }
@@ -250,7 +247,7 @@ class MainViewModel(
                 when (e.response()?.code()) {
                     400 -> {
                         usernameCaption = application.getString(
-                            R.string.add_friend_failed
+                            com.aracroproducts.common.R.string.add_friend_failed
                         )
                     }
 
@@ -274,7 +271,6 @@ class MainViewModel(
     }
 
     override fun onCleared() {
-        super.onCleared()
         backgroundScope.cancel()
     }
 
@@ -314,7 +310,7 @@ class MainViewModel(
                         400 -> {
                             newFriendName = ""
                             usernameCaption = application.getString(
-                                R.string.nonexistent_username
+                                com.aracroproducts.common.R.string.nonexistent_username
                             )
                         }
 
@@ -404,7 +400,7 @@ class MainViewModel(
                 setConnectStatus(e.response()?.code(), e)
                 when (e.response()?.code()) {
                     400 -> {
-                        showSnackBar(application.getString(R.string.edit_friend_name_failed))
+                        showSnackBar(application.getString(com.aracroproducts.common.R.string.edit_friend_name_failed))
                     }
 
                     403 -> {
@@ -500,27 +496,27 @@ class MainViewModel(
                     preferencesRepository.bulkEdit { settings ->
                         settings[stringPreferencesKey(
                             context.getString(
-                                R.string.username_key
+                                com.aracroproducts.common.R.string.username_key
                             )
                         )] = data.username
                         settings[stringPreferencesKey(
                             context.getString(
-                                R.string.first_name_key
+                                com.aracroproducts.common.R.string.first_name_key
                             )
                         )] = data.firstName
                         settings[stringPreferencesKey(
                             context.getString(
-                                R.string.last_name_key
+                                com.aracroproducts.common.R.string.last_name_key
                             )
                         )] = data.lastName
                         settings[stringPreferencesKey(
                             context.getString(
-                                R.string.email_key
+                                com.aracroproducts.common.R.string.email_key
                             )
                         )] = data.email
                         settings[booleanPreferencesKey(
                             context.getString(
-                                R.string.password_key
+                                com.aracroproducts.common.R.string.password_key
                             )
                         )] = data.password
                     }
@@ -566,37 +562,6 @@ class MainViewModel(
 
     }
 
-    fun registerDevice() {
-        viewModelScope.launch {
-            // token is auth token
-            val token = preferencesRepository.getToken()
-
-            val fcmToken: String =
-                preferencesRepository.getValue(stringPreferencesKey(FCM_TOKEN)) ?: getToken()
-                ?: return@launch
-
-            if (token != null) {
-                try {
-                    attentionRepository.registerDevice(token, fcmToken)
-                    setConnectStatus(200)
-                    Log.d(sTAG, "Successfully uploaded token")
-                } catch (e: HttpException) {
-                    val response = e.response()
-                    if (response?.code() == 400) {
-                        Log.i(sTAG, "Token already registered")
-                    } else {
-                        val errorBody = response?.errorBody()?.string()
-                        setConnectStatus(response?.code(), e)
-                        Log.e(sTAG, "Error uploading token: $errorBody")
-                    }
-                } catch (e: Exception) {
-                    setConnectStatus(null, e)
-                }
-            }
-        }
-
-    }
-
     fun loadUserPrefs() {
         viewModelScope.launch {
             val context = application // Load user preferences and data
@@ -607,7 +572,7 @@ class MainViewModel(
             if (!preferencesRepository.contains(
                     stringPreferencesKey(
                         context.getString(
-                            R.string.ring_preference_key
+                            com.aracroproducts.common.R.string.ring_preference_key
                         )
                     )
                 )
@@ -615,7 +580,7 @@ class MainViewModel(
                 preferencesRepository.setValue(
                     stringSetPreferencesKey(
                         context.getString(
-                            R.string.ring_preference_key
+                            com.aracroproducts.common.R.string.ring_preference_key
                         )
                     ), setOf(notificationValues[2])
                 )
@@ -623,7 +588,7 @@ class MainViewModel(
             if (!preferencesRepository.contains(
                     stringPreferencesKey(
                         context.getString(
-                            R.string.vibrate_preference_key
+                            com.aracroproducts.common.R.string.vibrate_preference_key
                         )
                     )
                 )
@@ -631,7 +596,7 @@ class MainViewModel(
                 preferencesRepository.setValue(
                     stringSetPreferencesKey(
                         context.getString(
-                            R.string.vibrate_preference_key
+                            com.aracroproducts.common.R.string.vibrate_preference_key
                         )
                     ), setOf(notificationValues[1], notificationValues[2])
                 )
@@ -738,37 +703,12 @@ class MainViewModel(
         }
     }
 
-    fun cacheToken() {
-        viewModelScope.launch {
-            getToken()
-        }
-    }
-
-    /**
-     * Helper method that gets the Firebase token
-     *
-     * Automatically uploads the token and updates the "uploaded" sharedPreference
-     */
-    private suspend fun getToken(): String? {
-        try {
-            val fcmToken = Firebase.messaging.token.await()
-            preferencesRepository.setValue(stringPreferencesKey(FCM_TOKEN), fcmToken)
-            return fcmToken
-        } catch (e: Exception) {
-            val message =
-                "Unable to refresh token\n${e.stackTraceToString()}"
-            Firebase.crashlytics.log(message)
-            Log.e(sTAG, message)
-            return null
-        }
-    }
-
     private fun setConnectStatus(responseCode: Int?, e: Exception? = null) {
         val context = application
         when (responseCode) {
             200, 400, 403, 415 -> { // even though some of these are errors, they represent the
                 // server working correctly and the calling code should handle these gracefully
-                if (connectionState != context.getString(R.string.sharing)) {
+                if (connectionState != context.getString(com.aracroproducts.common.R.string.sharing)) {
                     connectionState = ""
                 }
                 connected = true
@@ -776,11 +716,11 @@ class MainViewModel(
 
             else -> { // no internet
                 connected = false
-                if (connectionState != context.getString(R.string.sharing)) {
+                if (connectionState != context.getString(com.aracroproducts.common.R.string.sharing)) {
                     connectionState = if (responseCode == null) {
-                        application.getString(R.string.disconnected)
+                        application.getString(com.aracroproducts.common.R.string.disconnected)
                     } else {
-                        context.getString(R.string.server_error)
+                        context.getString(com.aracroproducts.common.R.string.server_error)
 
                     }
                 }

@@ -52,28 +52,28 @@ class SharedViewModel(
                 settings.remove(
                     stringPreferencesKey(
                         context.getString(
-                            R.string.username_key
+                            com.aracroproducts.common.R.string.username_key
                         )
                     )
                 )
                 settings.remove(
                     stringPreferencesKey(
                         context.getString(
-                            R.string.first_name_key
+                            com.aracroproducts.common.R.string.first_name_key
                         )
                     )
                 )
                 settings.remove(
                     stringPreferencesKey(
                         context.getString(
-                            R.string.last_name_key
+                            com.aracroproducts.common.R.string.last_name_key
                         )
                     )
                 )
                 settings.remove(
                     stringPreferencesKey(
                         context.getString(
-                            R.string.email_key
+                            com.aracroproducts.common.R.string.email_key
                         )
                     )
                 )

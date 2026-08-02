@@ -86,12 +86,20 @@ import com.aracroproducts.common.theme.HarmonizedTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.toJavaLocalDate
+import kotlinx.datetime.toJavaLocalTime
+import kotlinx.datetime.toLocalDateTime
 import java.io.File
-import java.text.DateFormat
-import java.time.Duration
-import java.time.Instant
-import java.time.temporal.ChronoUnit
-import java.util.Calendar
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import kotlin.time.Clock
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 /**
  * An Activity that displays the pop up dialog for an alert
@@ -187,7 +195,7 @@ class Alert : AppCompatActivity() {
 
     private val receiver = AlertBroadCastReceiver()
 
-    inner class AlertViewModelFactory(
+    class AlertViewModelFactory(
         private val intent: Intent,
         private val attentionRepository: AttentionRepository,
         private val preferencesRepository: PreferencesRepository,
@@ -270,9 +278,12 @@ class Alert : AppCompatActivity() {
                         modifier = Modifier.fillMaxWidth(1f),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Image(painterResource(R.drawable.icon), contentDescription = null)
+                        Image(
+                            painterResource(com.aracroproducts.common.R.drawable.icon),
+                            contentDescription = null
+                        )
                         Text(
-                            text = getString(R.string.alert_title),
+                            text = getString(com.aracroproducts.common.R.string.alert_title),
                             style = MaterialTheme.typography.titleLarge
                         )
                     }
@@ -282,7 +293,7 @@ class Alert : AppCompatActivity() {
                                 Image(
                                     bitmap = it.asImageBitmap(),
                                     contentDescription = getString(
-                                        R.string.pfp_description,
+                                        com.aracroproducts.common.R.string.pfp_description,
                                         alertModel.from
                                     ),
                                     modifier = Modifier
@@ -295,9 +306,8 @@ class Alert : AppCompatActivity() {
                         }
                         Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
                         Text(
-                            timeSince(since = Calendar.getInstance().apply {
-                                timeInMillis = alertModel.timestamp
-                            }), color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            timeSince(since = Instant.fromEpochMilliseconds(alertModel.timestamp)),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = FontWeight.Thin
                         )
                         Spacer(modifier = Modifier.height(LIST_ELEMENT_PADDING))
@@ -315,7 +325,7 @@ class Alert : AppCompatActivity() {
                                 )
                                 startActivity(intent)
                             }) {
-                                Text(text = getString(R.string.open_settings))
+                                Text(text = getString(com.aracroproducts.common.R.string.open_settings))
                             }
                         }
                     }
@@ -336,7 +346,7 @@ class Alert : AppCompatActivity() {
                                 label = {
                                     Text(
                                         text = getString(
-                                            R.string.message_label,
+                                            com.aracroproducts.common.R.string.message_label,
                                             alertModel.sender.name
                                         )
                                     )
@@ -350,7 +360,7 @@ class Alert : AppCompatActivity() {
                                     ) {
                                         Icon(
                                             Icons.AutoMirrored.Filled.Send,
-                                            getString(R.string.send)
+                                            getString(com.aracroproducts.common.R.string.send)
                                         )
                                     }
                                 })
@@ -379,7 +389,10 @@ class Alert : AppCompatActivity() {
                             }
                             startActivity(intent)
                         }) {
-                            Icon(Icons.Default.Flag, getString(R.string.report))
+                            Icon(
+                                Icons.Default.Flag,
+                                getString(com.aracroproducts.common.R.string.report)
+                            )
                         }
                         AnimatedVisibility(
                             visible = !alertModel.silenced, enter = fadeIn(), exit = fadeOut()
@@ -388,7 +401,7 @@ class Alert : AppCompatActivity() {
                                 alertModel.silenceAndUpdateNotification(false)
                                 alertModel.markAsRead()
                             }) {
-                                Text(text = getString(R.string.silence))
+                                Text(text = getString(com.aracroproducts.common.R.string.silence))
                             }
                         }
 
@@ -404,7 +417,7 @@ class Alert : AppCompatActivity() {
                             }) {
                                 Row(Modifier.wrapContentSize()) {
                                     Icon(Icons.AutoMirrored.Filled.Reply, null)
-                                    Text(text = getString(R.string.reply))
+                                    Text(text = getString(com.aracroproducts.common.R.string.reply))
                                 }
                             }
                         }
@@ -421,7 +434,7 @@ class Alert : AppCompatActivity() {
                                 true -> {
                                     Row(Modifier.wrapContentSize()) {
                                         Icon(Icons.Filled.Close, null)
-                                        Text(text = getString(R.string.close))
+                                        Text(text = getString(com.aracroproducts.common.R.string.close))
                                     }
                                 }
                             }
@@ -434,12 +447,12 @@ class Alert : AppCompatActivity() {
     }
 
     @Composable
-    fun timeSince(since: Calendar): String {
+    fun timeSince(since: Instant): String {
         var value by remember { mutableStateOf(durationToMinimalDisplay(since)) }
         Log.d(Alert::class.java.simpleName, since.toString())
         LaunchedEffect(Unit) {
             while (true) { // we never need to recompose
-                if (value.second == -1L) {
+                if (value.second == Duration.INFINITE) {
                     break
                 }
                 delay(value.second)
@@ -462,49 +475,66 @@ class Alert : AppCompatActivity() {
      * The first element of the pair is the formatted time. The second element is how long until
      * this value will change and should be refreshed, in milliseconds
      */
-    private fun durationToMinimalDisplay(since: Calendar): Pair<String, Long> {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val now = Instant.now()
-            val duration = Duration.between(since.toInstant(), now)
+    private fun durationToMinimalDisplay(since: Instant): Pair<String, Duration> {
+        val now = Clock.System.now()
+        val duration = now - since
+
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.O) {
             when {
-                duration.seconds < 60 -> {
-                    return Pair(
-                        getString(R.string.seconds_ago, duration.seconds),
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) secondsToMillis(1) - duration.toMillisPart() else secondsToMillis(
-                            1
-                        ) - duration.nano / 1e6.toLong()
-                    )
-                }
-
-                duration.toMinutes() < 60 -> {
-                    return Pair(
-                        getString(R.string.minutes_ago, duration.toMinutes()),
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) minutesToMillis() - secondsToMillis(
-                            duration.toSecondsPart().toLong()
-                        ) else duration.seconds % 60
-                    )
-                }
-
-                since.toInstant().truncatedTo(ChronoUnit.DAYS) == now.truncatedTo(
-                    ChronoUnit.DAYS
-                ) -> {
+                duration < 60.seconds -> {
                     return Pair(
                         getString(
-                            R.string.sent_at, DateFormat.getTimeInstance().format(
-                                since.time
+                            com.aracroproducts.common.R.string.seconds_ago,
+                            duration.inWholeSeconds
+                        ),
+                        1.seconds - (duration - duration.inWholeSeconds.seconds)
+                    )
+                }
+
+                duration < 60.minutes -> {
+                    return Pair(
+                        getString(
+                            com.aracroproducts.common.R.string.minutes_ago,
+                            duration.inWholeMinutes
+                        ),
+                        1.minutes - (duration - duration.inWholeMinutes.minutes)
+                    )
+                }
+
+                since.toLocalDateTime(TimeZone.currentSystemDefault()).date == now.toLocalDateTime(
+                    TimeZone.currentSystemDefault()
+                ).date -> {
+                    return Pair(
+                        getString(
+                            // TODO when kotlinx-datetime has proper localization, update this logic (https://github.com/Kotlin/kotlinx-datetime/discussions/253)
+                            com.aracroproducts.common.R.string.sent_at,
+                            since.toLocalDateTime(TimeZone.currentSystemDefault()).time.toJavaLocalTime()
+                                .format(
+                                    DateTimeFormatter.ofLocalizedDateTime(
+                                        FormatStyle.MEDIUM,
+                                        FormatStyle.MEDIUM
+                                    )
                             )
-                        ), Duration.between(
-                            since.toInstant(),
-                            since.toInstant().truncatedTo(ChronoUnit.DAYS).plus(1, ChronoUnit.DAYS)
-                        ).toMillis()
+                        ), now.toLocalDateTime(TimeZone.currentSystemDefault()).let {
+                            it.date.atStartOfDayIn(
+                                TimeZone.currentSystemDefault()
+                            ) + 1.days - now
+                        }
                     ) // This returns the amount of time (in milliseconds) until tomorrow
                 }
 
                 else -> {
                     return Pair(
                         getString(
-                            R.string.sent_on, DateFormat.getDateTimeInstance().format(since.time)
-                        ), -1
+                            com.aracroproducts.common.R.string.sent_on,
+                            since.toLocalDateTime(TimeZone.currentSystemDefault()).date.toJavaLocalDate()
+                                .format(
+                                    DateTimeFormatter.ofLocalizedDateTime(
+                                        FormatStyle.MEDIUM,
+                                        FormatStyle.MEDIUM
+                                    )
+                                )
+                        ), Duration.INFINITE
                     ) // This value will never change (unless the user changes their timezone, which
                     // probably wouldn't happen without the app getting recomposed?)
                 }
@@ -514,18 +544,12 @@ class Alert : AppCompatActivity() {
             // Besides, Android O is now 8 years old - basically everyone is running it or newer
             return Pair(
                 getString(
-                    R.string.sent_on, DateFormat.getDateTimeInstance().format(since.time)
-                ), -1
+                    com.aracroproducts.common.R.string.sent_on,
+                    since.toLocalDateTime(TimeZone.currentSystemDefault())
+                        .let { "${it.year}-${it.month}-${it.day} ${it.hour}:${it.minute}" }
+                ), Duration.INFINITE
             )
         }
-    }
-
-    private fun secondsToMillis(seconds: Long): Long {
-        return seconds * 1000
-    }
-
-    private fun minutesToMillis(minutes: Long = 1): Long {
-        return minutes * secondsToMillis(60)
     }
 
     override fun onDestroy() {

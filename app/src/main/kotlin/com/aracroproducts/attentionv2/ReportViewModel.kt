@@ -28,12 +28,15 @@ class ReportViewModel(
 ) : AndroidViewModel(application) {
 
     enum class Reason(val description: Int, val tags: List<String>) {
-        BUG(R.string.report_reason_bug, listOf("bug")),
-        CSAM(R.string.report_reason_csam, listOf("legal", "csam")),
-        DANGEROUS_CONTENT(R.string.report_reason_dangerous, listOf("legal", "danger")),
-        TOS_VIOLATION(R.string.report_reason_tos, listOf("tos")),
-        DMCA(R.string.report_reason_dmca, listOf("legal", "dmca")),
-        OTHER(R.string.report_reason_other, listOf())
+        BUG(com.aracroproducts.common.R.string.report_reason_bug, listOf("bug")),
+        CSAM(com.aracroproducts.common.R.string.report_reason_csam, listOf("legal", "csam")),
+        DANGEROUS_CONTENT(
+            com.aracroproducts.common.R.string.report_reason_dangerous,
+            listOf("legal", "danger")
+        ),
+        TOS_VIOLATION(com.aracroproducts.common.R.string.report_reason_tos, listOf("tos")),
+        DMCA(com.aracroproducts.common.R.string.report_reason_dmca, listOf("legal", "dmca")),
+        OTHER(com.aracroproducts.common.R.string.report_reason_other, listOf())
     }
 
     enum class AttachmentType {
@@ -60,7 +63,7 @@ class ReportViewModel(
         val augmentedBody = when (reason) {
             Reason.BUG -> {
                 val fields = mapOf(
-                    "App build" to context.getString(R.string.version_name),
+                    "App build" to VERSION_DISPLAY_NAME,
                     "Android API level" to Build.VERSION.SDK_INT,
                     "Manufacturer" to Build.MANUFACTURER,
                     "Model" to Build.MODEL

@@ -38,6 +38,7 @@
 
 -dontwarn org.jetbrains.annotations.NotNull
 -dontwarn org.jetbrains.annotations.Nullable
+-dontwarn org.intellij.lang.annotations.Language
 
 -keepattributes Signature
 

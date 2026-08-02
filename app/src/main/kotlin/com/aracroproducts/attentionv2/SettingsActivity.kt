@@ -166,6 +166,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
 import java.lang.Integer.max
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * The class for the settings menu in the app
@@ -238,7 +240,7 @@ class SettingsActivity : AppCompatActivity() {
         if (!manager.isNotificationPolicyAccessGranted) {
             viewModel.writeToDatastore(
                 booleanPreferencesKey(
-                    getString(R.string.override_dnd_key)
+                    getString(com.aracroproducts.common.R.string.override_dnd_key)
                 ), false
             )
         }
@@ -291,14 +293,15 @@ class SettingsActivity : AppCompatActivity() {
 
         val userInfoChangeListener = viewModel.UserInfoChangeListener(this, viewModel)
         val preferences =
-            listOf(Pair<Pair<Int, (@Composable () -> Unit)?>, @Composable () -> Unit>(Pair(R.string.account) @Composable {
+            listOf(
+                Pair<Pair<Int, (@Composable () -> Unit)?>, @Composable () -> Unit>(Pair(com.aracroproducts.common.R.string.account) @Composable {
                 Icon(Icons.Outlined.ManageAccounts, null)
             }) @Composable {
                 SplitPreference(largePreference = {
                     var usernameValue by rememberPreference(
                         key = stringPreferencesKey(
                             getString(
-                                R.string.username_key
+                                com.aracroproducts.common.R.string.username_key
                             )
                         ), defaultValue = "", repository = viewModel.preferencesRepository
                     )
@@ -307,7 +310,7 @@ class SettingsActivity : AppCompatActivity() {
                                        setValue = { newValue ->
                                            usernameValue = newValue
                                        },
-                                       title = R.string.username,
+                        title = com.aracroproducts.common.R.string.username,
                                        dialog = { value, setValue, dismissDialog, context, title ->
                                            var newValue by remember { mutableStateOf(value) }
                                            var loading by remember { mutableStateOf(false) }
@@ -318,7 +321,7 @@ class SettingsActivity : AppCompatActivity() {
                                                if (newValue.isBlank()) {
                                                    error = true
                                                    usernameCaption =
-                                                       context.getString(R.string.empty_username)
+                                                       context.getString(com.aracroproducts.common.R.string.empty_username)
                                                    return
                                                }
                                                loading = true
@@ -358,7 +361,7 @@ class SettingsActivity : AppCompatActivity() {
                                                            }, content = {
                                                                Text(
                                                                    text = if (loading) getString(
-                                                                       R.string.saving
+                                                                       com.aracroproducts.common.R.string.saving
                                                                    ) else getString(
                                                                        android.R.string.ok
                                                                    )
@@ -404,7 +407,7 @@ class SettingsActivity : AppCompatActivity() {
                                                    Image(
                                                        bitmap = it,
                                                        contentDescription = getString(
-                                                           R.string.your_pfp_description
+                                                           com.aracroproducts.common.R.string.your_pfp_description
                                                        ),
                                                        modifier = Modifier
                                                            .fillMaxSize()
@@ -415,14 +418,15 @@ class SettingsActivity : AppCompatActivity() {
                                            }
                                        },
                                        summary = { value ->
-                                           value.ifBlank { getString(R.string.no_username) }
+                                           value.ifBlank { getString(com.aracroproducts.common.R.string.no_username) }
                                        })
                 }, smallPreference = {
                     IconButton(onClick = {
                         viewModel.launchShareSheet(this)
                     }, modifier = Modifier.fillMaxSize()) {
                         Icon(
-                            Icons.Outlined.Share, contentDescription = getString(R.string.share)
+                            Icons.Outlined.Share,
+                            contentDescription = getString(com.aracroproducts.common.R.string.share)
                         )
                     }
                 })
@@ -430,7 +434,7 @@ class SettingsActivity : AppCompatActivity() {
                 var emailValue by rememberPreference(
                     key = stringPreferencesKey(
                         getString(
-                            R.string.email_key
+                            com.aracroproducts.common.R.string.email_key
                         )
                     ), defaultValue = "", repository = viewModel.preferencesRepository
                 )
@@ -443,7 +447,7 @@ class SettingsActivity : AppCompatActivity() {
                     icon = {
                         Icon(Icons.Outlined.AlternateEmail, null)
                     },
-                    title = R.string.email,
+                    title = com.aracroproducts.common.R.string.email,
                     dialog = { value, setValue, dismissDialog, context, title ->
                         var newValue by remember { mutableStateOf(value) }
                         var loading by remember { mutableStateOf(false) }
@@ -455,7 +459,7 @@ class SettingsActivity : AppCompatActivity() {
                                         newValue
                                     ).matches())
                                 ) {
-                                    getString(R.string.invalid_email)
+                                    getString(com.aracroproducts.common.R.string.invalid_email)
                                 } else {
                                     ""
                                 }
@@ -493,7 +497,7 @@ class SettingsActivity : AppCompatActivity() {
                                         }, content = {
                                             Text(
                                                 text = if (loading) getString(
-                                                    R.string.saving
+                                                    com.aracroproducts.common.R.string.saving
                                                 ) else getString(
                                                     android.R.string.ok
                                                 )
@@ -524,7 +528,7 @@ class SettingsActivity : AppCompatActivity() {
                 var firstNameValue by rememberPreference(
                     key = stringPreferencesKey(
                         getString(
-                            R.string.first_name_key
+                            com.aracroproducts.common.R.string.first_name_key
                         )
                     ), defaultValue = "", onPreferenceChangeListener = listOf(
                         userInfoChangeListener::onPreferenceChange
@@ -534,7 +538,7 @@ class SettingsActivity : AppCompatActivity() {
                                    setValue = { newValue ->
                                        firstNameValue = newValue
                                    },
-                                   title = R.string.first_name,
+                    title = com.aracroproducts.common.R.string.first_name,
                                    dialog = { value, setValue, dismissDialog, context, title ->
                                        StringPreferenceChange(
                                            value = value,
@@ -542,7 +546,7 @@ class SettingsActivity : AppCompatActivity() {
                                            dismissDialog = dismissDialog,
                                            context = context,
                                            title = title,
-                                           textFieldLabel = R.string.placeholder_name,
+                                           textFieldLabel = com.aracroproducts.common.R.string.placeholder_name,
                                            keyboardOptions = KeyboardOptions(
                                                capitalization = KeyboardCapitalization.Words
                                            )
@@ -552,7 +556,7 @@ class SettingsActivity : AppCompatActivity() {
                 var lastNameValue by rememberPreference(
                     key = stringPreferencesKey(
                         getString(
-                            R.string.last_name_key
+                            com.aracroproducts.common.R.string.last_name_key
                         )
                     ), defaultValue = "", onPreferenceChangeListener = listOf(
                         userInfoChangeListener::onPreferenceChange
@@ -563,7 +567,7 @@ class SettingsActivity : AppCompatActivity() {
                     setValue = { newValue ->
                         lastNameValue = newValue
                     },
-                    title = R.string.last_name,
+                    title = com.aracroproducts.common.R.string.last_name,
                     dialog = { value, setValue, dismissDialog, context, title ->
                         StringPreferenceChange(
                             value = value,
@@ -571,7 +575,7 @@ class SettingsActivity : AppCompatActivity() {
                             dismissDialog = dismissDialog,
                             context = context,
                             title = title,
-                            textFieldLabel = R.string.placeholder_name,
+                            textFieldLabel = com.aracroproducts.common.R.string.placeholder_name,
                             keyboardOptions = KeyboardOptions(
                                 capitalization = KeyboardCapitalization.Words
                             )
@@ -581,7 +585,7 @@ class SettingsActivity : AppCompatActivity() {
                 val usesPassword by rememberPreference(
                     key = booleanPreferencesKey(
                         getString(
-                            R.string.password_key
+                            com.aracroproducts.common.R.string.password_key
                         )
                     ), defaultValue = true, repository = viewModel.preferencesRepository
                 )
@@ -589,25 +593,30 @@ class SettingsActivity : AppCompatActivity() {
                            icon = {
                                Icon(Icons.Outlined.Password, null)
                            },
-                           title = R.string.password,
+                    title = com.aracroproducts.common.R.string.password,
                            summary = null,
                            enabled = usesPassword,
                            onPreferenceClicked = {
                                val intent = Intent(this, LoginActivity::class.java)
-                               intent.action = getString(R.string.change_password_action)
+                               intent.action =
+                                   getString(com.aracroproducts.common.R.string.change_password_action)
                                startActivity(intent)
                            })
 
                 Preference(
                     value = null, icon = { _ ->
                     Image(
-                        painter = painterResource(id = R.drawable.ic_btn_google),
-                        contentDescription = getString(R.string.google_logo),
+                        painter = painterResource(id = com.aracroproducts.common.R.drawable.ic_btn_google),
+                        contentDescription = getString(com.aracroproducts.common.R.string.google_logo),
                         modifier = Modifier.fillMaxSize()
                     )
-                }, title = R.string.link_account, summary = null, onPreferenceClicked = {
+                    },
+                    title = com.aracroproducts.common.R.string.link_account,
+                    summary = null,
+                    onPreferenceClicked = {
                     val intent = Intent(this, LoginActivity::class.java)
-                    intent.action = getString(R.string.link_account_action)
+                        intent.action =
+                            getString(com.aracroproducts.common.R.string.link_account_action)
                     startActivity(intent)
                 }, enabled = usesPassword
                 )
@@ -619,7 +628,7 @@ class SettingsActivity : AppCompatActivity() {
                             Icons.AutoMirrored.Outlined.Logout, null, tint = MaterialTheme.colorScheme.error
                         )
                     },
-                    title = R.string.confirm_logout_title,
+                    title = com.aracroproducts.common.R.string.confirm_logout_title,
                     titleColor = MaterialTheme.colorScheme.error,
                     summary = null,
                 ) { _, _, dismissDialog, _, title ->
@@ -627,7 +636,7 @@ class SettingsActivity : AppCompatActivity() {
                     AlertDialog(onDismissRequest = { dismissDialog() }, title = {
                         Text(text = title)
                     }, text = {
-                        Text(text = getString(R.string.confirm_logout_message))
+                        Text(text = getString(com.aracroproducts.common.R.string.confirm_logout_message))
                     }, confirmButton = {
                         Button(
                             onClick = {
@@ -650,7 +659,7 @@ class SettingsActivity : AppCompatActivity() {
                                 contentColor = MaterialTheme.colorScheme.onError
                             )
                         ) {
-                            Text(text = getString(R.string.confirm_logout_title))
+                            Text(text = getString(com.aracroproducts.common.R.string.confirm_logout_title))
                         }
                     }, dismissButton = {
                         FilledTonalButton(onClick = { dismissDialog() }) {
@@ -661,11 +670,11 @@ class SettingsActivity : AppCompatActivity() {
                 }
 
             },
-                   Pair<Pair<Int, (@Composable () -> Unit)?>, @Composable () -> Unit>(Pair(R.string.app_preference_category) @Composable {
+                Pair<Pair<Int, (@Composable () -> Unit)?>, @Composable () -> Unit>(Pair(com.aracroproducts.common.R.string.app_preference_category) @Composable {
                        Icon(Icons.Outlined.Tune, null)
                    }) @Composable {
                        var delayValue by rememberPreference(
-                           key = floatPreferencesKey(getString(R.string.delay_key)),
+                           key = floatPreferencesKey(getString(com.aracroproducts.common.R.string.delay_key)),
                            defaultValue = DEFAULT_DELAY,
                            repository = viewModel.preferencesRepository
                        )
@@ -675,28 +684,31 @@ class SettingsActivity : AppCompatActivity() {
                                               Icon(Icons.Outlined.Timer, null)
                                           },
                                           summary = {
-                                              getString(R.string.delay_summary, it.toString())
+                                              getString(
+                                                  com.aracroproducts.common.R.string.delay_summary,
+                                                  it.toString()
+                                              )
                                           },
-                                          title = R.string.delay_title
+                           title = com.aracroproducts.common.R.string.delay_title
                        ) { value, setValue, dismissDialog, context, title ->
                            FloatPreferenceChange(value = value,
                                                  setValue = setValue,
                                                  dismissDialog = dismissDialog,
                                                  context = context,
                                                  title = title,
-                                                 textFieldLabel = R.string.delay_label,
+                               textFieldLabel = com.aracroproducts.common.R.string.delay_label,
                                                  validate = {
                                                      if (it < 0) {
-                                                         getString(R.string.delay_greater_than_zero)
+                                                         getString(com.aracroproducts.common.R.string.delay_greater_than_zero)
                                                      } else ""
                                                  })
                        }
                    },
-                   Pair<Pair<Int, (@Composable () -> Unit)?>, @Composable () -> Unit>(Pair(R.string.notifications_title) @Composable {
+                Pair<Pair<Int, (@Composable () -> Unit)?>, @Composable () -> Unit>(Pair(com.aracroproducts.common.R.string.notifications_title) @Composable {
                        Icon(Icons.Outlined.Notifications, null)
                    }) @Composable {
                        var vibrateValue by rememberPreference(
-                           key = stringSetPreferencesKey(getString(R.string.vibrate_preference_key)),
+                           key = stringSetPreferencesKey(getString(com.aracroproducts.common.R.string.vibrate_preference_key)),
                            defaultValue = HashSet(),
                            repository = viewModel.preferencesRepository
                        )
@@ -705,7 +717,7 @@ class SettingsActivity : AppCompatActivity() {
                                           icon = {
                                               Icon(Icons.Outlined.Vibration, null)
                                           },
-                                          title = R.string.vibrate_preference,
+                           title = com.aracroproducts.common.R.string.vibrate_preference,
                                           dialog = { value, setValue, dismissDialog, context, title ->
                                               MultiSelectListPreferenceChange(
                                                   value = value,
@@ -729,7 +741,7 @@ class SettingsActivity : AppCompatActivity() {
                        var ringValue by rememberPreference(
                            key = stringSetPreferencesKey(
                                getString(
-                                   R.string.ring_preference_key
+                                   com.aracroproducts.common.R.string.ring_preference_key
                                )
                            ), defaultValue = HashSet(), repository = viewModel.preferencesRepository
                        )
@@ -739,7 +751,7 @@ class SettingsActivity : AppCompatActivity() {
                                           icon = {
                                               Icon(Icons.Outlined.NotificationsActive, null)
                                           },
-                                          title = R.string.ring_preference,
+                           title = com.aracroproducts.common.R.string.ring_preference,
                                           dialog = { value, setValue, dismissDialog, context, title ->
                                               MultiSelectListPreferenceChange(
                                                   value = value,
@@ -765,7 +777,7 @@ class SettingsActivity : AppCompatActivity() {
                        }
                        var overrideDNDValue by rememberPreference(
                            key = booleanPreferencesKey(
-                               getString(R.string.override_dnd_key)
+                               getString(com.aracroproducts.common.R.string.override_dnd_key)
                            ),
                            defaultValue = false,
                            onPreferenceChangeListener = listOf { _, newValue ->
@@ -795,7 +807,7 @@ class SettingsActivity : AppCompatActivity() {
                                                showDNDAlert.value = false
                                                startActivity(intent)
                                            }, content = {
-                                               Text(text = getString(R.string.open_settings))
+                                               Text(text = getString(com.aracroproducts.common.R.string.open_settings))
                                            })
                                        },
                                        dismissButton = {
@@ -805,20 +817,20 @@ class SettingsActivity : AppCompatActivity() {
                                                Text(text = getString(android.R.string.cancel))
                                            }
                                        }, title = {
-                                           Text(text = getString(R.string.allow_dnd_title))
+                                   Text(text = getString(com.aracroproducts.common.R.string.allow_dnd_title))
                                }, text = {
-                                   Text(text = getString(R.string.allow_dnd_message))
+                                   Text(text = getString(com.aracroproducts.common.R.string.allow_dnd_message))
                                })
                        }
                        Preference(value = overrideDNDValue, icon = {
                            Icon(Icons.Outlined.DoNotDisturbOn, null)
                        }, onPreferenceClicked = {
                            overrideDNDValue = !overrideDNDValue
-                       }, title = R.string.override_dnd, summary = {
+                       }, title = com.aracroproducts.common.R.string.override_dnd, summary = {
                            if (it) {
-                               getString(R.string.override_summary_on)
+                               getString(com.aracroproducts.common.R.string.override_summary_on)
                            } else {
-                               getString(R.string.override_summary_off)
+                               getString(com.aracroproducts.common.R.string.override_summary_off)
                            }
                        }, action = {
                            CheckboxAction(value = it) { checked ->
@@ -827,36 +839,44 @@ class SettingsActivity : AppCompatActivity() {
                        })
                    },
                    Pair<Pair<Int, (@Composable () -> Unit)?>, @Composable () -> Unit>(Pair(
-                       R.string.legal_title
+                       com.aracroproducts.common.R.string.legal_title
                    ) @Composable {
                        Icon(Icons.Outlined.Gavel, null)
                    }) @Composable {
                        Preference(value = null,
                                   icon = { Icon(Icons.Outlined.Gavel, null) },
-                                  title = R.string.terms_of_service,
+                           title = com.aracroproducts.common.R.string.terms_of_service,
                                   summary = null,
                                   onPreferenceClicked = {
                                       val browserIntent = Intent(
-                                          Intent.ACTION_VIEW, getString(R.string.tos_url).toUri()
+                                          Intent.ACTION_VIEW,
+                                          getString(com.aracroproducts.common.R.string.tos_url).toUri()
                                       )
                                       startActivity(browserIntent)
                                   })
                        Preference(value = null, icon = {
                            Icon(Icons.Outlined.Policy, null)
-                       }, title = R.string.privacy_policy, summary = null, onPreferenceClicked = {
+                       },
+                           title = com.aracroproducts.common.R.string.privacy_policy,
+                           summary = null,
+                           onPreferenceClicked = {
                            val browserIntent = Intent(
-                               Intent.ACTION_VIEW, getString(R.string.privacy_policy_url).toUri()
+                               Intent.ACTION_VIEW,
+                               getString(com.aracroproducts.common.R.string.privacy_policy_url).toUri()
                            )
                            startActivity(browserIntent)
                        })
                        Preference(value = null, icon = {
                            Icon(Icons.Outlined.Flag, null)
-                       }, title = R.string.report, summary = null, onPreferenceClicked = {
+                       },
+                           title = com.aracroproducts.common.R.string.report,
+                           summary = null,
+                           onPreferenceClicked = {
                            startActivity(Intent(this, ReportDialog::class.java))
                        })
                        Preference(
-                           value = getString(R.string.version_name),
-                           title = R.string.app_version,
+                           value = VERSION_DISPLAY_NAME,
+                           title = com.aracroproducts.common.R.string.app_version,
                            icon = {
                                Icon(Icons.Outlined.Update, null)
                            },
@@ -864,17 +884,19 @@ class SettingsActivity : AppCompatActivity() {
                        )
 
                        Preference(
-                               title = R.string.by_ap,
+                           title = com.aracroproducts.common.R.string.by_ap,
                                value = null,
                                summary = null,
                                onPreferenceClicked = {
                                    val browserIntent = Intent(
-                                       Intent.ACTION_VIEW, getString(R.string.ap_url).toUri()
+                                       Intent.ACTION_VIEW,
+                                       getString(com.aracroproducts.common.R.string.ap_url).toUri()
                                    )
                                    startActivity(browserIntent)
                                },
                                icon = {
-                                   Icon(ImageVector.vectorResource(id = R.drawable.ap),
+                                   Icon(
+                                       ImageVector.vectorResource(id = com.aracroproducts.common.R.drawable.ap),
                                            null)
                                }
                        )
@@ -917,14 +939,16 @@ class SettingsActivity : AppCompatActivity() {
         val tabletScrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
         Scaffold(topBar = {
             if (phone) {
-                LargeTopAppBar(colors = TopAppBarDefaults.largeTopAppBarColors(
+                LargeTopAppBar(
+                    colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     scrolledContainerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
                     navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                        actionIconContentColor = Color.Unspecified
                 ), title = {
                     Text(
-                        getString(R.string.title_activity_settings),
+                        getString(com.aracroproducts.common.R.string.title_activity_settings),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -934,7 +958,7 @@ class SettingsActivity : AppCompatActivity() {
                     }) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack, getString(
-                                R.string.back
+                                com.aracroproducts.common.R.string.back
                             )
                         )
                     }
@@ -947,7 +971,7 @@ class SettingsActivity : AppCompatActivity() {
                     navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
                 ), title = {
                     Text(
-                        getString(R.string.title_activity_settings),
+                        getString(com.aracroproducts.common.R.string.title_activity_settings),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -957,7 +981,7 @@ class SettingsActivity : AppCompatActivity() {
                     }) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack, getString(
-                                R.string.back
+                                com.aracroproducts.common.R.string.back
                             )
                         )
                     }
@@ -1065,7 +1089,7 @@ class SettingsActivity : AppCompatActivity() {
                     OutlinedButton(onClick = {
                         retry(uri, this)
                     }) {
-                        Text(text = getString(R.string.retry))
+                        Text(text = getString(com.aracroproducts.common.R.string.retry))
                     }
                 } else {
                     Button(onClick = { dismissDialog() }) {
@@ -1074,7 +1098,7 @@ class SettingsActivity : AppCompatActivity() {
                 }
             }
         }, title = {
-            Text(text = getString(R.string.upload_pfp))
+            Text(text = getString(com.aracroproducts.common.R.string.upload_pfp))
         }, text = {
             val configuration = LocalWindowInfo.current.containerSize
             val density = LocalDensity.current
@@ -1118,7 +1142,7 @@ class SettingsActivity : AppCompatActivity() {
                                         bitmap = it,
                                         contentScale = ContentScale.Fit,
                                         contentDescription = getString(
-                                            R.string.your_pfp_description
+                                            com.aracroproducts.common.R.string.your_pfp_description
                                         ),
                                         modifier = Modifier
                                             .aspectRatio(
@@ -1152,7 +1176,7 @@ class SettingsActivity : AppCompatActivity() {
                                     Image(
                                         bitmap = it,
                                         contentDescription = getString(
-                                            R.string.your_pfp_description
+                                            com.aracroproducts.common.R.string.your_pfp_description
                                         ),
                                         modifier = Modifier
                                             .aspectRatio(
@@ -1494,7 +1518,7 @@ class SettingsActivity : AppCompatActivity() {
         const val TEMP_PFP = "${MainViewModel.PFP_FILENAME}_temp"
         const val UPLOAD_GRAY_INTENSITY = 0.5f
         const val FADE_DURATION = 500
-        const val STATUS_DELAY: Long = 5000
+        val STATUS_DELAY: Duration = 5000.milliseconds
 
         const val DEFAULT_DELAY = 3.5f
 
